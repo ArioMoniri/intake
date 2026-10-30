@@ -157,13 +157,11 @@ def _checklist(session: CaptureSession, frame: frame_plan.Frame) -> str:
 
 def shoot(session: CaptureSession, frame: frame_plan.Frame) -> Shot:
     """Set the appearance, confirm the screen, capture, and check the size."""
-    if frame.waits_for is not None:
-        issue = frame.waits_for.split(" ", 1)[0]
-        if issue not in session.resolved:
-            raise CaptureError(
-                f"{frame.frame_id} waits for {frame.waits_for}; capture it once {issue} "
-                "is in the build (--resolved)"
-            )
+    if frame.held and frame.waiting_issue not in session.resolved:
+        raise CaptureError(
+            f"{frame.frame_id} waits for {frame.waits_for}; capture it once "
+            f"{frame.waiting_issue} is in the build (--resolved)"
+        )
     session.runner.run(["xcrun", "simctl", "ui", session.udid, "appearance", frame.appearance])
     if session.open_routes and (session.visit is not None or "{visit}" not in frame.route):
         route = frame.route.replace("{visit}", session.visit or "")
@@ -210,6 +208,7 @@ def write_provenance(session: CaptureSession, shots: Sequence[Shot], *, captured
     one set never mixes builds."""
     path = session.out_dir / "provenance.yaml"
     rows: dict[str, dict[str, str]] = {}
+    resolved = set(session.resolved)
     build = {
         "device": session.spec.capture_device,
         "runtime": session.spec.capture_runtime,
@@ -227,6 +226,7 @@ def write_provenance(session: CaptureSession, shots: Sequence[Shot], *, captured
                 "start a new capture directory"
             )
         rows = {str(row["file"]): row for row in earlier.get("captures", [])}
+        resolved |= {str(issue) for issue in earlier.get("resolved", [])}
     for s in shots:
         rows[s.name] = {
             "file": s.name,
@@ -244,7 +244,7 @@ def write_provenance(session: CaptureSession, shots: Sequence[Shot], *, captured
         "api": session.api_label,
         "data_class": session.data_class,
         "app_state": dict(session.spec.app_state),
-        "resolved": sorted(session.resolved),
+        "resolved": sorted(resolved),
         "captures": [rows[name] for name in sorted(rows)],
     }
     path.write_text(yaml.safe_dump(record, allow_unicode=True, sort_keys=False), encoding="utf-8")
@@ -303,11 +303,7 @@ def main(argv: Sequence[str]) -> int:
         )
         prepare(session)
         frames = [f for f in spec.live_frames if not args.frame or f.frame_id in args.frame]
-        held = [
-            f
-            for f in frames
-            if f.waits_for is not None and f.waits_for.split(" ", 1)[0] not in session.resolved
-        ]
+        held = [f for f in frames if f.held and f.waiting_issue not in session.resolved]
         for frame in held:
             print(f"HELD {frame.frame_id}: waits for {frame.waits_for}")
         shots = [shoot(session, frame) for frame in frames if frame not in held]

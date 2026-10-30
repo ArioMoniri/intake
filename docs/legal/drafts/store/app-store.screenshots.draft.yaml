@@ -32,7 +32,7 @@ provenance:
   prepared_on: "2026-10-29"
 captions:
   - id: header
-    screen: "the product page header: the brand and three of the frames below (bugun, tek-soru, not)"
+    screen: "the product page header: the brand and three of the frames below (tek-soru, not, verileriniz)"
     tr:
       eyebrow: "Önvizit"
       headline: "Muayeneden önce ön notunuz"

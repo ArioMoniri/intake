@@ -1,5 +1,26 @@
 # PROGRESS — one entry per LOOP iteration (template in LOOP.md)
 
+### 2026-10-31T02:00:00+03:00 · INT-502 · doing (capture-review rulings and the legal re-check applied; PR to open)
+- Goal: apply the orchestrator's rulings on the build-7 capture flags and the legal re-check of 31 Oct. The store frames must show only what the store build truthfully shows, and the header must show only frames that ship.
+- Plan:
+  - bugun waits for INT-594 (#1007) and carries a `dropped` entry. gorunum is dropped for "Sizi dinliyoruz.". izinler's drop stands.
+  - konusma and not record `resolved_in` build 7 (690a16bb).
+  - The header becomes tek-soru, not and verileriniz, in both the spec and the caption draft.
+  - en-US ships no frames. A must_not_show line keeps the %36 gauge out.
+  - The uploader is INT-593 (#1006).
+  - The held and dropped captures are withdrawn.
+- Tests added (with the near-miss negative for any safety rule):
+  - `tests/legal/test_asc_frames.py`: frames that ship; the header shows only shipped frames and no dropped one; the loader's four refusals (held phone, dropped phone, resolved without a wait, short sha); render paints only shipped frames; en-US is refused while LOCALE_REGISTRY is tr-only; the committed captures equal the shipped frames with their hashes; a provenance merge keeps earlier resolutions.
+  - Red: 13 failed / 35 passed (rulings), then 3 failed / 47 passed (re-check). Green: 50 passed.
+- Result (`make check` / `make safety` / `make security` summary): broad regression 3201 passed, 5 failed (four `test_deid_ner` for the missing local model cache; one `test_brand_name` from INT-482's evidence, fixed on int-495 and carried in). ruff, ruff format (whole tree) and mypy strict on the store scripts are clean. A preview of 13 outputs passes the slot checks (evidence §12).
+- Invariants touched and still passing: 2, 5, 6, 17, 18, 20.
+- Decisions / ADRs / `00_STATE.md` rows: none. The rulings are the orchestrator's (31 Oct), and the re-check is the legal lane's.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id):
+  - the caption draft's legal-lane promotion, before export;
+  - the acceptance amendment (no dark and no en-US frame; the upload moves to INT-593), which is the orchestrator's;
+  - the App Store Connect writes, until the owner's go.
+- Next: open the INT-502 PR, stacked on #860.
+- LOOP_STATUS: CONTINUE
 ### 2026-10-28T16:30:00+03:00 · INT-585 · done (PR open)
 - Goal: GitHub #984, Sec-Row `onboarding`. Record the owner's 28 Oct SMS decisions ("1Y 2Y 3Y 4Y 5Y") as D34-D38 in files/00_STATE.md §3, and the live Netgsm OTP confirmation in docs/evidence/INT-576.md.
 - Plan:

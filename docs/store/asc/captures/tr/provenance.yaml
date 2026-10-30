@@ -13,10 +13,6 @@ resolved:
 - INT-587
 - INT-588
 captures:
-- file: 01-bugun.png
-  sha256: 50e3b3e5fddd8317394e8a075e891a0e1793e49357b5de96ead57203555383bb
-  appearance: light
-  route: /today
 - file: 02-konusma.png
   sha256: 009c76c2fc6c76c08d368de5121dd66220fa975057c19660f6fc6457ab8d26ec
   appearance: light
@@ -33,7 +29,3 @@ captures:
   sha256: 25971bba7d114a4eb492b01d5c3258f761d052618290718c783a30b342be2415
   appearance: light
   route: /me/data
-- file: 07-gorunum.png
-  sha256: 2aab828164f8d7edd2e532eaeb39afee1dec798c9461ee98ebf99d70ad35a9c7
-  appearance: dark
-  route: /me/appearance

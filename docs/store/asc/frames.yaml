@@ -11,7 +11,9 @@
 #            file with scripts/store/asc_assets.py. It reads captions only from the
 #            served copy; --preview takes a caption file by path and writes outside
 #            the repository.
-#   upload   INT-495's writer (scripts/store/asc_listing.py), after the owner's yes.
+#   upload   INT-593 (GitHub #1006), after the owner's yes. A frame ships only when it is
+#            neither dropped nor held: a frame that waits_for an issue ships once
+#            resolved_in names a captured build carrying it.
 #
 # The design is the app's own. The colours are tokens of apps/mobile/src/lib/theme.ts,
 # and the two faces are the app's own OFL fonts. The phone frame is drawn here, not
@@ -33,9 +35,12 @@ capture:
   # provenance.yaml: voice consent off, and a visit starts typed (Görünüm,
   # appearance.start). Voice intake is __DEV__-only in a store build.
   app_state: {voice: "off", start_mode: "typed"}
+  # Only Turkish ships frames. The app offers patients Turkish only (LOCALE_REGISTRY in
+  # apps/mobile/src/lib/i18n/locale.ts), so en-US ships no screenshots or header of its
+  # own, and its product page shows the primary language's. That holds only while the
+  # app record's primary language is Turkish.
   locales:
     tr: {apple_language: "tr", apple_locale: "tr_TR"}
-    en-US: {apple_language: "en", apple_locale: "en_US"}
 
 # Fonts: the app's own faces (apps/mobile/src/lib/theme.ts `fonts`), read from the
 # app's installed packages and pinned by sha256. Licence: the raw LICENSE_FONT file
@@ -96,7 +101,8 @@ layout:
     phone_gap: 0.045         # of H
     bottom: 0.070            # of H
     gutter: 0.040            # of W, between phones
-    phones: [bugun, tek-soru, not]
+    # Frames that ship only: never a dropped frame (bugun, izinler, gorunum).
+    phones: [tek-soru, not, verileriniz]
 
 # Every size a frame is rendered at, by its docs/store/asc/assets.yaml slot.
 targets:
@@ -121,6 +127,7 @@ must_not_show:
   - "the keyboard, a text caret or a half-finished animation"
   - "a surface the store build does not have (voice intake is __DEV__-only on main today)"
   - "a voice or emotion affordance (Sesli görüşme rows, Ses tonundan duygu ipuçları, Yazıdan dil ipuçları, Konuşarak, a microphone button) or an emergency-flag sentence (Acil bir işarette …)"
+  - "a preparation figure or duration the repository does not source (the %36 Vizit hazırlığı gauge, the ≈3 dk estimate), until INT-594 (#1007) sources it (legal re-check, 31 Oct 2026)"
 
 # The journey, in order. route is the expo-router path; {visit} is one simulated
 # visit's id. file is the screen it renders, and the tests check that it exists.
@@ -130,12 +137,15 @@ frames:
     file: "apps/mobile/src/app/(tabs)/today.tsx"
     appearance: light
     state: "the next simulated visit after one typed answer, its card offering Devam edin (never the ≈3 dk estimate)"
+    waits_for: "INT-594 (#1007): Today shows no unsourced duration, and its preparation progress reflects the delivered note"
+    dropped: "2026-10-31, build 7 (690a16bb): Today shows Muayeneye hazırlanın (≈3 dk), which has no source, and the %36 Vizit hazırlığı gauge, and an OTP account's null noteStatus never offers Devam edin; neither the screenshots nor the header show it until INT-594 lands and the frame is captured again on that build (legal re-check, 31 Oct 2026)"
   - id: konusma
     route: "/visits/{visit}/intake"
     file: "apps/mobile/src/app/(tabs)/visits/[visitId]/intake.tsx"
     appearance: light
     state: "the typed step (StepFlow): the open question with a simulated patient's own words typed in"
     waits_for: "INT-588 (#989): intake.open.hint still offers speaking in a no-voice build"
+    resolved_in: "690a16bb739e9847b199a6d3eb08c418a4c87788 (build 7, captured 2026-10-31; INT-588 merged as #1002)"
   - id: tek-soru
     route: "/visits/{visit}/intake"
     file: "apps/mobile/src/app/(tabs)/visits/[visitId]/intake.tsx"
@@ -147,6 +157,7 @@ frames:
     appearance: light
     state: "the note before sending, sections marked Paylaşılıyor and one Paylaşılmıyor"
     waits_for: "INT-587 (#988): its pixels show Hekiminize gönderin and Kime gidiyor, a delivery that does not work yet; the header, which shows this frame, waits too"
+    resolved_in: "690a16bb739e9847b199a6d3eb08c418a4c87788 (build 7, captured 2026-10-31; INT-587 merged as #995)"
   - id: verileriniz
     route: "/me/data"
     file: "apps/mobile/src/app/(tabs)/me/data.tsx"
@@ -167,3 +178,4 @@ frames:
     state: "the text-size ladder with one step chosen, clear of the tab rail"
     scroll: "scrolled so that appearance.start is not in frame (legal review B7: crop clear of appearance.start)"
     drop_if: "no scroll position achieves the scroll state (legal review B7)"
+    dropped: "2026-10-31, build 7 (690a16bb): the scroll state held, but the text-size preview's Sizi dinliyoruz. stays at the top in every position that hides appearance.start; it reads as a voice affordance, which must_not_show rules out (capture review)"

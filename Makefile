@@ -390,7 +390,7 @@ asc-capture-forward:
 	scripts/store/capture_api.sh forward "$(PORT)"
 
 asc-capture:
-	@test -n "$(LOCALE)" -a -n "$(APP_SHA)" || { echo "asc-capture: set LOCALE=tr|en-US and APP_SHA=<40-hex sha of the build>"; exit 2; }
+	@test -n "$(LOCALE)" -a -n "$(APP_SHA)" || { echo "asc-capture: set LOCALE=tr (the one locale with frames) and APP_SHA=<40-hex sha of the build>"; exit 2; }
 	uv run python scripts/store/capture_frames.py --locale "$(LOCALE)" --app-sha "$(APP_SHA)" --api-label "capture API on the synthetic host (INT-502), dev delivery adapter, no SMS" $(if $(VISIT),--visit "$(VISIT)",)
 
 asc-frames:

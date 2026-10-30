@@ -77,7 +77,7 @@ def plan_jobs(
     for locale in locales:
         for target in spec.targets:
             layout = frame_plan.frame_layout(spec, target.size, spec.capture_size)
-            for frame in spec.live_frames:
+            for frame in spec.shipped_frames:
                 out = out_root / target.slot / locale / frame.capture_name
                 capture = captures_root / locale / frame.capture_name
                 text = captions[frame.frame_id].text[locale]
@@ -154,11 +154,15 @@ def main(argv: Sequence[str]) -> int:
         captions = frame_plan.load_captions(args.captions)
         captures_root = args.captures.resolve()
     spec = frame_plan.load_spec(repo / "docs" / "store" / "asc" / "frames.yaml")
-    locales = args.locale or [loc for loc in frame_plan.LOCALES if (captures_root / loc).is_dir()]
+    foreign = [loc for loc in args.locale or [] if loc not in spec.capture_locales]
+    if foreign:
+        print(f"REFUSED {foreign}: ships no frames of its own (frames.yaml)", file=sys.stderr)
+        return 2
+    locales = args.locale or [loc for loc in spec.capture_locales if (captures_root / loc).is_dir()]
     problems = [
         p
         for loc in locales
-        for frame in spec.live_frames
+        for frame in spec.shipped_frames
         for p in check_capture(captures_root / loc / frame.capture_name, spec)
     ]
     if not locales or problems:

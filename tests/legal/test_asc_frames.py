@@ -35,9 +35,10 @@ import re
 import struct
 import sys
 import zlib
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from pathlib import Path
 from types import ModuleType
+from typing import Any
 
 import pytest
 import yaml
@@ -58,6 +59,10 @@ import render_frames  # noqa: E402
 CAPTION_DRAFT = DRAFTS / "app-store.screenshots.draft.yaml"
 THEME = REPO / "apps" / "mobile" / "src" / "lib" / "theme.ts"
 MOBILE_PACKAGE = REPO / "apps" / "mobile" / "package.json"
+LOCALE_TS = REPO / "apps" / "mobile" / "src" / "lib" / "i18n" / "locale.ts"
+CAPTURES = REPO / "docs" / "store" / "asc" / "captures"
+#: Build 7, the main commit the committed captures were taken from.
+BUILD_7 = "690a16bb739e9847b199a6d3eb08c418a4c87788"
 
 #: developer.apple.com/help/app-store-connect/reference/screenshot-specifications,
 #: read 2026-10-29: the iPhone groups this listing fills, portrait pixels.
@@ -454,7 +459,7 @@ def test_the_session_sets_a_clean_status_bar_and_each_frames_appearance(
     tmp_path: Path, spec: frame_plan.FrameSpec
 ) -> None:
     runner = FakeRunner(spec.capture_size)
-    session = _session(tmp_path, spec, runner, resolved="INT-588,INT-587")
+    session = _session(tmp_path, spec, runner, resolved="INT-594")
     capture_frames.prepare(session)
     shots = [capture_frames.shoot(session, frame) for frame in spec.frames]
     flat = [" ".join(call) for call in runner.calls]
@@ -477,8 +482,8 @@ def test_a_screenshot_of_the_wrong_size_is_refused_and_removed(
     runner = FakeRunner((1206, 2622))
     session = _session(tmp_path, spec, runner)
     with pytest.raises(capture_frames.CaptureError, match="1320x2868"):
-        capture_frames.shoot(session, spec.frames[0])
-    assert not (session.out_dir / spec.frames[0].capture_name).exists()
+        capture_frames.shoot(session, spec.frame("tek-soru"))
+    assert not (session.out_dir / spec.frame("tek-soru").capture_name).exists()
 
 
 @pytest.mark.parametrize(
@@ -500,7 +505,7 @@ def test_provenance_records_hashes_and_the_build_never_a_value(
     tmp_path: Path, spec: frame_plan.FrameSpec
 ) -> None:
     runner = FakeRunner(spec.capture_size)
-    session = _session(tmp_path, spec, runner, resolved="INT-588")
+    session = _session(tmp_path, spec, runner, resolved="INT-594")
     shots = [capture_frames.shoot(session, frame) for frame in spec.frames[:2]]
     path = capture_frames.write_provenance(session, shots, captured_on="2026-10-29")
     record = yaml.safe_load(path.read_text(encoding="utf-8"))
@@ -518,15 +523,19 @@ def test_provenance_records_hashes_and_the_build_never_a_value(
 def test_a_frame_waiting_for_an_issue_is_refused_until_the_build_has_it(
     tmp_path: Path, spec: frame_plan.FrameSpec
 ) -> None:
-    """Legal review B6: the typed step still shows intake.open.hint's offer to speak
-    until INT-588 lands, so that frame waits for it."""
-    waiting = spec.frame("konusma")
-    assert waiting.waits_for is not None and waiting.waits_for.startswith("INT-588")
+    """INT-594 (#1007): Today shows an unsourced ≈3 dk and a preparation gauge, and an
+    OTP account never reaches Devam edin, so bugun waits for it. Until then it is
+    neither captured nor rendered, and the header leaves it out."""
+    waiting = spec.frame("bugun")
+    assert waiting.waits_for is not None and waiting.waits_for.startswith("INT-594")
+    assert waiting.held and waiting not in spec.shipped_frames
+    assert waiting.dropped is not None and "INT-594" in waiting.dropped
+    assert "bugun" not in spec.header_phones
     runner = FakeRunner(spec.capture_size)
-    with pytest.raises(capture_frames.CaptureError, match="INT-588"):
+    with pytest.raises(capture_frames.CaptureError, match="INT-594"):
         capture_frames.shoot(_session(tmp_path, spec, runner), waiting)
     assert not any("screenshot" in call for call in runner.calls)
-    landed = _session(tmp_path / "landed", spec, runner, resolved="INT-588")
+    landed = _session(tmp_path / "landed", spec, runner, resolved="INT-594")
     assert capture_frames.shoot(landed, waiting).name == waiting.capture_name
 
 
@@ -581,8 +590,11 @@ def test_the_frames_a_release_build_reaches_name_their_scroll_state(
     assert izinler.drop_if and gorunum.drop_if
     # Build 7's capture found izinler's drop rule true; it is recorded, not rendered.
     assert izinler.dropped is not None and "Sesli görüşme" in izinler.dropped
-    assert izinler not in spec.live_frames and gorunum in spec.live_frames
-    assert set(spec.header_phones) <= {f.frame_id for f in spec.live_frames}
+    # gorunum held its scroll state, but the text-size preview's voice bubble stayed in
+    # frame, a voice affordance must_not_show rules out (capture review, 2026-10-31).
+    assert gorunum.dropped is not None and "Sizi dinliyoruz." in gorunum.dropped
+    assert izinler not in spec.live_frames and gorunum not in spec.live_frames
+    assert set(spec.header_phones) <= {f.frame_id for f in spec.shipped_frames}
     assert B7_MUST_NOT in spec.must_not_show
     runner = FakeRunner(spec.capture_size)
     asked: list[str] = []
@@ -647,13 +659,20 @@ def test_no_caption_rests_on_a_key_only_the_voice_surfaces_render() -> None:
     }
 
 
-def test_a_frame_showing_delivery_waits_for_it_and_holds_the_header(
+def test_a_frame_whose_issue_is_in_the_captured_build_names_that_build(
     spec: frame_plan.FrameSpec,
 ) -> None:
-    """Re-check note: the `not` frame shows "Hekiminize gönderin" and "Kime gidiyor",
-    a delivery that INT-587 builds, so it waits, and the header, which shows it, waits too."""
-    shown = spec.frame("not")
-    assert shown.waits_for is not None and shown.waits_for.startswith("INT-587")
+    """konusma waited for INT-588 (intake.open.hint offered speaking) and `not` for INT-587
+    (its pixels show "Hekiminize gönderin" and "Kime gidiyor"). Build 7 carries both, so
+    each records that build and ships, and the header may show `not`."""
+    record = yaml.safe_load((CAPTURES / "tr" / "provenance.yaml").read_text(encoding="utf-8"))
+    assert record["app_sha"] == BUILD_7
+    for frame_id, issue in (("konusma", "INT-588"), ("not", "INT-587")):
+        frame = spec.frame(frame_id)
+        assert frame.waits_for is not None and frame.waits_for.startswith(issue)
+        assert frame.resolved_in is not None and frame.resolved_in.startswith(BUILD_7)
+        assert issue in record["resolved"]
+        assert not frame.held and frame in spec.shipped_frames
     assert "not" in spec.header_phones
 
 
@@ -663,7 +682,7 @@ def test_provenance_merges_one_frame_at_a_time_and_never_mixes_builds(
     """The operator walks the app between shots, so each frame is a run of its own and
     provenance.yaml accumulates them. A run from another build is refused."""
     runner = FakeRunner(spec.capture_size)
-    first = _session(tmp_path, spec, runner)
+    first = _session(tmp_path, spec, runner, resolved="INT-594")
     capture_frames.write_provenance(
         first, [capture_frames.shoot(first, spec.frames[0])], captured_on="2026-10-31"
     )
@@ -675,7 +694,9 @@ def test_provenance_merges_one_frame_at_a_time_and_never_mixes_builds(
     assert [row["file"] for row in record["captures"]] == sorted(
         [spec.frames[0].capture_name, spec.frame("tek-soru").capture_name]
     )
-    other = _session(tmp_path, spec, runner, app_sha="b" * 40)
+    # A later run without --resolved never erases what an earlier run recorded.
+    assert record["resolved"] == ["INT-594"]
+    other = _session(tmp_path, spec, runner, app_sha="b" * 40, resolved="INT-594")
     with pytest.raises(capture_frames.CaptureError, match="app_sha"):
         capture_frames.write_provenance(
             other, [capture_frames.shoot(other, spec.frames[0])], captured_on="2026-10-31"
@@ -695,3 +716,118 @@ def test_no_open_keeps_the_operators_scroll_state(
     opened = _session(tmp_path / "open", spec, runner)
     capture_frames.shoot(opened, spec.frame("gorunum"))
     assert [call for call in runner.calls if "openurl" in call]
+
+
+# --- 6. the capture review of build 7 (2026-10-31) -------------------------------------------
+
+
+def _row(raw: dict[str, Any], frame_id: str) -> dict[str, Any]:
+    row: dict[str, Any] = next(r for r in raw["frames"] if r["id"] == frame_id)
+    return row
+
+
+def _spec_with(tmp_path: Path, mutate: Callable[[dict[str, Any]], object]) -> frame_plan.FrameSpec:
+    raw = yaml.safe_load(frame_plan.FRAMES.read_text(encoding="utf-8"))
+    mutate(raw)
+    path = tmp_path / "frames.yaml"
+    path.write_text(yaml.safe_dump(raw, allow_unicode=True, sort_keys=False), encoding="utf-8")
+    return frame_plan.load_spec(path)
+
+
+def test_the_header_shows_three_frames_that_ship(
+    tmp_path: Path, spec: frame_plan.FrameSpec, captions: dict[str, frame_plan.Caption]
+) -> None:
+    """bugun waits for INT-594, so the header shows tek-soru, not and verileriniz, and the
+    header caption's screen line names the same three."""
+    assert spec.header_phones == ("tek-soru", "not", "verileriniz")
+    assert set(spec.header_phones) <= {frame.frame_id for frame in spec.shipped_frames}
+    assert _spec_with(tmp_path, lambda raw: None).header_phones == spec.header_phones
+    screen = captions[spec.header_caption].screen
+    assert f"({', '.join(spec.header_phones)})" in screen
+    assert "bugun" not in screen
+
+
+def test_the_header_shows_no_dropped_frame(spec: frame_plan.FrameSpec) -> None:
+    """Legal re-check, 31 Oct 2026: bugun and gorunum carry a `dropped` entry the way
+    izinler does, and header.phones holds none of them. The loader's dropped-phone case
+    below is the near miss. Until INT-594 sources it, no frame may show the %36 gauge."""
+    dropped = {frame.frame_id for frame in spec.frames if frame.dropped is not None}
+    assert dropped == {"bugun", "izinler", "gorunum"}
+    assert dropped.isdisjoint(spec.header_phones)
+    assert any("%36" in rule and "INT-594" in rule for rule in spec.must_not_show)
+
+
+@pytest.mark.parametrize(
+    ("mutate", "needle"),
+    [
+        (lambda raw: raw["layout"]["header"].update(phones=["bugun", "tek-soru", "not"]), "header"),
+        (
+            lambda raw: raw["layout"]["header"].update(phones=["tek-soru", "not", "gorunum"]),
+            "header",
+        ),
+        (lambda raw: _row(raw, "tek-soru").update(resolved_in=f"{BUILD_7} (build 7)"), "waits"),
+        (lambda raw: _row(raw, "not").update(resolved_in="690a16bb (build 7)"), "sha"),
+    ],
+    ids=["held-phone", "dropped-phone", "resolved-without-a-wait", "short-sha"],
+)
+def test_the_spec_refuses_a_header_phone_that_does_not_ship_or_an_unanchored_resolution(
+    tmp_path: Path, mutate: Callable[[dict[str, Any]], object], needle: str
+) -> None:
+    with pytest.raises(frame_plan.PlanError, match=needle):
+        _spec_with(tmp_path, mutate)
+
+
+def test_render_paints_only_the_frames_that_ship(
+    tmp_path: Path, spec: frame_plan.FrameSpec, captions: dict[str, frame_plan.Caption]
+) -> None:
+    fonts = {name: tmp_path / f"{name}.ttf" for name in spec.fonts}
+    _jobs, outputs = render_frames.plan_jobs(
+        spec, captions, tmp_path / "captures", tmp_path / "out", fonts, ["tr"]
+    )
+    painted = {out.name for out, slot in outputs if slot != spec.header_slot}
+    assert painted == {frame.capture_name for frame in spec.shipped_frames}
+    held_or_dropped = {spec.frame(f).capture_name for f in ("bugun", "izinler", "gorunum")}
+    assert painted.isdisjoint(held_or_dropped)
+    assert len(outputs) == len(spec.targets) * len(spec.shipped_frames) + 1
+
+
+def test_en_us_ships_no_frames_while_the_app_offers_only_turkish(
+    tmp_path: Path, spec: frame_plan.FrameSpec
+) -> None:
+    """The app offers patients Turkish only (LOCALE_REGISTRY), so en-US ships no frames of
+    its own and its product page shows the primary language's. Capture and render refuse
+    en-US; a new app locale turns this red until frames.yaml decides on it."""
+    source = LOCALE_TS.read_text(encoding="utf-8")
+    block = source.split("export const LOCALE_REGISTRY", 1)[1].split("});", 1)[0]
+    offered = set(re.findall(r"^  ([A-Za-z-]+): \{", block, flags=re.MULTILINE))
+    assert offered == {"tr"}
+    assert set(spec.capture_locales) == offered
+    with pytest.raises(capture_frames.CaptureError, match="locale"):
+        _session(tmp_path, spec, FakeRunner(spec.capture_size), locale="en-US")
+    _png(tmp_path / "captures" / "en-US" / spec.frame("tek-soru").capture_name, 1320, 2868)
+    argv = [
+        "--preview",
+        "--captions",
+        str(CAPTION_DRAFT),
+        "--captures",
+        str(tmp_path / "captures"),
+        "--out",
+        str(tmp_path / "out"),
+        "--locale",
+        "en-US",
+    ]
+    assert render_frames.main(argv) == 2
+
+
+def test_the_committed_captures_are_the_frames_that_ship_with_their_hashes(
+    spec: frame_plan.FrameSpec,
+) -> None:
+    """A held or dropped frame leaves no capture behind for the uploader to find, and
+    provenance.yaml lists every committed capture with its sha256."""
+    record = yaml.safe_load((CAPTURES / "tr" / "provenance.yaml").read_text(encoding="utf-8"))
+    files = sorted(path.name for path in (CAPTURES / "tr").glob("*.png"))
+    assert files == sorted(frame.capture_name for frame in spec.shipped_frames)
+    assert [row["file"] for row in record["captures"]] == files
+    for row in record["captures"]:
+        data = (CAPTURES / "tr" / row["file"]).read_bytes()
+        assert hashlib.sha256(data).hexdigest() == row["sha256"], row["file"]

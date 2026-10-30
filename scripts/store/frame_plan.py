@@ -19,6 +19,7 @@ uses it to render a draft outside the repository.
 from __future__ import annotations
 
 import hashlib
+import re
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
@@ -55,6 +56,7 @@ __all__ = [
 REPO: Final[Path] = Path(__file__).resolve().parents[2]
 FRAMES: Final[Path] = REPO / "docs" / "store" / "asc" / "frames.yaml"
 LOCALES: Final[tuple[str, ...]] = ("tr", "en-US")
+_BUILD_SHA: Final = re.compile(r"[0-9a-f]{40}(?:\s|$)")
 #: A headline line longer than this no longer fits two lines at a readable size.
 LINE_MAX_CHARS: Final[int] = 18
 #: The header headline is the served subtitle, which App Store Connect caps at 30.
@@ -109,9 +111,21 @@ class Frame:
     #: The scroll position the capture must hold, and when the frame is dropped instead.
     scroll: str | None = None
     drop_if: str | None = None
-    #: Set when the capture found the drop_if rule true; the frame is then neither
+    #: Set when the capture could not show the frame truthfully (its drop_if rule
+    #: held, or a must_not_show item stayed in frame); the frame is then neither
     #: captured nor rendered, and the reason stays on record.
     dropped: str | None = None
+    #: The build found to carry the waits_for issue: its 40-hex sha, then a note.
+    resolved_in: str | None = None
+
+    @property
+    def waiting_issue(self) -> str | None:
+        return None if self.waits_for is None else self.waits_for.split(" ", 1)[0]
+
+    @property
+    def held(self) -> bool:
+        """Waiting for an issue no recorded build carries yet."""
+        return self.waits_for is not None and self.resolved_in is None
 
     @property
     def capture_name(self) -> str:
@@ -141,8 +155,13 @@ class FrameSpec:
 
     @property
     def live_frames(self) -> tuple[Frame, ...]:
-        """The frames that are captured and rendered: every frame not dropped."""
+        """The frames that may be captured: every frame not dropped."""
         return tuple(frame for frame in self.frames if frame.dropped is None)
+
+    @property
+    def shipped_frames(self) -> tuple[Frame, ...]:
+        """The frames that are rendered and uploaded: not dropped, not held."""
+        return tuple(frame for frame in self.live_frames if not frame.held)
 
     @property
     def header_phones(self) -> tuple[str, ...]:
@@ -222,6 +241,7 @@ def load_spec(path: Path) -> FrameSpec:
                 scroll=None if row.get("scroll") is None else str(row["scroll"]),
                 drop_if=None if row.get("drop_if") is None else str(row["drop_if"]),
                 dropped=None if row.get("dropped") is None else str(row["dropped"]),
+                resolved_in=(None if row.get("resolved_in") is None else str(row["resolved_in"])),
             )
             for index, row in enumerate(raw["frames"], start=1)
         )
@@ -259,6 +279,17 @@ def load_spec(path: Path) -> FrameSpec:
     for frame in spec.frames:
         if frame.appearance not in spec.theme:
             raise PlanError(f"{frame.frame_id}: no theme {frame.appearance!r}")
+        if frame.resolved_in is not None:
+            if frame.waits_for is None:
+                raise PlanError(f"{frame.frame_id}: resolved_in, but it waits for nothing")
+            if not _BUILD_SHA.match(frame.resolved_in):
+                raise PlanError(
+                    f"{frame.frame_id}: resolved_in must start with the build's 40-hex sha"
+                )
+    shipped = {frame.frame_id for frame in spec.shipped_frames}
+    unshipped = [fid for fid in spec.header_phones if fid not in shipped]
+    if unshipped:
+        raise PlanError(f"the header shows {unshipped}, which do not ship (held or dropped)")
     return spec
 
 
