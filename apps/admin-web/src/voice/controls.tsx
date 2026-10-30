@@ -14,7 +14,7 @@
  */
 import type { ReactElement } from "react";
 
-import { Cell, ScrollTable, Tile } from "../ops/tiles";
+import { Cell, Rows, ScrollTable, Tile } from "../ops/tiles";
 import type { Lang, VoiceCopy } from "./copy";
 import type { ControlView, VoiceView } from "./module";
 
@@ -43,8 +43,8 @@ export function ControlsTile({ view, c }: { view: VoiceView; c: C }): ReactEleme
             <th>{c.cols.approvedBy}</th>
           </tr>
         </thead>
-        <tbody>
-          {t.tenants.map((row) => (
+        <Rows rows={t.tenants} columns={9} kind="tenants" empty={c.empties.tenants}>
+          {(row) => (
             <tr
               key={row.tenantId}
               data-tenant={row.tenantId}
@@ -70,8 +70,8 @@ export function ControlsTile({ view, c }: { view: VoiceView; c: C }): ReactEleme
               </td>
               <td>{row.approvedBy ?? c.none}</td>
             </tr>
-          ))}
-        </tbody>
+          )}
+        </Rows>
       </ScrollTable>
     </Tile>
   );
@@ -94,8 +94,8 @@ export function PendingTile({ view, c }: { view: VoiceView; c: C }): ReactElemen
             <th>{c.approve}</th>
           </tr>
         </thead>
-        <tbody>
-          {t.actions.map((row) => (
+        <Rows rows={t.actions} columns={7} kind="pending" empty={c.empties.pending}>
+          {(row) => (
             <tr key={row.actionId} data-action={row.actionId}>
               <td>
                 <code>{row.actionId}</code>
@@ -120,8 +120,8 @@ export function PendingTile({ view, c }: { view: VoiceView; c: C }): ReactElemen
                 </button>
               </td>
             </tr>
-          ))}
-        </tbody>
+          )}
+        </Rows>
       </ScrollTable>
     </Tile>
   );

@@ -84,9 +84,11 @@ describe("the name a patient sees is Önvizit", () => {
       expect(tr[key].startsWith(BRAND), `tr ${key}`).toBe(true);
       expect(en[key].startsWith(BRAND), `en ${key}`).toBe(true);
     }
-    // The Turkish case suffixes of a name ending in a voiceless -t: -'te, -'i.
+    // The Turkish case suffix of a name ending in a voiceless -t: -'te. The
+    // accusative -'i lived only in consent.basis.service, which INT-537
+    // deleted: core is a consent with a switch, so that copy has no reader.
     expect(tr["consent.firstRun.body"].startsWith(`${BRAND}'te `)).toBe(true);
-    expect(tr["consent.basis.service"]).toContain(`${BRAND}'i kullanmayı`);
+    expect(Object.keys(tr)).not.toContain("consent.basis.service");
   });
 
   it("names Önvizit in the HealthKit purpose string App Review reads", () => {

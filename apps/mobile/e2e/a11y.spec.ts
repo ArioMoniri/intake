@@ -1556,6 +1556,8 @@ const NOT_A_TIME_LIMIT: Record<string, string> = {
   "src/app/(auth)/otp.tsx":
     "the resend cooldown: a server rate limit that OFFERS a resend when it runs out and takes nothing away",
   "src/lib/auth/expoApiBase.ts": "a deadline on the dev API health probe",
+  "src/lib/capture/asrClient.ts":
+    "a request deadline on one segment's transcription (INT-559): a hung daemon is given up on, and the patient's turn has already moved on",
   "src/lib/dev/hosts.ts": "a deadline on the dev host probe",
   "src/lib/dialogue/georgeClip.ts": "a request deadline on a scripted clip fetch",
   "src/lib/dialogue/tts.ts":
