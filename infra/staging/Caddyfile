@@ -20,7 +20,21 @@
 		X-Intake-Environment "staging-synthetic-only"
 		-Server
 	}
-	reverse_proxy api:8000
+	# INT-580, owner decision D34: the association file that lets iOS honour
+	# the OTP SMS's "@<this host> #<code>" line. Apple fetches it over HTTPS as
+	# JSON and follows no redirect. deploy.sh renders it from the host's Apple
+	# team id (write_aasa); without one there is no file and this answers 404.
+	handle /.well-known/apple-app-site-association {
+		root * /srv/well-known
+		rewrite * /apple-app-site-association
+		# set before file_server, which then keeps it (a file with no
+		# extension would otherwise go out as application/octet-stream)
+		header Content-Type application/json
+		file_server
+	}
+	handle {
+		reverse_proxy api:8000
+	}
 }
 
 # INT-421: the admin console. Every request goes through oauth2-proxy, which

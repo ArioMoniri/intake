@@ -291,6 +291,11 @@ class ApiSettings:
     # INT-528 / ADR-042: the synthetic host's SMS-only forward proxy, which the
     # Netgsm client alone rides. Unset → the call resolves and pins in process.
     sms_egress_proxy_url: str | None = None
+    # INT-580: the mobile app's own config, whose single webcredentials
+    # associated domain (if any) the OTP SMS binds its code to. Never set from
+    # the environment: the domain comes from the app's entitlement and nowhere
+    # else (intake_api.sms_copy.associated_domain).
+    mobile_app_config_path: Path = field(default_factory=lambda: Path("apps/mobile/app.json"))
     # INT-318: the clinical READ-source registry (intake_connectors.sources).
     # It ships with zero rows, so /v1/visits/sync answers "unavailable"; a row
     # is registered there by a human (HB-A15, HB-A5, HB-L27) and never built

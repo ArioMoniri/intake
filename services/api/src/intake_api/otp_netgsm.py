@@ -99,6 +99,7 @@ from intake_api.otp import (
 )
 from intake_api.otp_netgsm_shape import AnswerShape, answer_shape
 from intake_api.settings import ApiSettings
+from intake_api.sms_copy import OTP_BODY_TR, associated_domain, fold_ascii, render_otp_sms
 from intake_api.sms_recipients import (
     ADMIT_ALL,
     SYNTHETIC_ENVIRONMENTS,
@@ -143,10 +144,9 @@ NETGSM_KV_PATH: Final = "api/netgsm"
 TEST_ALLOWLIST_FIELD: Final = "test_allowlist"
 SMS_EGRESS: Final = EgressContext(purpose=EgressPurpose.SMS_OTP_DELIVERY, data_class=DataClass.PHI)
 DEFAULT_TIMEOUT: Final = httpx.Timeout(8.0, connect=3.0)
-#: The INT-329 wording (siz register, -iniz for instructional prose) folded to
-#: ASCII, because the OTP product refuses Turkish letters. No brand name: the
-#: sender header already names the app.
-SMS_TEMPLATE: Final = "Dogrulama kodunuz: {code}. Bu kodu kimseyle paylasmayiniz."
+#: INT-580: the tr copy (``intake_api.sms_copy``, siz register, the app name and
+#: the code) folded to ASCII, because the OTP product refuses Turkish letters.
+SMS_TEMPLATE: Final = fold_ascii(OTP_BODY_TR)
 #: One segment with an alphanumeric sender, per the documentation's code 20.
 MAX_MESSAGE_LENGTH: Final = 155
 
@@ -329,17 +329,20 @@ class _Unsendable(ValueError):
 
 
 def seal_otp_request(
-    credentials: NetgsmCredentials, *, phone_e164: str, code: str
+    credentials: NetgsmCredentials, *, phone_e164: str, code: str, domain: str | None = None
 ) -> NetgsmOtpRequest:
-    """Build the wire request, or refuse what the OTP product cannot carry."""
+    """Build the wire request, or refuse what the OTP product cannot carry.
+    ``domain`` (INT-580) appends the domain-bound line ``@<domain> #<code>``;
+    only :func:`intake_api.sms_copy.associated_domain` supplies one."""
     number = _TR_MOBILE_E164.fullmatch(phone_e164)
     if number is None:
         raise _Unsendable(NetgsmRefusal.NOT_A_TR_MOBILE)
     if not (code.isascii() and _CODE.fullmatch(code)):
         raise _Unsendable(NetgsmRefusal.CODE_NOT_SENDABLE)
-    # ASCII and one segment for every code of 4 to 10 digits: a test holds the
-    # template to both, so no runtime branch is needed for it
-    message = SMS_TEMPLATE.format(code=code)
+    # ASCII and one segment for every code of 4 to 10 digits, with or without a
+    # domain line: associated_domain refuses a domain that would not fit, and a
+    # test holds the template to both, so no runtime branch is needed for it
+    message = render_otp_sms(code, domain=domain, ascii_only=True)
     return NetgsmOtpRequest(msgheader=credentials.msgheader, msg=message, no=number.group(1))
 
 
@@ -396,8 +399,11 @@ class NetgsmSmsDeliveryAdapter:
         timeout: httpx.Timeout = DEFAULT_TIMEOUT,
         recipients: RecipientGate = ADMIT_ALL,
         proxy: str | None = None,
+        domain: str | None = None,
     ) -> None:
         self._credentials = credentials
+        # INT-580: the app's webcredentials domain, or None (no bound line)
+        self._domain = domain
         self._policy = egress
         self._inner = inner
         self._transfer_log = transfer_log
@@ -417,10 +423,17 @@ class NetgsmSmsDeliveryAdapter:
         """The SMS-only forward proxy this adapter rides, if any (ADR-042)."""
         return self._proxy
 
+    @property
+    def domain(self) -> str | None:
+        """The domain each code is bound to (INT-580), if the app names one."""
+        return self._domain
+
     async def send(self, *, phone_e164: str, code: str) -> DeliveryReceipt:
         refusal: NetgsmRefusal | None = None
         try:
-            request = seal_otp_request(self._credentials, phone_e164=phone_e164, code=code)
+            request = seal_otp_request(
+                self._credentials, phone_e164=phone_e164, code=code, domain=self._domain
+            )
         except _Unsendable as exc:
             refusal = exc.refusal
         if refusal is None and not self._recipients.admits(phone_e164):
@@ -630,4 +643,6 @@ def otp_delivery_from_settings(
         egress=policy,
         recipients=_recipients(settings, document),
         proxy=proxy,
+        # INT-580: the domain-bound line, from the app's own entitlement only
+        domain=associated_domain(settings.mobile_app_config_path),
     )

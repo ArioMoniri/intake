@@ -274,7 +274,10 @@ def test_ids_unique_and_well_formed() -> None:
     # admission's answer and work, the vendor off the response path; GitHub #974).
     # + INT-581 (SMS data protection: the canary scan, the E.164 form redacted,
     # the synthetic host's SMS proxy required, every verify audited; GitHub #976).
-    assert len(ids) == 390
+    # + INT-580 (SMS hijacking and phishing: the tr SMS copy, the domain-bound
+    # line, the new-device signal; GitHub #975) + INT-582 (the patient passkey
+    # step-up split out of it, awaiting the owner; GitHub #981).
+    assert len(ids) == 392
     import re
 
     for i in ids:

@@ -1279,8 +1279,11 @@ metrics:
     labels: []
     owner: security
     unit: "count"
-    status: planned
-    description: Logins from a device not seen before.
+    description: >-
+      Sign-ins from a device the account had not signed in from before
+      (INT-580; the device is the App Attest key the verify proved, kept as a
+      keyed hash for a session lifetime). The account's first sign-in is not
+      counted. Emitted by intake_api.otp.
   - name: sec_token_reuse_detected
     id: sec.token_reuse_detected
     type: counter

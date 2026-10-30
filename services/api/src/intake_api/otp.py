@@ -133,7 +133,10 @@ __all__ = [
     "OTP_VERIFY_TOTAL",
     "REQUEST_OUTCOMES",
     "SEC_OTP_ABUSE_BLOCKS",
+    "SEC_NEW_DEVICE_LOGINS",
     "SEC_OTP_REQUESTS_TOTAL",
+    "NoSignInNoticeChannel",
+    "SignInNotice",
     "VERIFY_OUTCOMES",
     "AuthWiring",
     "DeliveryReceipt",
@@ -197,6 +200,13 @@ SEC_OTP_ABUSE_BLOCKS = Counter(
     "sec_otp_abuse_blocks",
     "OTP requests refused by a request budget, by the budget that refused.",
     ("dimension",),
+)
+
+#: INT-580 (``sec.new_device_logins``, files/08 §4): sign-ins from a device the
+#: account had not signed in from.
+SEC_NEW_DEVICE_LOGINS = Counter(
+    "sec_new_device_logins",
+    "Sign-ins from a device the account had not signed in from before.",
 )
 
 _TR_MOBILE = re.compile(r"^(?:\+90|90|0)?(5\d{9})$")
@@ -299,6 +309,27 @@ class DevLogDeliveryAdapter:
         return receipt
 
 
+class SignInNotice(Protocol):
+    """INT-580: tell the account holder that their account was signed in to
+    from a new device. True when the notice was delivered."""
+
+    async def new_device_sign_in(self, *, patient_id: uuid.UUID) -> bool: ...
+
+
+class NoSignInNoticeChannel:
+    """The default, and today the only channel: none. Which channel reaches
+    the patient — a push to the devices already signed in, or a second SMS
+    product, which Netgsm's OTP product is not — and in what words, is an owner
+    decision (docs/evidence/INT-580.md). Until then the notice fails closed: it
+    is not delivered, and the line logged says so. The signal itself (the
+    counter, the audit row) does not depend on a channel."""
+
+    async def new_device_sign_in(self, *, patient_id: uuid.UUID) -> bool:
+        del patient_id
+        logger.warning("new-device sign-in not told to the patient: no sign-in notice channel")
+        return False
+
+
 @dataclass
 class AuthWiring:
     """Everything the OTP tier needs, injectable for tests; the env path is
@@ -331,6 +362,8 @@ class AuthWiring:
     # INT-577: the tenant and global send caps (engineering defaults in
     # intake_api.sms_spend; a test harness passes small ones)
     sms_budget: SmsBudget = field(default_factory=SmsBudget)
+    # INT-580: who tells the patient about a sign-in from a new device
+    sign_in_notice: SignInNotice = field(default_factory=NoSignInNoticeChannel)
 
 
 async def ensure_consumer_tenant(engine: AsyncEngine) -> None:
@@ -779,7 +812,30 @@ class OtpAuthService:
             resource_ref=f"phone:{self._tokenizer.log_ref(phone)}",
             consent_scope="scope:auth",
         )
+        await self._note_device(patient_id, _bound_device(payload))
         return await self._issue_tokens(patient_id, jkt)
+
+    async def _note_device(self, patient_id: uuid.UUID, device: str) -> None:
+        """INT-580: a sign-in from a device the account has not used is
+        counted, put on the hash chain where the patient's own access log reads
+        (``auth.*`` is ACCOUNT_SECURITY there), and handed to the notice
+        channel. A stolen code entered on the thief's phone is exactly this
+        event; so is a SIM swap's first sign-in."""
+        new = await asyncio.to_thread(
+            self._store.remember_device,
+            str(patient_id),
+            self._pepper.rate_key("known_device", device),
+        )
+        if not new:
+            return
+        SEC_NEW_DEVICE_LOGINS.inc()
+        await self._audit.record(
+            actor=f"patient:{patient_id}",
+            action="auth.login.new_device",
+            resource_ref=f"patient:{patient_id}",
+            consent_scope="scope:auth",
+        )
+        await self._wiring.sign_in_notice.new_device_sign_in(patient_id=patient_id)
 
     async def refresh_tokens(self, request: Request, refresh_token: str) -> TokenBundle:
         jkt = await self._verify_proof(request)

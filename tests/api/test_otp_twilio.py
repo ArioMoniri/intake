@@ -109,7 +109,8 @@ def test_the_sms_copy_is_the_turkish_siz_template_with_the_code(phi_egress: None
     vendor = Vendor(created)
     send(adapter(vendor))
     [body] = vendor.bodies
-    assert body["Body"] == [f"Doğrulama kodunuz: {CODE}. Bu kodu kimseyle paylaşmayınız."]
+    # INT-580: the one tr copy (intake_api/sms_copy.tr.json), which names the app
+    assert body["Body"] == [f"Önvizit doğrulama kodunuz: {CODE}. Bu kodu kimseyle paylaşmayınız."]
 
 
 # --- the send awaits ------------------------------------------------------------------

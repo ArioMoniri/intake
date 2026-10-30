@@ -14,6 +14,7 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.ariomoniri.intakemobile",
+      "associatedDomains": ["webcredentials:3-211-2-143.sslip.io"],
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }

@@ -389,6 +389,7 @@ def _build(
     pepper: Any = None,
     sms_budget: Any = None,
     recipients: Any = None,
+    sign_in_notice: Any = None,
     attestation: Any = None,
 ) -> Iterator[OtpHarness]:
     from intake_platform.db.audit_store import SqlAlchemyAuditStore
@@ -444,6 +445,8 @@ def _build(
             **({"sms_budget": sms_budget} if sms_budget is not None else {}),
             # INT-579: the synthetic host's test list, when a test sets one
             **({"recipients": recipients} if recipients is not None else {}),
+            # INT-580: the new-device sign-in notice channel, when a test sets one
+            **({"sign_in_notice": sign_in_notice} if sign_in_notice is not None else {}),
         ),
     )
     run(ensure_consumer_tenant(engine))
@@ -1380,8 +1383,9 @@ def test_the_carrier_check_stores_no_prefix_carrier_or_country(tmp_path: Path) -
                 }, key
             elif parts[:2] == ["auth", "otp"]:
                 # INT-578 added the number's rolling miss window and the
-                # lockout instant, INT-577 the spend kill switch
-                assert parts[2] in {"cool", "code", "peek", "miss", "lock", "kill"}, key
+                # lockout instant, INT-577 the spend kill switch, INT-580 the
+                # devices an account signed in from (keyed hashes, per patient id)
+                assert parts[2] in {"cool", "code", "peek", "miss", "lock", "kill", "devices"}, key
             if parts[:3] == ["auth", "otp", "code"]:
                 record = json.loads(harness.redis_client.get(key))
                 # INT-578: the attempts left the record for an atomic counter,

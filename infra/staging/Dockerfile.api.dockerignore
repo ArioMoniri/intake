@@ -19,8 +19,11 @@
 # evaluate the error budget (and the reliability console reads for its tiles).
 !docs/slo/
 # INT-443: the app's scripted catalogue, which the George route admits from on
-# the synthetic host. Exactly this one file of apps/, nothing else.
+# the synthetic host. With app.json below, the only files of apps/ it carries.
 !apps/mobile/src/lib/dialogue/scriptedCatalogue.tr.json
+# INT-580: the app's config, whose one webcredentials associated domain (if it
+# declares one) the OTP SMS binds its code to (intake_api.sms_copy).
+!apps/mobile/app.json
 # Never sent, wherever they sit. The host's root-only env file lives outside
 # the tree (/etc/intake-staging), and these rules catch a stray copy anyway.
 **/.env

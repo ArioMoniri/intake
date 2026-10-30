@@ -1,0 +1,4 @@
+{
+  "_comment": "INT-580: the one source of the OTP SMS copy (tr is the source of truth, invariant 5). Patient-facing: siz register, -iniz for instructional prose, PolicyGuard-clean, the code and the app name and nothing else (no link, no PHI). intake_api.sms_copy renders it; the Netgsm OTP product takes it folded to ASCII. {code} is the only slot.",
+  "sms.otp.body": "Önvizit doğrulama kodunuz: {code}. Bu kodu kimseyle paylaşmayınız."
+}

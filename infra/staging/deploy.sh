@@ -91,6 +91,9 @@ require_sms_with_app_attest
 # pseudonym, never printed) before the env copy goes; a different key already
 # in OpenBao stops the deploy here. Prints changed or unchanged.
 TOKENIZATION_SYNC=$("$STAGING_DIR/tokenization_key.sh")
+# INT-580 (D34): the association file the edge serves, from the same team id,
+# before the edge is recreated below; none without a team id (fail closed)
+write_aasa
 
 wait_healthy postgres
 run_migrations

@@ -543,7 +543,9 @@ it or whose tests exercise it.
   guessed by racing the attempt budget, or spent twice by racing a verify; [S] a code
   intercepted on its way to the patient (a notification read over a shoulder, SMS-reading
   malware, an operator-side interception) and entered on another device; [I] a dump of the
-  code store turned back into codes (INT-578).
+  code store turned back into codes (INT-578); [S] the code phished from the patient (a
+  look-alike site, a caller posing as the clinic) or taken over with the number in a SIM swap
+  (INT-580).
 - **Controls (files/10):** §2 patients — OTP limits (TTL, attempt and per-phone/IP request
   caps), device attestation on OTP request and session start, rotating
   device-bound refresh tokens with family revocation on reuse, passkeys, biometric gate,
@@ -715,6 +717,40 @@ it or whose tests exercise it.
   env file, not from OpenBao — moving it has to carry the existing key across, or every
   pseudonym on the host changes; and the dev-only peek route takes the number as a query
   parameter, so a dev access log carries a (synthetic) number.
+- **The phishing bound, stated (INT-580, the owner's SMS order of 28 Oct 2026):** the SMS
+  carries the code and the app name and nothing else — no link, no PHI — in words that live in
+  one tr resource (`services/api/src/intake_api/sms_copy.tr.json`: the siz register, `-iniz`
+  for the instruction, PolicyGuard-clean); both adapters render it and Netgsm's OTP product
+  gets it folded to one ASCII segment. The domain-bound line WebKit defines, `@<domain>
+  #<code>` as the last line, makes iOS offer the code only inside an app entitled to that
+  domain, never on a look-alike page. The domain is never invented: it is the one
+  `webcredentials:` entry in the app's own `ios.associatedDomains` (`apps/mobile/app.json`,
+  shipped in the API image), sent only when there is exactly one, it is a public name without a
+  developer-mode suffix, and the longest message still fits a segment; anything else sends no
+  line, because a wrong line would steer the autofill elsewhere. The owner chose the domain
+  on 28 Oct 2026 (D34): the synthetic host, `webcredentials:3-211-2-143.sslip.io`, so every
+  OTP SMS ends `@3-211-2-143.sslip.io #<code>`. That line is a machine-format token outside
+  PolicyGuard's prose scope: the guard covers the body, and a test pins that the shipped
+  message is exactly the body plus the line (legal review, 30 Oct 2026). It is the one
+  link-shaped text an SMS carries, since Android linkifies the domain. The host serves
+  `/.well-known/apple-app-site-association` naming the app back, as JSON with no redirect, from
+  a file `deploy.sh` renders out of the host's own Apple team id and the app's bundle id
+  (`write_aasa`); with no team id it renders nothing, the route answers 404 and iOS simply
+  offers no autofill (fail closed: the team id is not in the repository and is never
+  invented). The production domain is revisited at real launch. A sign-in from a device the
+  account
+  has not signed in from — the shape of a phished code entered on the thief's phone, and of a
+  SIM swap's first sign-in — is detected against the account's known devices (keyed hashes of
+  the proven App Attest key, kept for a refresh-token lifetime, the class of datum INT-344
+  already keeps), counted, written to the hash chain under the patient (`auth.login.new_device`,
+  which the patient's access log shows as account security) and handed to a notice channel;
+  no channel to the patient exists yet, so the notice fails closed and says so. The known
+  devices are an off-schema flow of the data inventory (`intake_platform.store.facts`,
+  `sign_in_devices`: pseudonymised identity, KVKK m.12 security, 30 days after the last
+  sign-in, internal only). What still stands open: the notice's channel, push to the
+  patient's earlier devices (D35, INT-583), and the **passkey step-up** that would make a SIM
+  swap insufficient on its own (D36, INT-582: patient passkey public keys may be stored, and a
+  Doctor Link, a phone change, export and delete step up).
 - **The SMS delivery bound, stated (INT-329, INT-528):** the vendor is Netgsm's OTP SMS
   product, the owner's decision of 16 Oct 2026 (INT-358), which records it as BTK-licensed and
   processing the data in Türkiye; the signed DPA is what confirms both. On the synthetic host
@@ -762,7 +798,8 @@ it or whose tests exercise it.
   rise in `unbound` is codes tried from devices that did not ask for them, the interception
   signal; `exhausted` counts numbers locked; `locked` verifies refused by a lockout.
   INT-577: `sec_otp_requests_total{outcome}` and `sec_otp_abuse_blocks{dimension}`, the
-  `sms_spend_kill_switch_engaged` gauge and `sms_spend_kill_switch_trips_total{reason}`; the
+  `sms_spend_kill_switch_engaged` gauge and `sms_spend_kill_switch_trips_total{reason}`;
+  INT-580: `sec_new_device_logins` and the `auth.login.new_device` audit row; the
   `SmsSpendKillSwitchEngaged` page and the `OtpRequestSpike` ticket
   (`infra/observability/security-rules.yaml`, runbook `docs/runbooks/sms-abuse.md`); the ops
   console's `sms` tile (`GET /admin/ops`), which judges a spike by the same definition.
@@ -824,7 +861,20 @@ it or whose tests exercise it.
   a crashing vendor recorded and never logged, also when the audit append then fails, every
   send and verify on the chain with ids only
   and the chain verifying, and the synthetic host refusing to wire without its SMS proxy while
-  production keeps its own route (`tests/security/test_sms_data_protection.py`).
+  production keeps its own route (`tests/security/test_sms_data_protection.py`). The phishing
+  bound with INT-580: the copy's one tr source rendered by both adapters, the code and the app
+  name and nothing else (and the checker's own near miss), PolicyGuard in siz with a sen form
+  refused, one ASCII segment for every code length with and without a line, the shipped app's
+  D34 domain and its line (a config without the entitlement as the near miss), the line for
+  exactly one webcredentials domain and none for ten near
+  misses, the wiring taking the domain from the app config, the image carrying it, and the
+  new-device signal: none for a first or a known device, counted, audited and told once for a
+  new one, failing closed without a channel, and the known devices kept as keyed hashes for a
+  session lifetime and carrying their inventory row (`tests/security/test_sms_hijacking.py`);
+  the host's association file: the document's shape, the team id never invented (no file, a
+  404, for an empty or malformed one, and a stale file removed), the deploy rendering it
+  before the edge starts, and the edge serving that one file as JSON with no redirect
+  (`tests/infra/test_staging_aasa.py`).
 
 ## `consent` — layered consent and scope enforcement
 
