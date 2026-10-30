@@ -21,6 +21,8 @@
  *
  * tr is the source of truth (invariant 5); every key here has its en mirror.
  */
+import type { PurposeView } from "./consent/ledger";
+import type { PurposeId } from "./consent/purposes";
 import type { MessageKey } from "./i18n";
 import type { AttributionOutcome } from "./profile/attribution";
 
@@ -78,4 +80,41 @@ export function companionEffectKeys(outcome: AttributionOutcome, mode: BuildMode
     keys.push("companion.effect.noSafeguarding");
   }
   return keys;
+}
+
+// --- INT-591: İzinleriniz offers no consent this build cannot use ---------------------
+
+/** The purposes only the voice lane uses. lane:linguistic reads text, not voice. */
+const VOICE_ONLY_PURPOSES: ReadonlySet<PurposeId> = new Set<PurposeId>(["voice", "lane:affect"]);
+
+/** The voice group's line where voice does not ship; null where it does. */
+export function voiceGroupNoteKey(mode: BuildMode): MessageKey | null {
+  return voiceShips(mode) ? null : "consent.group.voice.release";
+}
+
+export interface ConsentActions {
+  /** Offer the grant action on the detail screen. */
+  grant: boolean;
+  /** Offer the withdraw action — never gated on the build: withdrawal must
+   * always be possible (files/06 §2), including a grant made in another build. */
+  withdraw: boolean;
+  /** The line shown in place of a grant this build does not offer. */
+  note: MessageKey | null;
+}
+
+/**
+ * What the consent detail screen offers for one purpose, in this build. In a
+ * release build the voice-only purposes offer no grant — granting them would
+ * record special-category consent evidence for a feature that cannot run
+ * (KVKK m.4) — and say why instead; a grant already standing keeps its
+ * withdraw control. Every other purpose, and every purpose in a dev build, is
+ * exactly the ledger's own answer.
+ */
+export function consentActions(view: PurposeView, mode: BuildMode): ConsentActions {
+  const unusable = !voiceShips(mode) && VOICE_ONLY_PURPOSES.has(view.id);
+  return {
+    grant: view.grantable && !unusable,
+    withdraw: view.withdrawable,
+    note: unusable ? voiceGroupNoteKey(mode) : null,
+  };
 }
