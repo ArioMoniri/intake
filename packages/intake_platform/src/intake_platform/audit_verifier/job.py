@@ -20,7 +20,7 @@ reads that gauge would be worse informed than one with no gauge at all.
 **What this job does not do.** It does not *publish* the anchor. No publisher
 exists in this repo: the destination is a commercial and infrastructure
 decision (a counterparty organisation, or a TSP contract) that no agent may
-invent — see files/HUMAN_BLOCKERS.md **HB-I8**. The mechanism is built, the
+invent — see files/HUMAN_BLOCKERS.md **HB-I12**. The mechanism is built, the
 gate is wired, it fails closed, and the content is empty. Invariant 40's
 nightly flip-and-repair test against a live external copy is a separate,
 strictly stronger control and is not claimed here.
