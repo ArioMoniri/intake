@@ -579,6 +579,10 @@ def test_the_frames_a_release_build_reaches_name_their_scroll_state(
     assert "any learning row shown keeps its footer" in izinler.scroll
     assert "appearance.start is not in frame" in gorunum.scroll
     assert izinler.drop_if and gorunum.drop_if
+    # Build 7's capture found izinler's drop rule true; it is recorded, not rendered.
+    assert izinler.dropped is not None and "Sesli görüşme" in izinler.dropped
+    assert izinler not in spec.live_frames and gorunum in spec.live_frames
+    assert set(spec.header_phones) <= {f.frame_id for f in spec.live_frames}
     assert B7_MUST_NOT in spec.must_not_show
     runner = FakeRunner(spec.capture_size)
     asked: list[str] = []
@@ -676,3 +680,18 @@ def test_provenance_merges_one_frame_at_a_time_and_never_mixes_builds(
         capture_frames.write_provenance(
             other, [capture_frames.shoot(other, spec.frames[0])], captured_on="2026-10-31"
         )
+
+
+def test_no_open_keeps_the_operators_scroll_state(
+    tmp_path: Path, spec: frame_plan.FrameSpec
+) -> None:
+    """B7 scroll states are set by the operator, and opening the route again would reset
+    the scroll, so --no-open never sends a deep link."""
+    runner = FakeRunner(spec.capture_size)
+    session = _session(tmp_path, spec, runner)
+    session.open_routes = False
+    capture_frames.shoot(session, spec.frame("gorunum"))
+    assert not [call for call in runner.calls if "openurl" in call]
+    opened = _session(tmp_path / "open", spec, runner)
+    capture_frames.shoot(opened, spec.frame("gorunum"))
+    assert [call for call in runner.calls if "openurl" in call]

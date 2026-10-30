@@ -77,7 +77,7 @@ def plan_jobs(
     for locale in locales:
         for target in spec.targets:
             layout = frame_plan.frame_layout(spec, target.size, spec.capture_size)
-            for frame in spec.frames:
+            for frame in spec.live_frames:
                 out = out_root / target.slot / locale / frame.capture_name
                 capture = captures_root / locale / frame.capture_name
                 text = captions[frame.frame_id].text[locale]
@@ -158,7 +158,7 @@ def main(argv: Sequence[str]) -> int:
     problems = [
         p
         for loc in locales
-        for frame in spec.frames
+        for frame in spec.live_frames
         for p in check_capture(captures_root / loc / frame.capture_name, spec)
     ]
     if not locales or problems:

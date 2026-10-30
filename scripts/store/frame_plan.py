@@ -109,6 +109,9 @@ class Frame:
     #: The scroll position the capture must hold, and when the frame is dropped instead.
     scroll: str | None = None
     drop_if: str | None = None
+    #: Set when the capture found the drop_if rule true; the frame is then neither
+    #: captured nor rendered, and the reason stays on record.
+    dropped: str | None = None
 
     @property
     def capture_name(self) -> str:
@@ -135,6 +138,11 @@ class FrameSpec:
     header_caption: str
     must_not_show: tuple[str, ...]
     frames: tuple[Frame, ...]
+
+    @property
+    def live_frames(self) -> tuple[Frame, ...]:
+        """The frames that are captured and rendered: every frame not dropped."""
+        return tuple(frame for frame in self.frames if frame.dropped is None)
 
     @property
     def header_phones(self) -> tuple[str, ...]:
@@ -213,6 +221,7 @@ def load_spec(path: Path) -> FrameSpec:
                 waits_for=None if row.get("waits_for") is None else str(row["waits_for"]),
                 scroll=None if row.get("scroll") is None else str(row["scroll"]),
                 drop_if=None if row.get("drop_if") is None else str(row["drop_if"]),
+                dropped=None if row.get("dropped") is None else str(row["dropped"]),
             )
             for index, row in enumerate(raw["frames"], start=1)
         )

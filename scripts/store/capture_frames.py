@@ -97,6 +97,9 @@ class CaptureSession:
     runner: Runner
     confirm: Callable[[str], None]
     visit: str | None = None
+    #: False when the operator has already navigated and scrolled the screen into its
+    #: state (B7 scroll states): opening the route again would reset the scroll.
+    open_routes: bool = True
     #: Issues the operator confirms have landed in this build (``--resolved``).
     resolved: frozenset[str] = frozenset()
     shots: list[Shot] = field(default_factory=list)
@@ -162,7 +165,7 @@ def shoot(session: CaptureSession, frame: frame_plan.Frame) -> Shot:
                 "is in the build (--resolved)"
             )
     session.runner.run(["xcrun", "simctl", "ui", session.udid, "appearance", frame.appearance])
-    if session.visit is not None or "{visit}" not in frame.route:
+    if session.open_routes and (session.visit is not None or "{visit}" not in frame.route):
         route = frame.route.replace("{visit}", session.visit or "")
         session.runner.run(["xcrun", "simctl", "openurl", session.udid, f"{SCHEME}://{route}"])
     session.confirm(_checklist(session, frame))
@@ -268,6 +271,7 @@ def main(argv: Sequence[str]) -> int:
     parser.add_argument("--api-label", required=True)
     parser.add_argument("--data-class", default="synthetic")
     parser.add_argument("--visit")
+    parser.add_argument("--no-open", action="store_true", help="never open the route by deep link")
     parser.add_argument("--udid")
     parser.add_argument("--frame", action="append", help="capture only these frame ids")
     parser.add_argument(
@@ -294,10 +298,11 @@ def main(argv: Sequence[str]) -> int:
             runner=runner,
             confirm=_ask,
             visit=args.visit,
+            open_routes=not args.no_open,
             resolved=frozenset(args.resolved),
         )
         prepare(session)
-        frames = [f for f in spec.frames if not args.frame or f.frame_id in args.frame]
+        frames = [f for f in spec.live_frames if not args.frame or f.frame_id in args.frame]
         held = [
             f
             for f in frames

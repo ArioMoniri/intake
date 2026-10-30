@@ -140,7 +140,7 @@ frames:
     route: "/visits/{visit}/intake"
     file: "apps/mobile/src/app/(tabs)/visits/[visitId]/intake.tsx"
     appearance: light
-    state: "a closed-choice question from the served pack, one choice checked"
+    state: "a closed-choice question from the served pack, before it is answered (a single choice advances on tap)"
   - id: not
     route: "/visits/{visit}/review"
     file: "apps/mobile/src/app/(tabs)/visits/[visitId]/review.tsx"
@@ -159,6 +159,7 @@ frames:
     state: "the consent list with core on and every optional purpose off"
     scroll: "İzinleriniz scrolled so that neither the core footer nor the Sesli görüşme group is in frame; any learning row shown keeps its footer"
     drop_if: "no scroll position achieves the scroll state (legal review B7)"
+    dropped: "2026-10-31, build 7 (690a16bb): scrolled to the end of the list, the Sesli görüşme group's last rows (Ses tonundan duygu ipuçları, Yazıdan dil ipuçları) and its footer stay in frame, so no scroll position achieves the B7 state"
   - id: gorunum
     route: "/me/appearance"
     file: "apps/mobile/src/app/(tabs)/me/appearance.tsx"
