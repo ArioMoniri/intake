@@ -7461,3 +7461,26 @@
   tests: [apps/mobile/src/lib/buildCopy.test.ts, apps/mobile/e2e/releaseCopy.spec.ts, apps/mobile/e2e/guardian.spec.ts, tests/release/test_i18n_complete.py]
   legal: "KVKK-10"
   sec_row: "mobile"
+- id: INT-591
+  epic: E08-mobile
+  phase: P1
+  title: "Release build hides the grant action for voice and lane:affect consents, keeps standing grants withdrawable"
+  # GitHub #993, 30 Oct 2026, the legal lane's recommendation (D25) from the
+  # INT-588 review. Voice cannot run in a release build, yet İzinleriniz
+  # offered the voice and lane:affect consents there: an illusion of choice
+  # that records special-category consent evidence for nothing (KVKK m.4
+  # proportionality) and misstates the build's features for the store.
+  # Stacked on INT-588. No consent text, data category, retention, closed
+  # purpose list or server snapshot changes.
+  depends_on: [INT-588, INT-132]
+  labels: [area:mobile]
+  status: done
+  evidence: docs/evidence/INT-591.md
+  acceptance:
+    - "in a release build the consent detail offers no grant action for voice and lane:affect, and the voice group carries 'Bu sürümde sesli görüşme yok; bu izinler kullanılmaz.'"
+    - "a grant already standing for either stays visible with its withdraw control (withdrawal is always possible, files/06 §2)"
+    - "the dev build and every other purpose are unchanged; no consent text, data category, retention, purpose list or server snapshot changes"
+    - "tests: cannot grant in release; near miss: a standing grant can still be withdrawn; dev unchanged; tr first with an en mirror, siz, PolicyGuard-clean"
+  tests: [apps/mobile/src/lib/buildCopy.consent.test.ts, apps/mobile/e2e/releaseCopy.spec.ts]
+  legal: "KVKK-4,KVKK-6"
+  sec_row: "mobile"

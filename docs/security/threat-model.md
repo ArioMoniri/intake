@@ -1888,6 +1888,14 @@ it or whose tests exercise it.
   (release-mode resolution with near misses; claims pinned to their surfaces; the rows read
   against the served texts) and `apps/mobile/e2e/releaseCopy.spec.ts` (the screens use the
   helper on the same facts that draw the button). No signal: copy truth is a build property.
+- **INT-591 — no consent a release build cannot use.** Threat: [L] special-category consent
+  evidence recorded for a feature the build does not have (KVKK m.4 proportionality), and a
+  choice offered that changes nothing. Control: in a release build İzinleriniz offers no grant
+  action for `voice` and `lane:affect` and says why on the group and the detail
+  (`consentActions`, `voiceGroupNoteKey` in `apps/mobile/src/lib/buildCopy.ts`); a standing grant
+  keeps its withdraw control. Tests: `apps/mobile/src/lib/buildCopy.consent.test.ts` (no grant in
+  release; near misses: a standing grant is withdrawable, dev and other purposes unchanged) and
+  `apps/mobile/e2e/releaseCopy.spec.ts`.
 
 ## `experience` — satisfaction and wait-time measurement
 

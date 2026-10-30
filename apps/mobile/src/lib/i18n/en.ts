@@ -739,6 +739,8 @@ export const en: Record<MessageKey, string> = {
   "consent.group.voice": "Voice sessions",
   "consent.group.voice.hint":
     "Voice analysis options only work together with voice sessions. Text analysis looks at the written text, not the voice; it is a separate permission.",
+  "consent.group.voice.release":
+    "This version has no voice sessions; these permissions are not used.",
   "consent.group.purposes": "Other purposes",
   "consent.group.learning": "Learning",
   "consent.group.learning.hint":

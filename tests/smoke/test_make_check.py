@@ -410,7 +410,9 @@ def test_backlog_parses_and_is_complete() -> None:
     # grows only with a stated reason.
     # + INT-588 (patient copy is true in the no-voice release build, GitHub
     # #989); grows only with a stated reason.
-    assert len(ids) == 376, f"expected 175 blueprint + 201 added issues, got {len(ids)}"
+    # + INT-591 (a release build offers no voice consent it cannot use, GitHub
+    # #993); grows only with a stated reason.
+    assert len(ids) == 377, f"expected 175 blueprint + 202 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 

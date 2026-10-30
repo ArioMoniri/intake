@@ -1,5 +1,16 @@
 # PROGRESS — one entry per LOOP iteration (template in LOOP.md)
 
+### 2026-10-30T14:10:00+03:00 · INT-591 · done (committed locally, stacked on INT-588; push frozen)
+- Goal: GitHub #993, P1, Sec-Row `mobile`, the legal lane's recommendation from the INT-588 review: in a release build İzinleriniz must not offer the voice and lane:affect consents (KVKK m.4), while a standing grant stays withdrawable.
+- Plan: `consentActions` and `voiceGroupNoteKey` in `apps/mobile/src/lib/buildCopy.ts`; the detail screen and the consent list read them; one new line, "Bu sürümde sesli görüşme yok; bu izinler kullanılmaz."
+- Tests added (with the near-miss negative for any safety rule): `buildCopy.consent.test.ts` (no grant in release; near misses: standing grants withdrawable, dev and other purposes unchanged) and source pins in `e2e/releaseCopy.spec.ts`. Red: 2 files, 10 failed. Green: mobile 145 files / 3036 tests. Mutation 2/2 killed.
+- Result (`make check` / `make safety` / `make security` summary): typecheck clean; `make check-i18n` and PolicyGuard green; backlog pins at 377; files/11 regenerated.
+- Invariants touched and still passing: 2, 4, 5, 18.
+- Decisions / ADRs / `00_STATE.md` rows: none.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): nothing.
+- Next: push the stack (INT-587, INT-588, INT-591) when the freeze lifts.
+- LOOP_STATUS: CONTINUE
+
 ### 2026-10-30T13:50:00+03:00 · INT-588 · legal re-check BLOCK fixed (committed locally; push frozen)
 - Goal: the legal re-check of 7f2c0ffa blocked on `consent.who.laneLinguistic`, which named the doctor as the recipient with no served text behind it (HB-C17).
 - Plan: the reviewer's exact wording; the affect row keeps the text's "bir değerlendirme olarak"; a KVKK-10 pin that a "who" row names a recipient only where a served text exists.
