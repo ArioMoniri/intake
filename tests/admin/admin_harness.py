@@ -431,6 +431,9 @@ ROUTE_DRIVES: tuple[RouteDrive, ...] = (
         "sre_oncall",
         {"system": "grafana"},
     ),
+    # INT-564 — the Experience composite. With no window it answers 422
+    # (window_required) — past the guard, audited, and never 403.
+    RouteDrive("GET", "/admin/experience", "/admin/experience", "auditor"),
     # INT-406 — the Safety queue. The harness wires no inbox, so a permitted
     # role reaches the handler and is answered 503 — past the guard, audited,
     # and never 403.

@@ -17,15 +17,27 @@ import type { ReactElement } from "react";
 import { Glyph, type GlyphName } from "../ui/glyphs";
 import type { Lang } from "./copy";
 
-export type ConsolePage = "overview" | "ops" | "voice" | "access" | "cicd" | "model-lanes";
+export type ConsolePage =
+  | "overview"
+  | "ops"
+  | "experience"
+  | "voice"
+  | "model-lanes"
+  | "models"
+  | "access"
+  | "compliance"
+  | "cicd";
 
 /** Every console page, in the order the sidebar lists them. */
 export const CONSOLE_PAGES: readonly ConsolePage[] = [
   "overview",
   "ops",
+  "experience",
   "voice",
   "model-lanes",
+  "models",
   "access",
+  "compliance",
   "cicd",
 ];
 
@@ -36,9 +48,12 @@ const GROUPS: readonly Group[] = ["monitor", "services", "govern"];
 const GROUP_OF: Record<ConsolePage, Group> = {
   overview: "monitor",
   ops: "monitor",
+  experience: "monitor",
   voice: "services",
   "model-lanes": "services",
+  models: "services",
   access: "govern",
+  compliance: "govern",
   cicd: "govern",
 };
 
@@ -47,7 +62,10 @@ const GLYPH_OF: Record<ConsolePage, GlyphName> = {
   ops: "gauge",
   voice: "waveform",
   "model-lanes": "chip",
+  models: "cube",
+  experience: "chart",
   access: "key",
+  compliance: "shield",
   cicd: "branch",
 };
 
@@ -73,6 +91,9 @@ const LABELS: Record<Lang, NavCopy> = {
       access: "Erişim",
       cicd: "CI/CD",
       "model-lanes": "Model hatları",
+      models: "Modeller",
+      experience: "Deneyim",
+      compliance: "Uyum",
     },
     langLabel: "Dil",
   },
@@ -88,6 +109,9 @@ const LABELS: Record<Lang, NavCopy> = {
       access: "Access",
       cicd: "CI/CD",
       "model-lanes": "Model lanes",
+      models: "Models",
+      experience: "Experience",
+      compliance: "Compliance",
     },
     langLabel: "Language",
   },

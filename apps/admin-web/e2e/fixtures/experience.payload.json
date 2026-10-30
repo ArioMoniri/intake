@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-06",
+  "generated_at": "2026-10-28",
   "csat": {
     "metric_id": "csat.score",
     "reason_metric_id": "csat.reason",
@@ -7,22 +7,16 @@
     "cohort": {
       "window_start": "2026-08-01T00:00:00+00:00",
       "window_end": "2026-09-01T00:00:00+00:00",
-      "measured_at": "2026-09-06T08:48:48.902198+00:00"
+      "measured_at": "2026-10-28T16:00:42.067174+00:00"
     },
     "n": 0,
     "k_floor": 10,
     "suppressed": true,
-    "allowed_reasons": [
-      "too_long",
-      "didnt_understand_me",
-      "felt_rushed",
-      "helpful",
-      "felt_heard"
-    ],
+    "allowed_reasons": ["too_long", "didnt_understand_me", "felt_rushed", "helpful", "felt_heard"],
     "mean_score": null,
     "score_counts": {},
     "reason_counts": {},
-    "note": "CSAT is a 1-5 score distribution plus the sealed reason enum (too long / didn't understand me / felt rushed / helpful / felt heard). Every figure names its cohort and window and no target is rendered beside it (invariant 20): csat.score's catalogue target (>= 4.3) is metadata, not a verdict on a reading. csat.score/csat.reason are live, but the console reads a scrape at serve time; with no response recorded the cohort is below the k >= 10 floor, so only the count survives (invariant 17; files/06 §8)."
+    "note": "CSAT is a 1-5 score distribution plus the sealed reason enum. Every figure names its cohort and window and no target is rendered beside it (invariant 20). Below the k >= 10 floor only the count survives (files/06 §8)."
   },
   "nps": {
     "metric_id": "nps.monthly",
@@ -30,7 +24,7 @@
     "cohort": {
       "window_start": "2026-08-01T00:00:00+00:00",
       "window_end": "2026-09-01T00:00:00+00:00",
-      "measured_at": "2026-09-06T08:48:48.902222+00:00"
+      "measured_at": "2026-10-28T16:00:42.067196+00:00"
     },
     "n": 0,
     "k_floor": 10,
@@ -39,7 +33,7 @@
     "passives": null,
     "detractors": null,
     "nps": null,
-    "note": "NPS on the standard 0-10 scale, the promoter/passive/detractor split that produced it shown as counts. Below the k >= 10 floor nothing but the count survives (files/08 §0c F9); no response has been recorded, so the cohort is empty (invariant 17)."
+    "note": "NPS on the 0-10 scale, with the promoter/passive/detractor counts that produced it. Below the k >= 10 floor only the count survives (files/08 §0c F9)."
   },
   "pulse": {
     "metric_id": "clinician.pulse",
@@ -47,14 +41,14 @@
     "cohort": {
       "window_start": "2026-08-01T00:00:00+00:00",
       "window_end": "2026-09-01T00:00:00+00:00",
-      "measured_at": "2026-09-06T08:48:48.902233+00:00"
+      "measured_at": "2026-10-28T16:00:42.067201+00:00"
     },
     "n": 0,
     "k_floor": 10,
     "suppressed": true,
     "mean_score": null,
     "score_counts": {},
-    "note": "Quarterly clinician pulse, 1-5. Clinicians appear as counts only — a clinician_ref never reaches an aggregate (invariant 6). Below the k >= 10 floor only the count survives; no response has been recorded (invariant 17)."
+    "note": "Quarterly clinician pulse, 1-5. Clinicians appear as counts only (invariant 6). Below the k >= 10 floor only the count survives."
   },
   "filters": {
     "tenant_scope": "token_claim",
@@ -83,7 +77,7 @@
         "reason": "the experience aggregates carry no clinic dimension; slicing an operational aggregate by branch × narrow window × small clinic is files/08 §0c F9's re-identification case, and adding one is a data-inventory decision under invariant 18 (stop-and-ask: Owner + compliance_officer; open in docs/evidence/INT-241.md, no HUMAN_BLOCKERS.md row minted)"
       }
     ],
-    "note": "The acceptance asks to filter by branch / profile / clinic. The mechanism ships and fails closed: the underlying events carry none of these dimensions today, tenant scope is a token claim rather than a query parameter (files/08 §8 rule (a), the F9 IDOR), and the window is required with no default (invariant 20)."
+    "note": "The mechanism ships and fails closed: the underlying events carry none of these dimensions, tenant scope is a token claim rather than a query parameter (files/08 §8 rule (a)), and the window is required with no default (invariant 20)."
   },
   "sds01_export": {
     "columns": [
@@ -105,7 +99,7 @@
         "s",
         "2026-08-01T00:00:00+00:00",
         "2026-09-01T00:00:00+00:00",
-        "2026-09-06T08:48:48.902253+00:00",
+        "2026-10-28T16:00:42.067209+00:00",
         "0",
         "",
         "source_unavailable",
@@ -116,7 +110,7 @@
         "s",
         "2026-08-01T00:00:00+00:00",
         "2026-09-01T00:00:00+00:00",
-        "2026-09-06T08:48:48.902258+00:00",
+        "2026-10-28T16:00:42.067213+00:00",
         "0",
         "",
         "source_unavailable",
@@ -127,7 +121,7 @@
         "h",
         "2026-08-01T00:00:00+00:00",
         "2026-09-01T00:00:00+00:00",
-        "2026-09-06T08:48:48.902262+00:00",
+        "2026-10-28T16:00:42.067215+00:00",
         "0",
         "",
         "source_unavailable",
@@ -138,24 +132,24 @@
         "min",
         "2026-08-01T00:00:00+00:00",
         "2026-09-01T00:00:00+00:00",
-        "2026-09-06T08:48:48.902265+00:00",
+        "2026-10-28T16:00:42.067216+00:00",
         "0",
         "",
-        "source_unavailable",
-        "both: files/08 §4 G scopes this to connector tenants and packages/connectors does not exist (blocked by INT-163)"
+        "no_observations",
+        "no observation fell in this window"
       ],
       [
         "wait.records_processing_s",
         "s",
         "2026-08-01T00:00:00+00:00",
         "2026-09-01T00:00:00+00:00",
-        "2026-09-06T08:48:48.902268+00:00",
+        "2026-10-28T16:00:42.067218+00:00",
         "0",
         "",
         "no_observations",
         "no observation fell in this window"
       ]
     ],
-    "note": "The SDS-01 style aggregate export for a hospital tenant (files/01 §4; files/08 §3). Tenant-scoped from the token, aggregate only: no clinic, branch, clinician or patient column (files/08 §0c F9; INT-241 §4). Rows are produced by intake_metrics.sds01.sds01_table over the real wait sources for the recorded window — records_processing reads no_observations (observable, empty) and the other four source_unavailable (an instant this repo does not yet record), so nothing is fabricated (invariant 17). Every cell is neutralised against spreadsheet-formula injection (invariant 47)."
+    "note": "The SDS-01 style aggregate wait-time export (files/01 §4; files/08 §3): tenant scoped from the token, aggregate only, no clinic, branch, clinician or patient column (files/08 §0c F9), every cell neutralised against formula injection (invariant 47)."
   }
 }

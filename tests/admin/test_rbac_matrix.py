@@ -157,6 +157,18 @@ LANES_APPROVERS = frozenset(
 )
 LANES_BRIEF_READERS = LANES_SAFE_ACTORS | LANES_REQUESTERS | LANES_APPROVERS | {AdminRole.AUDITOR}
 
+#: INT-564 — the Experience composite: a tenant's own admin and clinical
+#: responsible, the all-tenant clinical lead, the platform owner, the auditor.
+EXPERIENCE_READERS = frozenset(
+    {
+        AdminRole.TENANT_ADMIN,
+        AdminRole.TENANT_CLINICAL_RESPONSIBLE,
+        AdminRole.CLINICAL_LEAD,
+        AdminRole.PLATFORM_OWNER,
+        AdminRole.AUDITOR,
+    }
+)
+
 EXPECTED_MATRIX: dict[tuple[str, str], frozenset[AdminRole]] = {
     ("GET", "/admin/whoami"): ALL_ROLES,
     ("GET", "/admin/access/roles"): ALL_ROLES,
@@ -202,6 +214,7 @@ EXPECTED_MATRIX: dict[tuple[str, str], frozenset[AdminRole]] = {
     ("POST", "/admin/access/review/sign/{action_id}/countersign"): ACCESS_REVIEW_COUNTERSIGNERS,
     ("POST", "/admin/access/offboard"): OFFBOARDERS,
     ("POST", "/admin/access/offboard/{offboarding_id}/confirm"): OFFBOARDERS,
+    ("GET", "/admin/experience"): EXPERIENCE_READERS,
     ("GET", "/admin/safety-queue"): SAFETY_QUEUE_READERS,
     ("POST", "/admin/safety-queue/{entry_id}/acknowledge"): SAFETY_QUEUE_ACKNOWLEDGERS,
 }
