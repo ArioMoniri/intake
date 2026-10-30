@@ -135,6 +135,37 @@ describe("signing out drops this device's registration", () => {
     expect(body).toContain("resetPushRegistration()");
     expect(body).toContain("deletePushToken(authedFetch)");
   });
+
+  it("notices turned off on the phone drop the server's token through the native port", () => {
+    const native = file(NATIVE);
+    expect(native).toMatch(/deleteToken:\s*\(\)\s*=>\s*deletePushToken\(authedFetch\)/);
+  });
+
+  it("the screen tells both runs what the list knows about this device", () => {
+    const screen = file(SCREEN);
+    const silent = screen.slice(screen.indexOf("registerPushSilently("));
+    expect(silent.slice(0, silent.indexOf(");"))).toContain("registered");
+    const enable = screen.slice(screen.indexOf("enablePush("));
+    expect(enable.slice(0, enable.indexOf(");"))).toContain("registered");
+  });
+});
+
+describe("the new-sign-in notice copy is the legal lane's, verbatim (INT-583 review)", () => {
+  it.each([
+    [
+      "sessions.push.offerBody",
+      "Bildirimleri açarsanız, hesabınıza yeni bir cihazdan giriş yapıldığında bu cihaza haber veririz.",
+      "If you turn on notifications, we will let this device know when your account is signed in from a new device.",
+    ],
+    [
+      "sessions.push.onBody",
+      "Hesabınıza yeni bir cihazdan giriş yapıldığında bu cihaza bir bildirim göndeririz.",
+      "When your account is signed in from a new device, we send a notification to this device.",
+    ],
+  ] as const)("%s", (key, trText, enText) => {
+    expect(tr[key]).toBe(trText);
+    expect(en[key]).toBe(enText);
+  });
 });
 
 describe("copy: tr source of truth, en mirror, B1 siz register", () => {

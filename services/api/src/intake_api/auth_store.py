@@ -539,6 +539,18 @@ class AuthStore:
         self._r.expire(key, REFRESH_TTL_S)
         return new
 
+    def forget_device(self, patient_id: str, device_ref: str) -> None:
+        """INT-583: a device another device signed out is no longer known, so
+        its next sign-in is a new device again and the patient is told."""
+        self._r.srem(self._key("otp", "devices", patient_id), device_ref)
+
+    def renew_known_devices(self, patient_id: str) -> None:
+        """INT-583: a refresh keeps the account's known devices for another
+        session lifetime, as a sign-in does, so a patient who stays signed in
+        does not lose them, and an intruder's sign-in after 30 days still
+        counts as new."""
+        self._r.expire(self._key("otp", "devices", patient_id), REFRESH_TTL_S)
+
     # --- the lockout (INT-578) ---------------------------------------------------------
 
     def lockout_wait(self, pseudonym: str) -> float | None:
@@ -604,7 +616,11 @@ class AuthStore:
         patient_id: uuid.UUID,
         tenant_id: uuid.UUID,
         jkt: str,
-    ) -> None:
+    ) -> bool:
+        """Keep a refresh token in its family. False when the family was
+        revoked meanwhile (INT-583): a rotation that read its record before a
+        sign-out and writes after it would otherwise re-create the family the
+        sign-out deleted. The write is undone, and the caller refuses."""
         record = {
             "family_id": family_id,
             "patient_id": str(patient_id),
@@ -613,10 +629,20 @@ class AuthStore:
             "status": "active",
             "expires": self._now() + REFRESH_TTL_S,
         }
-        self._r.set(self._key("ref", token_hash), json.dumps(record), ex=REFRESH_TTL_S)
+        ref_key = self._key("ref", token_hash)
+        self._r.set(ref_key, json.dumps(record), ex=REFRESH_TTL_S)
         family_key = self._key("fam", family_id)
         self._r.sadd(family_key, token_hash)
         self._r.expire(family_key, REFRESH_TTL_S)
+        # checked after the write: revoke_family tombstones before it reads
+        # the members, so either it saw this member or this sees its tombstone
+        if self._r.exists(self._key("famdead", family_id)):
+            self._r.delete(ref_key)
+            self._r.srem(family_key, token_hash)
+            if not self._r.scard(family_key):
+                self._r.delete(family_key)
+            return False
+        return True
 
     def get_refresh(self, token_hash: str) -> RefreshRecord | None:
         raw = _text(self._r.get(self._key("ref", token_hash)))
@@ -647,13 +673,20 @@ class AuthStore:
         self._r.set(key, json.dumps(record), ex=REFRESH_TTL_S)
 
     def family_alive(self, family_id: str) -> bool:
-        """INT-583: whether the refresh family still exists. A revoked family
-        (refresh reuse, or its device signed out) is gone, and an access token
-        issued with it is refused from then on rather than at its expiry."""
+        """INT-583: whether the refresh family still exists and was never
+        revoked. A revoked family (refresh reuse, or its device signed out) is
+        tombstoned, and an access token issued with it is refused from then on
+        rather than at its expiry."""
+        if self._r.exists(self._key("famdead", family_id)):
+            return False
         return bool(self._r.exists(self._key("fam", family_id)))
 
     def revoke_family(self, family_id: str) -> int:
-        """Reuse detection (files/10 §2): kill every member of the family."""
+        """Reuse detection (files/10 §2), and a device signed out (INT-583):
+        kill every member of the family. The tombstone is written FIRST and
+        outlives any token the family could hold, so a rotation in flight
+        cannot bring the family back (:meth:`save_refresh`)."""
+        self._r.set(self._key("famdead", family_id), "1", ex=REFRESH_TTL_S)
         family_key = self._key("fam", family_id)
         members = self._r.smembers(family_key)
         revoked = 0

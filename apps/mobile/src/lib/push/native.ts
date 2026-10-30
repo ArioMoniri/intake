@@ -25,6 +25,7 @@ import {
   syncPushRegistration,
   type PushPorts,
   type PushSync,
+  type SyncOptions,
 } from "./registration";
 
 async function nativeNotifications() {
@@ -56,22 +57,23 @@ const ports: PushPorts = {
     return token.type === "ios" && typeof token.data === "string" ? token.data : null;
   },
   putToken: (token) => putPushToken(authedFetch, token),
+  deleteToken: () => deletePushToken(authedFetch),
 };
+
+/** What a caller may tell a run: see SyncOptions in registration.ts. */
+export type PushRunOptions = Pick<SyncOptions, "onPermission" | "registered">;
 
 /** App start, signed in: keep the server's token fresh. Never prompts. */
 export function registerPushSilently(
   sharedDevice: boolean,
-  onPermission?: (permission: PushPermission) => void,
+  run: PushRunOptions = {},
 ): Promise<PushSync> {
-  return syncPushRegistration(ports, { asked: false, sharedDevice, onPermission });
+  return syncPushRegistration(ports, { ...run, asked: false, sharedDevice });
 }
 
 /** The patient tapped the enable button: the one path that may show the prompt. */
-export function enablePush(
-  sharedDevice: boolean,
-  onPermission?: (permission: PushPermission) => void,
-): Promise<PushSync> {
-  return syncPushRegistration(ports, { asked: true, sharedDevice, onPermission });
+export function enablePush(sharedDevice: boolean, run: PushRunOptions = {}): Promise<PushSync> {
+  return syncPushRegistration(ports, { ...run, asked: true, sharedDevice });
 }
 
 /**

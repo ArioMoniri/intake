@@ -19,6 +19,7 @@ import {
   holdFromRefusal,
   orderSessions,
   pushNoticeState,
+  knownRegistration,
   reloadAfterRegistration,
   reloadsAfter,
   sessionsReducer,
@@ -38,8 +39,12 @@ const OLDER = device("bb", "2026-09-15T08:00:00Z");
 const NEWER = device("cc", "2026-10-29T18:40:00Z");
 const NEWEST = device("dd", "2026-10-30T09:12:00Z");
 
-function listOf(sessions: DeviceSession[], after: string | null = null): SessionList {
-  return { sessions, signOutOthersAfter: after };
+function listOf(
+  sessions: DeviceSession[],
+  after: string | null = null,
+  noticesOn = true,
+): SessionList {
+  return { sessions, signOutOthersAfter: after, noticesOn };
 }
 
 function loaded(list: SessionList): SessionsState {
@@ -256,6 +261,23 @@ describe("what reloads the list after an action", () => {
   });
 });
 
+describe("what the list tells a registration run about this device", () => {
+  it("the current device's push flag, when the list has one", () => {
+    expect(knownRegistration({ ok: true, list: listOf([{ ...HERE, push: true }, NEWER]) })).toBe(
+      true,
+    );
+    expect(knownRegistration({ ok: true, list: listOf([{ ...HERE, push: false }, NEWER]) })).toBe(
+      false,
+    );
+  });
+
+  it("unknown when the list failed or has no current row (near miss: another row's flag)", () => {
+    expect(knownRegistration({ ok: false, error: "unreachable" })).toBeUndefined();
+    const otherRegistered = { ...NEWER, push: true };
+    expect(knownRegistration({ ok: true, list: listOf([otherRegistered]) })).toBeUndefined();
+  });
+});
+
 describe("what reloads the list after this device registers", () => {
   const listed = (push: boolean) =>
     ({ ok: true, list: listOf([{ ...HERE, push }, NEWER]) }) as const;
@@ -319,34 +341,62 @@ describe("sign-in time, in Türkiye's zone and the patient's language", () => {
 
 describe("the new-sign-in notice row", () => {
   it("undetermined offers the enable button", () => {
-    expect(pushNoticeState("undetermined", false, false)).toBe("offer");
+    expect(pushNoticeState("undetermined", false, false, null)).toBe("offer");
   });
 
   it("denied explains Settings", () => {
-    expect(pushNoticeState("denied", false, false)).toBe("denied");
+    expect(pushNoticeState("denied", false, false, null)).toBe("denied");
   });
 
   it("granted and registered with the server is on", () => {
-    expect(pushNoticeState("granted", true, false)).toBe("on");
+    expect(pushNoticeState("granted", true, false, null)).toBe("on");
   });
 
   it("granted but not registered with the server is not on (near miss)", () => {
-    expect(pushNoticeState("granted", false, false)).toBe("notRegistered");
-    expect(pushNoticeState("granted", null, false)).toBe("notRegistered");
+    expect(pushNoticeState("granted", false, false, null)).toBe("notRegistered");
+    expect(pushNoticeState("granted", null, false, null)).toBe("notRegistered");
   });
 
   it("a device that cannot receive them says so", () => {
-    expect(pushNoticeState("unavailable", false, false)).toBe("unavailable");
+    expect(pushNoticeState("unavailable", false, false, null)).toBe("unavailable");
   });
 
   it("a shared clinic device never offers them, whatever the permission", () => {
     for (const permission of ["granted", "denied", "undetermined", "unavailable"] as const) {
-      expect(pushNoticeState(permission, true, true), permission).toBe("unavailable");
+      expect(pushNoticeState(permission, true, true, null), permission).toBe("unavailable");
     }
   });
 
+  it("granted and registered, but the server has no push channel wired: not on", () => {
+    expect(pushNoticeState("granted", true, false, false)).toBe("notRegistered");
+  });
+
+  it("with no channel wired the row offers nothing it cannot keep", () => {
+    // the offer promises a notice to this device; with no channel the PUT
+    // would store nothing, so the row says notices cannot be sent instead
+    expect(pushNoticeState("undetermined", null, false, false)).toBe("notRegistered");
+    // near miss: a refusal is still explained as one, channel or not
+    expect(pushNoticeState("denied", null, false, false)).toBe("denied");
+  });
+
+  it("granted, registered and the channel wired is on (near miss)", () => {
+    expect(pushNoticeState("granted", true, false, true)).toBe("on");
+  });
+
+  it("with no list yet the channel is unknown, and the row reads as before (near miss)", () => {
+    expect(pushNoticeState("granted", true, false, null)).toBe("on");
+    expect(pushNoticeState("granted", false, false, null)).toBe("notRegistered");
+    expect(pushNoticeState("undetermined", null, false, null)).toBe("offer");
+  });
+
+  it("the view carries the list's channel flag, and null before a list", () => {
+    expect(sessionsView(loaded(listOf([HERE], null, false)), NOW).noticesOn).toBe(false);
+    expect(sessionsView(loaded(listOf([HERE], null, true)), NOW).noticesOn).toBe(true);
+    expect(sessionsView(INITIAL_SESSIONS_STATE, NOW).noticesOn).toBeNull();
+  });
+
   it("before the permission is read the row shows nothing", () => {
-    expect(pushNoticeState(null, true, false)).toBeNull();
+    expect(pushNoticeState(null, true, false, null)).toBeNull();
   });
 
   it("every state has its explanation in both catalogues", () => {

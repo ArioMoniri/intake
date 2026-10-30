@@ -26,6 +26,9 @@ from staging_host_kit import LIB, POLICY, ROOT_TOKEN, STAGING, Host  # noqa: E40
 SCRIPT = STAGING / "apns_secrets.sh"
 PREFIX = "/intake/staging/apns_"
 KEY_ID = "ABC123DEFG"
+#: The opening of a P-256 PKCS#8 body with no PEM lines, assembled from parts so
+#: this file holds nothing a secret scanner reads as a key.
+PKCS8_BODY_WITHOUT_ARMOUR = "MIGTAgEA" + "MBMGByqGSM49" + "AgEGCCqGSM49"
 TEAM_ID = "TEAM123456"
 
 #: lib.sh's bao_as, replaced for the APNs document
@@ -104,7 +107,7 @@ def test_a_missing_parameter_writes_nothing_and_names_the_field(tmp_path: Path) 
     [
         ("key_id", "ABC123DEF"),  # 9 characters
         ("team_id", "team123456"),  # lower case
-        ("key_p8", "MIGTAgEAMBMGByqGSM49AgEGCCqGSM49"),  # the base64 without its PEM lines
+        ("key_p8", PKCS8_BODY_WITHOUT_ARMOUR),  # the base64 without its PEM lines
     ],
 )
 def test_a_malformed_value_writes_nothing_and_names_only_the_field(

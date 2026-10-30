@@ -760,9 +760,18 @@ it or whose tests exercise it.
   `sec_sign_in_disowned_total` and pages `SignInDisowned`, even from a held session: **a
   presumed account takeover, which starts the KVKK 72-hour clock**
   (docs/runbooks/sms-abuse.md, "A patient says a sign-in was not theirs"). The new data are
-  two off-schema inventory flows, `device_sessions` and `push_tokens`: pseudonymised identity,
-  KVKK m.5/2-ç with m.12, 30 days, recipients internal and Apple's push service as processor.
-  That is engineering's proposal for the legal lane. **Residuals:** a SIM-swapped intruder can
+  two off-schema inventory flows, `device_sessions` (pseudonymised identity, KVKK m.5/2-ç with
+  m.12/1, internal) and `push_tokens` (KVKK m.5/2-c, because the patient turns notices on;
+  Apple's push service as processor, outside Türkiye under KVKK m.9), as the legal review of
+  30 Oct 2026 settled them. Retention is per record: a token goes 30 days after its own last
+  registration, or when its device has no live session, whichever is first. **Review fixes
+  (30 Oct 2026):** a device another device signs out is forgotten, so its next sign-in is new
+  and told; a revoked refresh family is tombstoned, so a refresh in flight during a sign-out is
+  undone and refused rather than reviving the family; a refresh renews the device row and the
+  known-device set, so a patient who stays signed in keeps both and an intruder's later sign-in
+  still counts as new; the notice budget and the once-a-day "not me" report are admitted
+  atomically; h2's `hpack` logger, which logs every header at DEBUG, is held at INFO.
+  **Residuals:** a SIM-swapped intruder can
   sign in again by SMS after being signed out; only the passkey step-up (INT-582) or an
   operator lock ends that. A patient whose only device is lost gets no notice. On the
   synthetic host the call rides its own proxy, `push-egress` (ADR-045, on ADR-042's pattern:

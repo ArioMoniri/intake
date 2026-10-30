@@ -17,6 +17,12 @@
 - Decisions / ADRs / `00_STATE.md` rows: D35 (already recorded). Engineering defaults: a 24 h sign-out hold, three notices an hour, a 24 h APNs expiry.
 - Blocked on (human + one sentence + HUMAN_BLOCKERS id): owner: store the APNs key with `infra/staging/apns_secrets.sh`, apply `owner-583-apns-egress.patch`, and enable Push Notifications on the App ID; legal lane: confirm the `push_tokens` and `device_sessions` annotations and whether the notice names Apple's push service.
 - Follow-up (orchestrator, same day): the synthetic host's push route. ADR-045 (allocated by the orchestrator, amending ADR-042) adds `push-egress`, a third default-deny squid on `push-out`/`push-wan`, rendered from the allow-list's APNs rows alone (`scripts/security/render_push_egress_conf.py`; admits nothing until the owner's rows). The API names it in `INTAKE_PUSH_EGRESS_PROXY_URL` and the wiring (`intake_api.push_wiring`) refuses any other proxy, or none on the synthetic host, as `no_route`. It has a registry row, an inventory placement and a healthcheck (invariants 13 and 15). The probe sweeps and admin fixtures were re-taken with the shipped recorders. The vendor tripwire was re-cut for the new service and networks, for the legal lane to verify. Red: 84 failed of 502 against the pre-proxy head; green: 6851 passed on the wider suites, admin-web 646 and lint clean.
+- Review fixes (security and legal REVISE, same day), test-first:
+  - security B1: a device signed out by another is forgotten; B2: revoked families are tombstoned against an in-flight refresh;
+  - the notes: hpack held at INFO, a token-free repr, an atomic notice budget, a once-a-day "not me", the PKCS#8 literal from parts, setAutoServerRegistrationEnabledAsync banned, UnsupportedAlgorithm handled, the unbound residual;
+  - legal B1: the push_tokens basis is m.5/2-c and the recipient and documents texts are verbatim; B2: retention per record, dead rows pruned, DELETE on denied; B3: notices_on, 503 push_unavailable, refresh renews the row and the known set; B4: the Bildirimler copy; B5: the tripwire's purposes, its APNs host set and an AST scan;
+  - the owner patch no longer touches tests/legal/.
+  - Red: 20 failed of 128 on the server, plus 21, 2 and 1 on mobile.
 - Next: the merge queue, after INT-580.
 - LOOP_STATUS: CONTINUE
 

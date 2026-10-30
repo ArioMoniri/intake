@@ -61,6 +61,7 @@ import {
   deviceLabelKey,
   formatSignInMoment,
   pushNoticeState,
+  knownRegistration,
   reloadAfterRegistration,
   reloadsAfter,
   sessionsReducer,
@@ -128,16 +129,22 @@ export default function Sessions() {
       }
     };
     void (async () => {
-      // Side by side, so a slow native token call never holds the list
-      // back; one reload when a fresh registration is not in it yet.
-      const syncing = verified ? registerPushSilently(kioskActive, showPermission) : null;
+      // The list first, so a slow native token call never holds it back and
+      // the run knows whether the server holds this device's token; one
+      // reload when a fresh registration is not in the list yet.
       const result = await sessionsApi.list();
       if (!live) {
         return;
       }
       dispatch({ type: "loaded", result });
-      const sync = syncing === null ? null : await syncing;
-      if (live && sync !== null && reloadAfterRegistration(result, sync.outcome)) {
+      if (!verified) {
+        return;
+      }
+      const sync = await registerPushSilently(kioskActive, {
+        onPermission: showPermission,
+        registered: knownRegistration(result),
+      });
+      if (live && reloadAfterRegistration(result, sync.outcome)) {
         await load();
       }
     })();
@@ -164,14 +171,17 @@ export default function Sessions() {
     }
   };
 
+  const view = sessionsView(state, deviceClock());
+  const push = pushNoticeState(permission, view.currentPush, kioskActive, view.noticesOn);
+  const held = view.hold.held ? view.hold : null;
+
   const enable = async () => {
-    await enablePush(kioskActive, setPermission);
+    await enablePush(kioskActive, {
+      onPermission: setPermission,
+      registered: view.currentPush ?? undefined,
+    });
     await load();
   };
-
-  const view = sessionsView(state, deviceClock());
-  const push = pushNoticeState(permission, view.currentPush, kioskActive);
-  const held = view.hold.held ? view.hold : null;
 
   return (
     <Screen edges={RAIL_EDGES}>

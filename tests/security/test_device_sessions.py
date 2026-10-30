@@ -128,6 +128,11 @@ def test_the_token_is_sealed_at_rest_and_bound_to_its_slot(tmp_path: Path) -> No
         assert otp.redis_client.hlen(key) == 0
 
 
+def test_a_push_target_never_prints_its_token() -> None:
+    target = sessions_module().PushTarget(session_id="s" * 32, device_ref="d", token=kit.TOKEN_A)
+    assert kit.TOKEN_A not in repr(target) and kit.TOKEN_A not in str(target)
+
+
 def test_unregistering_is_idempotent(tmp_path: Path) -> None:
     with harness(tmp_path) as otp:
         a = sign_in(otp, "device-a")
@@ -294,13 +299,39 @@ def test_each_new_datum_carries_its_inventory_annotation(flow_id: str) -> None:
     assert REFRESH_TTL_S == 30 * 24 * 3600 and "30 days" in flow.annotation["retention"]
     assert f"flow:{flow_id}" in {fact.fact_id for fact in data_facts()}
     sharing_for(flow.annotation["recipients"])  # classified, or the build stops
+    # the legal review of 30 Oct 2026: device_sessions rests on the security
+    # obligation; push_tokens on the contract, because the patient turns
+    # notices on
+    from intake_platform.db.inventory import BASIS_CONTRACT, BASIS_LEGAL_OBLIGATION
+
+    expected = {"device_sessions": BASIS_LEGAL_OBLIGATION, "push_tokens": BASIS_CONTRACT}
+    assert flow.annotation["basis"] == expected[flow_id]
+
+
+def test_the_retention_texts_are_the_ones_the_store_enforces() -> None:
+    from intake_platform.store.facts import OFF_SCHEMA_FLOWS
+
+    assert OFF_SCHEMA_FLOWS["push_tokens"].annotation["retention"] == (
+        "until the device is signed out or its session ends, the app unregisters it "
+        "(sign-out, or notifications found turned off), Apple reports the token gone, or "
+        "30 days after that token was last registered (REFRESH_TTL_S), whichever is first"
+    )
+    sessions = OFF_SCHEMA_FLOWS["device_sessions"].annotation["retention"]
+    assert "last sign-in or refresh" in sessions
+    assert "last sign-in or refresh" in OFF_SCHEMA_FLOWS["sign_in_devices"].annotation["retention"]
 
 
 def test_the_push_token_names_apple_as_its_one_recipient() -> None:
     from intake_platform.store.facts import OFF_SCHEMA_FLOWS
 
     recipients = OFF_SCHEMA_FLOWS["push_tokens"].annotation["recipients"]
-    assert "Apple Push Notification service" in recipients and "processor" in recipients
+    assert recipients == (
+        "Apple Push Notification service (APNs), as processor, outside Türkiye: receives "
+        "the device token and the constant notice text with each new-device sign-in notice, "
+        "a transfer abroad under KVKK m.9 whose mechanism is awaiting counsel; nothing "
+        "leaves until the owner's APNs egress row is applied, and nothing else leaves the "
+        "PHI boundary"
+    )
     assert "auth:push:" in OFF_SCHEMA_FLOWS["push_tokens"].what
     assert "auth:sess:" in OFF_SCHEMA_FLOWS["device_sessions"].what
 

@@ -37,6 +37,11 @@ export interface SessionList {
   sessions: DeviceSession[];
   /** Null: this device may sign the others out now. Otherwise the instant it may. */
   signOutOthersAfter: string | null;
+  /**
+   * Whether the server has a push channel wired. False: no notice reaches
+   * any device, whatever is registered, so the screen does not say "on".
+   */
+  noticesOn: boolean;
 }
 
 export type Unreachable = { ok: false; error: "unreachable" };
@@ -113,6 +118,10 @@ function parseList(raw: unknown): SessionList | null {
   if (after !== null && !isInstant(after)) {
     return null;
   }
+  const noticesOn = raw.notices_on;
+  if (typeof noticesOn !== "boolean") {
+    return null;
+  }
   const sessions: DeviceSession[] = [];
   for (const row of raw.sessions) {
     const session = parseSession(row);
@@ -121,7 +130,7 @@ function parseList(raw: unknown): SessionList | null {
     }
     sessions.push(session);
   }
-  return { sessions, signOutOthersAfter: after };
+  return { sessions, signOutOthersAfter: after, noticesOn };
 }
 
 function parseCount(raw: unknown): number | null {

@@ -28,8 +28,27 @@ PEPPER = OtpPepper.parse({"pepper": hashlib.sha256(b"int583-push-session-kit").h
 OTHER_PHONE = "+905321114466"
 
 
+def recorded_gateway(vendor: Any = None) -> Any:
+    """The real APNs adapter over a recorded answer (accepted, unless a
+    vendor is given): never Apple, never a fake channel."""
+    import apns_testkit as kit
+    from intake_api.push_apns import ApnsCredentials, ApnsPushGateway
+
+    vendor = vendor if vendor is not None else kit.Vendor(kit.replay("accepted"))
+    return ApnsPushGateway(
+        ApnsCredentials.parse(kit.vault_doc(kit.signing_key())),
+        topic=kit.TOPIC,
+        egress=kit.policy(),
+        inner=vendor.transport(),
+    )
+
+
 @contextlib.contextmanager
-def harness(tmp_path: Path, **knobs: Any) -> Iterator[OtpHarness]:
+def harness(tmp_path: Path, *, channel: bool = True, **knobs: Any) -> Iterator[OtpHarness]:
+    """The OTP harness with the D35 channel wired over a recorded gateway,
+    unless ``channel`` is False or the test wires its own."""
+    if channel and "push_gateway" not in knobs and "sign_in_notice" not in knobs:
+        knobs["push_gateway"] = recorded_gateway()
     built = _build(tmp_path, pepper=PEPPER, **knobs)
     try:
         yield next(built)

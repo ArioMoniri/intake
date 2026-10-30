@@ -898,13 +898,13 @@ export const tr = {
   "notifications.title": "Bildirimler",
   "notifications.entry.sub": "Hatırlatmalar ve sessiz saatler",
   "notifications.guide.kicker": "Bildirimler",
-  "notifications.guide.title": "Yalnızca hatırlatma",
+  "notifications.guide.title": "Hatırlatma ve güvenlik bildirimi",
   "notifications.guide.body":
-    "Size yalnızca vizitinizden önce kısa bir hatırlatma göndeririz. Ne zaman sessiz kalacağımızı siz seçersiniz; istediğiniz zaman tamamen kapatabilirsiniz.",
+    "Vizitinizden önce size kısa bir hatırlatma göndeririz. Hesabınıza yeni bir cihazdan giriş yapılırsa, öteki cihazlarınıza bir güvenlik bildirimi göndeririz. Bu bildirim sessiz saatlerde de gelebilir. Hatırlatmaları istediğiniz zaman kapatabilirsiniz.",
   "notifications.contentFree":
-    "Hatırlatmalarda sağlık bilgileriniz, bölüm adı, hekim adı veya belge adı yer almaz. Telefonunuz kilitliyken yalnızca uygulamanın adı görünür.",
+    "Hatırlatmalarda ve güvenlik bildiriminde sağlık bilgileriniz, bölüm adı, hekim adı veya belge adı yer almaz. Telefonunuz kilitliyken hatırlatmalarda yalnızca uygulamanın adı görünür.",
   "notifications.transactionalOnly":
-    "Yalnızca vizitinizle ilgili hatırlatma göndeririz. Tanıtım iletisi göndermiyoruz.",
+    "Yalnızca vizitinizle ilgili hatırlatma ve hesabınızın güvenliğiyle ilgili bildirim göndeririz. Tanıtım iletisi göndermiyoruz.",
   "notifications.switchLabel": "Hatırlatmalar",
   "notifications.on": "Açık",
   "notifications.off": "Kapalı",
@@ -1491,15 +1491,16 @@ export const tr = {
   "sessions.push.label": "Bildirim izni",
   "sessions.push.enable": "Bildirimleri açın",
   "sessions.push.offerBody":
-    "Hesabınıza başka bir cihazdan giriş yapılırsa size bu cihazdan haber veririz.",
+    "Bildirimleri açarsanız, hesabınıza yeni bir cihazdan giriş yapıldığında bu cihaza haber veririz.",
   "sessions.push.onBody":
-    "Hesabınıza başka bir cihazdan giriş yapılırsa bu cihaza bildirim gelir.",
+    "Hesabınıza yeni bir cihazdan giriş yapıldığında bu cihaza bir bildirim göndeririz.",
   "sessions.push.deniedBody":
     "Bildirimler kapalı olduğu için yeni girişleri size bu cihazdan bildiremiyoruz. Telefonunuzun Ayarlar bölümünden açabilirsiniz.",
   "sessions.push.notRegisteredBody": "Bu cihaza şu an yeni giriş bildirimi gönderilemiyor.",
   "sessions.push.unavailableBody": "Bu cihaz yeni giriş bildirimi alamıyor.",
   "a11y.sessions.signOutDeviceHint": "İki kez dokunmak o cihazdaki oturumu kapatır.",
-  "a11y.sessions.signOutOthersHint": "İki kez dokunmak bu cihaz dışındaki bütün oturumları kapatır.",
+  "a11y.sessions.signOutOthersHint":
+    "İki kez dokunmak bu cihaz dışındaki bütün oturumları kapatır.",
   "a11y.sessions.notMeHint": "İki kez dokunmak onay adımını açar.",
   "a11y.sessions.confirmHint": "İki kez dokunmak bildiriminizi gönderir.",
   "a11y.sessions.pushEnableHint": "İki kez dokunmak telefonunuzun bildirim iznini sorar.",

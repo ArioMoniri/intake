@@ -37,6 +37,7 @@ from __future__ import annotations
 
 import asyncio
 from datetime import UTC, datetime
+from functools import partial
 from typing import Final, Literal
 
 from fastapi import APIRouter, HTTPException, Request, Response
@@ -90,6 +91,8 @@ class SessionsOut(BaseModel):
     sessions: list[SessionOut]
     #: None when this session may sign the others out now; otherwise when it may
     sign_out_others_after: str | None
+    #: whether a push channel is wired: without one no device is told
+    notices_on: bool
 
 
 class SignOutOthersIn(BaseModel):
@@ -173,6 +176,7 @@ async def list_sessions(request: Request, state: State) -> SessionsOut:
         sign_out_others_after=_iso(device.signed_in_at + SIGN_OUT_OTHERS_HOLD_S)
         if left > 0
         else None,
+        notices_on=service.notices_on,
     )
 
 
@@ -191,7 +195,11 @@ async def sign_out_session(session_id: str, request: Request, state: State) -> R
     own = target.device_ref == device.device_ref
     if not own and (left := _hold_left(device, service.now())) > 0:
         raise _too_new(left)
-    await asyncio.to_thread(store.sign_out, current.patient_id, target.device_ref)
+    # another device signing this one out forgets it, so its next sign-in is
+    # new and told; the patient's own sign-out keeps it known
+    await asyncio.to_thread(
+        partial(store.sign_out, current.patient_id, target.device_ref, forget=not own)
+    )
     SEC_SESSIONS_SIGNED_OUT_TOTAL.labels(scope="self" if own else "one").inc()
     await service.audit_account(
         current.patient_id, "auth.session.signed_out_self" if own else "auth.session.signed_out"
@@ -203,18 +211,21 @@ async def sign_out_session(session_id: str, request: Request, state: State) -> R
 async def sign_out_others(payload: SignOutOthersIn, request: Request, state: State) -> SignedOutOut:
     service = _service(request, state)
     current = await _current(request, service)
-    device = _bound(current)
-    if payload.not_me:
-        # the report is the breach hook, recorded before anything can refuse
+    store = service.device_sessions
+    if payload.not_me and await asyncio.to_thread(store.first_disowned_report, current.patient_id):
+        # the report is the breach hook, recorded before anything can refuse,
+        # the missing device binding included; once a day per account
         SEC_SIGN_IN_DISOWNED_TOTAL.inc()
         await service.audit_account(current.patient_id, "auth.session.disowned")
+    device = _bound(current)
     if (left := _hold_left(device, service.now())) > 0:
         raise _too_new(left)
-    store = service.device_sessions
     sessions = await asyncio.to_thread(store.sessions, current.patient_id)
     others = [s for s in sessions if s.device_ref != device.device_ref]
     for other in others:
-        await asyncio.to_thread(store.sign_out, current.patient_id, other.device_ref)
+        await asyncio.to_thread(
+            partial(store.sign_out, current.patient_id, other.device_ref, forget=True)
+        )
     SEC_SESSIONS_SIGNED_OUT_TOTAL.labels(scope="others").inc(len(others))
     await service.audit_account(current.patient_id, "auth.session.signed_out_others")
     return SignedOutOut(signed_out=len(others))
@@ -225,6 +236,9 @@ async def register_push_token(payload: PushTokenIn, request: Request, state: Sta
     service = _service(request, state)
     current = await _current(request, service)
     device = _bound(current)
+    if not service.notices_on:
+        # no channel is wired, so a token would be kept and never used
+        raise HTTPException(status_code=503, detail={"error": "push_unavailable"})
     await asyncio.to_thread(
         service.device_sessions.register_push,
         current.patient_id,

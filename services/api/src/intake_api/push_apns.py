@@ -43,9 +43,10 @@ derived from those pages; nothing in a test reaches Apple.
   ``intake_platform.egress`` admits for this purpose. TLS and HTTP/2 run end
   to end through its CONNECT tunnel, so it sees ``host:443`` and nothing else.
 - Logs and metrics carry no token, no key, no vendor text (invariant 6): the
-  APNs reason is logged only when it is one of Apple's documented strings, and
+  APNs reason is logged only when it is one of Apple's documented strings,
   httpx's own request line, whose URL holds the token, is redacted on the
-  ``httpx`` logger before any handler sees it.
+  ``httpx`` logger before any handler sees it, and the ``hpack`` logger, which
+  logs every header h2 compresses at DEBUG, is held at INFO.
 - No retry: a second push is a second notice on the lock screen.
 """
 
@@ -62,6 +63,7 @@ from types import MappingProxyType
 from typing import Final, Literal
 
 import httpx
+from cryptography.exceptions import UnsupportedAlgorithm
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives.asymmetric.utils import decode_dss_signature
@@ -190,6 +192,10 @@ def _install_redaction() -> None:
     target = logging.getLogger("httpx")
     if not any(isinstance(f, _RedactDevicePath) for f in target.filters):
         target.addFilter(_RedactDevicePath())
+    # h2's header compressor logs every header it adds to its table at DEBUG,
+    # the :path with the device token and the authorization bearer among them;
+    # its loggers (hpack.*) inherit this level, so no such record is made
+    logging.getLogger("hpack").setLevel(logging.INFO)
 
 
 _install_redaction()
@@ -243,7 +249,7 @@ def _signing_key(pem: str) -> ec.EllipticCurvePrivateKey | None:
     """The ``.p8`` file's key: PKCS#8 PEM, unencrypted, EC P-256 (ES256)."""
     try:
         key = serialization.load_pem_private_key(pem.encode("ascii"), password=None)
-    except (ValueError, TypeError, UnicodeEncodeError):
+    except (ValueError, TypeError, UnicodeEncodeError, UnsupportedAlgorithm):
         return None
     if not isinstance(key, ec.EllipticCurvePrivateKey) or not isinstance(key.curve, ec.SECP256R1):
         return None

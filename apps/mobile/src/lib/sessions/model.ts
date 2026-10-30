@@ -201,8 +201,20 @@ export function reloadsAfter(result: RevokeResult | SignOutOthersResult): boolea
 }
 
 /**
- * The list is loaded alongside this device's silent registration rather than
- * after it, so a slow native token call never holds the list back. When the
+ * What a list tells a registration run about this device: its `push` flag,
+ * or undefined when there is no list or no current row. Undefined is the
+ * run's "unknown", under which a denied permission still deletes.
+ */
+export function knownRegistration(result: ListResult): boolean | undefined {
+  if (!result.ok) {
+    return undefined;
+  }
+  return result.list.sessions.find((session) => session.current)?.push;
+}
+
+/**
+ * The list loads first and this device's silent registration runs after it,
+ * so a slow native token call never holds the list back. When the
  * registration lands and the list did not show it yet, one reload brings the
  * server's `push` flag for this device up to date.
  */
@@ -222,6 +234,8 @@ export interface SessionsView {
   canReportNotMe: boolean;
   /** Whether the server holds a registration for THIS device; null when unknown. */
   currentPush: boolean | null;
+  /** Whether the server has a push channel wired; null before a list. */
+  noticesOn: boolean | null;
 }
 
 export function sessionsView(state: SessionsState, now: Date): SessionsView {
@@ -237,6 +251,7 @@ export function sessionsView(state: SessionsState, now: Date): SessionsView {
     canSignOutOthers: open && !hold.held,
     canReportNotMe: open,
     currentPush: rows.find((row) => row.current)?.push ?? null,
+    noticesOn: state.list === null ? null : state.list.noticesOn,
   };
 }
 
@@ -265,10 +280,17 @@ export function formatSignInMoment(iso: string, locale: Locale): string {
 /** Which line the new-sign-in notice row shows; null before the permission is read. */
 export type PushNoticeState = "offer" | "on" | "denied" | "notRegistered" | "unavailable";
 
+/**
+ * `noticesOn` is the list's word on whether the server can send at all. A
+ * registered device on a server with no channel is not "on": nothing would
+ * reach it. Null (no list yet) leaves the row as the permission and the
+ * registration say.
+ */
 export function pushNoticeState(
   permission: PushPermission | null,
   currentPush: boolean | null,
   sharedDevice: boolean,
+  noticesOn: boolean | null,
 ): PushNoticeState | null {
   if (sharedDevice) {
     return "unavailable";
@@ -277,13 +299,14 @@ export function pushNoticeState(
     case null:
       return null;
     case "undetermined":
-      return "offer";
+      // no channel on the server: the offer's promise could not be kept
+      return noticesOn === false ? "notRegistered" : "offer";
     case "denied":
       return "denied";
     case "unavailable":
       return "unavailable";
     case "granted":
-      return currentPush === true ? "on" : "notRegistered";
+      return currentPush === true && noticesOn !== false ? "on" : "notRegistered";
   }
 }
 

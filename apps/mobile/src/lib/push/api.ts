@@ -15,8 +15,16 @@ import { isApnsDeviceToken } from "./plan";
 
 const PUSH_TOKEN = "/v1/auth/push-token";
 
+/**
+ * `push_unavailable`: the server has no push channel wired (503) and stored
+ * nothing. Not this device's fault, and not a reason to stop trying.
+ */
 export type PushTokenResult =
-  { ok: true } | { ok: false; error: "session_unbound" | "invalid_token" | "unreachable" };
+  | { ok: true }
+  | {
+      ok: false;
+      error: "session_unbound" | "invalid_token" | "push_unavailable" | "unreachable";
+    };
 
 const UNREACHABLE: PushTokenResult = { ok: false, error: "unreachable" };
 
@@ -38,6 +46,9 @@ export async function putPushToken(fetcher: AuthedFetch, token: string): Promise
     }
     if (response.status === 409 && (await errorDetail(response)).error === "session_unbound") {
       return { ok: false, error: "session_unbound" };
+    }
+    if (response.status === 503 && (await errorDetail(response)).error === "push_unavailable") {
+      return { ok: false, error: "push_unavailable" };
     }
     return UNREACHABLE;
   } catch {

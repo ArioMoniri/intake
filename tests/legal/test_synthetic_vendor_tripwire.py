@@ -124,8 +124,26 @@ RECIPIENT_SECTIONS = {
     "acik_riza.core": "Kimler görür:",
     "acik_riza.documents": "Kimler görür:",
 }
-#: The PHI-path purpose these sentences do not cover (see the module docstring).
-PHI_PATH_PURPOSES_OUTSIDE_THE_TEXTS = frozenset({"sms_otp_delivery"})
+#: The PHI-path purposes these sentences do not cover (see the module docstring).
+#: ``sms_otp_delivery`` carries the sign-in number and a code; the core text
+#: names its processor. ``push_security_notice`` (INT-583, D35; legal review of
+#: 30 Oct 2026) carries a device token and the notice's constant words to
+#: Apple's push service: never audio, answers or documents, which is all the
+#: four sentences speak of. It is held to that below: the push rows and the
+#: push proxy name Apple's two hosts and nothing else (:data:`APNS_HOSTS`), the
+#: only alert built is the constant notice, and only the wiring builds the
+#: gateway (``push_construction_findings``). The aydınlatma names the push
+#: recipient group and the transfer abroad; the core açık rıza text does not
+#: (docs/legal/synthetic/documents.yaml, aydinlatma.app).
+PHI_PATH_PURPOSES_OUTSIDE_THE_TEXTS = frozenset({"sms_otp_delivery", "push_security_notice"})
+
+#: INT-583: the push notice's hosts, exactly: Apple's production and sandbox
+#: push service. A push row or a push-proxy host outside this set is a new
+#: recipient the texts were never checked against.
+APNS_HOSTS = frozenset({"api.push.apple.com", "api.sandbox.push.apple.com"})
+PUSH_CONF = REPO / "infra" / "staging" / "push-egress" / "squid.conf"
+_ALERT_HOME = "services/api/src/intake_api/sign_in_notice.py"
+_GATEWAY_HOME = "services/api/src/intake_api/push_wiring.py"
 
 #: The sign-in SMS processor, as its own aydınlatma names it
 #: (docs/legal/sources/netgsm-aydinlatma/, retrieved 28 Oct 2026), and the one
@@ -342,6 +360,55 @@ def outside_parties(allowlist: dict[str, object], reach: Reach) -> list[str]:
     return reasons
 
 
+def push_hosts_outside(rows: list[dict[str, object]], conf: str) -> list[str]:
+    """Every push row host and every host the push proxy admits that is not
+    one of :data:`APNS_HOSTS`; empty while the push reaches Apple alone."""
+    offenders = [
+        str(row.get("host"))
+        for row in rows
+        if row.get("purpose_id") == "push_security_notice" and row.get("host") not in APNS_HOSTS
+    ]
+    for line in conf.splitlines():
+        if line.startswith("acl push_vendor dstdomain"):
+            offenders += [host for host in line.split()[3:] if host not in APNS_HOSTS]
+    return offenders
+
+
+def _callee(node: ast.Call) -> str | None:
+    if isinstance(node.func, ast.Name):
+        return node.func.id
+    if isinstance(node.func, ast.Attribute):
+        return node.func.attr
+    return None
+
+
+def push_construction_findings(sources: Mapping[str, str]) -> list[str]:
+    """What could put anything but the constant notice into a push: a
+    ``PushAlert`` built outside sign_in_notice.py, a ``.send(..., alert=...)``
+    with any alert but ``NOTICE_ALERT``, or an ``ApnsPushGateway`` built
+    outside push_wiring.py. Empty while the notice is the only push."""
+    findings: list[str] = []
+    for path, source in sorted(sources.items()):
+        for node in ast.walk(ast.parse(source)):
+            if not isinstance(node, ast.Call):
+                continue
+            callee = _callee(node)
+            if callee == "PushAlert" and path != _ALERT_HOME:
+                findings.append(f"{path}:{node.lineno}: PushAlert built outside {_ALERT_HOME}")
+            if callee == "ApnsPushGateway" and path != _GATEWAY_HOME:
+                findings.append(
+                    f"{path}:{node.lineno}: ApnsPushGateway built outside {_GATEWAY_HOME}"
+                )
+            if callee == "send":
+                for keyword in node.keywords:
+                    constant = (
+                        isinstance(keyword.value, ast.Name) and keyword.value.id == "NOTICE_ALERT"
+                    )
+                    if keyword.arg == "alert" and not constant:
+                        findings.append(f"{path}:{node.lineno}: a push sent with another alert")
+    return findings
+
+
 def _index() -> SyntheticLegalIndex:
     return SyntheticLegalIndex(REPO / SYNTHETIC_LEGAL_ROOT, data_class=TenantDataClass.SYNTHETIC)
 
@@ -450,6 +517,47 @@ def test_the_push_proxy_carries_the_push_purpose_alone_on_its_own_networks() -> 
         row for row in tiers.get("phi_path") or [] if row["purpose_id"] == "push_security_notice"
     ]
     assert all(row["host"].endswith("push.apple.com") for row in push_rows)
+
+
+def test_the_push_reaches_apples_two_hosts_and_nothing_else() -> None:
+    tiers = _allowlist()["tiers"]
+    assert isinstance(tiers, dict)
+    rows = list(tiers.get("phi_path") or [])
+    assert push_hosts_outside(rows, PUSH_CONF.read_text(encoding="utf-8")) == []
+
+
+@pytest.mark.parametrize(
+    ("rows", "conf"),
+    [
+        ([{"purpose_id": "push_security_notice", "host": "exp.host"}], ""),
+        ([], "acl push_vendor dstdomain api.push.apple.com fcm.googleapis.com"),
+    ],
+)
+def test_any_other_push_host_is_caught(rows: list[dict[str, object]], conf: str) -> None:
+    """Near misses: a relay host on a push row, and a second vendor in the proxy."""
+    assert push_hosts_outside(rows, conf) != []
+
+
+def test_the_only_push_is_the_constant_notice_from_the_one_gateway() -> None:
+    assert push_construction_findings(python_sources()) == []
+
+
+@pytest.mark.parametrize(
+    "rogue",
+    [
+        # a second alert, built in another module
+        "from intake_api.push_port import PushAlert\n"
+        'PushAlert(title="t", body="b", collapse_id="c")\n',
+        # an inline alert handed to a send
+        "async def f(g, a):\n    await g.send(device_token='t', alert=a)\n",
+        # a gateway built outside the wiring
+        "from intake_api.push_apns import ApnsPushGateway\n"
+        "ApnsPushGateway(None, topic='t', egress=None)\n",
+    ],
+)
+def test_a_second_alert_an_inline_alert_or_a_second_gateway_is_caught(rogue: str) -> None:
+    sources = {**python_sources(), "services/api/src/intake_api/rogue.py": rogue}
+    assert push_construction_findings(sources) != []
 
 
 @pytest.mark.parametrize(("document_id", "named"), sorted(SMS_PROCESSOR_TEXTS.items()))

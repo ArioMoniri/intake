@@ -341,8 +341,18 @@ def test_the_copy_carries_no_link_number_or_clinical_word() -> None:
     text = f"{alert.title} {alert.body}"
     assert not re.search(r"\d", text)
     assert not re.search(r"https?:|www\.|\.[a-z]{2,}\b|@", text)
+    # the title is the app's name, which carries "vizit"; that and nothing
+    # else is allowed, in the title and the body alike
+    scanned = text.replace("Önvizit", "").lower()
     for clinical in ("vizit", "randevu", "doktor", "hekim", "şikayet", "sağlık", "tanı", "ilaç"):
-        assert clinical not in alert.body.lower()
+        assert clinical not in scanned, clinical
+
+
+def test_a_clinical_word_in_the_title_would_be_caught() -> None:
+    """Near miss for the scan above: the allowance is the app's name, not
+    every word that contains it."""
+    scanned = "Önvizit vizitiniz yaklaşıyor".replace("Önvizit", "").lower()
+    assert "vizit" in scanned
 
 
 def test_a_link_in_the_copy_would_be_caught() -> None:

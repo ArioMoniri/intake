@@ -84,7 +84,17 @@ describe("route: Bildirimler lives under Profilim and is registered", () => {
 const NATIVE_PACKAGE = "expo-notifications";
 const PUSH_NATIVE = "lib/push/native.ts";
 const LAZY_IMPORT = /await import\(\s*"expo-notifications"\s*\)/g;
-const LOCAL_NOTIFICATION_CALLS = ["scheduleNotificationAsync", "presentNotificationAsync"];
+/**
+ * Calls nothing in src may make: scheduling or presenting a local
+ * notification assembles a body on the phone, and turning on the package's
+ * automatic server registration would send this device's token to a relay
+ * the server does not use (D35: APNs direct).
+ */
+const BANNED_CALLS = [
+  "scheduleNotificationAsync",
+  "presentNotificationAsync",
+  "setAutoServerRegistrationEnabledAsync",
+];
 const RELAY_TOKEN_CALL = "getExpoPushTokenAsync";
 
 /** Every rule the tree is held to, as findings over (path under src, source). */
@@ -98,7 +108,7 @@ function nativeNotificationFindings(files: { path: string; source: string }[]): 
     if (path === PUSH_NATIVE && mentions !== (source.match(LAZY_IMPORT) ?? []).length) {
       findings.push(`${path}: names the package other than as a lazy await import`);
     }
-    for (const call of LOCAL_NOTIFICATION_CALLS) {
+    for (const call of BANNED_CALLS) {
       if (source.includes(call)) {
         findings.push(`${path}: ${call}`);
       }
@@ -158,7 +168,7 @@ describe("no PHI in a push — the app never assembles a notification body", () 
       ).toHaveLength(1);
     });
 
-    it.each([...LOCAL_NOTIFICATION_CALLS, RELAY_TOKEN_CALL])(
+    it.each([...BANNED_CALLS, RELAY_TOKEN_CALL])(
       "%s is caught even inside the one module",
       (call) => {
         const source = `${lazy}\nawait n.${call}();`;
@@ -183,10 +193,58 @@ describe("no PHI in a push — the app never assembles a notification body", () 
   });
 });
 
+/**
+ * INT-583: the security notice is a second kind of message, and the
+ * Bildirimler screen has to say so. The four lines are the legal lane's
+ * wording, pinned verbatim in both catalogues so a paraphrase fails here.
+ */
+const BILDIRIMLER_COPY: Record<string, { tr: string; en: string }> = {
+  "notifications.guide.title": {
+    tr: "Hatırlatma ve güvenlik bildirimi",
+    en: "Reminders and security notice",
+  },
+  "notifications.guide.body": {
+    tr: "Vizitinizden önce size kısa bir hatırlatma göndeririz. Hesabınıza yeni bir cihazdan giriş yapılırsa, öteki cihazlarınıza bir güvenlik bildirimi göndeririz. Bu bildirim sessiz saatlerde de gelebilir. Hatırlatmaları istediğiniz zaman kapatabilirsiniz.",
+    en: "We send you a short reminder before your visit. If your account is signed in from a new device, we send a security notice to your other devices. This notice can arrive during quiet hours too. You can turn reminders off at any time.",
+  },
+  "notifications.contentFree": {
+    tr: "Hatırlatmalarda ve güvenlik bildiriminde sağlık bilgileriniz, bölüm adı, hekim adı veya belge adı yer almaz. Telefonunuz kilitliyken hatırlatmalarda yalnızca uygulamanın adı görünür.",
+    en: "Reminders and the security notice never include your health information, department name, doctor's name or document name. While your phone is locked, reminders show only the app's name.",
+  },
+  "notifications.transactionalOnly": {
+    tr: "Yalnızca vizitinizle ilgili hatırlatma ve hesabınızın güvenliğiyle ilgili bildirim göndeririz. Tanıtım iletisi göndermiyoruz.",
+    en: "We only send reminders about your visit and notices about your account's security. We do not send promotional messages.",
+  },
+};
+
 describe("transactional-only: no marketing path exists in the client", () => {
   it("the copy states that only service messages are sent", () => {
     expect(tr["notifications.transactionalOnly"].length).toBeGreaterThan(0);
     expect(en["notifications.transactionalOnly"].length).toBeGreaterThan(0);
+  });
+
+  it.each(Object.entries(BILDIRIMLER_COPY))(
+    "%s carries the security notice verbatim, in tr and en (INT-583)",
+    (key, copy) => {
+      expect(NOTIFICATION_KEYS, key).toContain(key);
+      expect(tr[key as MessageKey]).toBe(copy.tr);
+      expect(en[key as MessageKey]).toBe(copy.en);
+    },
+  );
+
+  it("the reminders-only wording is gone: no line says reminders are all that is sent (near miss)", () => {
+    // Before INT-583 the guide's title read "Yalnızca hatırlatma" and the
+    // service line ended its first sentence at "hatırlatma göndeririz."
+    // Both were true then and are not now.
+    for (const key of NOTIFICATION_KEYS) {
+      expect(tr[key], key).not.toMatch(/^Yalnızca hatırlatma/u);
+    }
+    expect(tr["notifications.transactionalOnly"]).not.toMatch(
+      /^Yalnızca vizitinizle ilgili hatırlatma göndeririz\./u,
+    );
+    expect(en["notifications.transactionalOnly"]).not.toMatch(
+      /^We only send reminders about your visit\./u,
+    );
   });
 
   it("there is no marketing or campaign toggle to ship enabled by default", () => {

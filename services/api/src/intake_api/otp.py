@@ -445,6 +445,12 @@ class OtpAuthService:
         """The tier's clock (injectable), for the INT-583 sessions routes."""
         return self._now()
 
+    @property
+    def notices_on(self) -> bool:
+        """INT-583: whether a push channel is wired for the new-device notice.
+        Without one, no push token is accepted, because none would be used."""
+        return not isinstance(self._wiring.sign_in_notice, NoSignInNoticeChannel)
+
     # --- attestation (files/10 §2: on OTP request AND session start) --------------
 
     async def issue_challenge(self) -> dict[str, object]:
@@ -750,7 +756,7 @@ class OtpAuthService:
             jkt=jkt,
             family_id=family,
         )
-        await asyncio.to_thread(
+        kept = await asyncio.to_thread(
             self._store.save_refresh,
             _token_hash(refresh),
             family_id=family,
@@ -758,6 +764,10 @@ class OtpAuthService:
             tenant_id=CONSUMER_TENANT_ID,
             jkt=jkt,
         )
+        if not kept:
+            # INT-583: the family was revoked while this rotation was in
+            # flight (its device signed out); the write was undone
+            raise unauthorized()
         return TokenBundle(
             access_token=access,
             refresh_token=refresh,
@@ -895,7 +905,12 @@ class OtpAuthService:
             # family, or a stolen token becomes a denial-of-service lever
             raise dpop_invalid("dpop_mismatch")
         await asyncio.to_thread(self._store.mark_refresh_rotated, token_hash)
-        return await self._issue_tokens(record.patient_id, jkt, family_id=record.family_id)
+        bundle = await self._issue_tokens(record.patient_id, jkt, family_id=record.family_id)
+        # INT-583: a session that keeps refreshing keeps its device row and the
+        # account's known devices for another session lifetime
+        await asyncio.to_thread(self.device_sessions.touch, record.patient_id)
+        await asyncio.to_thread(self._store.renew_known_devices, str(record.patient_id))
+        return bundle
 
     # --- resource-request resolution (Authorization: DPoP <token>) -----------------
 

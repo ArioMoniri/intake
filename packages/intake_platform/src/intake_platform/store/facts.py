@@ -38,6 +38,7 @@ from typing import Final
 from intake_platform.db import models
 from intake_platform.db.inventory import (
     BASIS_AWAITING_HUMAN_DIAGNOSTICS,
+    BASIS_CONTRACT,
     BASIS_HEALTH_CONSENT,
     BASIS_LEGAL_OBLIGATION,
     CAT_HEALTH,
@@ -237,15 +238,17 @@ _SIGN_IN_DEVICES = OffSchemaFlow(
         "SIM swap or intercepted code is counted and audited (INT-580); a hash under "
         "the OTP pepper, never the device's key id",
         BASIS_LEGAL_OBLIGATION,
-        "30 days after the last sign-in from any of the account's devices (the "
-        "refresh-token lifetime, REFRESH_TTL_S), then the key expires",
+        "30 days after the last sign-in or refresh from any of the account's devices "
+        "(the refresh-token lifetime, REFRESH_TTL_S), then the key expires; a device "
+        "another device signs out is removed at once (INT-583)",
         REC_INTERNAL,
     )[INVENTORY_KEY],
     persisted=True,
     active=True,
     source_path="services/api/src/intake_api/auth_store.py",
-    source="AuthStore.remember_device: one Redis set per patient id, members are "
-    "rate_key hashes, the key's expiry renewed to REFRESH_TTL_S on each sign-in",
+    source="AuthStore.remember_device, renew_known_devices and forget_device: one "
+    "Redis set per patient id, members are rate_key hashes, the key's expiry renewed to "
+    "REFRESH_TTL_S on each sign-in and refresh",
 )
 
 _DEVICE_SESSIONS = OffSchemaFlow(
@@ -260,15 +263,16 @@ _DEVICE_SESSIONS = OffSchemaFlow(
         "show the patient the devices their account is signed in on and let them sign "
         "one or all of the others out, or report a sign-in that was not theirs (INT-583)",
         BASIS_LEGAL_OBLIGATION,
-        "30 days after the last sign-in on the account (REFRESH_TTL_S), or at once when "
-        "the device is signed out",
+        "30 days after the last sign-in or refresh on the account (REFRESH_TTL_S), or "
+        "at once when the device is signed out or all its sessions have ended",
         REC_INTERNAL,
     )[INVENTORY_KEY],
     persisted=True,
     active=True,
     source_path="services/api/src/intake_api/device_sessions.py",
-    source="DeviceSessionStore.bind and sign_out: one Redis hash per patient id, one "
-    "field per device hash, the key's expiry renewed to REFRESH_TTL_S on each sign-in",
+    source="DeviceSessionStore.bind, touch, sessions and sign_out: one Redis hash per "
+    "patient id, one field per device hash, deleted when its families are all dead, the "
+    "key's expiry renewed to REFRESH_TTL_S on each sign-in and refresh",
 )
 
 _PUSH_TOKENS = OffSchemaFlow(
@@ -282,18 +286,21 @@ _PUSH_TOKENS = OffSchemaFlow(
         CAT_PSEUDONYM,
         "tell the patient, on the devices already signed in, that their account was "
         "signed in from a new device (D35, INT-583); never used for any other message",
-        BASIS_LEGAL_OBLIGATION,
-        "until the device is signed out, the app unregisters it (sign-out or notifications "
-        "turned off), Apple reports the token gone, or 30 days after it was last "
-        "registered (REFRESH_TTL_S)",
+        # legal review, 30 Oct 2026: the patient turns notices on, so the
+        # token rests on the service contract, not the security obligation
+        BASIS_CONTRACT,
+        "until the device is signed out or its session ends, the app unregisters it "
+        "(sign-out, or notifications found turned off), Apple reports the token gone, or "
+        "30 days after that token was last registered (REFRESH_TTL_S), whichever is first",
         REC_PUSH_PROCESSOR,
     )[INVENTORY_KEY],
     persisted=True,
     active=True,
     source_path="services/api/src/intake_api/device_sessions.py",
-    source="DeviceSessionStore.register_push, unregister_push and sign_out: one Redis "
-    "hash per patient id, one sealed token per device hash, expiry renewed to "
-    "REFRESH_TTL_S on each registration",
+    source="DeviceSessionStore.register_push, unregister_push, sign_out and "
+    "_live_push_records: one Redis hash per patient id, one sealed token per device hash "
+    "with the instant it was registered; every read deletes a token older than "
+    "REFRESH_TTL_S or whose device has no live session",
 )
 
 OFF_SCHEMA_FLOWS: Final[Mapping[str, OffSchemaFlow]] = MappingProxyType(

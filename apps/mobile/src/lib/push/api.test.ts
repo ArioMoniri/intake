@@ -57,8 +57,32 @@ describe("PUT /v1/auth/push-token", () => {
   });
 
   it("422 is a malformed token", async () => {
-    const fetcher = fetcherAnswering(answer(422, { error: "validation_error", detail: [{ type: "string_pattern_mismatch", loc: ["body", "token"] }] }));
+    const fetcher = fetcherAnswering(
+      answer(422, {
+        error: "validation_error",
+        detail: [{ type: "string_pattern_mismatch", loc: ["body", "token"] }],
+      }),
+    );
     expect(await putPushToken(fetcher, TOKEN)).toEqual({ ok: false, error: "invalid_token" });
+  });
+
+  it("503 push_unavailable is its own result: the server has no channel and stored nothing", async () => {
+    const fetcher = fetcherAnswering(answer(503, { error: "push_unavailable" }));
+    expect(await putPushToken(fetcher, TOKEN)).toEqual({ ok: false, error: "push_unavailable" });
+  });
+
+  it("503 without that code is not read as no channel (near miss)", async () => {
+    expect(await putPushToken(fetcherAnswering(answer(503)), TOKEN)).toEqual({
+      ok: false,
+      error: "unreachable",
+    });
+    const other = fetcherAnswering(answer(503, { error: "upstream_down" }));
+    expect(await putPushToken(other, TOKEN)).toEqual({ ok: false, error: "unreachable" });
+  });
+
+  it("push_unavailable on another status is not read as no channel (near miss)", async () => {
+    const fetcher = fetcherAnswering(answer(500, { error: "push_unavailable" }));
+    expect(await putPushToken(fetcher, TOKEN)).toEqual({ ok: false, error: "unreachable" });
   });
 
   it("a server error is unreachable, never registered", async () => {

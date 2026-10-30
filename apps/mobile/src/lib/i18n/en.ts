@@ -857,13 +857,13 @@ export const en: Record<MessageKey, string> = {
   "notifications.title": "Notifications",
   "notifications.entry.sub": "Reminders and quiet hours",
   "notifications.guide.kicker": "Notifications",
-  "notifications.guide.title": "Reminders only",
+  "notifications.guide.title": "Reminders and security notice",
   "notifications.guide.body":
-    "We send one short reminder before your visit. You choose when we stay quiet, and you can turn reminders off completely at any time.",
+    "We send you a short reminder before your visit. If your account is signed in from a new device, we send a security notice to your other devices. This notice can arrive during quiet hours too. You can turn reminders off at any time.",
   "notifications.contentFree":
-    "A reminder never carries your health information, a department name, a clinician's name or a document title. On a locked phone only the app name is visible.",
+    "Reminders and the security notice never include your health information, department name, doctor's name or document name. While your phone is locked, reminders show only the app's name.",
   "notifications.transactionalOnly":
-    "We only send reminders about your visit. We do not send promotional messages.",
+    "We only send reminders about your visit and notices about your account's security. We do not send promotional messages.",
   "notifications.switchLabel": "Reminders",
   "notifications.on": "On",
   "notifications.off": "Off",
@@ -1368,8 +1368,7 @@ export const en: Record<MessageKey, string> = {
   "sessions.signOutDevice": "Sign out",
   "sessions.signOutOthers": "Sign out of other devices",
   "sessions.notMe": "This sign-in was not me",
-  "sessions.notMe.body":
-    "When you tell us, we record it. Your other devices are signed out too.",
+  "sessions.notMe.body": "When you tell us, we record it. Your other devices are signed out too.",
   "sessions.notMe.heldBody":
     "When you tell us, we record it. Signing out of other devices opens a little later.",
   "sessions.notMe.confirm": "Yes, report it",
@@ -1396,9 +1395,9 @@ export const en: Record<MessageKey, string> = {
   "sessions.push.label": "Notification permission",
   "sessions.push.enable": "Turn on notifications",
   "sessions.push.offerBody":
-    "If your account is signed in from another device, we will tell you on this device.",
+    "If you turn on notifications, we will let this device know when your account is signed in from a new device.",
   "sessions.push.onBody":
-    "If your account is signed in from another device, this device gets a notification.",
+    "When your account is signed in from a new device, we send a notification to this device.",
   "sessions.push.deniedBody":
     "Notifications are off, so we cannot tell you about new sign-ins on this device. You can turn them on in your phone's Settings.",
   "sessions.push.notRegisteredBody": "New sign-in notices cannot reach this device right now.",

@@ -28,6 +28,7 @@ function ports(
     requestPermission: vi.fn(async () => options.afterPrompt ?? "granted"),
     deviceToken: vi.fn(async () => (options.token === undefined ? TOKEN : options.token)),
     putToken: vi.fn(async (_token: string) => options.put ?? ({ ok: true } as PushTokenResult)),
+    deleteToken: vi.fn(async () => ({ ok: true }) as PushTokenResult),
   };
   return fake satisfies PushPorts;
 }
@@ -207,6 +208,72 @@ describe("failures stay inside the run", () => {
   it("a server-side token refusal is failed, not registered", async () => {
     const fake = ports({ put: { ok: false, error: "invalid_token" } });
     expect((await syncPushRegistration(fake, { asked: false })).outcome).toBe("failed");
+  });
+});
+
+describe("notices turned off on the phone: the server's token goes too", () => {
+  it("denied at app start, registration unknown: the token is deleted (DELETE is idempotent)", async () => {
+    const fake = ports({ permission: "denied" });
+    expect(await syncPushRegistration(fake, { asked: false })).toEqual({
+      permission: "denied",
+      outcome: "skipped",
+    });
+    expect(fake.deleteToken).toHaveBeenCalledTimes(1);
+    expect(fake.putToken).not.toHaveBeenCalled();
+  });
+
+  it("denied and known to be registered: the token is deleted", async () => {
+    const fake = ports({ permission: "denied" });
+    await syncPushRegistration(fake, { asked: false, registered: true });
+    expect(fake.deleteToken).toHaveBeenCalledTimes(1);
+  });
+
+  it("refused at the prompt, registration unknown: the token is deleted", async () => {
+    const fake = ports({ permission: "undetermined", afterPrompt: "denied" });
+    expect((await syncPushRegistration(fake, { asked: true })).outcome).toBe("denied");
+    expect(fake.deleteToken).toHaveBeenCalledTimes(1);
+  });
+
+  it("denied but known not to be registered: nothing is sent (near miss)", async () => {
+    const fake = ports({ permission: "denied" });
+    await syncPushRegistration(fake, { asked: true, registered: false });
+    expect(fake.deleteToken).not.toHaveBeenCalled();
+  });
+
+  it("undetermined is not a refusal: nothing is deleted (near miss)", async () => {
+    const fake = ports({ permission: "undetermined" });
+    await syncPushRegistration(fake, { asked: false, registered: true });
+    expect(fake.deleteToken).not.toHaveBeenCalled();
+  });
+
+  it("granted never deletes, whatever the registration (near miss)", async () => {
+    const fake = ports({ permission: "granted" });
+    await syncPushRegistration(fake, { asked: false, registered: true });
+    expect(fake.deleteToken).not.toHaveBeenCalled();
+  });
+
+  it("a delete that throws or does not land stays inside the run", async () => {
+    const fake = ports({ permission: "denied" });
+    fake.deleteToken.mockRejectedValueOnce(new Error("offline"));
+    expect(await syncPushRegistration(fake, { asked: true })).toEqual({
+      permission: "denied",
+      outcome: "denied",
+    });
+    fake.deleteToken.mockResolvedValueOnce({ ok: false, error: "unreachable" });
+    expect((await syncPushRegistration(fake, { asked: false })).outcome).toBe("skipped");
+  });
+});
+
+describe("a server with no push channel wired", () => {
+  it("503 push_unavailable is not registered, silently, and a later run tries again", async () => {
+    const fake = ports({ put: { ok: false, error: "push_unavailable" } });
+    expect(await syncPushRegistration(fake, { asked: false })).toEqual({
+      permission: "granted",
+      outcome: "failed",
+    });
+    fake.putToken.mockResolvedValueOnce({ ok: true });
+    expect((await syncPushRegistration(fake, { asked: false })).outcome).toBe("registered");
+    expect(fake.putToken).toHaveBeenCalledTimes(2);
   });
 });
 

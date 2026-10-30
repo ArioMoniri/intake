@@ -207,11 +207,13 @@ REC_GUARDIAN_INTERNAL = (
 # device token and the notice's constant words with each notice, as a processor
 # acting on our instruction, and nothing else. Nothing leaves until the owner's
 # APNs egress row is applied (owner-583-apns-egress.patch); the string says so,
-# like the previsit-output row above. Engineering's proposal for the legal lane.
+# like the previsit-output row above. Wording from the legal review of 30 Oct
+# 2026: the transfer is abroad, under KVKK m.9, by a mechanism counsel names.
 REC_PUSH_PROCESSOR = (
-    "Apple Push Notification service, as processor, receives the device token with each "
-    "new-device sign-in notice once the owner's APNs egress row is applied; nothing else "
-    "leaves the PHI boundary"
+    "Apple Push Notification service (APNs), as processor, outside Türkiye: receives the "
+    "device token and the constant notice text with each new-device sign-in notice, a "
+    "transfer abroad under KVKK m.9 whose mechanism is awaiting counsel; nothing leaves "
+    "until the owner's APNs egress row is applied, and nothing else leaves the PHI boundary"
 )
 
 # --- what an annotation says about the data subject (INT-395) --------------------------

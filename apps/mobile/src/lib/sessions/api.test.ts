@@ -20,6 +20,7 @@ const LIST_BODY = {
     { session_id: THERE, current: false, signed_in_at: "2026-10-29T18:40:00Z", push: false },
   ],
   sign_out_others_after: null,
+  notices_on: true,
 };
 
 function answer(status: number, body?: unknown): Response {
@@ -58,10 +59,34 @@ describe("GET /v1/auth/sessions", () => {
           { sessionId: THERE, current: false, signedInAt: "2026-10-29T18:40:00Z", push: false },
         ],
         signOutOthersAfter: null,
+        noticesOn: true,
       },
     });
     expect(fetcher).toHaveBeenCalledWith("/v1/auth/sessions");
   });
+
+  it("carries whether the server has a push channel wired", async () => {
+    const { sessions } = api(answer(200, { ...LIST_BODY, notices_on: false }));
+    const result = await sessions.list();
+    expect(result.ok && result.list.noticesOn).toBe(false);
+  });
+
+  it("a list without notices_on is refused like any malformed list", async () => {
+    const { notices_on: _dropped, ...withoutNotices } = LIST_BODY;
+    expect(await api(answer(200, withoutNotices)).sessions.list()).toEqual({
+      ok: false,
+      error: "unreachable",
+    });
+  });
+
+  it.each([["true"], [1], [null]])(
+    "notices_on that is not a boolean (%j) is refused (near miss)",
+    async (value) => {
+      expect(
+        await api(answer(200, { ...LIST_BODY, notices_on: value })).sessions.list(),
+      ).toEqual({ ok: false, error: "unreachable" });
+    },
+  );
 
   it("carries the hold instant when the server sets one", async () => {
     const { sessions } = api(
