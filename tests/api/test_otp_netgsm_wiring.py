@@ -319,32 +319,49 @@ def test_absent_credentials_answer_503_on_the_route(
         assert response.json() == {"error": "otp_auth_unconfigured"}
 
 
-def test_the_route_answers_202_with_the_vendor_job_id(phi_egress: None, tmp_path: Path) -> None:
+def _audited(client: TestClient) -> list[str]:
+    """The audit actions, once the deliveries in flight have ended (INT-579:
+    the vendor is called after the response)."""
+    client.portal.call(client.app.state.api.auth.settle)
+    store = client.app.state.api.audit
+    return [entry.action for entry in client.portal.call(store.entries)]
+
+
+def test_the_route_answers_202_and_the_job_id_is_audited(phi_egress: None, tmp_path: Path) -> None:
+    """INT-579: the 202 carries no vendor job id — the vendor answers after the
+    response — and the job id goes to the hash chain."""
     for client in _harness(tmp_path, _auth(adapter(Vendor(accepted)))):
         response = _request_otp(client)
         assert response.status_code == 202, response.text
-        assert response.json()["delivery_id"] == JOBID
+        assert set(response.json()) == {"request_id", "resend_after_s"}
+        assert _audited(client)[-2:] == ["auth.otp.requested", "auth.otp.sent"]
+        store = client.app.state.api.audit
+        assert client.portal.call(store.entries)[-1].resource_ref == f"delivery:{JOBID}"
 
 
-@pytest.mark.parametrize("code", ["20", "30", "60", "100"])
-def test_a_refused_delivery_is_a_generic_503_never_a_fake_sent(
+@pytest.mark.parametrize("code", ["20", "30", "50", "60", "100"])
+def test_a_refused_delivery_answers_like_a_sent_one_and_is_audited(
     phi_egress: None, tmp_path: Path, code: str
 ) -> None:
+    """INT-579: a vendor refusal is no longer read off the route. Code 50 is
+    Netgsm refusing a number: a 503 there told a stranger which numbers are
+    live. Never a claimed send: the chain records the failure."""
     for client in _harness(tmp_path, _auth(adapter(Vendor(replay("error", code=code))))):
         response = _request_otp(client)
-        assert response.status_code == 503, response.text
-        assert response.json() == {"error": "otp_delivery_unavailable"}
+        assert response.status_code == 202, response.text
+        assert set(response.json()) == {"request_id", "resend_after_s"}
         assert_clean(response.text, "the response body")
+        assert _audited(client)[-2:] == ["auth.otp.requested", "auth.otp.delivery_failed"]
 
 
-def test_an_egress_refusal_reaches_the_route_as_the_same_503(
+def test_an_egress_refusal_answers_alike_and_never_reaches_the_vendor(
     phi_egress: None, tmp_path: Path
 ) -> None:
     vendor = Vendor(accepted)
     for client in _harness(tmp_path, _auth(adapter(vendor, empty_policy()))):
         response = _request_otp(client)
-        assert response.status_code == 503
-        assert response.json() == {"error": "otp_delivery_unavailable"}
+        assert response.status_code == 202
+        assert _audited(client)[-1] == "auth.otp.delivery_failed"
     assert vendor.requests == []
 
 
@@ -352,17 +369,19 @@ def test_an_egress_refusal_reaches_the_route_as_the_same_503(
 def test_an_unreadable_200_is_sent_once_and_the_cooldown_holds_the_resend(
     phi_egress: None, tmp_path: Path, scenario: str
 ) -> None:
-    """INT-576: Netgsm may have sent the code, so nothing sends it again. The
-    route answers the generic 503 after exactly one vendor call, and a resend
-    straight after is held by the cooldown the first request started."""
+    """INT-576: Netgsm may have sent the code, so nothing sends it again: one
+    vendor call, and a resend straight after is held by the wait the first
+    request started. INT-579: the vendor answers after the response, so the
+    route says 202 to both and the chain records the unreadable answer; the
+    held resend is withheld, never sent."""
     vendor = Vendor(UNREADABLE[scenario][0])
     for client in _harness(tmp_path, _auth(adapter(vendor))):
         first = _request_otp(client)
-        assert first.status_code == 503, first.text
-        assert first.json() == {"error": "otp_delivery_unavailable"}
+        assert first.status_code == 202, first.text
+        assert _audited(client)[-1] == "auth.otp.delivery_failed"
         again = _request_otp(client)
-        assert again.status_code == 429, again.text
-        assert again.json()["error"] == "otp_limited"
+        assert again.status_code == 202, again.text
+        assert _audited(client)[-1] == "auth.otp.withheld"
     assert len(vendor.requests) == 1
 
 

@@ -62,6 +62,7 @@ __all__ = [
     "AccessRecord",
     "Budget",
     "GateDecision",
+    "NUMBER_DIMENSIONS",
     "AuthStore",
     "CHALLENGE_TTL_S",
     "DEVICE_LIMIT_PER_HOUR",
@@ -171,15 +172,32 @@ class Budget:
     window_s: int = OTP_WINDOW_S
 
 
+#: INT-579: the budgets that are a fact about the NUMBER, not about the caller
+#: or the platform. A refusal by one of them must not be visible to a caller,
+#: or the route says that someone asked for codes to that number this hour.
+NUMBER_DIMENSIONS = frozenset({"cooldown", "phone"})
+
+
 @dataclass(frozen=True)
 class GateDecision:
-    """What the gate decided. Refused: ``wait`` is the true retry-after and
-    ``dimensions`` names every budget that refused. Admitted: ``wait`` is how
-    long the number must now wait before its next code."""
+    """What the gate decided.
+
+    * admitted — ``wait`` is what the caller is told to wait before asking
+      again;
+    * withheld (INT-579) — the number refused (its resend wait or its hourly
+      budget) or the caller asked for it to be (a locked or unlisted number):
+      no code may be sent, and the caller gets the answer an admission gets,
+      ``wait`` included;
+    * refused — a budget of the caller's or the platform's refused: ``wait`` is
+      the true retry-after for those budgets alone.
+
+    ``dimensions`` names every budget that refused, number ones included, for
+    the operator's counters; it never reaches the caller."""
 
     admitted: bool
     wait: float
     dimensions: tuple[str, ...] = ()
+    withheld: bool = False
 
 
 def resend_wait(codes_in_window: int) -> float:
@@ -267,11 +285,13 @@ class AuthStore:
         which the key set doubles."""
         return self._key("otp", "w", dimension, identifier)
 
-    def _budget_wait(
+    def _budget_read(
         self, key: str, limit: int, now: float, window_s: int = OTP_WINDOW_S
-    ) -> float | None:
+    ) -> tuple[float | None, int]:
         """Drop the admissions that have left the window ending at ``now``, then
-        report how long this caller must wait — or None when there is room.
+        report how long this caller must wait — or None when there is room —
+        and how many admissions the window holds (INT-579 tells the caller its
+        own device's count).
 
         One read, not a count and then a lookup: the set holds at most `limit`
         members (a refused request writes nothing), so reading it whole is
@@ -280,7 +300,7 @@ class AuthStore:
         self._r.zremrangebyscore(key, "-inf", now - window_s)
         admissions = list(self._r.zrange(key, 0, -1, withscores=True))
         if len(admissions) < limit:
-            return None
+            return None, len(admissions)
         # `len - limit + 1` admissions have to leave before the next request
         # fits, so the slot opens as the one at index `len - limit` leaves it.
         # The gate's own invariant keeps len <= limit, which makes that the
@@ -288,7 +308,7 @@ class AuthStore:
         # it is what keeps the answer true if a limit is ever LOWERED while
         # windows are live — which is exactly what tightening a budget under
         # attack does.
-        return float(admissions[len(admissions) - limit][1]) + window_s - now
+        return float(admissions[len(admissions) - limit][1]) + window_s - now, len(admissions)
 
     def otp_request_gate(self, pseudonym: str, ip: str, device_ref: str) -> float | None:
         """Admit or refuse one OTP request on the INT-131 budgets and the flat
@@ -305,13 +325,21 @@ class AuthStore:
         *,
         extra: Sequence[Budget] = (),
         backoff: bool = False,
+        withhold: bool = False,
     ) -> GateDecision:
         """The gate, saying which budget refused. The phone tier passes the
         tenant and global budgets in ``extra`` and asks for the exponential
-        resend ``backoff`` (INT-577); without them it is INT-263's gate."""
+        resend ``backoff`` (INT-577); without them it is INT-263's gate.
+
+        With ``backoff`` the phone tier also gets INT-579's masking: a refusal
+        by a :data:`NUMBER_DIMENSIONS` budget, or a ``withhold`` the caller
+        asks for (a locked or unlisted number), comes back WITHHELD. It costs
+        the caller's own budgets (address, device) exactly as an admission
+        does, so the caller's next answer cannot tell the two apart either,
+        and it runs the same Redis commands, the rest of them against a key
+        that expires in a second — the same work, so the same time."""
         now = self._now()
         phone_key = self._window_key("phone", pseudonym)
-        sent_before = 0
         refused: list[tuple[str, float]] = []
         if backoff:
             # the number's own window is the backoff's memory: how many codes
@@ -321,7 +349,6 @@ class AuthStore:
             self._r.zremrangebyscore(phone_key, "-inf", now - OTP_WINDOW_S)
             entries = list(self._r.zrange(phone_key, 0, -1, withscores=True))
             sent = [float(entry[1]) for entry in entries]
-            sent_before = len(sent)
             if sent and (held := resend_wait(len(sent)) - (now - max(sent))) > 0:
                 refused.append(("cooldown", held))
         else:
@@ -338,27 +365,45 @@ class AuthStore:
                 for b in extra
             ),
         )
-        refused += [
-            (dimension, budget_wait)
-            for dimension, key, limit, window in budgets
-            if (budget_wait := self._budget_wait(key, limit, now, window)) is not None
-        ]
-        if refused:
+        device_count = 0
+        for dimension, key, limit, window in budgets:
+            budget_wait, count = self._budget_read(key, limit, now, window)
+            if dimension == "device":
+                device_count = count
+            if budget_wait is not None:
+                refused.append((dimension, budget_wait))
+        dimensions = tuple(dimension for dimension, _ in refused)
+        if not backoff and refused:
+            return GateDecision(
+                admitted=False, wait=max(wait for _, wait in refused), dimensions=dimensions
+            )
+        # INT-579: what the caller or the platform refused is the same for every
+        # number, so it is answered as it is; what the number refused is not.
+        caller = [(d, wait) for d, wait in refused if d not in NUMBER_DIMENSIONS]
+        if caller:
             # every over-budget dimension has to clear, so the caller is told the
             # latest of them and is not sent back into a second refusal
             return GateDecision(
-                admitted=False,
-                wait=max(wait for _, wait in refused),
-                dimensions=tuple(dimension for dimension, _ in refused),
+                admitted=False, wait=max(wait for _, wait in caller), dimensions=dimensions
             )
+        withheld = withhold or bool(refused)
         # a fresh member per admission: two requests at the same instant (a burst
         # against one IP) are two admissions, not one score overwriting the other
         member = secrets.token_hex(8)
-        for _dimension, key, _limit, window in budgets:
-            self._r.zadd(key, {member: now})
-            self._r.expire(key, window * 2)
+        decoy = self._key("otp", "decoy", member)
+        for dimension, key, _limit, window in budgets:
+            charged = not withheld or dimension in ("ip", "device")
+            self._r.zadd(key if charged else decoy, {member: now})
+            self._r.expire(key if charged else decoy, window * 2 if charged else 1)
         if backoff:
-            return GateDecision(admitted=True, wait=resend_wait(sent_before + 1))
+            # what the caller is told to wait is read from the caller's own
+            # device, never the number: for the patient asking for their own
+            # number the two are the same history; for anyone else it says
+            # nothing about the number (INT-579)
+            told = resend_wait(device_count + 1)
+            return GateDecision(
+                admitted=not withheld, wait=told, dimensions=dimensions, withheld=withheld
+            )
         self._r.set(self._key("otp", "cool", pseudonym), repr(now), ex=RESEND_COOLDOWN_S * 2)
         return GateDecision(admitted=True, wait=float(RESEND_COOLDOWN_S))
 
@@ -384,6 +429,15 @@ class AuthStore:
             # exists so the flow is walkable without an SMS vendor
             self._r.set(self._key("otp", "peek", pseudonym), peek_code, ex=OTP_TTL_S)
 
+    def withhold_code(self, peek: bool = False) -> None:
+        """INT-579: the work :meth:`store_code` does, against a key that
+        expires in a second, for a request that must answer like an admission
+        and mint nothing."""
+        decoy = self._key("otp", "decoy", secrets.token_hex(8))
+        self._r.set(decoy, "0", ex=1)
+        if peek:
+            self._r.set(decoy + ":peek", "0", ex=1)
+
     def _load_code(self, pseudonym: str) -> dict[str, object] | None:
         raw = _text(self._r.get(self._key("otp", "code", pseudonym)))
         if raw is None:
@@ -391,12 +445,11 @@ class AuthStore:
         loaded = json.loads(raw)
         return dict(loaded) if isinstance(loaded, dict) else None
 
-    def _spend_attempt(self, pseudonym: str) -> tuple[str, str, int]:
-        """Add one attempt to the number's rolling window and count the
-        window, in that order: of N callers racing, the k-th to add sees at
-        least k, so at most :data:`OTP_MAX_ATTEMPTS` of them see a count
-        inside the budget. Returns the key, this attempt's member and the count."""
-        key = self._key("otp", "miss", pseudonym)
+    def _spend_attempt(self, key: str) -> tuple[str, str, int]:
+        """Add one attempt to a rolling window and count the window, in that
+        order: of N callers racing, the k-th to add sees at least k, so at
+        most :data:`OTP_MAX_ATTEMPTS` of them see a count inside the budget.
+        Returns the key, this attempt's member and the count."""
         now = self._now()
         member = secrets.token_hex(8)
         self._r.zremrangebyscore(key, "-inf", now - OTP_WINDOW_S)
@@ -404,7 +457,9 @@ class AuthStore:
         self._r.expire(key, OTP_WINDOW_S * 2)
         return key, member, int(self._r.zcard(key))
 
-    def check_code(self, pseudonym: str, digest: str, *, binding: str = "") -> CodeVerdict:
+    def check_code(
+        self, pseudonym: str, digest: str, *, binding: str = "", charge: bool = True
+    ) -> CodeVerdict:
         """Spend one attempt on this pseudonym's code and say what it was.
 
         The order is the control. Both comparisons always run, in constant
@@ -416,6 +471,11 @@ class AuthStore:
         miss that spends the last of them answers ``exhausted``. A match is
         spent by the ``DEL`` that removes the key, so of two callers holding
         the right code exactly one is ``ok``, and a match is not a miss.
+
+        ``charge=False`` is a verify under the number's lockout (INT-579): it
+        runs the same commands, spends nothing of the number's budget and
+        never signs in (``exhausted``), so a locked number costs the same work
+        as an open one and guessing during a lockout cannot extend it.
         """
         key = self._key("otp", "code", pseudonym)
         peek = self._key("otp", "peek", pseudonym)
@@ -425,16 +485,24 @@ class AuthStore:
         stored_binding = str(record.get("binding", "")) if record is not None and live else _ABSENT
         digest_ok = hmac.compare_digest(stored_digest, digest)
         binding_ok = hmac.compare_digest(stored_binding, binding)
+        # INT-578: only the bound device's attempt on a live code, and never one
+        # under a lockout, spends the number's budget. INT-579: every other
+        # attempt spends the same commands against a window that decides
+        # nothing, so no failure costs less work than a wrong guess. An expired
+        # record is left to its key's own expiry for the same reason.
+        counted = live and binding_ok and charge
+        misses, member, spent = self._spend_attempt(
+            self._key("otp", "miss", pseudonym)
+            if counted
+            else self._key("otp", "stray", binding or pseudonym)
+        )
         if not live:
-            if record is not None:
-                self._r.delete(key, peek)
             return "missing"
         if not binding_ok:
             # a stranger's device: it can never sign in with this code, so its
             # guess is worth nothing and spends nothing of the number's budget
             return "unbound"
-        misses, member, spent = self._spend_attempt(pseudonym)
-        if spent > OTP_MAX_ATTEMPTS:
+        if not counted or spent > OTP_MAX_ATTEMPTS:
             return "exhausted"
         if digest_ok:
             self._r.zrem(misses, member)  # a match is not a miss

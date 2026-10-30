@@ -392,14 +392,15 @@ def test_the_resend_wait_doubles_with_each_code(otp_harness: OtpHarness) -> None
     second = otp.request_otp()
     assert second.status_code == 202
     assert second.json()["resend_after_s"] == 2 * RESEND_COOLDOWN_S
-    # a flat cooldown would admit this one: 61 s after the second code
+    # a flat cooldown would admit this one: 61 s after the second code. INT-579
+    # withholds it (the answer is an admission's), so the count tells
+    # (each from a device of its own: a withheld request still spends the
+    # caller's device budget, exactly as an admission does)
     otp.clock.advance(RESEND_COOLDOWN_S + 1)
-    early = otp.request_otp()
-    assert early.status_code == 429
-    assert early.json()["retry_after_s"] == pytest.approx(RESEND_COOLDOWN_S - 1, abs=0.5)
+    assert not otp.sent(device_id="device-b")
     # near miss: the doubled wait is enough
     otp.clock.advance(RESEND_COOLDOWN_S)
-    assert otp.request_otp().status_code == 202
+    assert otp.sent(device_id="device-c")
 
 
 def test_the_backoff_is_per_number(otp_harness: OtpHarness) -> None:
@@ -468,16 +469,26 @@ def test_only_a_turkish_mobile_gets_a_code(otp_harness: OtpHarness, number: str)
 def test_requests_and_blocks_are_counted_by_closed_labels(otp_harness: OtpHarness) -> None:
     otp = otp_harness
     admitted = requests("admitted")
-    limited = requests("limited")
+    withheld = requests("withheld")
     cooldown = blocks("cooldown")
-    assert otp.request_otp().status_code == 202
-    assert otp.request_otp().status_code == 429
+    assert otp.sent()
+    assert not otp.sent()
     assert requests("admitted") == admitted + 1
-    assert requests("limited") == limited + 1
+    # INT-579: the number's resend wait is withheld, and counted as such
+    assert requests("withheld") == withheld + 1
     assert blocks("cooldown") == cooldown + 1
     otp_module = importlib.import_module("intake_api.otp")
     assert otp_module.REQUEST_OUTCOMES == frozenset(
-        {"admitted", "limited", "kill_switch", "locked", "phone_invalid", "refused"}
+        {
+            "admitted",
+            "limited",
+            "kill_switch",
+            "locked",
+            "withheld",
+            "not_listed",
+            "phone_invalid",
+            "refused",
+        }
     )
     assert otp_module.BLOCK_DIMENSIONS == frozenset(
         {"cooldown", "phone", "ip", "device", "tenant", "global_hour", "global_day"}

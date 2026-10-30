@@ -7727,3 +7727,21 @@
     - "A spike-anomaly alert in the admin Safety/Ops view (the GET /admin/ops sms tile and the OtpRequestSpike rule, one definition); every new metric in metrics_catalog.yaml; threat model and files/10 §9 onboarding row updated; tests first with near misses."
   tests: [tests/security/test_sms_pumping.py, tests/security/test_otp_abuse.py, tests/admin/test_ops_console.py, tests/observability/test_alert_rules.py, tests/observability/test_metrics_catalog.py]
   sec_row: "onboarding"
+- id: INT-579
+  epic: E01-platform
+  phase: P1
+  title: "OTP enumeration — identical response and timing whether a number is registered or not"
+  # GitHub #974. Owner order, 28 Oct 2026, the enumeration family of
+  # INT-577..581 (the five-family audit is docs/evidence/INT-577.md, rows
+  # 21-27). Built on INT-577 (#979) and INT-578 (#978), whose refusals it masks.
+  depends_on: [INT-131, INT-528, INT-577, INT-578]
+  labels: [area:api, risk:security]
+  status: done
+  evidence: docs/evidence/INT-579.md
+  acceptance:
+    - "The OTP request route returns the same status, body shape and timing envelope whether or not the number is registered, locked, rate-limited for a reason that is the number's (its resend wait, its hourly budget) or allow-list-refused: those refusals are withheld (no code minted or sent) behind an admission's answer, the same Redis work and one audit row; the vendor is called after the response."
+    - "The verify route returns one answer and does the same work for a wrong, missing, expired or locked code."
+    - "What still differs is the same for every number (a malformed number, the carrier check, the caller's own device or address budget, the platform's caps and kill switch), each pinned."
+    - "A statistical timing test with no wall-clock budget: sent and withheld requests timed alternately against a 50 ms vendor, medians within a ratio of 3; plus a deterministic command-trace parity test; near misses throughout; threat model and files/10 §9 onboarding row updated."
+  tests: [tests/security/test_otp_enumeration.py, tests/security/test_otp_abuse.py, tests/security/test_otp_brute_force.py, tests/security/test_sms_pumping.py, tests/api/test_otp_netgsm_wiring.py, tests/api/test_otp_twilio_wiring.py, tests/api/test_sms_test_allowlist.py]
+  sec_row: "onboarding"

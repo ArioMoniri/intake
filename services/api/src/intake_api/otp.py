@@ -46,6 +46,20 @@ spend kill switch is read first, failing closed — reaching the day cap latches
 it, and nothing is sent until an operator releases it. Every request and every
 block is counted by a closed label (``sec_otp_requests_total``,
 ``sec_otp_abuse_blocks``).
+
+INT-579 (the same order): the route says nothing about a number. A refusal that
+is a fact about the number — its resend wait, its hourly budget, the INT-578
+lockout, the synthetic host's test list — is WITHHELD: the caller gets the
+202 an admission gets (a fresh request id and a wait read from its own device)
+and nothing is minted or sent; the same Redis work and one audit row make it
+take the same time. The vendor call runs after the response
+(:meth:`OtpAuthService.settle` waits for it in tests and at shutdown), so a
+send's latency, and a vendor's refusal of an unreachable number, are not on the
+route either: the 202 carries no vendor job id, and a failed send is audited
+and counted. What still differs is what is the same for every number: a
+malformed one (422), the caller's own device or address budget (429), the
+platform's caps and switch (429, 503). Verify takes an attempt and runs both
+comparisons whether or not a code exists or the number is locked.
 """
 
 from __future__ import annotations
@@ -157,7 +171,16 @@ OTP_VERIFY_TOTAL = Counter(
 #: INT-578 lockout, as not a Turkish mobile, or by the carrier check or the
 #: synthetic host's test list.
 REQUEST_OUTCOMES = frozenset(
-    {"admitted", "limited", "kill_switch", "locked", "phone_invalid", "refused"}
+    {
+        "admitted",
+        "limited",
+        "kill_switch",
+        "locked",
+        "withheld",
+        "not_listed",
+        "phone_invalid",
+        "refused",
+    }
 )
 #: Which budget refused (``sec.otp_abuse_blocks``): one request can be refused
 #: by several, and each is counted.
@@ -353,6 +376,18 @@ def _bound_device(payload: AttestationPayload) -> str:
     raise attestation_unverified()
 
 
+def _retrieve_by_type(task: asyncio.Task[None]) -> None:
+    """Done-callback for a delivery task: retrieve whatever it ended with and
+    name it by type only. An exception left unretrieved is logged by asyncio
+    with its full chain when the task is freed, and a delivery's chain can hold
+    the number and the code (security review, 28 Oct 2026)."""
+    if task.cancelled():
+        return
+    failure = task.exception()
+    if failure is not None:
+        logger.warning("otp delivery task failed (%s)", type(failure).__name__)
+
+
 class OtpAuthService:
     """Orchestrates the OTP tier. Store calls hop off the event loop via
     ``asyncio.to_thread`` (sync Redis client, INT-012 precedent)."""
@@ -363,6 +398,8 @@ class OtpAuthService:
         self._tokenizer = wiring.tokenizer
         self._pepper = wiring.pepper
         self._kill_switch = SpendKillSwitch(wiring.redis_client, wiring.now_fn)
+        # INT-579: deliveries in flight, off the response path
+        self._dispatches: set[asyncio.Task[None]] = set()
         self._engine = engine
         self._audit = audit
 
@@ -477,11 +514,13 @@ class OtpAuthService:
         except HTTPException:
             SEC_OTP_REQUESTS_TOTAL.labels(outcome="phone_invalid").inc()
             raise
-        # INT-578: a locked number gets no code, and asking costs no budget
-        locked = await asyncio.to_thread(self._store.lockout_wait, pseudonym)
-        if locked is not None:
-            SEC_OTP_REQUESTS_TOTAL.labels(outcome="locked").inc()
-            raise otp_limited(locked)
+        # INT-578: a locked number gets no code. INT-579: and the caller cannot
+        # tell — the request is withheld below, never refused here.
+        locked = await asyncio.to_thread(self._store.lockout_wait, pseudonym) is not None
+        # INT-528: on the synthetic host a number off the owner's test list gets
+        # no code either, withheld in the same way (the line logged names no
+        # number)
+        listed = self._wiring.recipients.admits(phone)
         # INT-577: the spend kill switch, read before any budget is spent. An
         # unreadable switch may be on, so it refuses too (fail closed).
         try:
@@ -502,9 +541,10 @@ class OtpAuthService:
                 self._pepper.rate_key("device", bound),
                 extra=self._budgets(),
                 backoff=True,
+                withhold=locked or not listed,
             )
         )
-        if not decision.admitted:
+        if not decision.admitted and not decision.withheld:
             for dimension in decision.dimensions:
                 SEC_OTP_ABUSE_BLOCKS.labels(dimension=dimension).inc()
             if "global_day" in decision.dimensions:
@@ -529,46 +569,101 @@ class OtpAuthService:
         # be an oracle telling a caller which of its numbers exist (files/10 §9
         # row 1, generic errors). It fails OPEN — see carrier_geo — so today,
         # with an empty authority, this branch is unreachable in production.
+        # INT-308 — the numbering plan's answer is the same for every caller and
+        # every subscriber in a prefix, so it is no oracle about a person: it
+        # still answers 422, after the gate charged the caller (withheld or not)
         if self._wiring.carrier_geo.evaluate(phone).refuses:
             SEC_OTP_REQUESTS_TOTAL.labels(outcome="refused").inc()
             raise phone_invalid()
-        # INT-528 — on the synthetic host SMS is real, so a number off the
-        # owner's test allow-list starts no login: no code is minted and no SMS
-        # leaves. Same place and same answer as the carrier check above, for the
-        # same reasons; the line logged names no number.
-        if not self._wiring.recipients.admits(phone):
-            logger.info("otp request refused: the number is not on the SMS test allow-list")
-            SEC_OTP_REQUESTS_TOTAL.labels(outcome="refused").inc()
-            raise phone_invalid()
-        SEC_OTP_REQUESTS_TOTAL.labels(outcome="admitted").inc()
-        # INT-578: the code is bound to this request and to this device
+        for dimension in decision.dimensions:
+            SEC_OTP_ABUSE_BLOCKS.labels(dimension=dimension).inc()
+        # the same work whether the code is real or withheld: an id, a code, its
+        # digest, a store write and one audit row (INT-579)
         request_id = secrets.token_hex(16)
         code = f"{secrets.randbelow(10**OTP_CODE_DIGITS):0{OTP_CODE_DIGITS}d}"
-        await asyncio.to_thread(
-            self._store.store_code,
-            pseudonym,
-            self._pepper.code_digest(pseudonym, request_id, code),
-            code if self._wiring.dev_otp_peek else None,
-            binding=self._pepper.device_binding(bound),
+        digest = self._pepper.code_digest(pseudonym, request_id, code)
+        actor = f"phone:{self._tokenizer.log_ref(phone)}"
+        if decision.withheld:
+            outcome = "locked" if locked else ("not_listed" if not listed else "withheld")
+            if not listed:
+                logger.info("otp request withheld: the number is not on the SMS test allow-list")
+            SEC_OTP_REQUESTS_TOTAL.labels(outcome=outcome).inc()
+            await asyncio.to_thread(self._store.withhold_code, self._wiring.dev_otp_peek)
+            await self._audit.record(
+                # legal review, 30 Oct 2026: a number off the test list is a
+                # stranger's, typed by a caller; the chain is kept ten years in
+                # WORM storage, so its row names no ref of it (INT-308)
+                actor=actor if listed else "system:otp-withheld",
+                action="auth.otp.withheld",
+                resource_ref=f"request:{request_id}",
+                consent_scope="scope:auth",
+            )
+        else:
+            SEC_OTP_REQUESTS_TOTAL.labels(outcome="admitted").inc()
+            # INT-578: the code is bound to this request and to this device
+            await asyncio.to_thread(
+                self._store.store_code,
+                pseudonym,
+                digest,
+                code if self._wiring.dev_otp_peek else None,
+                binding=self._pepper.device_binding(bound),
+            )
+            await self._audit.record(
+                actor=actor,
+                action="auth.otp.requested",
+                resource_ref=f"request:{request_id}",
+                consent_scope="scope:auth",
+            )
+            self._dispatch(phone=phone, code=code, request_id=request_id, actor=actor)
+        # INT-577/579: the wait read from the caller's own device
+        return {"request_id": request_id, "resend_after_s": int(decision.wait)}
+
+    def _dispatch(self, *, phone: str, code: str, request_id: str, actor: str) -> None:
+        """Send the code after the response (INT-579). The task holds the
+        number and the code in memory only, and is tracked until it ends."""
+        task = asyncio.create_task(
+            self._deliver(phone=phone, code=code, request_id=request_id, actor=actor)
         )
+        self._dispatches.add(task)
+        task.add_done_callback(self._dispatches.discard)
+        task.add_done_callback(_retrieve_by_type)
+
+    async def _deliver(self, *, phone: str, code: str, request_id: str, actor: str) -> None:
+        receipt: DeliveryReceipt | None = None
         try:
             receipt = await self._wiring.delivery.send(phone_e164=phone, code=code)
-        except OtpDeliveryError:
-            # the adapter logged the reason (ids only); the caller gets one
-            # generic code whatever the cause, and nothing was "sent"
-            raise otp_delivery_unavailable() from None
+        except Exception as exc:  # noqa: BLE001 — a send must never leak or be lost
+            if not isinstance(exc, OtpDeliveryError):
+                # INT-581: an adapter bug can carry the number or the code in its
+                # message, and an unretrieved task exception is logged with its
+                # text. Contain it here: its type is logged, never its words.
+                logger.warning("otp delivery crashed (%s); recorded as failed", type(exc).__name__)
+        # The audit runs OUTSIDE the handler above (security review, 28 Oct
+        # 2026): an append that fails inside it carries the vendor's exception
+        # as its context, and the code and the number travel with it into any
+        # traceback. Out here a failed append chains nothing, and the task's
+        # done-callback names it by type. The adapter logged and counted a typed
+        # reason (ids only); the caller was told nothing either way, and nothing
+        # claims a send that failed.
+        if receipt is None:
+            action, resource = "auth.otp.delivery_failed", f"request:{request_id}"
+        else:
+            action, resource = "auth.otp.sent", f"delivery:{receipt.delivery_id}"
         await self._audit.record(
-            actor=f"phone:{self._tokenizer.log_ref(phone)}",
-            action="auth.otp.requested",
-            resource_ref=f"delivery:{receipt.delivery_id}",
-            consent_scope="scope:auth",
+            actor=actor, action=action, resource_ref=resource, consent_scope="scope:auth"
         )
-        return {
-            "delivery_id": receipt.delivery_id,
-            "request_id": request_id,
-            # INT-577: the doubled wait this number's next code is held to
-            "resend_after_s": int(decision.wait),
-        }
+
+    async def settle(self, timeout_s: float | None = None) -> None:
+        """Wait for every delivery in flight: the tests, and the API's shutdown,
+        which would otherwise drop a code a patient was promised."""
+        while self._dispatches:
+            pending = list(self._dispatches)
+            done, _ = await asyncio.wait(pending, timeout=timeout_s)
+            if len(done) < len(pending):
+                logger.warning(
+                    "otp deliveries still in flight at shutdown: %d", len(pending) - len(done)
+                )
+                return
 
     async def peek_code(self, phone_raw: str) -> dict[str, str]:
         """Dev tier ONLY (INTAKE_DEV_OTP_PEEK=explicit-yes; 404 otherwise —
@@ -639,15 +734,24 @@ class OtpAuthService:
         bound = _bound_device(payload)
         phone, pseudonym = self._require_phone(phone_raw)
         jkt = await self._verify_proof(request)
-        if await asyncio.to_thread(self._store.lockout_wait, pseudonym) is not None:
+        locked = await asyncio.to_thread(self._store.lockout_wait, pseudonym) is not None
+        # INT-579: the attempt is taken and compared under a lockout too, so a
+        # locked number costs the same work as any other wrong answer
+        verdict = await asyncio.to_thread(
+            partial(
+                self._store.check_code,
+                pseudonym,
+                self._pepper.code_digest(pseudonym, request_id, code),
+                binding=self._pepper.device_binding(bound),
+                # INT-578: a guess under the lockout spends nothing of the
+                # number's budget, so it can neither extend the lockout nor
+                # outlive it in the window
+                charge=not locked,
+            )
+        )
+        if locked:
             OTP_VERIFY_TOTAL.labels(outcome="locked").inc()
             raise otp_invalid()
-        verdict = await asyncio.to_thread(
-            self._store.check_code,
-            pseudonym,
-            self._pepper.code_digest(pseudonym, request_id, code),
-            binding=self._pepper.device_binding(bound),
-        )
         OTP_VERIFY_TOTAL.labels(outcome=verdict).inc()
         if verdict == "exhausted":
             # INT-578: the miss that spent the budget locks the number
