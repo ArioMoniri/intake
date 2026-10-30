@@ -45,7 +45,11 @@ from intake_api.audit import AuditWriter
 from intake_api.auth_store import REFRESH_TTL_S, AuthStore
 from intake_api.errors import otp_invalid, otp_limited, review_signin_unconfigured
 from intake_api.otp_pepper import OtpPepper
-from intake_api.review_reset import REVIEW_RESET_FAILURES_TOTAL, unerased_review_subjects
+from intake_api.review_reset import (
+    REVIEW_RESET_FAILURES_TOTAL,
+    ReviewReset,
+    unerased_review_subjects,
+)
 from intake_api.review_signin import (
     REVIEW_MISS_CAP,
     SEC_REVIEW_SIGNIN_TOTAL,
@@ -54,6 +58,7 @@ from intake_api.review_signin import (
 )
 from intake_api.review_window import (
     REVIEW_WINDOW_S,
+    UNATTRIBUTED_CLOSE,
     ReviewWindow,
     ReviewWindowUnreadable,
     WindowState,
@@ -82,7 +87,7 @@ class ReviewSignInFlow:
         audit: AuditWriter,
         engine: AsyncEngine,
         redis_client: redis.Redis,
-        reset: Callable[[str], Awaitable[int]] | None = None,
+        reset: ReviewReset | None = None,
     ) -> None:
         self._review = review
         self._store = store
@@ -106,11 +111,18 @@ class ReviewSignInFlow:
         return True
 
     async def _record_closes(self) -> None:
-        """Append the row of every close still waiting for one, oldest first."""
+        """Append the row of every close still waiting for one, oldest first.
+        An entry naming no close actor is on the chain as an unattributed close
+        under the API's own actor, never under its own words (security review R3)."""
         while (actor := await asyncio.to_thread(self._window.first_unrecorded_close)) is not None:
+            unattributed = actor == UNATTRIBUTED_CLOSE
             await self._audit.record(
-                actor=actor,
-                action="auth.review.window.closed",
+                actor="system:review-guard" if unattributed else actor,
+                action=(
+                    "auth.review.window.closed_unattributed"
+                    if unattributed
+                    else "auth.review.window.closed"
+                ),
                 resource_ref="review_signin:window",
                 consent_scope=_SCOPE,
             )
@@ -133,15 +145,26 @@ class ReviewSignInFlow:
 
     async def sweep(self) -> None:
         """The API's own sweep, once a minute: record a close whose row was
-        lost, close an expired window, then retry an erasure still pending."""
-        await self._record_closes()
-        await self.expire_if_due()
-        await self._erase_pending()
+        lost, close an expired window, then retry an erasure still pending.
+        The stages are isolated (security review R3): one that fails is logged
+        by type and the next still runs, so nothing on the close queue or in
+        the audit store can hold the expiry or the erasure back."""
+        stages: tuple[tuple[str, Callable[[], Awaitable[object]]], ...] = (
+            ("record_closes", self._record_closes),
+            ("expire", self.expire_if_due),
+            ("erase", self._erase_pending),
+        )
+        for name, stage in stages:
+            try:
+                await stage()
+            except Exception as exc:  # noqa: BLE001 — one stage never stops the next
+                logger.warning("review sweep stage %s failed (%s)", name, type(exc).__name__)
 
     async def _erase_pending(self) -> None:
         """Erase the reviewer tenant while no window is open and a reviewer
         subject is unerased. A failure counts toward the page every time and is
-        on the chain once per failing episode; the next sweep tries again."""
+        on the chain once per failing episode, its refusal rows included
+        (security review R2); the next sweep tries again."""
         if self._reset is None:
             return
         try:
@@ -152,14 +175,15 @@ class ReviewSignInFlow:
         if await unerased_review_subjects(self._engine) == 0:
             await asyncio.to_thread(self._r.delete, _RESET_FAILING_KEY)
             return
+        failing = bool(await asyncio.to_thread(self._r.exists, _RESET_FAILING_KEY))
         try:
-            await self._reset("system:review-expiry")
+            await self._reset("system:review-expiry", record_blocked=not failing)
         except Exception as exc:  # noqa: BLE001 — a pending erasure pages and is retried
             REVIEW_RESET_FAILURES_TOTAL.inc()
             logger.warning(
                 "review tenant erasure failed (%s); the next sweep retries it", type(exc).__name__
             )
-            if not await asyncio.to_thread(self._r.exists, _RESET_FAILING_KEY):
+            if not failing:
                 await self._audit.record(
                     actor="system:review-expiry",
                     action="auth.review.reset_failed",

@@ -99,7 +99,11 @@ from intake_api.doctor_link.service import (
 from intake_api.documents import DocumentsConfig, DocumentsGateway
 from intake_api.embed import EmbedService, EmbedWiring
 from intake_api.otp import AuthWiring, OtpAuthService, ensure_consumer_tenant
-from intake_api.review_reset import review_expiry_forever, review_reset_for
+from intake_api.review_reset import (
+    ErasureRoleGuard,
+    review_expiry_forever,
+    review_reset_for,
+)
 from intake_api.review_signin import ensure_review_tenant
 from intake_api.settings import ENV_MINIO_PASSWORD, ENV_MINIO_USER, ApiSettings
 from intake_api.state import ApiState
@@ -574,6 +578,14 @@ def create_app(wiring: ApiWiring | None = None) -> FastAPI:
     _setup_observability()
     w = wiring if wiring is not None else wiring_from_env()
     audit = AuditWriter(w.audit_store)
+    # INT-488 (security review R1): the reviewer erasure's role may not be the
+    # bootstrap role nor hold rolsuper or rolbypassrls; asked at start and
+    # before every erasure run
+    review_role = ErasureRoleGuard(
+        w.erasure_engine or w.engine,
+        bootstrap_url=w.settings.bootstrap_db_url,
+        erasure_url=w.settings.erasure_db_url or w.settings.app_db_url,
+    )
     state = ApiState(
         settings=w.settings,
         engine=w.engine,
@@ -588,7 +600,9 @@ def create_app(wiring: ApiWiring | None = None) -> FastAPI:
                 # INT-488: the reviewer tenant's erasure, which only the sweep
                 # runs: the app role, or the role INT-394 decides
                 # (INTAKE_API_ERASURE_DB_URL); never the owner role
-                review_reset=review_reset_for(w.erasure_engine or w.engine, w.documents, audit),
+                review_reset=review_reset_for(
+                    w.erasure_engine or w.engine, w.documents, audit, guard=review_role
+                ),
             )
             if w.auth is not None
             else None
@@ -650,9 +664,14 @@ def create_app(wiring: ApiWiring | None = None) -> FastAPI:
         pump = _RedPump.start(state)
         # INT-488: an App Review window closes itself when its time runs out,
         # even if no reviewer step comes to notice
+        reviewed = state.auth is not None and w.auth is not None and w.auth.review is not None
+        if reviewed and (refused := await review_role.problem()) is not None:
+            # R1: every erasure run refuses too (typed, audited, paging), and
+            # so does the owner's --on; this says so from the start
+            logger.warning("review erasure role refused at start: %s", refused)
         expiry = (
             asyncio.create_task(review_expiry_forever(state.auth.review_sweep))
-            if state.auth is not None and w.auth is not None and w.auth.review is not None
+            if reviewed and state.auth is not None
             else None
         )
         try:

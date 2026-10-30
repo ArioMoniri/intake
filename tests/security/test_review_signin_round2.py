@@ -137,9 +137,9 @@ def test_the_api_erases_as_the_app_role_not_the_owner_role(
     engines: list[Any] = []
     real = app_module.review_reset_for
 
-    def spy(engine: Any, documents: Any, audit: Any) -> Any:
+    def spy(engine: Any, documents: Any, audit: Any, **kwargs: Any) -> Any:
         engines.append(engine)
-        return real(engine, documents, audit)
+        return real(engine, documents, audit, **kwargs)
 
     monkeypatch.setattr(app_module, "review_reset_for", spy)
     with harness(tmp_path, draw()) as otp:
@@ -195,7 +195,7 @@ def test_the_erasure_role_seam(monkeypatch: pytest.MonkeyPatch, named: bool) -> 
 
 
 def test_the_owner_command_erases_as_the_app_role_or_the_decided_one(
-    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     import intake_api.app as app_module
     import intake_api.db as db_module
@@ -221,7 +221,7 @@ def test_the_owner_command_erases_as_the_app_role_or_the_decided_one(
     monkeypatch.delenv("INTAKE_ENV", raising=False)
     monkeypatch.setenv("INTAKE_API_DB_URL", "sqlite+aiosqlite:///app.db")
     monkeypatch.setenv("INTAKE_API_BOOTSTRAP_DB_URL", "sqlite+aiosqlite:///owner.db")
-    monkeypatch.setenv("INTAKE_API_AUDIT_DB_URL", "sqlite+pysqlite:///audit.db")
+    monkeypatch.setenv("INTAKE_API_AUDIT_DB_URL", f"sqlite+pysqlite:///{tmp_path / 'audit.db'}")
     monkeypatch.setattr(db_module, "build_engine", build)
     monkeypatch.setattr(reset_module(), "reset_review_tenant", reset)
     monkeypatch.setattr(app_module, "_documents_from_env", Docs)
@@ -481,8 +481,7 @@ def test_an_expiry_whose_row_was_lost_is_re_recorded_under_its_actor(
             real(entry)
 
         monkeypatch.setattr(otp.audit_store, "append", flaky)
-        with pytest.raises(RuntimeError):
-            otp.client.portal.call(otp.client.app.state.api.auth.review_sweep)
+        sweep(otp)  # the lost row no longer stops the sweep (security review R3)
         assert otp.redis_client.get("auth:review:window") is None, "closed first"
         assert window.unrecorded_closes() == 1
         sweep(otp)

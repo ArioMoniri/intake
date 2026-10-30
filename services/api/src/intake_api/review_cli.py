@@ -5,10 +5,11 @@ the API container on the synthetic host by ``infra/staging/review_signin.sh``.
 
 - ``on`` refuses unless a reviewer could sign in here (``review_readiness``),
   closes a window whose 14 days ran out the way ``off`` does,
-  empties the reviewer tenant (``intake_api.review_reset``), appends
-  ``auth.review.window.opened`` and only then opens: an opening the audit
-  store could not record does not happen, and nor does one over an earlier
-  reviewer's data. A store that cannot be read refuses before any row.
+  empties the reviewer tenant (``intake_api.review_reset``), opens, and only
+  then appends ``auth.review.window.opened``: the row is written only for a
+  window that really opened, and an opening the audit store could not record
+  is closed again at once. Nothing opens over an earlier reviewer's data. A
+  store that cannot be read refuses before any row.
 - ``off`` closes first (the safer state), then appends
   ``auth.review.window.closed``, then empties the reviewer tenant; a failure
   of either is reported, and the window stays closed.
@@ -49,7 +50,6 @@ logger = logging.getLogger("intake_api.review_signin")
 _AUDIT_ACTIONS: Final = {
     "on": "auth.review.window.opened",
     "off": "auth.review.window.closed",
-    "open_failed": "auth.review.window.open_failed",
     "rotated": "auth.review.code.rotated",
     "revealed": "auth.review.code.revealed",
 }
@@ -98,17 +98,28 @@ def _default_reset() -> str | None:
     from intake_api.app import _documents_from_env
     from intake_api.audit import AuditWriter
     from intake_api.db import build_engine
-    from intake_api.review_reset import ReviewResetBlocked, reset_review_tenant
+    from intake_api.review_reset import (
+        ErasureRoleGuard,
+        ReviewResetBlocked,
+        bootstrap_role_problem,
+        reset_review_tenant,
+    )
 
     settings = ApiSettings.from_env()
+    erasure_url = settings.erasure_db_url or settings.app_db_url
+    # security review R1: the bootstrap role is refused before anything connects
+    same = bootstrap_role_problem(settings.bootstrap_db_url, erasure_url)
+    if same is not None:
+        return same
     documents = _documents_from_env()
     destroyer = DocumentObjectDestroyer(
         documents.client, bucket_docs=documents.bucket_docs, bucket_audit=documents.bucket_audit
     )
 
     async def run() -> int:
-        # the app role, or the role INT-394 decides; never the owner role
-        engine = build_engine(settings.erasure_db_url or settings.app_db_url)
+        # the app role, or the role INT-394 decides; never the owner role, a
+        # superuser or a role that bypasses row-level security (R1)
+        engine = build_engine(erasure_url)
         audit_engine = create_engine(settings.audit_db_url)
         try:
             return await reset_review_tenant(
@@ -116,6 +127,9 @@ def _default_reset() -> str | None:
                 audit=AuditWriter(SqlAlchemyAuditStore(audit_engine)),
                 remove_object=destroyer,
                 now=datetime.now(UTC),
+                role=ErasureRoleGuard(
+                    engine, bootstrap_url=settings.bootstrap_db_url, erasure_url=erasure_url
+                ),
             )
         finally:
             await engine.dispose()
@@ -176,8 +190,10 @@ def _open(
     reset: Callable[[], str | None],
     out: TextIO,
 ) -> int:
-    """Readable, empty, recorded, then open: an opening the audit store could
-    not record does not happen, and nor does one over a reviewer's data."""
+    """Readable, empty, open, then recorded. ``opened`` is written only for a
+    window this call opened (security review R6), and an opening the audit
+    store could not record is closed again at once; nor does one happen over
+    a reviewer's data."""
     try:
         state = window.state()
     except ReviewWindowUnreadable:
@@ -193,17 +209,39 @@ def _open(
     if problem is not None:
         print(f"review window not opened: {problem}", file=out)
         return 1
-    if not _appended(
-        audit, "on", out, "review window: the opening could not be audited, so it stays closed"
-    ):
-        return 1
     try:
-        window.open()
+        opened = window.open()
     except redis.RedisError:
-        _appended(audit, "open_failed", out, "review window: the failed opening was not audited")
-        print("review window: the opening was recorded but failed; it stays closed", file=out)
+        print("review window: the store refused the opening; it stays closed", file=out)
+        return 1
+    if opened is None:
+        print("review window: another opening came first; this one recorded nothing", file=out)
+        return 1
+    if not _appended(
+        audit, "on", out, "review window: the opening could not be audited, so it is closed again"
+    ):
+        _withdraw(window, opened, audit, out)
         return 1
     return 0
+
+
+def _withdraw(
+    window: ReviewWindow, window_id: str, audit: Callable[[str], None], out: TextIO
+) -> None:
+    """Close the window this call opened but could not record: that one only,
+    noted first, so a close row the store still refuses is re-recorded by the
+    API's sweep (security review N2)."""
+    try:
+        if not window.close(expect_id=window_id):
+            return
+        window.note_unrecorded_close("operator:host")
+    except redis.RedisError:
+        print("review window: the unrecorded opening could not be closed; run --off", file=out)
+        return
+    if _appended(
+        audit, "off", out, "review window: its close waits for the API's sweep to record it"
+    ):
+        window.recorded_close()
 
 
 def _close(

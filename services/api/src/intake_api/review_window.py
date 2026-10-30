@@ -48,8 +48,10 @@ from intake_platform.model_lanes.store import ModelLanesReader, ModelLanesUnavai
 from intake_platform.voice_control.store import VoiceControlReader, VoiceControlUnavailable
 
 __all__ = [
+    "CLOSE_ACTORS",
     "REVIEW_TENANT_ID",
     "REVIEW_WINDOW_S",
+    "UNATTRIBUTED_CLOSE",
     "ReviewGuards",
     "ReviewWindow",
     "ReviewWindowUnreadable",
@@ -71,6 +73,11 @@ REVIEW_WINDOW_S: Final = 14 * 24 * 3600
 #: window reads garbled (security review N4): the API and the owner's command
 #: run on one host, so anything more is a clock gone wrong or a forged document.
 _CLOCK_SKEW_S: Final = 60.0
+#: Who closes a review window: the owner's ``--off``, the 14-day expiry, the
+#: miss cap. A waiting close is recorded under one of these or as unattributed.
+CLOSE_ACTORS: Final = frozenset({"operator:host", "system:review-expiry", "system:review-guard"})
+#: What :meth:`ReviewWindow.first_unrecorded_close` reads for any other entry.
+UNATTRIBUTED_CLOSE: Final = "unattributed"
 
 
 def review_patient(window_id: str) -> tuple[uuid.UUID, str]:
@@ -164,33 +171,37 @@ class ReviewWindow:
     def is_open(self) -> bool:
         return self.current() is not None
 
-    def open(self) -> bool:
-        """Open a new window with a fresh id. True when this call opened it."""
-        document = {
-            "state": "open",
-            "since": self._now(),
-            "id": secrets.token_hex(_WINDOW_ID_BYTES),
-        }
-        return bool(self._r.set(self._key, json.dumps(document), nx=True))
+    def open(self) -> str | None:
+        """Open a new window with a fresh id: its id when this call opened it,
+        None when a window document was already there."""
+        window_id = secrets.token_hex(_WINDOW_ID_BYTES)
+        document = {"state": "open", "since": self._now(), "id": window_id}
+        return window_id if self._r.set(self._key, json.dumps(document), nx=True) else None
 
     # --- closes whose audit row is not yet on the chain (security review N2) ---
 
     def note_unrecorded_close(self, actor: str) -> None:
         """Remember a close whose row has not been appended yet, before the
         append is tried: a row lost to a failed append or a crash is then
-        re-recorded by the API's sweep, under the actor who closed."""
+        re-recorded by the API's sweep, under the actor who closed. Only the
+        three :data:`CLOSE_ACTORS` close a window; anything else is refused."""
+        if actor not in CLOSE_ACTORS:
+            raise ValueError("not an actor that closes a review window")
         self._r.rpush(self._unrecorded, json.dumps({"actor": actor, "at": self._now()}))
 
     def first_unrecorded_close(self) -> str | None:
-        """The actor of the oldest close still waiting for its row, or None."""
+        """The actor of the oldest close still waiting for its row, or None.
+        An entry that names none of the :data:`CLOSE_ACTORS` (garbled, or
+        written by something other than this class) reads
+        :data:`UNATTRIBUTED_CLOSE`, never its own words (security review R3)."""
         raw = self._r.lindex(self._unrecorded, 0)
         if raw is None:
             return None
         try:
             actor = json.loads(raw)["actor"]
         except (ValueError, KeyError, TypeError):
-            return "system:review-guard"
-        return actor if isinstance(actor, str) else "system:review-guard"
+            return UNATTRIBUTED_CLOSE
+        return actor if isinstance(actor, str) and actor in CLOSE_ACTORS else UNATTRIBUTED_CLOSE
 
     def recorded_close(self) -> None:
         """The oldest waiting close now has its row."""

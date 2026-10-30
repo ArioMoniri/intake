@@ -396,10 +396,11 @@ class FailingOpen(fakeredis.FakeStrictRedis):
         raise redis.ConnectionError("down")
 
 
-def test_an_opening_that_fails_after_its_row_is_compensated() -> None:
+def test_an_opening_the_store_refuses_writes_no_row() -> None:
+    # security review R6: "opened" is written only for a window that opened
     code, said, audited = cli("on", FailingOpen())
     assert code == 1
-    assert audited == ["auth.review.window.opened", "auth.review.window.open_failed"]
+    assert audited == []
     assert "stays closed" in said
 
 

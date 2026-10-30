@@ -13,7 +13,11 @@ consent evidence stay, as they do for any erased subject.
 **Which database role erases is INT-394's open decision (#650)**, and this
 module does not answer it. It runs on the app role (``app_rw``) unless the
 deployment names the decided role in ``INTAKE_API_ERASURE_DB_URL`` (the seam:
-``ApiSettings.erasure_db_url``). Every run first asks INT-395's preflight
+``ApiSettings.erasure_db_url``). Whatever INT-394 decides, the role may not
+be the bootstrap role, nor hold ``rolsuper`` or ``rolbypassrls``
+(:class:`ErasureRoleGuard`, security review R1): the API asks at start and
+every run asks again before anything else, refusing typed and audited. Every
+run then asks INT-395's preflight
 (``dsar.grants.missing_privileges``) whether that role holds every privilege the
 erasure exercises. If it does not, the run touches nothing, appends one
 ``auth.review.reset_blocked`` row per missing privilege and raises
@@ -39,11 +43,12 @@ import logging
 import uuid
 from collections.abc import Awaitable, Callable
 from datetime import UTC, datetime
-from typing import Final
+from typing import Final, Protocol
 
 from intake_platform.db.models import DsarKind, DsarRequest, DsarStatus, Patient
 from prometheus_client import Counter
-from sqlalchemy import select
+from sqlalchemy import select, text
+from sqlalchemy.engine import make_url
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 from intake_api.audit import AuditWriter
@@ -58,8 +63,12 @@ from intake_api.review_window import REVIEW_TENANT_ID
 __all__ = [
     "REVIEW_EXPIRY_SWEEP_S",
     "REVIEW_RESET_FAILURES_TOTAL",
+    "ErasureRoleGuard",
     "ReviewReset",
     "ReviewResetBlocked",
+    "bootstrap_role_problem",
+    "erasure_role_problem",
+    "pg_role_attributes",
     "reset_review_tenant",
     "review_expiry_forever",
     "review_reset_for",
@@ -79,12 +88,112 @@ REVIEW_RESET_FAILURES_TOTAL: Final = Counter(
     "Unattended erasures of the App Review reviewer tenant that failed.",
 )
 
-#: The erasure as callers run it: the actor its rows name, then how many subjects.
-ReviewReset = Callable[[str], Awaitable[int]]
+
+class ReviewReset(Protocol):
+    """The erasure as callers run it: the actor its rows name; returns how
+    many subjects. ``record_blocked=False`` keeps a refusal off the chain
+    while the same failing episode is already there (security review R2)."""
+
+    def __call__(self, actor: str, *, record_blocked: bool = True) -> Awaitable[int]: ...
 
 
 class ReviewResetBlocked(Exception):
-    """The erasure refused to run; the message names the grants, never data."""
+    """The erasure refused to run; the message names the grants or the role
+    attribute, never data or a credential."""
+
+
+# --- the erasure role itself (security review R1) -----------------------------------------------
+
+#: (rolsuper, rolbypassrls) of the role an engine connects as; None off PostgreSQL.
+RoleAttributes = Callable[[AsyncEngine], Awaitable[tuple[bool, bool] | None]]
+
+
+async def pg_role_attributes(engine: AsyncEngine) -> tuple[bool, bool] | None:
+    """(rolsuper, rolbypassrls) of the role ``engine`` connects as. None off
+    PostgreSQL, which has no roles to hold them; a role the catalogue does not
+    list reads as holding both (fail closed)."""
+    if engine.dialect.name != "postgresql":
+        return None
+    async with engine.connect() as conn:
+        row = (
+            await conn.execute(
+                text("SELECT rolsuper, rolbypassrls FROM pg_roles WHERE rolname = current_user")
+            )
+        ).first()
+    return (True, True) if row is None else (bool(row[0]), bool(row[1]))
+
+
+def bootstrap_role_problem(bootstrap_url: str, erasure_url: str) -> str | None:
+    """Why the erasure URL is refused before any connection: it names the
+    bootstrap (owner) role, which owns the tables and so is not held by their
+    row-level security. Names only, never the URL."""
+    role = make_url(erasure_url).username
+    if role is not None and role == make_url(bootstrap_url).username:
+        return (
+            "the reviewer erasure is refused: its role is the bootstrap role "
+            f"(the erasure role is {ERASURE_ROLE_DECISION}'s open decision)"
+        )
+    return None
+
+
+async def erasure_role_problem(
+    engine: AsyncEngine,
+    *,
+    bootstrap_url: str,
+    erasure_url: str,
+    attributes: RoleAttributes = pg_role_attributes,
+) -> str | None:
+    """Why the role the erasure runs as is refused, or None: the bootstrap
+    role, or one with ``rolsuper`` or ``rolbypassrls``. Any of them erases past
+    the reviewer tenant's row-level security, so a scoping fault in the erasure
+    would reach real tenants. The app role, holding neither, passes."""
+    same = bootstrap_role_problem(bootstrap_url, erasure_url)
+    if same is not None:
+        return same
+    held = await attributes(engine)
+    if held is None:
+        return None
+    names = [name for name, has in zip(("rolsuper", "rolbypassrls"), held, strict=True) if has]
+    if not names:
+        return None
+    return (
+        f"the reviewer erasure is refused: its role holds {', '.join(names)} "
+        f"(the erasure role is {ERASURE_ROLE_DECISION}'s open decision)"
+    )
+
+
+class ErasureRoleGuard:
+    """:func:`erasure_role_problem` for one engine, asked at the API's start
+    and again before every erasure run: an ``ALTER ROLE`` after start is
+    caught on the next run. A check that cannot answer refuses."""
+
+    def __init__(
+        self,
+        engine: AsyncEngine,
+        *,
+        bootstrap_url: str,
+        erasure_url: str,
+        attributes: RoleAttributes | None = None,
+    ) -> None:
+        self._engine = engine
+        self._bootstrap_url = bootstrap_url
+        self._erasure_url = erasure_url
+        # None: the catalogue read, looked up when asked
+        self._attributes = attributes
+
+    async def problem(self) -> str | None:
+        try:
+            return await erasure_role_problem(
+                self._engine,
+                bootstrap_url=self._bootstrap_url,
+                erasure_url=self._erasure_url,
+                attributes=self._attributes or pg_role_attributes,
+            )
+        except Exception as exc:  # noqa: BLE001 — a role that cannot be checked is refused
+            return (
+                "the reviewer erasure is refused: its role could not be checked "
+                f"({type(exc).__name__})"
+            )
 
 
 async def _unerased(engine: AsyncEngine) -> tuple[list[uuid.UUID], list[uuid.UUID]]:
@@ -122,14 +231,27 @@ async def reset_review_tenant(
     now: datetime,
     privileges: PrivilegeProbe = missing_privileges,
     actor: str = "operator:host",
+    role: ErasureRoleGuard | None = None,
+    record_blocked: bool = True,
 ) -> int:
-    """Erase every reviewer subject not yet erased; returns how many. INT-395's
-    preflight runs first, every time, so a role that cannot erase refuses even
-    an empty tenant. Runs over the reviewer tenant only."""
+    """Erase every reviewer subject not yet erased; returns how many. The
+    erasure role's own check (``role``, R1) and then INT-395's preflight run
+    first, every time, so a role that may not or cannot erase refuses even an
+    empty tenant. Runs over the reviewer tenant only."""
+    refused = await role.problem() if role is not None else None
+    if refused is not None:
+        if record_blocked:
+            await audit.record(
+                actor=actor,
+                action="auth.review.reset_blocked",
+                resource_ref="review_signin:erasure_role",
+                consent_scope="scope:auth",
+            )
+        raise ReviewResetBlocked(refused)
     async with tenant_session(engine, REVIEW_TENANT_ID) as session:
         missing = await privileges(session)
     if missing:
-        for need in missing:
+        for need in missing if record_blocked else ():
             await audit.record(
                 actor=actor,
                 action="auth.review.reset_blocked",
@@ -193,10 +315,12 @@ def review_reset_for(
     documents: DocumentsConfig | None,
     audit: AuditWriter,
     privileges: PrivilegeProbe = missing_privileges,
+    guard: ErasureRoleGuard | None = None,
 ) -> ReviewReset:
     """The reviewer tenant's erasure as the API's sweep runs it: on ``engine``
-    (the app role, or the role INT-394 decides), the document store's
-    destroyer, the API's own chain, rows under the caller's actor."""
+    (the app role, or the role INT-394 decides) behind ``guard`` (R1), the
+    document store's destroyer, the API's own chain, rows under the caller's
+    actor."""
     from intake_platform.retention.executors import DocumentObjectDestroyer
 
     remove: Callable[[str], None] = (
@@ -209,7 +333,7 @@ def review_reset_for(
         else _no_object_store
     )
 
-    async def reset(actor: str) -> int:
+    async def reset(actor: str, *, record_blocked: bool = True) -> int:
         return await reset_review_tenant(
             engine,
             audit=audit,
@@ -217,6 +341,8 @@ def review_reset_for(
             now=datetime.now(UTC),
             privileges=privileges,
             actor=actor,
+            role=guard,
+            record_blocked=record_blocked,
         )
 
     return reset

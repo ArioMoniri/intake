@@ -47,7 +47,12 @@ until they are.
    per missing grant, and `--on` refuses naming INT-394. No reviewer data is collected before it
    can be erased. Once INT-394 is answered, either grant the app role what the decision says, or
    put the decided role's URL in `INTAKE_API_ERASURE_DB_URL` (`ApiSettings.erasure_db_url`).
-   Nothing else changes.
+   Nothing else changes. Whatever INT-394 decides, the role may not be the bootstrap role, and
+   it may not hold `rolsuper` or `rolbypassrls`: either would erase past the reviewer tenant's
+   row-level security. The API checks this at start and logs `review erasure role refused at
+   start` if the check fails. Every erasure run checks again before anything else. A refused role
+   appends `auth.review.reset_blocked` (resource `review_signin:erasure_role`), and `--on` refuses
+   with the attribute's name. A role the check cannot read is refused as well.
 3. **A complete processing record.**
    [`docs/legal/store/review/review-signin.yaml`](../legal/store/review/review-signin.yaml) needs
    every field set, and `notice_sha256` must be the notes file's sha256. Today `transfer_route` is
@@ -71,6 +76,13 @@ clinical one. The owner may change it: it is `REVIEW_WINDOW_S` in
 - **Nothing reopens it.** The next review needs a fresh `--on`, ideally after a `--generate`.
   An `--on` that finds an expired window still stored closes it the way `--off` does first.
 - `--status` shows when the window closes itself and how long is left.
+- **The sweep has three stages, and each one runs even if another fails.** It records closes
+  whose row was lost, closes an expired window, and retries a pending erasure. A failed stage is
+  logged by type (`review sweep stage … failed`), and the next stage still runs. A lost close is
+  recorded under its own actor only if that actor is `operator:host`, `system:review-expiry` or
+  `system:review-guard`. Any other entry is recorded as `auth.review.window.closed_unattributed`
+  (actor `system:review-guard`), never under its own words. If you see that row, something other
+  than the API or the owner's command wrote to `auth:review:unrecorded_closes`.
 
 ## The owner's script
 
@@ -85,7 +97,7 @@ aws ssm start-session --region us-east-1 --target i-0e489e48739f5de98 --document
 | mode | what it does | prints |
 |---|---|---|
 | `--generate` | Re-applies the API's OpenBao policy. Appends `auth.review.code.rotated` first, so no code goes live without its row. Keeps one version of the document, so no old code lingers. Keeps a well-formed reviewer number, or draws one. Draws a fresh 6-digit code. Writes all three fields to `bao kv put` on stdin, with a check-and-set against the version it read. Then restarts the API, which reads the document at start, and waits for it. A new code voids the old one, and the reveal is unused again | nothing |
-| `--on` | Opens the review window, inside the API container (`python -m intake_api.review_cli on`). It refuses unless all of the following hold: the gate and the guards admit this deployment; OpenBao holds a well-formed number and code; and the processing record is complete and bound to the notice. It erases anything a reviewer left in the reviewer tenant, and refuses to open if it cannot (INT-394, above). Then it appends `auth.review.window.opened`, and opens only if that row was written | the window's state |
+| `--on` | Opens the review window, inside the API container (`python -m intake_api.review_cli on`). It refuses unless all of the following hold: the gate and the guards admit this deployment; OpenBao holds a well-formed number and code; and the processing record is complete and bound to the notice. It erases anything a reviewer left in the reviewer tenant, and refuses to open if it cannot (INT-394, above). Then it opens the window and appends `auth.review.window.opened`, only for a window it really opened. If another opening got there first, it writes nothing and exits 1. If the row fails, it closes that window again at once, and the sweep records the close if the audit store still refuses | the window's state |
 | `--off` | Closes the window first, because that is the safer state. Then it appends `auth.review.window.closed` and erases the reviewer tenant. Every reviewer session ends. If the row fails, the close is remembered and the sweep records it once the audit store answers. If the erasure fails, the sweep retries it. Either failure is reported, and the command exits 1; the window stays closed | the window's state |
 | `--status` | Reads the window | the window's state; while it is open, when it closes itself and how long is left (`13d 23h 0m`) |
 | `--reveal-to-owner` | Shows the reviewer number and the code **once**, on the owner's terminal and nowhere else. It refuses unless stdin and stdout are a terminal. It also refuses if the notes file is not the bytes the record's `notice_sha256` names; that check runs before the reveal is used up. Before anything is printed, it records the reveal in OpenBao, with a check-and-set, and appends `auth.review.code.revealed`. If either fails, nothing is printed. Then it prints the number, the code and the notes file byte for byte. A second reveal is refused until `--generate` makes a new code. After you press Enter, it clears the screen and the scrollback | the number, the code and the review notes, once |
@@ -155,7 +167,11 @@ reviewer subject is unerased, no window is open, and the sweep retries every min
 - The first failure of an episode appends `auth.review.reset_failed` (`system:review-expiry`).
   `review_reset_failures_total` counts every failed attempt.
 - `auth.review.reset_blocked` rows name the grants the erasure role lacks. That is INT-394 (#650):
-  answer it, then grant the role or set `INTAKE_API_ERASURE_DB_URL`.
+  answer it, then grant the role or set `INTAKE_API_ERASURE_DB_URL`. A row on
+  `review_signin:erasure_role` means the role itself is refused: it is the bootstrap role, or it
+  holds `rolsuper` or `rolbypassrls`. Point `INTAKE_API_ERASURE_DB_URL` at a role that is none of
+  these. The sweep writes these rows once per failing episode. The owner's `--on` and `--off`
+  write them every time.
 - Any other cause is in the API's log, by type only: the object store, or the database.
 - The page clears once a sweep erases the tenant. Keep `--on` shut until then, which it is
   anyway.

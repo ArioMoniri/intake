@@ -18,6 +18,12 @@
   - 17: no placeholder and no skipped test.
   - 18: no new personal-data category, confirmed by the legal lane.
 - Second review round (security and legal, REVISE): the erasure runs as the app role, or the role INT-394 decides via `INTAKE_API_ERASURE_DB_URL`. INT-395's preflight refuses and `--on` stays shut naming INT-394. The erasure is off the request path. The reviewer's notice and processing record live in docs/legal/store/review/, hash-bound, and `--on` refuses until they are complete (INT-528, HB-L11). Failed unattended erasures page and are retried, and lost close rows are re-recorded. Notes N3, N4, N7 and N8 are done.
+- Round three, pre-PR guards (the security reviewer's R1, R3, R2, R6, test-first in `tests/security/test_review_signin_guards.py`):
+  - R1: the erasure role is refused at the API's start and before every run if it is the bootstrap role or holds `rolsuper` or `rolbypassrls`. The app role passes.
+  - R3: a lost close is re-recorded only under one of its three actors, anything else as an unattributed close. The sweep's three stages are isolated, so a poisoned entry no longer stops the expiry or the erasure retry.
+  - R2: refusal rows are written once per failing episode.
+  - R6: `opened` is written only for a window that opened.
+  - Red 23 failed / 2 near misses passed; green 25 passed; 19/19 mutants killed.
 - Decisions / ADRs / `00_STATE.md` rows: D39 (recorded by INT-585). The security and legal reviews of 30 Oct 2026 asked for changes; those are built, and both re-reviews returned APPROVE. The window closes itself 14 days after `--on`: a fail-closed engineering default, set by the orchestrator, which the owner may change in a reviewed diff. Engineering default: `REVIEW_MISS_CAP = 15`.
 - Blocked on (human + one sentence + HUMAN_BLOCKERS id): nothing blocks the build. The owner engages the reviewer tenant's hosted-lane kill switch once, then runs `--generate`, `--on` and `--reveal-to-owner` when the review window opens. Counsel's questions (data abroad, purpose) are in the evidence.
 - Next: the merge queue opens the PR after the SMS stack; the security reviewer and the legal lane see it again there.

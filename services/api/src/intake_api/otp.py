@@ -79,7 +79,7 @@ import re
 import secrets
 import time
 import uuid
-from collections.abc import Awaitable, Callable
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from enum import StrEnum
 from functools import partial
@@ -131,6 +131,7 @@ from intake_api.errors import (
 )
 from intake_api.otp_pepper import OtpPepper
 from intake_api.review_flow import ReviewSignInFlow
+from intake_api.review_reset import ReviewReset
 from intake_api.review_signin import REVIEW_TENANT_ID, ReviewSignIn, ReviewWindow
 from intake_api.sms_recipients import ADMIT_ALL, RecipientGate
 from intake_api.sms_spend import DAY_S, SmsBudget, SpendKillSwitch, SpendStateUnreadable
@@ -444,7 +445,7 @@ class OtpAuthService:
         *,
         engine: AsyncEngine,
         audit: AuditWriter,
-        review_reset: Callable[[str], Awaitable[int]] | None = None,
+        review_reset: ReviewReset | None = None,
     ) -> None:
         self._wiring = wiring
         self._store = AuthStore(wiring.redis_client, wiring.now_fn)

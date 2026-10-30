@@ -2063,14 +2063,18 @@ it or whose tests exercise it.
   minted; live guards on every step: the bound data class is not `real_phi` (ADR-035) and the
   reviewer tenant's hosted-lane kill switch is engaged; INT-578's device- and request-bound
   code record, five-attempt budget and lockout, and a miss cap per generated code that closes
-  the window; a review window, default OFF, whose flips are audited (the opening's row first)
+  the window; a review window, default OFF, whose flips are audited (`opened` only for a window
+  that really opened; one whose row fails is closed again at once)
   and which closes itself 14 days after `--on` (an engineering default; the close audited and
-  erased like `--off`),
+  erased like `--off`; the sweep's three stages isolated, and a lost close re-recorded only
+  under one of the three close actors, anything else as an unattributed close),
   each opening with its own synthetic reviewer patient in its own tenant and every session
   bound to it; opening and closing erase every reviewer subject through the DSAR erasure, as the
   app role (or the role INT-394 decides), only from the owner's command or the API's sweep, never
-  a reviewer's request; INT-395's preflight refuses a role without the grants and `--on` stays
-  shut, naming INT-394; a failed unattended erasure pages and is retried; the reviewer's notice
+  a reviewer's request; the erasure role is refused at the API's start and before every run if
+  it is the bootstrap role or holds `rolsuper` or `rolbypassrls`; INT-395's preflight refuses a
+  role without the grants and `--on` stays shut, naming INT-394; a failed unattended erasure
+  pages and is retried, its refusal rows once per episode; the reviewer's notice
   and processing record (`docs/legal/store/review/`) are hash-bound and complete before `--on`; the
   API adopts an operator's rows only if they chain from its head (`AuditChain.catch_up`); `--reveal-to-owner` prints once, to a
   terminal only, after recording the reveal. Residuals: the number and code live in App Store
@@ -2086,7 +2090,8 @@ it or whose tests exercise it.
   `apps/mobile/src/lib/intake/offline/{envelope,reconcile,draftStore}.test.ts`. The review
   sign-in landed with INT-488: `tests/security/test_review_signin.py`,
   `tests/security/test_review_signin_reset.py`, `tests/security/test_review_signin_expiry.py`,
-  `tests/security/test_review_signin_round2.py` and `tests/infra/test_staging_review_signin.py`.
+  `tests/security/test_review_signin_round2.py`, `tests/security/test_review_signin_guards.py`
+  and `tests/infra/test_staging_review_signin.py`.
 
 ## `experience` — satisfaction and wait-time measurement
 
