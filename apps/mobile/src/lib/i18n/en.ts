@@ -23,7 +23,7 @@ export const en: Record<MessageKey, string> = {
   "tabs.me": "Profile",
 
   "welcome.body":
-    "Önvizit collects your complaints by voice or text before the visit and hands your doctor a structured pre-visit note.",
+    "Önvizit collects your complaints before the visit and hands your doctor a structured pre-visit note.",
   "welcome.devSignIn": "Sign in with a test account",
   "welcome.devNote":
     "This screen exists only in development builds; real sign-in uses phone verification.",
@@ -62,7 +62,7 @@ export const en: Record<MessageKey, string> = {
   "auth.biometric.retry": "Try again",
   "auth.integrity.warnTitle": "Device security",
   "auth.integrity.warnBody":
-    "A security change was detected on this device. The interview continues in writing, not by voice.",
+    "A security change was detected on this device. The interview continues in writing.",
 
   "today.nextVisit": "Next visit",
   "today.prep": "Visit preparation",
@@ -701,7 +701,7 @@ export const en: Record<MessageKey, string> = {
   "review.shared": "Shared",
   "review.notShared": "Not shared",
   "review.send": "Send to your doctor",
-  "review.sentInfo": "Your note was sent. You will see the status here once your doctor views it.",
+  "review.sentInfo": "Your note was sent. You can see when it was opened under Your shares.",
   "review.empty": "No answers yet. Answer a few questions first.",
   // INT-236 — clinician-visible deferral marker (02 §33), stale-condition
   // marker and the checkpoint summary.
@@ -724,7 +724,7 @@ export const en: Record<MessageKey, string> = {
   "consent.documents": "Document upload",
   "consent.health": "Health data reading",
   "consent.health.hint":
-    "Your steps, heart rate and sleep are read only on this phone; nothing is sent anywhere. A value enters your note only if you add it yourself.",
+    "Your step, resting heart rate and sleep data is read on this phone. It enters your note only if you add it, and goes with the note if you send it.",
   "consent.on": "On",
   "consent.off": "Off",
 
@@ -738,7 +738,9 @@ export const en: Record<MessageKey, string> = {
   "consent.group.core": "Service",
   "consent.group.voice": "Voice sessions",
   "consent.group.voice.hint":
-    "Voice analysis options only work together with voice sessions. Text analysis looks at the written text, not the recording; it is a separate permission.",
+    "Voice analysis options only work together with voice sessions. Text analysis looks at the written text, not the voice; it is a separate permission.",
+  "consent.group.voice.release":
+    "This version has no voice sessions; these permissions are not used.",
   "consent.group.purposes": "Other purposes",
   "consent.group.learning": "Learning",
   "consent.group.learning.hint":
@@ -906,7 +908,7 @@ export const en: Record<MessageKey, string> = {
   "companion.thirdParty.kicker": "Is anyone with you",
   "companion.thirdParty.label": "Someone else is with me",
   "companion.thirdParty.footer":
-    "With someone else present, some questions are not asked aloud. That is for your privacy.",
+    "With someone else present, some very private questions are not asked. That is for your privacy.",
   "companion.ack.kicker": "Your acknowledgement",
   "companion.ack.label": "I confirm I am speaking on the patient's behalf",
   "companion.ack.notProof":
@@ -1167,7 +1169,8 @@ export const en: Record<MessageKey, string> = {
   "intake.measure.untouched": "It is recorded once you adjust the value.",
   // --- INT-286 · open-ended asking ------------------------------------------
   "dialogue.openInvite": "You can tell me in your own words.",
-  "intake.open.hint": "You can write it, or say it, in your own words.",
+  "intake.open.hint": "You can write it in your own words.",
+  "intake.open.hintVoice": "You can write it, or say it, in your own words.",
   "intake.open.orChoose": "Or choose from below.",
 
   // --- INT-414 · conversational delivery (the words around a question, never
@@ -1322,9 +1325,43 @@ export const en: Record<MessageKey, string> = {
   "shares.issue.error.limited": "Too many attempts. Try again a little later.",
   "shares.issue.error.unavailable": "Sharing is not open right now. Try again later.",
   "shares.issue.error.unreachable": "The link could not be created. Try again later.",
+  "shares.issue.error.consent":
+    "The link could not be created because there is no sharing consent.",
+  "shares.issue.error.session": "The link could not be created because you are signed out.",
   "a11y.shares.revokeHint": "Double tapping stops this share.",
   "a11y.shares.confirmHint": "Double tapping sends the request to stop.",
   "a11y.shares.issueHint": "Creates a link you can show your doctor.",
+  "shares.consent.title": "Your sharing consent",
+  "shares.consent.withdraw": "Withdraw sharing consent",
+  "shares.consent.confirm": "Confirm the withdrawal",
+  "shares.consent.effect": "If you withdraw it, the open links of all your notes close.",
+  "shares.consent.done": "Your sharing consent is withdrawn. Open links are closed.",
+  "shares.consent.unsent":
+    "Your withdrawal has not reached the server yet. Links may still be open.",
+  "a11y.shares.consentHint": "Double tapping prepares the withdrawal of your sharing consent.",
+  "a11y.shares.consentConfirmHint": "Double tapping sends the withdrawal.",
+  "delivery.consent.title": "Sharing consent",
+  "delivery.consent.body":
+    "Your note is shared with your doctor only with your consent. Without it, your note stays on this phone only.",
+  "delivery.consent.again": "Your sharing consent is needed again for your note to go.",
+  "delivery.consent.pendingBody":
+    "The note is not sent until the sharing text is ready. Your note is waiting on this phone.",
+  "delivery.edit": "Edit the note",
+  "delivery.consent.decline": "Not now",
+  "delivery.consent.review": "Read the sharing consent",
+  "delivery.declined": "Your note was not sent; it stays on this phone only.",
+  "delivery.status.title": "Delivery status",
+  "delivery.queued":
+    "Your note is waiting to be sent. It goes on its own once the server can be reached.",
+  "delivery.held": "Your note is on this phone; it has not reached your doctor.",
+  "delivery.refused.session": "The note could not be sent because you are signed out.",
+  "delivery.refused.core":
+    "The note could not be sent because your core service permission is off.",
+  "delivery.refused.notFound":
+    "The note could not be sent because this visit was not found on the server.",
+  "delivery.refused.invalid": "The note could not be sent as it is.",
+  "delivery.refused.rejected": "The note could not be sent.",
+  "delivery.retry": "Try again",
 
   // INT-143 — kiosk mode.
   "kiosk.lock.title": "Kiosk mode",

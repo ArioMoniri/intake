@@ -55,6 +55,10 @@ wait_for_openbao
 initialise_openbao
 unseal_openbao
 configure_openbao
+# INT-584 (owner decision D38): the phone-tokenization key lives in OpenBao. A
+# new host gets one made there; a host initialised before INT-584 has its env
+# copy moved, exactly as deploy.sh does.
+"$STAGING_DIR/tokenization_key.sh" --init >/dev/null
 
 wait_healthy postgres
 run_migrations

@@ -247,9 +247,35 @@ it or whose tests exercise it.
   compromise making pseudonyms forgeable or reversible.
 - **Controls (files/10):** §3 tokenization — keyed pseudonym (HMAC-SHA-256, rotated key),
   encrypted value in a separate vault table, logs and analytics see only the hash prefix.
+- **The pseudonym-key location bound, stated (INT-584, owner decision D38, 28 Oct 2026):**
+  the key every phone pseudonym is derived under lives in OpenBao at
+  `secret/api/tokenization` (field `key`) and the API reads it there and nowhere else
+  (`intake_api.tokenization_key`, invariant 14). No environment variable is read in any
+  environment, and a key left in the environment is never a fallback: it is named in a
+  warning and ignored. Absent, unreadable and malformed are told apart, and each keeps the
+  OTP tier and the previsit read-back at 503 with the typed reason
+  `tokenization_key_<state>`. The key is the hex text's UTF-8 bytes, exactly as the env path
+  used it, so the move changed no pseudonym; hex-decoding it would have forked every one. On
+  the synthetic host `infra/staging/tokenization_key.sh` moved the env file's
+  `INTAKE_TOKENIZATION_KEY` with the same material, on stdin only. It writes check-and-set,
+  reads back with the API's own token, proves equality without printing anything (a key
+  check value, an HMAC of a fixed label, and a fixed synthetic number's pseudonym
+  fingerprinted before the move and compared after it), and removes the env copy only after
+  both proofs. A different key already in OpenBao is refused loudly with both copies kept. A
+  deploy never makes a key. The API policy gains `read` on that one document and nothing
+  more. Dev reads the OpenBao dev server, which the dev setup seeds once with a random key;
+  only dev under file-dev KEKs takes a process-local one. **This closes the residual that
+  INT-581 recorded open** (the key read from the host's root-only env file). Residual: a
+  rollback to a release from before INT-584 needs the env copy back, and that release's
+  `init.sh` would mint a new key. The runbook forbids it, and this release's deploy refuses
+  such a key as a conflict.
 - **Signals:** redaction hits (§9 observability row) land with INT-023; catalogue entry with
-  INT-025.
-- **Tests:** tests/security/test_tokenization_roundtrip.py.
+  INT-025. `tokenization_key_state{state,origin}` (INT-584): which state the API's key is in
+  and where it came from (`env_file` after the D38 move). The owner's
+  `tokenization_key.sh --probe` prints `equal` or `differ` and nothing else.
+- **Tests:** tests/security/test_tokenization_roundtrip.py; INT-584:
+  `tests/api/test_tokenization_key.py`, `tests/api/test_tokenization_probe.py`,
+  `tests/infra/test_staging_tokenization_key.py`.
 
 ## `data-at-rest` — envelope encryption and RLS
 
@@ -1522,8 +1548,45 @@ it or whose tests exercise it.
   a section contains; [T] client-side scope tampering.
 - **Controls (files/10):** §9 review row — section-level scope, consent summary, explicit
   confirm step; scopes enforced server-side per §4 consent checks.
-- **Signals:** share scope distribution (§9) lands with INT-137.
-- **Tests:** UI flow tests land with INT-137.
+- **Threats added by INT-587 (delivery):** [R/U] the app telling the patient a note was sent
+  that never left the phone; [I] a note shared without — or after the withdrawal of — the share
+  consent; [D] a queued note silently dropped by a failure or a restart; [I] note text reaching a
+  log through a delivery error; [D] a client hammering a server that has already refused; [I] a
+  share consent given for one note releasing another after a withdrawal (legal review B1); [D] a
+  refused consent op stalling a later withdrawal in the queue (N5).
+- **Controls added by INT-587:** the explicit confirm step is the share consent itself, asked at
+  the send against the docs/legal share text the loader serves (body, version and binding
+  rendered; no text, no grant action; "Şimdi değil" as easy as agreeing), hash-bound and recorded
+  server-side (`consent.grant`, audited). A note enters the outbox, and a parked note is released,
+  only with the receipt given for THAT note; the binding is sealed with the note. Every share
+  withdrawal on the phone — direct or through core, from any screen — reaches the outbox through
+  the ledger subscription and parks every queued and refused note at once, unbinding its grant;
+  the engine also refuses a note whose grant predates the last withdrawal. Each attempt flushes
+  the consent queue first, so neither a grant nor a withdrawal is overtaken by the note, and a
+  consent op the server refuses is dropped (a refused grant re-asked) instead of stalling the
+  queue. The server's own share-scope check (`write_note`, `issue_link`, the OTP mint,
+  redemption) stays the authority.
+  The outbox is sealed through the INT-142 draft backend (AES-256-GCM, DEK in the
+  Keychain/Keystore, memory only in kiosk mode), restored from disk after a restart, retried
+  with capped exponential backoff and Retry-After, and never drops an item; a 4xx is an answer —
+  the item is parked with its reason and only the patient's retry re-queues it. Only a 2xx whose
+  body confirms `status: "sent"` is a delivery, and only a delivery opens the screen's "gönderildi"
+  branch. The PUT is the server's existing replace (one transaction, rolled back on refusal), so
+  a retry after a lost answer leaves one live share. Errors carry codes only; no delivery module
+  calls the console or telemetry. The patient withdraws the share consent from the share centre
+  (two-step, shown done only once the server has it), which revokes every live share and link.
+  Doctor Link issuance takes a typed `StepUpProof` (OTP session tier until INT-582's passkey) and
+  addresses the server visit the note was delivered to.
+- **Signals:** share scope distribution (§9) lands with INT-137. INT-587 adds no client metric:
+  delivery is a phone-side state, and the server already counts what it receives
+  (`api.note.share` and `api.doctor_link.issued` in the audit log, `doctor_link_events_total`).
+- **Tests:** UI flow tests land with INT-137. INT-587: `apps/mobile/src/lib/intake/delivery/*.test.ts`
+  (payload bounds, the state machine, classification, the attempt order, restart survival, never
+  dropped, 4xx not retried, no console output), `apps/mobile/src/lib/consent/share.test.ts`,
+  `apps/mobile/src/lib/shares/stepUp.test.ts`, `apps/mobile/e2e/noteDelivery.spec.ts` (the client
+  pinned to notes.py and schemas.py) and `tests/api/test_note_delivery.py` (the server contract
+  the client classifies: no share without the grant, a retried send leaves one share, a withdrawn
+  grant stops the link).
 
 ## `doctor-link` — tokenized clinician access
 
@@ -1912,6 +1975,29 @@ it or whose tests exercise it.
   whole patient-audio path plus a node-driven turn under a storage trap),
   `apps/mobile/e2e/bargeIn.spec.ts` and
   `apps/mobile/src/lib/capture/{boundedBuffer,level,envelope,session,turn,policy,asrClient}.test.ts`.
+- **INT-588 — copy true for the build it ships in.** Threat: [U/R] the release build telling
+  the patient something false about itself — a voice or dictation option it does not have, a
+  "sent" before delivery, or consent chrome that contradicts the docs/legal text the server
+  serves (KVKK m.10: an aydınlatma that misstates where data is processed or who sees it).
+  Controls: build-aware copy chosen in one pure module (`apps/mobile/src/lib/buildCopy.ts`)
+  — the open-answer hint names dictation only where the button is drawn, the voice start
+  mode is not offered in a release build, the companion's text-only effect is listed only
+  where questions can be spoken; voice clauses that never had to exist are gone from the
+  welcome line, the integrity warning and the companion footer; the consent "who" rows are
+  INT-536's on main (tests/legal/test_consent_who_lines.py), and INT-588 holds them to naming
+  no affirmative recipient without a served text; every "sent" line renders only behind a
+  confirmed delivery (INT-587). Tests: `apps/mobile/src/lib/buildCopy.test.ts` (release-mode
+  resolution with near misses; claims pinned to their surfaces; the rows read against the
+  served texts) and `apps/mobile/e2e/releaseCopy.spec.ts` (the screens use the helper on the
+  same facts that draw the button). No signal: copy truth is a build property.
+- **INT-591 — no consent a release build cannot use.** Threat: [L] special-category consent
+  evidence recorded for a feature the build does not have (KVKK m.4 proportionality), and a
+  choice offered that changes nothing. Control: in a release build İzinleriniz offers no grant
+  action for `voice` and `lane:affect` and says why on the group and the detail
+  (`consentActions`, `voiceGroupNoteKey` in `apps/mobile/src/lib/buildCopy.ts`); a standing grant
+  keeps its withdraw control. Tests: `apps/mobile/src/lib/buildCopy.consent.test.ts` (no grant in
+  release; near misses: a standing grant is withdrawable, dev and other purposes unchanged) and
+  `apps/mobile/e2e/releaseCopy.spec.ts`.
 
 ## `experience` — satisfaction and wait-time measurement
 

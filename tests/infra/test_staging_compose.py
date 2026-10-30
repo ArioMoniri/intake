@@ -66,6 +66,7 @@ import pytest
 import yaml
 from intake_api import settings as api_settings
 from intake_api.settings import KekMode
+from intake_api.tokenization_key import TOKENIZATION_KV_PATH
 from intake_platform.envelope import (
     EnvelopeCipher,
     FileKekProvider,
@@ -245,7 +246,9 @@ OPERATOR_SUPPLIED = {*APP_ATTEST_KEYS}
 COOKIE_SECRET_KEYS = {"OAUTH2_PROXY_COOKIE_SECRET"}
 COOKIE_SECRET_FORM = re.compile(r"[A-Za-z0-9_-]{43}")
 
-#: The phone-tokenization key: without it the OTP tier answers 503.
+#: The phone-tokenization key's old env-file name. INT-584 (owner decision D38)
+#: moved the key into OpenBao (secret/api/tokenization), so no template key,
+#: compose variable or generated value carries it any more.
 TOKENIZATION_KEY = api_settings.ENV_TOKENIZATION_KEY
 
 #: lib.sh's deploy check: an Apple team id needs the whole Netgsm document.
@@ -731,8 +734,10 @@ class TestOpenBao:
         )
         assert blocks
         # INT-428 (ADR-035): the hosted-lane provider keys; INT-528: read on the
-        # SMS vendor's document. Exactly these paths with these capabilities.
+        # SMS vendor's document; INT-584 (D38): read on the phone-tokenization
+        # key. Exactly these paths with these capabilities.
         model_lanes = {
+            f"secret/data/{TOKENIZATION_KV_PATH}": {"read"},
             "secret/data/model-lanes/*": {"create", "update", "read"},
             "secret/metadata/model-lanes/*": {"read", "list", "delete"},
             f"secret/data/{SMS_KV_PATH}": {"read"},
@@ -1510,10 +1515,11 @@ def _run_guard(
 
 class TestAttestAndSms:
     """INT-352 and INT-528. The deployed API gets the Apple App Attest keys
-    (INT-344) and the phone-tokenization key that turns the OTP tier on. The
-    operator sets the App Attest keys by hand, and each may stay empty. init.sh
-    generates the tokenization key like every other secret. The SMS vendor is
-    not an env-file key at all: Netgsm's credentials live in OpenBao
+    (INT-344). The operator sets them by hand, and each may stay empty. The
+    phone-tokenization key that turns the OTP tier on is no env-file key since
+    INT-584 (D38): it lives in OpenBao (secret/api/tokenization), and
+    tests/infra/test_staging_tokenization_key.py pins how it got there. The SMS
+    vendor is not an env-file key either: Netgsm's credentials live in OpenBao
     (secret/api/netgsm), written by netgsm_secrets.sh.
 
     What keeps this fail-closed:
@@ -1526,7 +1532,7 @@ class TestAttestAndSms:
 
     def test_the_template_lists_every_key_with_no_value(self) -> None:
         template = _env_template()
-        for key in (*sorted(OPERATOR_SUPPLIED), TOKENIZATION_KEY):
+        for key in sorted(OPERATOR_SUPPLIED):
             assert key in template, key
             assert template[key] == "", key
 
@@ -1553,24 +1559,22 @@ class TestAttestAndSms:
         assert f'SMS_KV_PATH="{SMS_KV_PATH}"' in lib
         assert f"SMS_KV_FIELDS=({' '.join(SMS_FIELDS)})" in lib
 
-    def test_compose_passes_the_tokenization_key_as_a_required_secret(self) -> None:
-        match = REQUIRED_INTERPOLATION.match(
-            _environment(_service("api")).get(TOKENIZATION_KEY, "")
-        )
-        assert match and match.group(1) == TOKENIZATION_KEY
-        generated = set(_env_template()) - OWNER_SUPPLIED - OPERATOR_SUPPLIED
-        assert TOKENIZATION_KEY in generated, "generated on the host, never templated"
-        for name in SERVICES - {"api"}:
+    def test_compose_passes_no_tokenization_key(self) -> None:
+        """INT-584 (D38): the API reads the key from OpenBao alone, so no
+        service's environment carries it and the template does not list it
+        (init.sh would mint a new one, which forks every pseudonym)."""
+        for name in SERVICES:
             assert TOKENIZATION_KEY not in _environment(_service(name)), name
+        assert TOKENIZATION_KEY not in _env_template()
 
-    def test_init_generates_the_tokenization_key_and_leaves_operator_keys_empty(
+    def test_init_generates_no_tokenization_key_and_leaves_operator_keys_empty(
         self, tmp_path: Path
     ) -> None:
         env_file = tmp_path / ".env"
         result = _generate_env_file(env_file)
         assert result.returncode == 0, result.stderr
         generated = _read_env_file(env_file)
-        assert re.fullmatch(r"[0-9a-f]{64}", generated[TOKENIZATION_KEY])
+        assert TOKENIZATION_KEY not in generated, "made in OpenBao, never in the env file"
         for key in OPERATOR_SUPPLIED:
             assert generated[key] == "", f"{key} must be the operator's, never generated"
 
@@ -1587,14 +1591,22 @@ class TestAttestAndSms:
         result = _run_on_env(_operator_env(tmp_path, {}), "load_env")
         assert result.returncode == 0, result.stderr
 
-    def test_load_env_still_refuses_an_empty_tokenization_key(self, tmp_path: Path) -> None:
+    def test_load_env_still_refuses_an_empty_generated_secret(self, tmp_path: Path) -> None:
         """Negative control: the operator keys are exempt, the secrets are not.
-        A host initialised before INT-352 lacks the key and is told to re-run
-        init.sh, which fills in only what is missing."""
-        result = _run_on_env(_operator_env(tmp_path, {TOKENIZATION_KEY: ""}), "load_env")
+        A host missing one is told to re-run init.sh, which fills in only what
+        is missing."""
+        result = _run_on_env(_operator_env(tmp_path, {"REDIS_PASSWORD": ""}), "load_env")
         assert result.returncode != 0
-        assert f"{TOKENIZATION_KEY} is empty" in result.stderr, result.stderr
+        assert "REDIS_PASSWORD is empty" in result.stderr, result.stderr
         assert "./init.sh" in result.stderr
+
+    def test_load_env_admits_a_migrated_host_with_no_tokenization_key(self, tmp_path: Path) -> None:
+        """INT-584: once the key is in OpenBao, the env file holds none, and
+        that is the healthy state rather than a missing secret."""
+        env_file = _operator_env(tmp_path, {})
+        assert TOKENIZATION_KEY not in _read_env_file(env_file)
+        result = _run_on_env(env_file, "load_env")
+        assert result.returncode == 0, result.stderr
 
     def test_deploy_runs_the_sms_guard_once_openbao_answers_and_before_the_api_starts(
         self,
@@ -1687,7 +1699,7 @@ class TestAttestAndSms:
         runbook = _text(RUNBOOK)
         assert re.search(rf"^## {ATTEST_SMS_SECTION}$", runbook, re.M)
         section = runbook.split(f"## {ATTEST_SMS_SECTION}", 1)[1].split("\n## ", 1)[0]
-        needles = (*sorted(OPERATOR_SUPPLIED), TOKENIZATION_KEY, "/etc/intake-staging/.env")
+        needles = (*sorted(OPERATOR_SUPPLIED), "/etc/intake-staging/.env")
         extra = ("./deploy.sh", "./init.sh", "synthetic", "./netgsm_secrets.sh")
         for needle in (*needles, *extra, f"secret/{SMS_KV_PATH}"):
             assert needle in section, needle

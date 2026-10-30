@@ -216,12 +216,13 @@ the image, so the image cannot carry it:
 
 Phone sign-in (the API's OTP tier) needs device attestation and an SMS
 vendor (INT-352). The vendor is Netgsm's OTP SMS product, the owner's
-decision of 16 Oct 2026 (INT-358; adapter INT-528). `./init.sh` generates the
-tokenization key. Nothing else is set by editing a file by hand:
+decision of 16 Oct 2026 (INT-358; adapter INT-528). The tokenization key lives
+in OpenBao since INT-584 (section "Phone-tokenization key" below). Nothing is
+set by editing a file by hand:
 
 | what | where | set by | value |
 |---|---|---|---|
-| `INTAKE_TOKENIZATION_KEY` | `/etc/intake-staging/.env` | `./init.sh`, once | the HMAC key for phone pseudonyms. Never edit it: a new key forks every existing pseudonym |
+| `key` (the phone-tokenization key) | OpenBao `secret/api/tokenization` | `./deploy.sh` moved it from the env file (INT-584); `./init.sh` makes a new host's | the HMAC key for phone pseudonyms. Never edit it: a new key forks every existing pseudonym |
 | `usercode`, `password`, `msgheader` | SSM Parameter Store `/intake/staging/netgsm_usercode`, `_password`, `_msgheader` (SecureString), synced to OpenBao `secret/api/netgsm` | the owner, in SSM; `./netgsm_secrets.sh` and every `./deploy.sh` copy them to OpenBao | the Netgsm subscriber number (abone no, 10 digits), the dedicated API sub-user's password, and the approved sender name (3 to 11 ASCII characters, spaces allowed; today `VIVAX AS`). Never hard-coded anywhere |
 | `test_allowlist` | SSM Parameter Store `/intake/staging/sms_test_allowlist` (SecureString), synced to the same OpenBao document | the owner, in SSM | the only numbers this host may send a code to: Turkish mobiles in E.164, separated by commas or spaces. Empty, unreadable or with one malformed entry, it admits nobody. The numbers are never printed; the sync reports only their count |
 | `INTAKE_APP_ATTEST_TEAM_ID` | `/etc/intake-staging/.env` | `./app_attest_env.sh` | the signed iOS app's Apple App ID prefix, 10 characters (INT-344, HB-A3), read from the owner's login keychain by `scripts/staging/app_attest_golive.py` |
@@ -271,9 +272,9 @@ tokenization key. Nothing else is set by editing a file by hand:
   from anywhere else is refused with code 30, which the check below reports
   as `refusal=credentials_refused` and the API counts as
   `otp_sms_delivery_total{outcome="credentials_refused"}`.
-- A host initialised before INT-352 has no tokenization key, so
-  `./deploy.sh` stops with `INTAKE_TOKENIZATION_KEY is empty`. Re-run
-  `./init.sh` once: it fills in only what is missing.
+- A host with no tokenization key anywhere (neither OpenBao nor the env
+  file) stops `./deploy.sh`, which never makes one. That is a new host:
+  `./init.sh` makes its key in OpenBao.
 - **Turning SMS on sends a real phone number through this host to the
   vendor.** The host is synthetic-only (HB-I5, HB-L11), so turning it on is
   the owner's decision once counsel has answered the questions below, and
@@ -311,6 +312,54 @@ order, one command each:
 Netgsm's OTP SMS documentation (retrieved 16 Oct 2026) gives three minutes as
 its delivery bound. A code requested in step 8 for a number off the list is
 answered `422` and sends nothing.
+
+## Phone-tokenization key
+
+Every phone pseudonym on this host is an HMAC under one key. Until INT-584 it
+was `INTAKE_TOKENIZATION_KEY` in `/etc/intake-staging/.env`. Owner decision D38
+(28 Oct 2026) moved it into OpenBao, at `secret/api/tokenization` (field
+`key`), carrying the same key material across, so that no pseudonym changed.
+The API reads it there and nowhere else, with its own token, through the one
+read grant in `openbao/intake-api-policy.hcl`. Without it, the OTP tier and the
+previsit read-back answer `503` with `"reason": "tokenization_key_absent"`
+(`_unreadable`, `_malformed`), and `tokenization_key_state{state,origin}` on
+`/metrics` says the same.
+
+`./tokenization_key.sh` makes the move, and `./deploy.sh` runs it on every
+deploy, before the API starts. It never prints the key, and it moves nothing
+it cannot prove:
+
+- With the env copy present and OpenBao empty, it writes the env value to
+  OpenBao on stdin (check-and-set, so only where nothing is). It reads the value
+  back with the API's own token and checks that both copies give the same key
+  check value (an HMAC of a fixed label, compared and never printed). It then
+  checks that a fixed synthetic number's pseudonym is the one it recorded
+  before the move. Only then does it remove the env copy. It prints `changed`,
+  and the deploy restarts the API.
+- If OpenBao already holds a **different** key, it stops with `CONFLICT`,
+  writes nothing, removes nothing, keeps both copies and fails the deploy. Do
+  not pick one by hand: find out which key this host's pseudonyms were made
+  under first. A malformed copy on either side, a read the API's token is
+  refused, or a pseudonym that differs stops it the same way.
+- On every later deploy, it checks that the API's token still reads the key
+  and that the pseudonym is still the recorded one.
+- A deploy never makes a key. `./init.sh` makes a new host's, in OpenBao only.
+- The before-record is a one-way fingerprint of the pseudonym, never the
+  pseudonym itself, in `/etc/intake-staging/tokenization-probe.sha256` (root,
+  0600). It is written once, before the move.
+
+To check the outcome afterwards, run the probe. It prints `equal` or `differ`
+and nothing else, and it exits 0 only for `equal`:
+`aws ssm start-session --region us-east-1 --target i-0e489e48739f5de98 --document-name AWS-StartInteractiveCommand --parameters 'command=["sudo /opt/intake/infra/staging/tokenization_key.sh --probe"]'`
+
+`differ` with "no before-record" means this host's key was never moved here
+(a host made after INT-584). Any other `differ` means the key the API reads
+now does not give the pseudonyms the host had before the move. Stop and
+investigate before anything else is deployed.
+
+Rolling back to a release from before INT-584 needs the key in the env file
+again, and the older `./init.sh` would make a new one there. Do not run it.
+The next deploy of this release would refuse that new key as a `CONFLICT`.
 
 ## Deploy freeze
 

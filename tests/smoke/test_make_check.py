@@ -417,9 +417,23 @@ def test_backlog_parses_and_is_complete() -> None:
     # GitHub #947); grows only with a stated reason.
     # + INT-536 (consent-screen copy true for the host and matching the consent
     # texts, GitHub #903); grows only with a stated reason.
+    # + INT-585 (the owner's 28 Oct SMS decisions recorded as D34-D38, owner in
+    # chat, GitHub #984); grows only with a stated reason.
+    # + INT-587 (the note reaches the clinician from a release build: note-sync
+    # client, in-app share consent, Doctor Link from the app, GitHub #988);
+    # grows only with a stated reason.
+    # + INT-588 (patient copy is true in the no-voice release build, GitHub
+    # #989); grows only with a stated reason.
+    # + INT-591 (a release build offers no voice consent it cannot use, GitHub
+    # #993); grows only with a stated reason.
+    # + INT-592 (a truthful NSHealthUpdateUsageDescription so App Store
+    # processing accepts the iOS build, ITMS-90683, GitHub #1000); grows only
+    # with a stated reason.
+    # + INT-584 (the phone-tokenization key moves into OpenBao with the same key
+    # material, owner decision D38, GitHub #983); grows only with a stated reason.
     # + INT-578 (OTP brute force and replay, the owner's SMS security order,
     # GitHub #973); grows only with a stated reason.
-    assert len(ids) == 381, f"expected 175 blueprint + 206 added issues, got {len(ids)}"
+    assert len(ids) == 387, f"expected 175 blueprint + 212 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 

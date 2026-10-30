@@ -253,10 +253,22 @@ def test_ids_unique_and_well_formed() -> None:
     # GitHub #947).
     # + INT-536 (consent-screen copy true for the host and matching the
     # consent texts; from the INT-529 legal-author findings, GitHub #903).
+    # + INT-585 (the owner's 28 Oct SMS decisions recorded as D34-D38, and the
+    # live Netgsm OTP confirmation; owner in chat, GitHub #984).
+    # + INT-587 (the note reaches the clinician from a release build: the
+    # note-sync client, the in-app share consent and Doctor Link from the app;
+    # store-listing legal review B4, GitHub #988).
+    # + INT-588 (patient copy is true in the no-voice release build; store-
+    # listing legal review B6 precondition, GitHub #989).
+    # + INT-591 (a release build offers no voice consent it cannot use, GitHub #993).
+    # + INT-592 (a truthful NSHealthUpdateUsageDescription so App Store
+    # processing accepts the iOS build, ITMS-90683; GitHub #1000).
+    # + INT-584 (the phone-tokenization key moves into OpenBao with the same
+    # key material, no pseudonym changes; owner decision D38, GitHub #983).
     # + INT-578 (OTP brute force and replay: HMAC under an OpenBao pepper,
     # device- and request-bound, atomic budget, lockout; the owner's SMS
     # security order, GitHub #973).
-    assert len(ids) == 381
+    assert len(ids) == 387
     import re
 
     for i in ids:
