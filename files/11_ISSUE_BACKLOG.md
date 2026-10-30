@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**381 issues.** By phase: P0 184 · P1 143 · P2 47 · P3 7. By status: awaiting-human 39 · doing 7 · done 260 · todo 74 · withdrawn 1.
+**382 issues.** By phase: P0 184 · P1 144 · P2 47 · P3 7. By status: awaiting-human 39 · doing 7 · done 261 · todo 74 · withdrawn 1.
 
 ## P0
 
@@ -343,6 +343,7 @@
 | INT-586 | opentelemetry-api lifted to 1.67.0 in the Keycloak provider, past GHSA-ccrj-gw8r-854m, so the vulnerabilities gate is green without an exception | E13-infra | INT-378 | area:security | done |
 | INT-590 | decode-uri-component lifted to 0.5.1 past CVE-2026-118664, so the vulnerabilities gate is green without an exception | E13-infra | INT-500 | area:security | done |
 | INT-559 | The app's voice lane never writes patient audio to a file — stream from memory (invariant 3), before voice ships in any build | E08-mobile | INT-194, INT-291, INT-446 | area:mobile, risk:security | done |
+| INT-585 | Record the owner's 28 Oct SMS decisions as D34-D38 and the live Netgsm OTP confirmation | E01-platform | INT-528, INT-576 | area:api | done |
 
 ## P2
 

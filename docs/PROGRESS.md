@@ -1,5 +1,18 @@
 # PROGRESS — one entry per LOOP iteration (template in LOOP.md)
 
+### 2026-10-28T16:30:00+03:00 · INT-585 · done (PR open)
+- Goal: GitHub #984, Sec-Row `onboarding`. Record the owner's 28 Oct SMS decisions ("1Y 2Y 3Y 4Y 5Y") as D34-D38 in files/00_STATE.md §3, and the live Netgsm OTP confirmation in docs/evidence/INT-576.md.
+- Plan:
+  - D34 iOS OTP autofill domain (INT-580), D35 push new-device notice (INT-583), D36 patient passkeys and step-up (INT-582), D37 SMS spend cap (INT-577), D38 tokenization key into OpenBao with the same material (INT-584).
+  - No HUMAN_BLOCKERS row matched these questions, so none closes.
+- Tests added (with the near-miss negative for any safety rule):
+  - `tests/docs/test_state_decisions.py`: each row present once, with the owner's date, its fact and its issue; near miss: a row that names no issue is refused.
+- Result (`make check` / `make safety` / `make security` summary):
+  - Red run: 1 failed (D34 missing). Green run: 2 passed. tests/backlog + tests/smoke/test_make_check.py green at 373.
+  - make safety: not affected (no protocol, triage or runtime change).
+- Next: the five decisions are carried out by INT-580, INT-583, INT-582, INT-577 and INT-584.
+- LOOP_STATUS: CONTINUE
+
 ### 2026-10-28T10:30:00+03:00 · INT-576 · done (PR open; deploy and the owner's retry pending)
 - Goal: GitHub #971, P0 on the build-6 path, Sec-Row `onboarding`. The owner's real OTP send on the synthetic host logged `refusal=- reason=malformed_response http_status=200 vendor_code=-`, yet the SMS arrived after both tries. Only `otp_netgsm.py`'s response parsing was wrong; the request, credentials, header, IP allow-list and sms-egress proxy work.
 - Plan:
@@ -4553,7 +4566,7 @@
 ### 2026-10-30T18:00:00+03:00 · INT-592 · done (PR open; legal review of the strings pending)
 - Goal: Apple rejected TestFlight build 6 with ITMS-90683. INT-420 had set the HealthKit plugin's `NSHealthUpdateUsageDescription` to `false`, so the Info.plist had no key. The library links write APIs, so the key is required although the app never writes. P0: blocks build 7.
 - Plan: give the key a truthful Turkish string saying Önvizit writes nothing to Apple Health and asks only to read. tr is the source (plugin option = app-tr.json), with an en mirror in app-en.json. The share string is localised too, so both agree with the connector's three read types. The declared key is classified in the store-label inventory.
-- Tests: brand.spec.ts has a write-denial oracle with near misses (false, empty, the library default, a write claim, a denial plus a claim) and a code-truth check (toRead only; no toShare/save/delete). The new tests/legal/test_ios_purpose_strings.py covers base = tr, tr/en parity, PolicyGuard and B1 over every purpose string, and the inventory row. Red run: 4 vitest + 5 pytest failures. Green run: mobile vitest 2971, `pnpm -r typecheck`, tests/legal + tests/release 964, claims scan, backlog and smoke pins at 381. 3 of 3 mutations killed.
+- Tests: brand.spec.ts has a write-denial oracle with near misses (false, empty, the library default, a write claim, a denial plus a claim) and a code-truth check (toRead only; no toShare/save/delete). The new tests/legal/test_ios_purpose_strings.py covers base = tr, tr/en parity, PolicyGuard and B1 over every purpose string, and the inventory row. Red run: 4 vitest + 5 pytest failures. Green run: mobile vitest 2971, `pnpm -r typecheck`, tests/legal + tests/release 964, claims scan, backlog and smoke pins at 382 (after merging main `4bb5ecae`, which brought INT-585's row). 3 of 3 mutations killed.
 - Invariants touched and still passing: 2 and 5 (siz, B1, PolicyGuard-clean, tr first); 13/18 (the declared key has an inventory row, with no new data category); 16 (Sec-Row `mobile`); 17 (no placeholders); 20 (claims scan covers the locales).
 - Decisions / ADRs / `00_STATE.md` rows: none. The pre-existing 19-word share string is recorded as a B1/PolicyGuard-length finding, not rewritten; its wording is the legal lane's call.
 - Blocked on: the legal-reviewer's read of the tr and en strings.

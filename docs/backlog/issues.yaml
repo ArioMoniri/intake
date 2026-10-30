@@ -7553,6 +7553,25 @@
     - "If a native platform constraint makes a file unavoidable, stop and record it as an owner/ADR decision rather than ship around invariant 3."
   tests: [apps/mobile/e2e/voiceCapture.spec.ts, apps/mobile/e2e/bargeIn.spec.ts, apps/mobile/src/lib/capture/session.test.ts, apps/mobile/src/lib/capture/turn.test.ts, apps/mobile/src/lib/capture/boundedBuffer.test.ts, apps/mobile/src/lib/capture/asrClient.test.ts, apps/mobile/src/lib/capture/envelope.test.ts, apps/mobile/src/lib/capture/level.test.ts, apps/mobile/src/lib/capture/policy.test.ts]
   sec_row: "mobile"
+- id: INT-585
+  epic: E01-platform
+  phase: P1
+  title: "Record the owner's 28 Oct SMS decisions as D34-D38 and the live Netgsm OTP confirmation"
+  # GitHub #984, owner in chat 28 Oct 2026 ("1Y 2Y 3Y 4Y 5Y"): the iOS OTP
+  # autofill domain, the push new-device notice, patient passkeys with step-up,
+  # the SMS spend cap and the tokenization key's move into OpenBao. Each row
+  # names the issue that carries it out (INT-580, INT-583, INT-582, INT-577,
+  # INT-584). The live --shape run on f2b0d725 confirmed INT-576's parser.
+  depends_on: [INT-528, INT-576]
+  labels: [area:api]
+  status: done
+  evidence: docs/evidence/INT-585.md
+  acceptance:
+    - "files/00_STATE.md §3 carries D34-D38 exactly once each, with the owner's date and the issue that carries each out."
+    - "docs/evidence/INT-576.md records the live confirmation on f2b0d725 (structure only: content type, keys and their types, body length; no number, code, job id or body)."
+    - "TDD: a test pins the five rows; a near miss proves a row that names no issue is refused."
+  tests: [tests/docs/test_state_decisions.py]
+  sec_row: "onboarding"
 - id: INT-592
   epic: E08-mobile
   phase: P0
