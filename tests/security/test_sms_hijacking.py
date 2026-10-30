@@ -187,6 +187,48 @@ def test_a_config_without_the_entitlement_sends_no_line(tmp_path: Path) -> None:
     assert "@" not in module.render_otp_sms(CODE, domain=None)
 
 
+# --- the SMS that actually ships (legal review, 30 Oct 2026) ------------------------------
+# The shipped message is the prose body plus WebKit's line. The line is a machine-format
+# token (D34), outside PolicyGuard's prose scope: run through the tr guard whole, the
+# message splits into three "sentences" against MAX_SENTENCES_PER_TURN = 2 and the line is
+# dropped. So the guard covers the body, and these pin that the body is the only prose.
+
+
+def _shipped_parts(ascii_only: bool) -> tuple[str, str]:
+    module = copy_module()
+    message = module.render_otp_sms(
+        CODE, domain=module.associated_domain(SHIPPED_APP_CONFIG), ascii_only=ascii_only
+    )
+    body, sep, line = message.rpartition("\n\n")
+    assert sep and line == f"@{SYNTHETIC_HOST} #{CODE}"
+    assert body == module.render_otp_sms(
+        CODE, ascii_only=ascii_only
+    )  # the line is the only addition
+    return body, line
+
+
+def test_the_shipped_sms_is_the_body_plus_the_bound_line_and_nothing_else() -> None:
+    for ascii_only in (False, True):
+        rest = _what_it_says(_shipped_parts(ascii_only)[0], CODE)
+        assert not re.search(r"\d", rest)
+        assert not re.search(r"https?:|www\.|\.[a-z]{2,}\b|@", rest)
+
+
+def test_the_shipped_sms_body_passes_policyguard_in_siz(guard: PolicyGuard) -> None:
+    verdict = guard.filter(_shipped_parts(False)[0], scripted=False)
+    assert verdict.violations == () and verdict.dropped == ()
+
+
+def test_the_guard_would_drop_exactly_the_machine_line(guard: PolicyGuard) -> None:
+    """Near miss for the scope: the whole message through the prose guard
+    loses the bound line and nothing else, which is why the guard runs on the
+    body and the line is pinned on its own (above)."""
+    body, line = _shipped_parts(False)
+    verdict = guard.filter(f"{body}\n\n{line}", scripted=False)
+    assert verdict.dropped == (line,)
+    assert {v.sentence for v in verdict.violations} == {line}
+
+
 def test_a_webcredentials_domain_binds_the_code_to_it(tmp_path: Path) -> None:
     module = copy_module()
     config = app_config(tmp_path, ["applinks:onvizit.example", "webcredentials:onvizit.example"])

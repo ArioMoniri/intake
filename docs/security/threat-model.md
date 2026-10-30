@@ -703,7 +703,10 @@ it or whose tests exercise it.
   developer-mode suffix, and the longest message still fits a segment; anything else sends no
   line, because a wrong line would steer the autofill elsewhere. The owner chose the domain
   on 28 Oct 2026 (D34): the synthetic host, `webcredentials:3-211-2-143.sslip.io`, so every
-  OTP SMS ends `@3-211-2-143.sslip.io #<code>`. The host serves
+  OTP SMS ends `@3-211-2-143.sslip.io #<code>`. That line is a machine-format token outside
+  PolicyGuard's prose scope: the guard covers the body, and a test pins that the shipped
+  message is exactly the body plus the line (legal review, 30 Oct 2026). It is the one
+  link-shaped text an SMS carries, since Android linkifies the domain. The host serves
   `/.well-known/apple-app-site-association` naming the app back, as JSON with no redirect, from
   a file `deploy.sh` renders out of the host's own Apple team id and the app's bundle id
   (`write_aasa`); with no team id it renders nothing, the route answers 404 and iOS simply
