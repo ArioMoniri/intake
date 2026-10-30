@@ -243,7 +243,8 @@ def test_ids_unique_and_well_formed() -> None:
     # + INT-537 (the app grants the core consent that visits and notes
     # require; INT-529 legal-author finding F2, GitHub #904).
     # + INT-586 (opentelemetry-api past GHSA-ccrj-gw8r-854m, GitHub #986).
-    assert len(ids) == 375
+    # + INT-590 (decode-uri-component past CVE-2026-118664, GitHub #991).
+    assert len(ids) == 376
     import re
 
     for i in ids:
