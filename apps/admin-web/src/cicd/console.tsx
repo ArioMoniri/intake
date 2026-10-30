@@ -17,6 +17,7 @@ import type { ReactElement } from "react";
 
 import { ConsoleNav } from "../ops/nav";
 import { Cell, ScrollTable, Tile } from "../ops/tiles";
+import { EmptyRow, RefusedPage } from "../ui/states";
 import type { ResultCode } from "./actions";
 import { COPY, type CicdCopy, type Lang } from "./copy";
 import type { CicdState } from "./load";
@@ -139,6 +140,14 @@ function Pending({ view, c }: { view: CicdView; c: C }): ReactElement {
           </tr>
         </thead>
         <tbody>
+          {t.actions.length === 0 ? (
+            <EmptyRow
+              columns={6}
+              kind="pending"
+              title={c.empty.pending.title}
+              why={c.empty.pending.why}
+            />
+          ) : null}
           {t.actions.map((row) => (
             <tr key={row.actionId} data-action={row.actionId}>
               <td>
@@ -219,23 +228,6 @@ function ControlForm({
   );
 }
 
-function Refused({
-  lang,
-  c,
-  children,
-}: {
-  lang: Lang;
-  c: C;
-  children: ReactElement;
-}): ReactElement {
-  return (
-    <main lang={lang} className="ops" data-page="cicd">
-      <h1>{c.title}</h1>
-      {children}
-    </main>
-  );
-}
-
 export function CicdConsole({
   state,
   lang,
@@ -248,20 +240,20 @@ export function CicdConsole({
   const c = COPY[lang];
   if (state.kind === "not_admitted") {
     return (
-      <Refused lang={lang} c={c}>
+      <RefusedPage page="cicd" lang={lang} title={c.title} state={state}>
         <p className="refusal" data-refusal={state.reason}>
           {c.refusals[state.reason]}
         </p>
-      </Refused>
+      </RefusedPage>
     );
   }
   if (state.kind === "unavailable") {
     return (
-      <Refused lang={lang} c={c}>
+      <RefusedPage page="cicd" lang={lang} title={c.title} state={state}>
         <p className="refusal" data-unavailable={state.reason}>
           {c.unavailable[state.reason]}
         </p>
-      </Refused>
+      </RefusedPage>
     );
   }
   const view = state.view;

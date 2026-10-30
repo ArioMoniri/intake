@@ -8,12 +8,15 @@ import type { Lang } from "../ops/copy";
 import type { ResultCode } from "./actions";
 
 export type { Lang } from "../ops/copy";
+import { EMPTIES, FILLS } from "../ui/fills";
 
 const tr = {
   title: "Ses modülü",
   generatedAt: "Oluşturulma",
   sources: "Kaynaklar",
   unknown: "Bilinmiyor",
+  fills: FILLS.tr,
+  empties: EMPTIES.tr,
   yes: "evet",
   no: "hayır",
   none: "yok",
@@ -173,6 +176,8 @@ const en: VoiceCopy = {
   generatedAt: "Generated",
   sources: "Sources",
   unknown: "Unknown",
+  fills: FILLS.en,
+  empties: EMPTIES.en,
   yes: "yes",
   no: "no",
   none: "none",

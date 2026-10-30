@@ -391,6 +391,11 @@ def test_backlog_parses_and_is_complete() -> None:
     # owner's vendor decision on INT-358, GitHub #895); grows only with a
     # stated reason.
     # + INT-573 (next/certifi/filelock lifted past the 27 Oct advisories, GitHub #965)
+    # + INT-450 (admin-web UI upgrade with the owner-listed component libraries,
+    # licence-checked, owner request, GitHub #763); grows only with a stated
+    # reason.
+    # + INT-459 (admin-web premium redesign: Apple-native shell, glass on
+    # chrome only; owner request, GitHub #783); grows only with a stated reason.
     # + INT-574 (the RED-never-waits test is deterministic under runner load,
     # GitHub #967); grows only with a stated reason.
     # + INT-576 (the Netgsm adapter parses the live success shape and never
@@ -405,6 +410,13 @@ def test_backlog_parses_and_is_complete() -> None:
     # reason.
     # + INT-537 (the app grants the core consent that visits and notes require,
     # INT-529 finding F2, GitHub #904); grows only with a stated reason.
+    # + INT-586 (opentelemetry-api past GHSA-ccrj-gw8r-854m, GitHub #986).
+    # + INT-590 (decode-uri-component past CVE-2026-118664, GitHub #991).
+    # + INT-559 (the app's voice lane never writes patient audio to a file —
+    # invariant 3 with no dev exception, from the INT-536 legal review,
+    # GitHub #947); grows only with a stated reason.
+    # + INT-536 (consent-screen copy true for the host and matching the consent
+    # texts, GitHub #903); grows only with a stated reason.
     # + INT-587 (the note reaches the clinician from a release build: note-sync
     # client, in-app share consent, Doctor Link from the app, GitHub #988);
     # grows only with a stated reason.
@@ -412,7 +424,7 @@ def test_backlog_parses_and_is_complete() -> None:
     # #989); grows only with a stated reason.
     # + INT-591 (a release build offers no voice consent it cannot use, GitHub
     # #993); grows only with a stated reason.
-    assert len(ids) == 377, f"expected 175 blueprint + 202 added issues, got {len(ids)}"
+    assert len(ids) == 383, f"expected 175 blueprint + 208 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 

@@ -1858,6 +1858,12 @@ it or whose tests exercise it.
   [Dd] a draft outliving its session; [L/Dd] another account's draft surfacing on a shared
   device; [T] a tampered blob read as a sound draft; [D] silent data loss when a local edit
   meets a newer server copy.
+  **Voice capture (§9 mobile row, INT-559):** [I] patient audio written to a temporary file
+  on the phone by the DEV voice lane or the VoiceNote pill — reachable through a backup, a
+  crash report or another process's read of the cache between the write and the delete;
+  [Dd] a capture buffer outliving the turn, a RED, a leave, an unmount or the app's time in
+  the background; [I] a native input stream still capturing after the dialogue closed
+  because the close landed while the input was being opened.
 - **Controls (files/10):** §4 mobile — SecureStore with biometrics, FLAG_SECURE, EAS Update
   code signing, MobSF on every build, jailbreak/root as a soft signal degrading to typed
   mode, native ATS/`network_security_config` pinning with a documented rotation recovery
@@ -1868,12 +1874,28 @@ it or whose tests exercise it.
   `WHEN_UNLOCKED_THIS_DEVICE_ONLY`; the GCM tag fails the open on tamper; a deterministic
   last-writer-wins rule that preserves the losing copy, so no loss is silent; account-scoped
   hydration; visit-id path sanitisation; crypto-shred of the blobs and the DEK on sign-out.
+  **Voice capture (§9, INT-559):** the DEV voice lane and the VoiceNote pill capture through
+  expo-audio 57's `AudioStream` (AVAudioEngine input tap / AudioRecord — no file, no URI) into
+  a bounded in-memory buffer (≤ 60 s, CLAUDE.md invariant 3, `apps/mobile/src/lib/capture`),
+  handed to the dev ASR daemon as bytes with no path anywhere; `fill(0)` over the whole
+  buffer on finish, discard, RED (`leave`), unmount, a typed answer and app background; the
+  dialogue's close flag is read after every await and on every chunk (INT-551's pattern), so a
+  RED landing while the input opens leaves no microphone behind it; the lane stays
+  `__DEV__`-only and synthetic-content only; on iOS the stream's `.record` session category
+  silences playback, so the clip plays tap-interruptible and the microphone opens on the
+  patient's turn (`lib/capture/policy.ts`).
 - **Signals:** attestation failures (§9 onboarding row) and crash-free-session tracking (§6)
   land with INT-145/INT-146. Offline drafts are device-local and have no server signal by
-  design (§9); the crash-free rate covers them (INT-145).
+  design (§9); the crash-free rate covers them (INT-145). Voice capture is device-local and
+  has no server signal by design (INT-559); `apps/mobile/e2e/voiceCapture.spec.ts` is the
+  repository gate that keeps the path file-less.
 - **Tests:** MobSF gate lands with INT-146; telemetry scrubbing tests with INT-145. Offline
   drafts landed with INT-142: `apps/mobile/e2e/offline.spec.ts` and
-  `apps/mobile/src/lib/intake/offline/{envelope,reconcile,draftStore}.test.ts`.
+  `apps/mobile/src/lib/intake/offline/{envelope,reconcile,draftStore}.test.ts`. Voice
+  capture landed with INT-559: `apps/mobile/e2e/voiceCapture.spec.ts` (source slice over the
+  whole patient-audio path plus a node-driven turn under a storage trap),
+  `apps/mobile/e2e/bargeIn.spec.ts` and
+  `apps/mobile/src/lib/capture/{boundedBuffer,level,envelope,session,turn,policy,asrClient}.test.ts`.
 - **INT-588 — copy true for the build it ships in.** Threat: [U/R] the release build telling
   the patient something false about itself — a voice or dictation option it does not have, a
   "sent" before delivery, or consent chrome that contradicts the docs/legal text the server
@@ -1882,12 +1904,13 @@ it or whose tests exercise it.
   — the open-answer hint names dictation only where the button is drawn, the voice start
   mode is not offered in a release build, the companion's text-only effect is listed only
   where questions can be spoken; voice clauses that never had to exist are gone from the
-  welcome line, the integrity warning and the companion footer; the voice and affect consent
-  rows say only what voice.tr.md and lane.affect.tr.md say; every "sent" line renders only
-  behind a confirmed delivery (INT-587). Tests: `apps/mobile/src/lib/buildCopy.test.ts`
-  (release-mode resolution with near misses; claims pinned to their surfaces; the rows read
-  against the served texts) and `apps/mobile/e2e/releaseCopy.spec.ts` (the screens use the
-  helper on the same facts that draw the button). No signal: copy truth is a build property.
+  welcome line, the integrity warning and the companion footer; the consent "who" rows are
+  INT-536's on main (tests/legal/test_consent_who_lines.py), and INT-588 holds them to naming
+  no affirmative recipient without a served text; every "sent" line renders only behind a
+  confirmed delivery (INT-587). Tests: `apps/mobile/src/lib/buildCopy.test.ts` (release-mode
+  resolution with near misses; claims pinned to their surfaces; the rows read against the
+  served texts) and `apps/mobile/e2e/releaseCopy.spec.ts` (the screens use the helper on the
+  same facts that draw the button). No signal: copy truth is a build property.
 - **INT-591 — no consent a release build cannot use.** Threat: [L] special-category consent
   evidence recorded for a feature the build does not have (KVKK m.4 proportionality), and a
   choice offered that changes nothing. Control: in a release build İzinleriniz offers no grant
