@@ -6622,6 +6622,64 @@
     - "the chosen voice and model are pinned with a profile version bump and the bundled set is re-rendered; intonation continuity between words is measured"
   tests: [tests/voice/test_cast_turkish_voices.py]
   sec_row: "cloud-clipgen"
+- id: INT-450
+  epic: E12-admin
+  phase: P1
+  title: "admin-web UI upgrade with owner-listed component libraries (licence-checked)"
+  # GitHub #763. Owner request, 3 Oct 2026: eight libraries named for the admin
+  # console. Each was licence-checked from its raw LICENSE blob or, where none
+  # exists, its licence/terms page (docs/evidence/INT-450.md). Adopted by
+  # porting into the console's own server-rendered markup and stylesheet (the
+  # CSP admits no inline style and no foreign script): EvilCharts, beUI's public
+  # library and Astryx (MIT) and two free Transitions.dev transitions. Not
+  # adopted: Kinetics (no LICENSE in its repository), Kobra and Reverse UI (paid
+  # licences, an owner purchase), Beautiful UI (MIT, but no component fits an
+  # ops console). Cost and Roadmap have no rendered page on main and Model
+  # lanes is PR #751, so their charts follow those pages.
+  depends_on: [INT-181, INT-182, INT-187, INT-351, INT-366]
+  labels: [area:admin]
+  status: done
+  evidence: docs/evidence/INT-450.md
+  acceptance:
+    - "kobra, beautifului, beui, reverseui, astryx, transitions, evilcharts and kinetics are each licence-verified from their raw LICENSE."
+    - "Admin-web dashboards, charts and interactions are upgraded with the adopted ones. Accessibility is tested and before/after captures are recorded."
+  tests: [apps/admin-web/e2e/accessibility.spec.ts, apps/admin-web/src/ui/charts.test.tsx]
+  sec_row: "admin-console"
+- id: INT-459
+  epic: E12-admin
+  phase: P1
+  title: "admin-web premium redesign"
+  # GitHub #783. Owner request, 3 Oct 2026: the console should read as premium
+  # and Apple-native rather than AI-generated. Builds on INT-450 (PR #776). A
+  # tokenised light/dark layer (WCAG AA asserted from the tokens, text on glass
+  # included); a glass sidebar and top bar, a floating glass tab bar on a narrow
+  # screen, glass on chrome only with solid fallbacks (reduced transparency,
+  # increased contrast, no backdrop-filter); inset tables, inspector lists,
+  # settings-style four-eyes forms; centred refused/unavailable states, an
+  # inset empty state and a per-request not-found page. Spring motion, none on a
+  # control. A route-level loading.tsx was built and withdrawn: the page then
+  # streams SVG segments in style attributes the CSP refuses. No code copied;
+  # licences re-read (docs/evidence/INT-459.md). Model lanes (INT-428, PR
+  # #751) takes the shell through its shared class names.
+  # Refresh, 17-28 Oct 2026 (owner: "ui is not good and so basic"): the shell
+  # landed on current main; D26 and the loading state withdrawn (main has no
+  # D26); Palette B (the app's warm paper and teal, owner 17 Oct) in one
+  # tokens file pinned to apps/mobile's theme; a dense twelve-column grid,
+  # wrapping cells and sticky headers; unknown tiles that say what fills them,
+  # empty tables that say what puts a row there, and refused pages that keep
+  # the shell (INT-569). Supersedes PRs #776 and #784.
+  depends_on: [INT-450]
+  labels: [area:admin]
+  status: done
+  evidence: docs/evidence/INT-459.md
+  acceptance:
+    - "Translucent glass only on chrome (sidebar, top bar, sheets); content sits on solid fills; prefers-reduced-transparency, prefers-contrast and prefers-reduced-motion each have a fallback."
+    - "Light and dark themes come from one token set, and WCAG AA contrast is asserted by tests in both themes."
+    - "Motion is subtle and spring-based, and none of it is on a critical control."
+    - "Behaviour is unchanged: no API contract, auth, approval-flow or four-eyes change; no IP restriction; no PHI in fixtures."
+    - "Before/after captures from the local dev server are recorded."
+  tests: [apps/admin-web/e2e/native.spec.ts, apps/admin-web/e2e/states.spec.ts, apps/admin-web/src/ops/nav.test.tsx, apps/admin-web/e2e/accessibility.spec.ts]
+  sec_row: "admin-console"
 - id: INT-421
   epic: E13-infra
   phase: P0
@@ -7411,7 +7469,90 @@
     - "new copy is tr first with an en mirror; the i18n, register, B1 and PolicyGuard gates stay green with no new recorded finding; no accuracy claim; no demo content in release paths"
   tests: [apps/mobile/src/lib/consent/gate.test.ts, apps/mobile/src/lib/consent/ledger.test.ts, apps/mobile/src/lib/consent/store.test.ts, apps/mobile/e2e/consent.spec.ts, apps/mobile/e2e/visits.spec.ts, apps/mobile/src/lib/records/api.test.ts, apps/mobile/src/lib/records/screen.test.ts, tests/api/test_core_consent_visit_start.py]
   legal: "KVKK-5,KVKK-6"
+- id: INT-536
+  epic: E14-legal
+  phase: P1
+  title: "Consent-screen copy matches the consent texts and the host: affect cues never reach the doctor, and no 'stays in Türkiye' claim on the us-east-1 host"
+  # GitHub #903, from the INT-529 (#896) legal-author findings F1, F3, F5 and
+  # F8, 16 Oct 2026. The issue comment adds the voice and lane:affect texts'
+  # AWS alignment (INT-529 F9), and INT-537 (#940) adds G1 (consent.who.core).
+  # D25 legal lane, synthetic scope. Stacked on INT-537 (#940), which
+  # contains INT-529 (#911).
+  depends_on: [INT-529, INT-537]
+  labels: [area:legal]
+  status: done
+  evidence: docs/evidence/INT-536.md
+  acceptance:
+    - "F1: the consent.who lines shown above the consent texts (tr source, en mirror) state only what the code does on every host: no place is named, lane cues reach no doctor and no note, a RED staff alert carries no health answers; each sentence cited to a code path; PolicyGuard, B1, siz"
+    - "F3: the render-time claims scanner flags everything the CI shell gate flags at its strict tier, the softened Turkish forms beside a figure included; near misses pass both (invariant 20)"
+    - "F5: the satisfaction score's inventory annotations and retention class state the açık rıza ground its routes enforce; schema test (invariant 18)"
+    - "F8: the synthetic legal loader reads ADR-035's bound data class on every lookup; a mismatch or an unreadable record refuses"
+    - "the voice and lane:affect synthetic texts name the hosting processor in their recipients section, re-signed with a new version"
+  tests: [tests/legal/test_consent_who_lines.py, tests/legal/test_claims_ci_parity.py, tests/data/test_satisfaction_basis.py, tests/legal/test_synthetic_bound_class.py, tests/legal/test_synthetic_vendor_tripwire.py]
+  legal: "KVKK-4/5/6,KVKK-10,AYD-2018"
   sec_row: "consent"
+- id: INT-586
+  epic: E13-infra
+  phase: P1
+  title: "opentelemetry-api lifted to 1.67.0 in the Keycloak provider, past GHSA-ccrj-gw8r-854m, so the vulnerabilities gate is green without an exception"
+  # GitHub #986. On 28 Oct 2026 osv-scanner began reporting GHSA-ccrj-gw8r-854m
+  # (quadratic CPU in W3C tracestate parsing, CVSS 5.3) against the test-classpath
+  # pin opentelemetry-api 1.62.0 in infra/keycloak/providers/webauthn-session-notes.
+  # Main and every PR went red. 1.67.0 fixes it, so the row is a bump only.
+  depends_on: [INT-378]
+  labels: [area:security]
+  status: done
+  evidence: docs/evidence/INT-586.md
+  acceptance:
+    - "opentelemetry-patched.version is 1.67.0; api, context and common 1.67.0 jar and pom sha256 replace the 1.62.0 lines in .mvn/checksums, each verified against Maven Central's sha1 and sha512; no exception row is added"
+    - "osv-scanner 2.5.1 over the repository reports no unfiltered finding, recorded before and after in evidence"
+    - "the provider's tests pass, and the CI keycloak-provider build resolves under --strict-checksums and reproduces the jar pin; the jar embeds its pom, so the pin moves to the rebuilt jar, and main's pom still reproduces the old pin"
+    - "the passkey login is re-recorded with the new pinned jar on a real Keycloak 26.7.4 off the laptop (provider admitted, stock refused), never edited by hand, and the run is torn down"
+  tests: [tests/admin/test_webauthn_session_notes_provider.py, tests/infra/test_staging_keycloak_provider.py]
+  sec_row: "cicd"
+- id: INT-590
+  epic: E13-infra
+  phase: P1
+  title: "decode-uri-component lifted to 0.5.1 past CVE-2026-118664, so the vulnerabilities gate is green without an exception"
+  # GitHub #991. On 30 Oct 2026 trivy began reporting CVE-2026-118664 (HIGH,
+  # quadratic replacement of percent-encoded runs) against decode-uri-component
+  # 0.5.0. Main and every PR went red. 0.5.1 fixes it, so the row is a bump only.
+  depends_on: [INT-500]
+  labels: [area:security]
+  status: done
+  evidence: docs/evidence/INT-590.md
+  acceptance:
+    - "the root pnpm override is decode-uri-component@<0.5.1: ^0.5.1 and pnpm-lock.yaml resolves 0.5.1 only; no exception row"
+    - "FIXED_VERSIONS raises the decode-uri-component floor to 0.5.1 and ADVISORY_IDS names CVE-2026-118664; the floor test is red on main's lockfile and green after"
+    - "trivy fs over pnpm-lock.yaml reports only the already-suppressed node-forge row; osv-scanner reports no issue"
+  tests: [tests/ci/test_security_gates.py]
+  sec_row: "cicd"
+- id: INT-559
+  epic: E08-mobile
+  phase: P1
+  title: "The app's voice lane never writes patient audio to a file — stream from memory (invariant 3), before voice ships in any build"
+  # GitHub #947, from the #946 (INT-536) legal review, 18 Oct 2026: the DEV
+  # voice lane (voiceEligible requires __DEV__) and the VoiceNote pill recorded
+  # a temporary file on the phone through expo-audio's recorder and deleted it
+  # after upload; invariant 3 allows no dev exception. Now both run expo-audio
+  # 57's AudioStream (AVAudioEngine tap / AudioRecord — no file) into a bounded
+  # in-memory buffer (≤ 60 s) handed to the dev ASR daemon as bytes, zeroed on
+  # finish, discard, RED, leave, unmount, a typed answer and app background.
+  # No new dependency, no native module. On iOS the stream's session category
+  # silences playback, so there the barge-in microphone opens on the patient's
+  # turn (the one trade-off, recorded in the evidence). The INT-536 consent
+  # text check re-runs when INT-515 deploys voice-runtime — INT-515's step.
+  depends_on: [INT-194, INT-291, INT-446]
+  labels: [area:mobile, risk:security]
+  status: done
+  evidence: docs/evidence/INT-559.md
+  acceptance:
+    - "Capture into an in-memory buffer (≤ 60 s, zeroed on every trigger) and stream it; no file path is ever created (test that no file API is called; native module behind a lazy import for vitest)."
+    - "Recorder prepare/abort paths leave nothing on disk."
+    - "The tripwire/text check re-runs when INT-515 deploys voice-runtime."
+    - "If a native platform constraint makes a file unavoidable, stop and record it as an owner/ADR decision rather than ship around invariant 3."
+  tests: [apps/mobile/e2e/voiceCapture.spec.ts, apps/mobile/e2e/bargeIn.spec.ts, apps/mobile/src/lib/capture/session.test.ts, apps/mobile/src/lib/capture/turn.test.ts, apps/mobile/src/lib/capture/boundedBuffer.test.ts, apps/mobile/src/lib/capture/asrClient.test.ts, apps/mobile/src/lib/capture/envelope.test.ts, apps/mobile/src/lib/capture/level.test.ts, apps/mobile/src/lib/capture/policy.test.ts]
+  sec_row: "mobile"
 - id: INT-587
   epic: E08-mobile
   phase: P1

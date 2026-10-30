@@ -60,6 +60,7 @@
 3ddab7e4caf5364f64a6de8b3747bcc23f8eb8eb17b1e384f7168d76d8944b47  org/keycloak/keycloak-core/26.7.4/keycloak-core-26.7.4.jar
 3e158a87bd73d8afb4b6e8239c013b7d049c48563f45860ce99cd2e448cf4a6b  org/tukaani/xz/1.12/xz-1.12.jar
 3e49037174820bbd0df63420a977255886398954c2a06291fa61f727ac35b377  org/apache/apache/29/apache-29.pom
+40fb813fb5e27ec2691daa29c81b572b5b1541ef9b41e62490c3ee3e6407c55e  io/opentelemetry/opentelemetry-context/1.67.0/opentelemetry-context-1.67.0.jar
 419a0cdff0ce24d82b4b1189e311a016e7c0b4e9099f047975713df1b9d53486  org/keycloak/keycloak-server-spi/26.7.4/keycloak-server-spi-26.7.4.jar
 41fbab97912beb3a061b1e3845d2e06d2bb214cc71f92fa7f396480dc765a14e  org/apache/maven/shared/maven-shared-components/44/maven-shared-components-44.pom
 421ff6ed146c53a9d4eaade8f629b52b12af7187101f1bd06c2c64e904019f3c  org/codehaus/plexus/plexus-utils/4.0.3/plexus-utils-4.0.3.jar
@@ -79,6 +80,7 @@
 4f4e2bea00ffe575f5ec054c07a4fbc34c1955d8635c01a3e88013bf2c71deff  com/fasterxml/jackson/jackson-base/2.21.5/jackson-base-2.21.5.pom
 5151c13bdd7cc3a5569583a7f4267392f013ffd3115eab8db5f86de420a366af  org/codehaus/plexus/plexus-utils/4.0.2/plexus-utils-4.0.2.pom
 524ec4787aff73af6b3a9fafa154c7f1881b648299b663fdbfcadda1286f2353  org/apache/apache/37/apache-37.pom
+538d1dff2f9a37aecbc0ef98fd17273a3affb058e734e6763a3a07a38a5fdc59  io/opentelemetry/opentelemetry-api/1.67.0/opentelemetry-api-1.67.0.jar
 53a2103d9257c801a8fc9c211d9fedea7e3ee1bf516bbbc28021ef45c1a219c5  org/codehaus/plexus/plexus-archiver/4.10.4/plexus-archiver-4.10.4.pom
 53ca085f4a150f703f49e1aabd935bd03b43e1ea3d55d135438292af22cef56b  com/fasterxml/jackson/core/jackson-annotations/2.21/jackson-annotations-2.21.jar
 5425501edd9e0bd7b01eca53cc92e06836d24851151304f9c6759e1713541685  org/apache/maven/maven-parent/23/maven-parent-23.pom
@@ -104,7 +106,6 @@
 653432ed213573b6b209deb7346dc2ed89f20e647dbdb6fc868051b334b31d27  org/codehaus/plexus/plexus-io/3.6.0/plexus-io-3.6.0.pom
 6b3b3628b8b4aedda0d24c3354335e985497d8ef3c510b8f3028e920d5b8663d  jakarta/ws/rs/jakarta.ws.rs-api/3.1.0/jakarta.ws.rs-api-3.1.0.jar
 6baf4d39fe0797a5d623218215568252b2b94049c984d71e8b4da2925e024705  org/codehaus/plexus/plexus-java/1.6.0/plexus-java-1.6.0.jar
-6d69339f6ac9afe87be1e018597bf088b9fe53194de7bd30c69a4d905954004a  io/opentelemetry/opentelemetry-api/1.62.0/opentelemetry-api-1.62.0.pom
 70233c57a076fadb2f3af1ca25647dc65116d8c135df6c3cb79c95a2560eafce  com/fasterxml/jackson/core/jackson-core/2.21.7/jackson-core-2.21.7.pom
 705cb0a1bfc42670f8147315c877f8b031326c0b468d0088b3d827f1bea290c5  org/apache/maven/surefire/maven-surefire-common/3.6.0/maven-surefire-common-3.6.0.pom
 71176eea2938b45bd737fa864de4cc5b56a7228eb0359654c2c418624805b609  org/keycloak/keycloak-server-spi-private/26.7.4/keycloak-server-spi-private-26.7.4.jar
@@ -117,6 +118,7 @@
 77144432ffc68bd98a790ab1069619d91032cfc0e4e13c08163aa03da36fd6e2  org/junit/junit-bom/5.8.0-M1/junit-bom-5.8.0-M1.pom
 77614f6fcc6638eef7b9ed57294ba349f35802497fbed87fb3cfdfd5cb07f7bd  org/apache/maven/surefire/surefire-booter/3.6.0/surefire-booter-3.6.0.pom
 794d9b995ed59165c54243dcc73fe9483d7fe1af7fb80fcd89a5ae5b693f3eb7  com/github/luben/zstd-jni/1.5.7-6/zstd-jni-1.5.7-6.pom
+7a1ced21ec6f194488f4c06a8b3d99f286e703e49cb310e1d0bbab89431a9008  io/opentelemetry/opentelemetry-common/1.67.0/opentelemetry-common-1.67.0.pom
 7adb0e46b5fff4fc03aab4baafbdee0b29e444cffe4478858c63082d497220bf  org/apache/maven/shared/maven-filtering/3.5.0/maven-filtering-3.5.0.jar
 7b751d952061954d5abfed7181c1f645d336091b679891591d63329c622eb832  org/slf4j/slf4j-api/2.0.17/slf4j-api-2.0.17.jar
 7c826bc72beddc817dad9263027f9012a0f55a377d38df89c42932a2501c2bf0  org/junit/junit-bom/5.12.1/junit-bom-5.12.1.pom
@@ -133,11 +135,11 @@
 8a57e20dcce00da71c33ef3e19d9dd858fe9d2042ca2e2bca27871700d52698c  net/bytebuddy/byte-buddy-parent/1.17.7/byte-buddy-parent-1.17.7.pom
 8a86be8c76f691ef2213ede052886e5692e2fc9a30e4a0af8efb038c41eb5721  org/apache/maven/plugins/maven-surefire-plugin/3.6.0/maven-surefire-plugin-3.6.0.pom
 8b75e2361ea2d353ac78fd924ebc095c68a8f42fb70283952bdfcb9f62a76e2f  org/keycloak/keycloak-common/26.7.4/keycloak-common-26.7.4.jar
+8b9700627a7ff18a2415fe2b4cfe6f5b33c27e72cf36aa332e82c4b5be016f2b  io/opentelemetry/opentelemetry-api/1.67.0/opentelemetry-api-1.67.0.pom
 8c5623b98f32d5f7e1287ff61ed50e08ab7b11381e991fff89327faabba42261  com/fasterxml/jackson/core/jackson-core/2.21.7/jackson-core-2.21.7.jar
 8c5be66c8bf205b94ed0f4534d92a5986fe88a0fd3aed12126655730100dff1a  com/fasterxml/jackson/datatype/jackson-datatype-jsr310/2.21.5/jackson-datatype-jsr310-2.21.5.pom
 8d3e51c3902fd7596e548eab121ebf6b0d4aa73857077f26a24fc86f9b8455b4  org/codehaus/plexus/plexus/19/plexus-19.pom
 8e2c305480fde793118cf1257696b7797ba25f3a40c6b3f44a349fd9445e3022  org/apache/maven/surefire/surefire-extensions-api/3.6.0/surefire-extensions-api-3.6.0.jar
-8ec86c3609222b9b6307bf40154c1f1c288d1f18ada0155409e7797adbdbe517  io/opentelemetry/opentelemetry-context/1.62.0/opentelemetry-context-1.62.0.jar
 8f45b9ae6212f4e2619cf5ac7298f966ee8679f5c033d4d3449dae381e376390  org/infinispan/protostream/parent/6.0.7/parent-6.0.7.pom
 9037dee318a68d7ee5dd2e20f2e657a39597ed2622b52e325ab9becddfbc4d38  org/apache/maven/maven-archiver/3.6.6/maven-archiver-3.6.6.jar
 90b4be7a71c979d0c4dea20c20a28eb9e76a29df68ab9018cf011019a3e4f562  org/eclipse/sisu/org.eclipse.sisu.plexus/0.9.0.M4/org.eclipse.sisu.plexus-0.9.0.M4.pom
@@ -182,7 +184,6 @@ b66decaecb4c425e5db1a59cbc87c81b3a9de6ae6da3034acabde591dd3fc500  org/infinispan
 b748c05658b1fed1ceb73f527a05983593572e351d90b411f780ed1fa05b4afa  org/codehaus/plexus/plexus-compiler-api/2.17.0/plexus-compiler-api-2.17.0.jar
 b82e3a51f782f9a35886a5f20a3e966bc66e1f397a76b8af33eebefd28d18d45  com/fasterxml/jackson/datatype/jackson-datatype-jdk8/2.21.5/jackson-datatype-jdk8-2.21.5.pom
 b8cae78767db8c6660f9f07e635ec3e001b883f4e74087f60e995f39a848627e  org/apache/maven/surefire/surefire-api/3.6.0/surefire-api-3.6.0.jar
-b8cc3e8e671f7e8e3c52837eb00b71d4b891be4f49c78043e7146865e0a66600  io/opentelemetry/opentelemetry-common/1.62.0/opentelemetry-common-1.62.0.pom
 b90579bc652eac7331436e0a25533fce14130b9c6e015f2dd3a3d4bb07e942b7  org/eclipse/sisu/org.eclipse.sisu.plexus/0.9.0.M4/org.eclipse.sisu.plexus-0.9.0.M4.jar
 ba0c40da2669a048b6e24ef7066a471f0fbcbfcc509e6a3e856ca4ddfa614ad3  org/objenesis/objenesis/3.3/objenesis-3.3.pom
 ba58948c7796e201b84bf7675b2a1fb3e512dda4f9029cc21ff41e0a89952355  org/keycloak/keycloak-parent/26.7.4/keycloak-parent-26.7.4.pom
@@ -192,7 +193,6 @@ bdbdf81072c190ee9a8b181a5c58f5bd917a750fb13a256debbf53f5dbd33a2a  commons-io/com
 be7dcf1b69aa4c0583d22fca4c8f12e742991f724e049efe8ea2338b39879dfc  org/apache/directory/api/api-parent/2.1.8/api-parent-2.1.8.pom
 beadeb0485fc7f3505f26b0cfcf26602639b83e9badaebac4a3ce5345cc19c0e  org/apache/maven/surefire/surefire-extensions-spi/3.6.0/surefire-extensions-spi-3.6.0.jar
 c1a510a87a62bd2d74ac1472dd31c3f9e9b0b8b8568f37d77c0f135415bebd05  org/codehaus/plexus/plexus-xml/3.0.1/plexus-xml-3.0.1.jar
-c37a9d7e220a2747c91bdaaa9648c8998315f2829d4aa01ef411fe1227d196ba  io/opentelemetry/opentelemetry-context/1.62.0/opentelemetry-context-1.62.0.pom
 c697a303e9ffc31963eb1c275bbf77a583a7d482965ac4f1bb26dc91e595ffbf  jakarta/ws/rs/jakarta.ws.rs-api/3.1.0/jakarta.ws.rs-api-3.1.0.pom
 c72124a9c9a79910c1858766b72c350e1a39244cbfb4b076348fbfe078281965  org/junit/junit-bom/5.11.1/junit-bom-5.11.1.pom
 c83db6059be3fec9a4a68a0e226caefaa944663008617c697e087444415181d5  org/apache/maven/plugins/maven-jar-plugin/3.5.1/maven-jar-plugin-3.5.1.jar
@@ -215,20 +215,20 @@ d3ef575e3e4979678dc01bf1dcce51021493b4d11fb7f1be8ad982877c16a1c0  org/slf4j/slf4
 d40318527f56033e0ff0789971cc38c856aa99a685eea11270814e7f1eda9fba  org/apache/commons/commons-parent/98/commons-parent-98.pom
 d4a5121988ec22355b54d84f68a2638bdb7315814e650756183ba90a9b7cd0d2  org/apache/maven/surefire/surefire-booter/3.6.0/surefire-booter-3.6.0.jar
 d4fdd41780e065aacd5ac099cd0490171937cc5122dc2c8ef1b88a87b3c9424c  jakarta/ws/rs/all/3.1.0/all-3.1.0.pom
-d58143928c049233653e6bf1282ff8a767ebdd5e6a82b3f336158c30e40b431d  io/opentelemetry/opentelemetry-api/1.62.0/opentelemetry-api-1.62.0.jar
-d6310bebde67d65c1519696728d8604005315ed08ab14071956fc0826fd71815  io/opentelemetry/opentelemetry-common/1.62.0/opentelemetry-common-1.62.0.jar
 d77be81708cf9836db7a09908e6d9e4d94c527e090bd594cc4af06711b9d853d  org/junit/platform/junit-platform-commons/1.14.4/junit-platform-commons-1.14.4.pom
 d7801d725de2abb706efb931e22eac5df4d0c7fc8c9ea9a4d9986782407aaff7  org/apache/maven/plugins/maven-plugins/44/maven-plugins-44.pom
 d78bd8524c5f8380a190a6525686629a95dfe512df21111383a6d8c0923a4415  org/apache/apache/33/apache-33.pom
 d7a08a99b2502f0bb68cd4e1f984f0bf69324aaa208bd0f73366c03fc3548a42  org/junit/junit-bom/5.13.4/junit-bom-5.13.4.pom
 d82408269aada2eb1521ee8ff17f7c67333684f8ed2a09a9e35badd2e7575957  org/apache/maven/shared/maven-shared-components/19/maven-shared-components-19.pom
 d8531a746c988f7f68ed5f188cdea945006aea993ec5df9e524e0d27d61491da  org/mockito/mockito-bom/4.11.0/mockito-bom-4.11.0.pom
+da97bdb395418e16ecdcbe7ad3497f45b9e767ceda4ae7e86133e7a757ac377f  io/opentelemetry/opentelemetry-common/1.67.0/opentelemetry-common-1.67.0.jar
 dbc7d80d79d3760fed777bea9e41b1c0a370442ea8ecf930d04a6a5620d36b6e  org/codehaus/plexus/plexus/27/plexus-27.pom
 e067317a47ed9e84b2ba85a76d3cf72980e2b0dc873a90b9cbfe74fe80c37c17  org/sonatype/plexus/plexus-build-api/0.0.7/plexus-build-api-0.0.7.pom
 e0f3269fa23de0c83130c5659f5f9514cc5422c0bcdf45f2eae004a78b9fca34  commons-codec/commons-codec/1.19.0/commons-codec-1.19.0.pom
 e1522945218456f3649a39bc4afd70ce4bd466221519dba7d378f2141a4642ca  org/apache/commons/commons-compress/1.28.0/commons-compress-1.28.0.jar
 e1b1c3832ca3ac0a9e563c405f4c760118b5556a4920daee14058886197e094d  org/ow2/asm/asm/9.10.1/asm-9.10.1.pom
 e1e35cf651ae1635638d431ea4412d5c65938be54150444f07ba659586042b11  org/junit/jupiter/junit-jupiter-engine/5.14.4/junit-jupiter-engine-5.14.4.jar
+e2788168fd666c5ea181ed6733635b4b8ee56697482585e5725fe8a2ee5e6f39  io/opentelemetry/opentelemetry-context/1.67.0/opentelemetry-context-1.67.0.pom
 e56188aa8ce51278006aa90bc7e0f304a81e2f1219f462e7d21f262535cd2795  org/sonatype/forge/forge-parent/5/forge-parent-5.pom
 e57c7123c1bebc2de429568fbc9df0019cf2b3b72531e3f722adc6c2e5412720  org/apache/directory/project/project/51/project-51.pom
 e758a3f1464627847d45e3b909fc6dd2f587c1471e0d0daa2975d6434458318d  org/codehaus/plexus/plexus-java/1.6.0/plexus-java-1.6.0.pom

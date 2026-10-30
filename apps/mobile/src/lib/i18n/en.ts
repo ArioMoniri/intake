@@ -750,12 +750,13 @@ export const en: Record<MessageKey, string> = {
   "consent.satisfaction": "Satisfaction questions",
   "consent.research": "Research",
   "consent.who.core":
-    "You see your note. Your doctor sees it only if you share it. On an emergency sign, clinic staff see a short alert without waiting for a share.",
+    "You see your answers. Your doctor sees your note only if you share it. On an emergency flag, clinic staff see an alert that does not contain your health answers. Where your data is processed is stated in the consent text.",
   "consent.who.voice":
-    "Your voice is processed only during the session; no recording is kept. Data stays on servers in Türkiye.",
+    "Your voice is turned into text during the session; no audio recording is kept. Where your voice is processed and who receives it is stated in the consent text.",
   "consent.who.laneAffect":
-    "Only your doctor sees cues drawn from your tone of voice; no label is put on you.",
-  "consent.who.laneLinguistic": "Only your doctor sees cues drawn from the transcribed text.",
+    "Cues drawn from your tone of voice only adjust the pace and flow of the session. They do not go to your doctor, are not written into your note and are not shown to you.",
+  "consent.who.laneLinguistic":
+    "Cues drawn from the transcribed text do not go to your doctor and are not written into your note.",
   "consent.who.wellbeing":
     "Only you see your answers; sharing with your doctor is asked separately every time.",
   "consent.who.documents":

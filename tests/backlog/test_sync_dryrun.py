@@ -142,14 +142,20 @@ def test_dryrun_plans_creates_and_updates(tmp_path: Path) -> None:
     # + INT-550 (a new staff user enrols a passkey after the password step, GitHub #930)
     # + INT-528 (Netgsm OTP SMS adapter behind the INT-329 port, GitHub #895)
     # + INT-573 (next/certifi/filelock lifted past the 27 Oct advisories, GitHub #965)
+    # + INT-450 (admin-web UI upgrade, licence-checked libraries, GitHub #763)
+    # + INT-459 (admin-web premium redesign, owner request, GitHub #783)
     # + INT-574 (the RED-never-waits test is deterministic under runner load, GitHub #967)
     # + INT-576 (Netgsm OTP answer parsed as documented, never retried unread, GitHub #971)
     # + INT-420 (Önvizit everywhere: the rebrand finished on main, GitHub #712)
     # + INT-560 (the operability registry page tells the truth, owner request, GitHub #948)
     # + INT-529 (synthetic-scope consent texts, synthetic host only, GitHub #896)
     # + INT-537 (the app grants the core consent visits and notes need, GitHub #904)
+    # + INT-586 (opentelemetry-api past GHSA-ccrj-gw8r-854m, GitHub #986)
+    # + INT-590 (decode-uri-component past CVE-2026-118664, GitHub #991)
+    # + INT-559 (the app's voice lane never writes patient audio to a file, GitHub #947)
+    # + INT-536 (consent-screen copy true for the host, GitHub #903)
     # + INT-587 (the note reaches the clinician from a release build, GitHub #988)
-    assert len(actions) == 375
+    assert len(actions) == 381
     assert actions["INT-001"]["action"] == "update"
     assert actions["INT-001"]["number"] == 1
     assert actions["INT-004"]["action"] == "create"

@@ -77,7 +77,7 @@ outside the console's id shape.
 `infra/keycloak/providers/webauthn-session-notes.sha256`:
 
 ```
-91da12328b158bdf7195bd62e510b7aaf47b35b2deb200ff4ec5ffb1b201b694  intake-webauthn-session-notes-1.0.0.jar
+3ca703b66c79734521cfa2a2ff56909cccebf793488256b979f10898887cd323  intake-webauthn-session-notes-1.0.0.jar
 ```
 
 The build is reproducible, so the owner can rebuild from the tagged source and get the same

@@ -6,8 +6,8 @@
  * digits. Cache contract: one synthesis per clip per session (name-keyed),
  * clear() drops the whole directory (component calls it on unmount AND on
  * session end). These are AGENT-voice clips composed from catalog strings —
- * invariant 3 governs PATIENT audio, which keeps the delete-after-upload
- * posture in lib/voice.ts untouched.
+ * invariant 3 governs PATIENT audio, which never touches a file at all
+ * (lib/capture, INT-559).
  */
 import { describe, expect, it, vi } from "vitest";
 
