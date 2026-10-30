@@ -1,5 +1,29 @@
 # PROGRESS — one entry per LOOP iteration (template in LOOP.md)
 
+### 2026-10-31T04:00:00+03:00 · INT-495 · App Store Connect draft written and read back (go after legal approval)
+- Goal: write the approved metadata draft (names, subtitles, descriptions, keywords, promo text, category, content rights, age rating) and prove it by reading every field back. Gate submission on a Turkish-only binary.
+- Plan:
+  - `--read-back` with hashes only, and a `GET /v1/apps/{id}` read for `primaryLocale`.
+  - Refusals name Apple's code and pointer.
+  - Write, then read back.
+  - §1 row 13 of the review guide.
+- Tests added (with the near-miss negative for any safety rule): `tests/legal/test_asc_read_back.py` (5), plus the review-guide row test.
+  - Near misses: a drifted field reads DIFFER; a `primaryLocale` PATCH is refused; Apple's `detail` is never echoed.
+  - Red: collection error, then the live 409 reproduced (1 failed). Green: tests/legal + tests/release 1083 passed.
+- Result (`make check` / `make safety` / `make security` summary): ruff and mypy strict clean.
+  - Live: the first apply stopped on 409 DUPLICATE (tr version localization auto-created) and the fix re-reads before writing.
+  - The second apply answered 200 on every write, `ageRatingOverrideV2` accepted.
+  - Read-back: 37 match, 0 differ (evidence §9).
+- Invariants touched and still passing: 6 (no value or credential in any log), 18, 20.
+- Decisions / ADRs / `00_STATE.md` rows: none. `primaryLocale` is en-US, which is reported and left to the owner.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id):
+  - the review notes (held);
+  - URLs and copyright (HB-L27, HB-L21(e));
+  - App Privacy in the web UI (HB-L21(a), HB-A12);
+  - the screenshots (INT-593).
+- Next: INT-593 decides frames against an en-US primary language; submission waits on §1 rows 1–13.
+- LOOP_STATUS: CONTINUE
+
 ### 2026-10-31T02:30:00+03:00 · INT-495 · legal re-check round 4 applied (push to #860)
 - Goal: the legal re-check of 31 Oct confirmed R4 and left one blocker here. The English listing must say that the app is in Turkish only.
 - Plan: put the reviewer's sentence and source verbatim at the head of the en-US description, mirror it in the Play en-US draft (one source), re-render store.config.json, and allow-list the dated INT-482 quote that main's brand gate flags.

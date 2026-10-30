@@ -403,3 +403,14 @@ def test_the_review_guide_gates_submission_on_release_voice_and_reviewer_sign_in
     gated = re.search(r"voiceEligible =\s*__DEV__", intake.read_text(encoding="utf-8"))
     # Both ways: the guide says voice is dev-only exactly while the code says so.
     assert bool(gated) == ("Today `voiceEligible` requires" in first)
+
+
+def test_the_review_guide_gates_submission_on_a_turkish_only_binary() -> None:
+    """INT-595 and the legal re-check of 31 Oct 2026: the App Store's Languages row is
+    read from the uploaded build's .lproj folders, so the build sent for review must
+    carry tr.lproj only. Build 7 predates INT-595 and is not that build."""
+    guide = (DRAFTS / "app-review-notes.draft.md").read_text(encoding="utf-8")
+    first = guide.split("## 1", 1)[1].split("\n## ", 1)[0]
+    row = next(line for line in first.splitlines() if "INT-595 (#1008)" in line)
+    assert row.startswith("| 13 |")
+    assert "`tr.lproj`" in row and "uploaded build" in row and "Build 7" in row

@@ -26,6 +26,7 @@ from pathlib import Path
 
 import asc_client
 import asc_plan
+import asc_read_back
 from intake_platform.legal.documents import LegalDocumentError
 from intake_platform.store.eas_metadata import StoreConfigError
 from intake_platform.store.listing import StoreListingError, StoreListingMissingError
@@ -38,10 +39,17 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--repo", type=Path, default=REPO)
     parser.add_argument("--apply", action="store_true", help="write the draft (owner only)")
     parser.add_argument("--placement-groups", action="store_true", help="read-only lookup")
+    parser.add_argument(
+        "--read-back", action="store_true", help="read the draft back; hashes, never values"
+    )
     parser.add_argument("--eas-json", type=Path, help="the owner's eas.json, read at run time")
     args = parser.parse_args(argv)
-    if (args.apply or args.placement_groups) and args.eas_json is None:
-        parser.error("--apply and --placement-groups need --eas-json <the owner's eas.json>")
+    if (args.apply or args.placement_groups or args.read_back) and args.eas_json is None:
+        parser.error(
+            "--apply, --placement-groups and --read-back need --eas-json <the owner's eas.json>"
+        )
+    if args.apply and args.read_back:
+        parser.error("--read-back reads only; run it after --apply, not with it")
 
     if args.placement_groups:
         creds = asc_client.Credentials.from_eas_json(args.eas_json)
@@ -59,6 +67,17 @@ def main(argv: list[str] | None = None) -> int:
     except (StoreConfigError, StoreListingError, LegalDocumentError, asc_plan.PlanError) as exc:
         print(f"asc_listing: REFUSED — {exc}")
         return 2
+    if args.read_back:
+        creds = asc_client.Credentials.from_eas_json(args.eas_json)
+        try:
+            report = asc_read_back.read_back(
+                plan, asc_client.HttpTransport(creds), app_id=creds.app_id
+            )
+        except asc_client.ApplyError as exc:
+            print(f"asc_listing: STOPPED — {exc}")
+            return 1
+        sys.stdout.write(asc_read_back.render(report))
+        return 0 if report.all_match else 1
     if not args.apply:
         sys.stdout.write(asc_plan.render_plan(plan))
         return 0

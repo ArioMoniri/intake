@@ -41,6 +41,7 @@ __all__ = [
     "apply_plan",
     "guard",
     "make_token",
+    "pick_editable",
 ]
 
 API: Final[str] = "https://api.appstoreconnect.apple.com"
@@ -54,6 +55,8 @@ EDITABLE_STATES: Final[frozenset[str]] = frozenset(
 _ID = r"[^/?]+"
 #: (method, path pattern, attributes the body may carry, relationships it may carry)
 _ALLOWED: Final[tuple[tuple[str, re.Pattern[str], frozenset[str], frozenset[str]], ...]] = (
+    # The read-back reads the app record (primaryLocale, contentRightsDeclaration).
+    ("GET", re.compile(rf"/v1/apps/{_ID}"), frozenset(), frozenset()),
     ("GET", re.compile(rf"/v1/apps/{_ID}/appInfos"), frozenset(), frozenset()),
     ("GET", re.compile(rf"/v1/apps/{_ID}/appStoreVersions"), frozenset(), frozenset()),
     ("GET", re.compile(rf"/v1/appInfos/{_ID}/appInfoLocalizations"), frozenset(), frozenset()),
@@ -227,7 +230,8 @@ class HttpTransport:
         return response.status_code, (response.json() if response.content else None)
 
 
-def _pick(data: Any, state_key: str, what: str) -> str:
+def pick_editable(data: Any, state_key: str, what: str) -> str:
+    """The id of the first row in an editable state, or the refusal."""
     for row in data or []:
         if row.get("attributes", {}).get(state_key) in EDITABLE_STATES:
             return str(row["id"])
@@ -236,34 +240,55 @@ def _pick(data: Any, state_key: str, what: str) -> str:
     )
 
 
+def _why(data: Any) -> str:
+    """Apple's error codes and pointers; never its detail, which may quote a value."""
+    errors = data.get("errors") if isinstance(data, Mapping) else None
+    parts = [
+        f"{error.get('code', '?')} at {(error.get('source') or {}).get('pointer', '?')}"
+        for error in errors or []
+        if isinstance(error, Mapping)
+    ]
+    return f" ({'; '.join(parts)})" if parts else ""
+
+
 def apply_plan(
     plan: Plan, transport: Transport, *, app_id: str, log: Callable[[str], None]
 ) -> None:
-    """Write the plan's draft edits. Every lookup runs before the first write."""
+    """Write the plan's draft edits.
+
+    The editable app info and version are found before the first write. A version's
+    localizations are read again just before each is written: App Store Connect
+    creates one when a language joins the app info, so a list read earlier would
+    send a POST that answers 409 DUPLICATE (live run, 31 Oct 2026)."""
 
     def call(method: str, path: str, body: Mapping[str, Any] | None, what: str) -> Any:
         status, data = transport.request(method, path, body)
         log(f"{method} {what} -> {status}")
         if status >= 300:
-            raise ApplyError(f"{method} {what} answered {status}; stopped, nothing further sent")
+            raise ApplyError(
+                f"{method} {what} answered {status}{_why(data)}; stopped, nothing further sent"
+            )
         return (data or {}).get("data")
 
-    info = _pick(call("GET", f"/v1/apps/{app_id}/appInfos", None, "appInfos"), "state", "appInfo")
+    info = pick_editable(
+        call("GET", f"/v1/apps/{app_id}/appInfos", None, "appInfos"), "state", "appInfo"
+    )
     versions = call(
         "GET", f"/v1/apps/{app_id}/appStoreVersions?filter[platform]=IOS", None, "appStoreVersions"
     )
-    version = _pick(versions, "appVersionState", "App Store version")
+    version = pick_editable(versions, "appVersionState", "App Store version")
     info_locs = {
         row["attributes"]["locale"]: row["id"]
         for row in call("GET", f"/v1/appInfos/{info}/appInfoLocalizations", None, "locales") or []
     }
-    version_locs = {
-        row["attributes"]["locale"]: row["id"]
-        for row in call(
+
+    def version_locs() -> dict[str, str]:
+        rows = call(
             "GET", f"/v1/appStoreVersions/{version}/appStoreVersionLocalizations", None, "locales"
         )
-        or []
-    }
+        return {row["attributes"]["locale"]: row["id"] for row in rows or []}
+
+    version_locs()  # a refused lookup still stops the run before the first write
 
     def localization(
         step: Step, kind: str, parent: tuple[str, str], existing: Mapping[str, str]
@@ -288,7 +313,7 @@ def apply_plan(
         if step.resource == "appInfoLocalizations":
             localization(step, step.resource, ("appInfo", info), info_locs)
         elif step.resource == "appStoreVersionLocalizations":
-            localization(step, step.resource, ("appStoreVersion", version), version_locs)
+            localization(step, step.resource, ("appStoreVersion", version), version_locs())
         elif step.resource == "appInfos":
             category = {"data": {"type": "appCategories", "id": values["primaryCategory"]}}
             body = {
