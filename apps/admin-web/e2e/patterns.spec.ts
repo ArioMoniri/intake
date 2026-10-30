@@ -297,21 +297,28 @@ function refusedPages(state: RefusedState, lang: "tr" | "en"): Record<string, Re
   };
 }
 
+/** Two languages × every reason × five pages of full renders: 5.1 s on a shared CI runner. */
+const EVERY_REFUSAL_TIMEOUT_MS = 30_000;
+
 describe("a refusal says why, and what to do next", () => {
-  it("every page, every reason, both languages: the next step follows the reason", () => {
-    for (const lang of ["tr", "en"] as const) {
-      for (const state of REFUSED) {
-        for (const [page, tree] of Object.entries(refusedPages(state, lang))) {
-          const doc = dom(tree);
-          const next = doc.querySelector(".next-step");
-          expect(next, `${page} ${state.reason}`).not.toBeNull();
-          expect(next!.getAttribute("data-next-step")).toBe(state.reason);
-          expect(text(next)).toContain(NEXT_STEPS[lang].reasons[state.reason]);
-          expect(next!.previousElementSibling!.classList.contains("refusal")).toBe(true);
+  it(
+    "every page, every reason, both languages: the next step follows the reason",
+    () => {
+      for (const lang of ["tr", "en"] as const) {
+        for (const state of REFUSED) {
+          for (const [page, tree] of Object.entries(refusedPages(state, lang))) {
+            const doc = dom(tree);
+            const next = doc.querySelector(".next-step");
+            expect(next, `${page} ${state.reason}`).not.toBeNull();
+            expect(next!.getAttribute("data-next-step")).toBe(state.reason);
+            expect(text(next)).toContain(NEXT_STEPS[lang].reasons[state.reason]);
+            expect(next!.previousElementSibling!.classList.contains("refusal")).toBe(true);
+          }
         }
       }
-    }
-  });
+    },
+    EVERY_REFUSAL_TIMEOUT_MS,
+  );
 
   it("an unreachable API offers one retry link to the same page, in the same language", () => {
     const state: RefusedState = { kind: "unavailable", reason: "api_unreachable" };

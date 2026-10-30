@@ -71,10 +71,14 @@ export type RecordsErrorKind =
 
 export class RecordsApiError extends Error {
   readonly kind: RecordsErrorKind;
+  /** The HTTP status behind a `generic` refusal, when there was one — so a
+   * caller that retries (INT-587's note outbox) can tell a 5xx from a 4xx. */
+  readonly status: number | null;
 
-  constructor(kind: RecordsErrorKind) {
+  constructor(kind: RecordsErrorKind, status: number | null = null) {
     super(kind); // the kind IS the message — codes, never narrative
     this.kind = kind;
+    this.status = status;
   }
 }
 
@@ -182,7 +186,7 @@ function mapError(status: number, body: Record<string, unknown>): RecordsApiErro
   if (status === 401 || code === "session") {
     return new RecordsApiError("session");
   }
-  return new RecordsApiError("generic");
+  return new RecordsApiError("generic", status);
 }
 
 /** authedFetch with its transport errors re-typed into this module's kinds. */

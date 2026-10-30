@@ -29,6 +29,7 @@ import { GuidanceBlock } from "@/components/GuidanceBlock";
 import { Kicker } from "@/components/Kicker";
 import { ListGroup, ListRow } from "@/components/ListRow";
 import { AppText, Card, RAIL_EDGES, Screen } from "@/components/Themed";
+import { companionEffectKeys, currentBuildMode } from "@/lib/buildCopy";
 import { t } from "@/lib/i18n";
 import {
   setCompanionDeclaration,
@@ -42,19 +43,10 @@ export default function Companion() {
   const outcome = useCompanionOutcome();
   const isCompanion = declaration.role === "companion";
 
-  const effects: string[] = [];
-  if (outcome.proxyReported) {
-    effects.push(t("companion.effect.proxy"));
-  }
-  if (outcome.attribution === "assisted_self_report") {
-    effects.push(t("companion.effect.assisted"));
-  }
-  if (outcome.sensitiveTextOnly) {
-    effects.push(t("companion.effect.textOnly"));
-  }
-  if (!outcome.safeguardingAsked) {
-    effects.push(t("companion.effect.noSafeguarding"));
-  }
+  // INT-588: what the declaration changes IN THIS BUILD. Text-only for
+  // sensitive topics is a change only where questions can be spoken, so a
+  // release build does not list it (lib/buildCopy.ts).
+  const effects: string[] = companionEffectKeys(outcome, currentBuildMode()).map((key) => t(key));
 
   return (
     <Screen edges={RAIL_EDGES}>
