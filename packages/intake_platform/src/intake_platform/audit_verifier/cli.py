@@ -12,7 +12,7 @@ renders carries no entry content, and the printed form must not widen it
 
 The anchored head is an **input**, never a default. There is no publisher for
 it in this repo and inventing one would defeat the control it implements
-(files/10 §2 (b); files/HUMAN_BLOCKERS.md HB-I8). Without it the command
+(files/10 §2 (b); files/HUMAN_BLOCKERS.md HB-I12). Without it the command
 refuses — exit 3 — rather than reporting a chain that merely agrees with
 itself.
 """
@@ -53,7 +53,7 @@ DATABASE_URL_ENV = "INTAKE_DATABASE_URL"
 _ANCHOR_ASK = (
     "supply the head that was published outside the platform_admin blast radius "
     "with --anchor-head or --anchor-file. Where that head is published is an open "
-    "human decision — files/HUMAN_BLOCKERS.md HB-I8 (owner)."
+    "human decision — files/HUMAN_BLOCKERS.md HB-I12 (owner)."
 )
 
 

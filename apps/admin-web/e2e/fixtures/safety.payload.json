@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-06",
+  "generated_at": "2026-10-30",
   "triage_events": {
     "metric_id": "triage.events_total",
     "metric_status": "planned",
@@ -53,6 +53,9 @@
   "policyguard_classes": {
     "metric_id": "policyguard.blocks_total",
     "metric_status": "live",
+    "window": "24h",
+    "source_available": false,
+    "source_reason": "prometheus_unconfigured",
     "allowed_classes": [
       "diagnosis",
       "treatment",
@@ -65,34 +68,34 @@
     "classes": [
       {
         "class": "diagnosis",
-        "count": 0
+        "count": null
       },
       {
         "class": "treatment",
-        "count": 0
+        "count": null
       },
       {
         "class": "prognosis",
-        "count": 0
+        "count": null
       },
       {
         "class": "multi_question",
-        "count": 0
+        "count": null
       },
       {
         "class": "too_long",
-        "count": 0
+        "count": null
       },
       {
         "class": "register",
-        "count": 0
+        "count": null
       },
       {
         "class": "jargon",
-        "count": 0
+        "count": null
       }
     ],
-    "note": "PolicyGuard blocks patient-facing text by violation class (invariant 2: no diagnosis/treatment/prognosis, one question per turn, B1 Turkish, siz register). policyguard.blocks_total is live, but the console reads a scrape at serve time; this fixture records the class skeleton at 0 so the spec runs without a Prometheus."
+    "note": "PolicyGuard blocks patient-facing text by violation class (invariant 2: no diagnosis/treatment/prognosis, one question per turn, B1 Turkish, siz register), summed over every profile for the last 24h. Read from the metrics scrape at serve time; without one, no count is shown (invariant 17)."
   },
   "acceptance_by_specialty": {
     "metric_id": "note.acceptance_rate",

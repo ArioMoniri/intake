@@ -18,10 +18,11 @@
  *   (INT-018), which the console reads from a metrics scrape at serve time and
  *   which this repo does not record, so the recorded state is source-unavailable
  *   rather than a bare zero;
- * - the audit-chain status is
- *   `intake_platform.audit_verifier.job.run_daily_verification` (INT-016) over
- *   an empty store with no anchor, whose honest verdict is `anchor_missing`
- *   (HB-I8 is open: no anchor publisher exists), fail-closed;
+ * - the audit-chain status is the verdict
+ *   `intake_platform.audit_verifier.job.run_daily_verification` (INT-016)
+ *   reaches with no anchor, `anchor_missing` (HB-I12 is open: no anchor
+ *   publisher exists), fail-closed — and only the verdict: the console carries
+ *   no chain head (HB-I12; INT-180, INT-565);
  * - the pen-test tracker has no assessment recorded (files/10 §7: the first
  *   external pen-test is before the P2 pilot), so `findings` is genuinely empty.
  *
@@ -34,7 +35,7 @@
  * confusion), a signal / severity / detector source outside its sealed set, an
  * egress count shown as observed while the scrape is unavailable, an audit chain
  * attested green with no external anchor (a pass by omission, files/10 §2), a
- * malformed chain head, a finding status / severity outside its sealed set,
+ * chain head on the console, a finding status / severity outside its sealed set,
  * findings shown with no assessment recorded, and a finding id that is not
  * id-shaped (the finding's prose reappearing on a console, invariant 6). The
  * emptyable surfaces are exercised with rows constructed inline, exactly as
@@ -46,7 +47,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   AuditChainAttestedWithoutAnchor,
-  AuditHeadMalformed,
+  ChainHeadOnConsole,
   EgressCountWithoutScrape,
   FindingsWithoutAssessment,
   renderAuditChainStatus,
@@ -107,10 +108,6 @@ function auditIntact(overrides: Partial<AuditChainPayload> = {}): AuditChainPayl
     ...payload().audit_chain,
     outcome: "intact",
     ok: true,
-    entry_count: 128,
-    first_bad_seq: null,
-    local_head: "b".repeat(64),
-    anchor_head: "b".repeat(64),
     anchor_available: true,
     ...overrides,
   };
@@ -248,14 +245,12 @@ describe("egress denials (allow-list default-deny counter)", () => {
 });
 
 describe("audit-chain status (hash-chain verified against the external anchor)", () => {
-  it("shows the honest fail-closed state: no anchor, so not attested (files/10 §2; HB-I8)", () => {
+  it("shows the honest fail-closed state: no anchor, so not attested (files/10 §2; HB-I12)", () => {
     const view = renderAuditChainStatus(payload().audit_chain);
     expect(view.metricId).toEqual("sec.audit_chain_ok");
     expect(view.outcome).toEqual("anchor_missing");
     expect(view.ok).toBe(false);
     expect(view.anchorAvailable).toBe(false);
-    expect(view.anchorHead).toBeNull();
-    expect(view.entryCount).toEqual("0");
   });
 
   it("shows an intact chain once it verifies against the anchored head", () => {
@@ -263,7 +258,6 @@ describe("audit-chain status (hash-chain verified against the external anchor)",
     expect(view.outcome).toEqual("intact");
     expect(view.ok).toBe(true);
     expect(view.anchorAvailable).toBe(true);
-    expect(view.entryCount).toEqual("128");
   });
 
   it("refuses a green attestation with no external anchor — a pass by omission (files/10 §2)", () => {
@@ -273,18 +267,13 @@ describe("audit-chain status (hash-chain verified against the external anchor)",
       ...payload().audit_chain,
       outcome: "anchor_missing",
       ok: true,
-      anchor_head: null,
       anchor_available: false,
     };
     expect(() => renderAuditChainStatus(tampered)).toThrow(AuditChainAttestedWithoutAnchor);
   });
 
-  it("refuses an ok=true chain whose anchor head is absent", () => {
-    const tampered: AuditChainPayload = {
-      ...auditIntact(),
-      anchor_head: null,
-      anchor_available: false,
-    };
+  it("refuses an ok=true chain with no anchor available", () => {
+    const tampered: AuditChainPayload = { ...auditIntact(), anchor_available: false };
     expect(() => renderAuditChainStatus(tampered)).toThrow(AuditChainAttestedWithoutAnchor);
   });
 
@@ -293,9 +282,15 @@ describe("audit-chain status (hash-chain verified against the external anchor)",
     expect(() => renderAuditChainStatus(tampered)).toThrow(UnknownAuditOutcome);
   });
 
-  it("refuses a malformed (non-64-hex) chain head", () => {
-    const tampered: AuditChainPayload = { ...auditIntact(), local_head: "not-a-hash" };
-    expect(() => renderAuditChainStatus(tampered)).toThrow(AuditHeadMalformed);
+  it("refuses a chain head on the console, by key or by shape (HB-I12; INT-180)", () => {
+    // the head is published outside the blast radius this console sits in
+    const keyed = { ...auditIntact(), local_head: "b".repeat(64) } as AuditChainPayload;
+    expect(() => renderAuditChainStatus(keyed)).toThrow(ChainHeadOnConsole);
+    const hidden: AuditChainPayload = { ...auditIntact(), reason: `head ${"c".repeat(64)}` };
+    expect(() => renderAuditChainStatus(hidden)).toThrow(ChainHeadOnConsole);
+    // near-miss: a shorter hex run (a 128-bit digest) is not a head
+    const digest: AuditChainPayload = { ...auditIntact(), reason: `digest ${"c".repeat(32)}` };
+    expect(renderAuditChainStatus(digest).ok).toBe(true);
   });
 });
 

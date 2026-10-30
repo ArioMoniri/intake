@@ -1,5 +1,33 @@
 # PROGRESS — one entry per LOOP iteration (template in LOOP.md)
 
+### 2026-10-30T14:00:00+03:00 · INT-565 · done (PR open against main, after #963 merged)
+- Goal: GitHub #954, Sec-Row `admin-console`. The Protocols, Clinical quality & safety, Security and Cost composers existed only as `scripts/dev` recorders over view-models with no route and no page. Serve them as console routes and render them as pages, ids only, role- and consent-gated, on the INT-564 `/experience` pattern.
+- Plan:
+  - A pure builder per module in `services/api/src/intake_api/admin/{protocols,quality_safety,security,cost}_console.py`; each recorder delegates to it; four `ADMIN_ROUTES` rows with their readers; matrix rows and drives; a fixture-parity test per module.
+  - Scrape-backed figures (PolicyGuard blocks, egress denials, cost usage) read through the API's own Prometheus reader over a fixed query table and a stated `24h` window; unread is a reason, never a zero.
+  - The boundary: `intake_platform.admin.console_vocab` holds the four closed sets the API must not import from their owners (PolicyGuard classes, Loop 2 targets and checks, verifier outcomes), held equal to the owners by a test; the API's import closure is tested to load none of `intake_voice_runtime`, `intake_learning`, `intake_platform.audit_verifier`.
+  - Four pages on the INT-459 shell with `src/<x>/{load,copy,console}` and `app/<x>/page.tsx`.
+- Tests added (with the near-miss negative for any safety rule):
+  - `tests/admin/test_{console_vocab,protocols_console,quality_safety_console,security_console,cost_console}.py`; matrix rows and drives for the four routes.
+  - Near misses: a reordered vocabulary copy; the probe seeing a forbidden import; a servable pack refused rather than zero clips; an off-set PolicyGuard class and a sentence-shaped label painting no count; `triage.events_total` promoted to live tripping the builder; an unread egress scrape as no count; an erroring cost reader as `source_error`.
+  - `apps/admin-web/e2e/pages565.spec.ts` and the four pages in `states.spec.ts`; the safety and security specs moved to the new contracts.
+  - Red: 5 collection errors, 15 + 52 failed on the existing admin suites, 11 failed in vitest. Green: `tests/admin` 1425 passed; admin-web 703 passed.
+- Result (`make check` / `make safety` / `make security` summary):
+  - ruff and format clean; mypy --strict clean (604 files after merging main); tsc and eslint clean.
+  - no_placeholders, phi_scan and claims_scan OK; pre-commit gitleaks and semgrep passed.
+  - files/11 regenerated; the three pins go from 386 to 387 on main as merged on 31 Oct.
+  - `make safety` untouched: no rule, PolicyGuard or runtime change. The full fan-out runs on the PR runner.
+- Invariants touched and still passing:
+  - 4: every route is a descriptor with the audit pair and the consent declaration; the chain is never read by the console;
+  - 6: ids and counts only; labels held to the id shape; no session or patient key;
+  - 13/15: every query names a catalogued series; no new metric;
+  - 17: no zero for an unread source, a missing price or an unwired feed;
+  - HB-I12 / INT-180: no admin body carries a 64-hex value (INT-192's view-model carried the chain head and was changed; the cost digest is 128 bits).
+- Decisions / ADRs / `00_STATE.md` rows: the boundary is a data module in an existing package plus a parity test; no new dependency edge, so no ADR filed (flagged to the orchestrator).
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): none new. HB-I12 keeps the chain at `anchor_missing`; HB-O8 keeps every price and budget unconfigured; HB-L6 keeps false-RED content refused.
+- Next: the INT-205 SIEM counter re-count is reported to the orchestrator to file; the merge queue takes the PR.
+- LOOP_STATUS: DONE
+
 ### 2026-10-28T16:30:00+03:00 · INT-585 · done (PR open)
 - Goal: GitHub #984, Sec-Row `onboarding`. Record the owner's 28 Oct SMS decisions ("1Y 2Y 3Y 4Y 5Y") as D34-D38 in files/00_STATE.md §3, and the live Netgsm OTP confirmation in docs/evidence/INT-576.md.
 - Plan:

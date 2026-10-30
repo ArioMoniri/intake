@@ -2,7 +2,7 @@
   "currency": "USD",
   "config": {
     "path": "tests/fixtures/cost/unit-prices.priced.yaml",
-    "sha256": "164c2b7d88b65107f984fe17c817c8623f5646b61876e3590167778512e3d607",
+    "sha256_prefix": "164c2b7d88b65107f984fe17c817c862",
     "blocker": "HB-O8"
   },
   "source": {

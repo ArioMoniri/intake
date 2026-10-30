@@ -132,6 +132,27 @@ export async function admit(args: {
   }
 }
 
+/**
+ * INT-565 — an admitted read rendered by a module's view-model: `admit`, then
+ * the module's own `render`, and any refusal it throws is `payload_refused` —
+ * a page that would paint a tampered or drifted body paints nothing instead.
+ */
+export async function admitAndRender<Payload, View>(
+  args: { config: OpsConfig | null; authorization: string | null; fetch: FetchLike },
+  path: `/admin/${string}`,
+  render: (payload: Payload) => View,
+): Promise<RefusedState | { kind: "console"; view: View }> {
+  const admitted = await admit({ ...args, path });
+  if (admitted.kind !== "admitted") return admitted;
+  try {
+    // the view-model is the shape check: whatever it refuses, the page does not paint
+    return { kind: "console", view: render(admitted.body as Payload) };
+  } catch (error) {
+    if (error instanceof Error) return { kind: "unavailable", reason: "payload_refused" };
+    throw error;
+  }
+}
+
 export async function loadOpsConsole(args: {
   config: OpsConfig | null;
   authorization: string | null;

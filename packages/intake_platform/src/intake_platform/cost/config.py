@@ -297,6 +297,14 @@ def load_cost_config(path: Path) -> CostConfig:
 
 
 def config_identity(path: Path, repo_root: Path) -> tuple[str, str]:
-    """The repo-relative path and sha256 of a config, as the console shows them."""
+    """The repo-relative path and the first 128 bits of the config's sha256, as
+    the console shows them.
+
+    128 bits, not 256 (INT-565): no admin response carries a 64-hex value,
+    because that is the shape of an audit-chain head and the console sits
+    inside the blast radius the head is published outside of (HB-I12; INT-180's
+    ``test_no_admin_response_carries_a_chain_hash``). The access review's
+    section digests are 128 bits for the same reason.
+    """
     relative = path.resolve().relative_to(repo_root.resolve()).as_posix()
-    return relative, hashlib.sha256(path.read_bytes()).hexdigest()
+    return relative, hashlib.sha256(path.read_bytes()).hexdigest()[:32]

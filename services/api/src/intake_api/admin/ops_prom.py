@@ -109,6 +109,11 @@ class PromClient:
             raise PromUnavailable("prometheus_bad_response")
         return body
 
+    def query(self, expr: str) -> Mapping[str, Any]:
+        """The successful ``/api/v1/query`` body, for a caller that parses it
+        itself — the cost composite's query runner (INT-565)."""
+        return self._body(expr)
+
     def vector(self, expr: str) -> tuple[Sample, ...]:
         """An instant vector. Samples whose value is NaN/Inf are dropped."""
         data = self._body(expr).get("data")

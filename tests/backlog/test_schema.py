@@ -265,7 +265,9 @@ def test_ids_unique_and_well_formed() -> None:
     # processing accepts the iOS build, ITMS-90683; GitHub #1000).
     # + INT-584 (the phone-tokenization key moves into OpenBao with the same
     # key material, no pseudonym changes; owner decision D38, GitHub #983).
-    assert len(ids) == 386
+    # + INT-565 (the Protocols, Clinical quality & safety, Security and Cost
+    # composites as console routes and pages; GitHub #954).
+    assert len(ids) == 387
     import re
 
     for i in ids:

@@ -319,7 +319,7 @@ def test_cli_without_an_anchor_refuses_and_says_who_must_answer(
     assert code == EXIT_NO_ANCHOR
     out = capsys.readouterr().out
     assert "--anchor-head" in out
-    assert "HB-I8" in out
+    assert "HB-I12" in out
 
 
 def test_cli_rejects_a_malformed_anchor(capsys: pytest.CaptureFixture[str]) -> None:

@@ -10,23 +10,39 @@
  * keeps the page. On a narrow screen the same markup becomes a floating tab
  * bar (app/native-shell.css). A new page is one entry in each of `CONSOLE_PAGES`,
  * `GROUP_OF`, `GLYPH_OF` and the two label tables; the Model lanes page
- * (INT-428) sits under Services with the `chip` symbol.
+ * (INT-428) sits under Services with the `chip` symbol. INT-565 adds Clinical
+ * quality & safety (Monitor), Protocols (Services), Security and Cost
+ * (Governance).
  */
 import type { ReactElement } from "react";
 
 import { Glyph, type GlyphName } from "../ui/glyphs";
 import type { Lang } from "./copy";
 
-export type ConsolePage = "overview" | "ops" | "voice" | "access" | "cicd" | "model-lanes";
+export type ConsolePage =
+  | "overview"
+  | "ops"
+  | "quality-safety"
+  | "voice"
+  | "model-lanes"
+  | "protocols"
+  | "access"
+  | "cicd"
+  | "security"
+  | "cost";
 
 /** Every console page, in the order the sidebar lists them. */
 export const CONSOLE_PAGES: readonly ConsolePage[] = [
   "overview",
   "ops",
+  "quality-safety",
   "voice",
   "model-lanes",
+  "protocols",
   "access",
   "cicd",
+  "security",
+  "cost",
 ];
 
 type Group = "monitor" | "services" | "govern";
@@ -36,10 +52,14 @@ const GROUPS: readonly Group[] = ["monitor", "services", "govern"];
 const GROUP_OF: Record<ConsolePage, Group> = {
   overview: "monitor",
   ops: "monitor",
+  "quality-safety": "monitor",
   voice: "services",
   "model-lanes": "services",
+  protocols: "services",
   access: "govern",
   cicd: "govern",
+  security: "govern",
+  cost: "govern",
 };
 
 const GLYPH_OF: Record<ConsolePage, GlyphName> = {
@@ -47,8 +67,12 @@ const GLYPH_OF: Record<ConsolePage, GlyphName> = {
   ops: "gauge",
   voice: "waveform",
   "model-lanes": "chip",
+  "quality-safety": "cross",
+  protocols: "list",
   access: "key",
   cicd: "branch",
+  security: "lock",
+  cost: "coin",
 };
 
 interface NavCopy {
@@ -73,6 +97,10 @@ const LABELS: Record<Lang, NavCopy> = {
       access: "Erişim",
       cicd: "CI/CD",
       "model-lanes": "Model hatları",
+      "quality-safety": "Kalite ve güvenlik",
+      protocols: "Protokoller",
+      security: "Güvenlik",
+      cost: "Maliyet",
     },
     langLabel: "Dil",
   },
@@ -88,6 +116,10 @@ const LABELS: Record<Lang, NavCopy> = {
       access: "Access",
       cicd: "CI/CD",
       "model-lanes": "Model lanes",
+      "quality-safety": "Quality & safety",
+      protocols: "Protocols",
+      security: "Security",
+      cost: "Cost",
     },
     langLabel: "Language",
   },

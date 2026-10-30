@@ -136,7 +136,7 @@ describe("the committed state — nothing is priced, nothing is invented", () =>
     const view = renderCostModule(committed());
     expect(view.config.path).toBe("infra/costs/unit-prices.yaml");
     expect(view.config.blocker).toBe("HB-O8");
-    expect(view.config.sha256).toMatch(/^[0-9a-f]{64}$/);
+    expect(view.config.sha256_prefix).toMatch(/^[0-9a-f]{32}$/);
   });
 });
 

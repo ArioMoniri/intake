@@ -441,6 +441,12 @@ ROUTE_DRIVES: tuple[RouteDrive, ...] = (
         f"/admin/safety-queue/sx_{'0' * 32}/acknowledge",
         "tenant_clinical_responsible",
     ),
+    # INT-565 — the Protocols, Clinical quality & safety, Security and Cost
+    # composites: reads, each answered 200 from the committed sources.
+    RouteDrive("GET", "/admin/protocols", "/admin/protocols", "clinical_lead"),
+    RouteDrive("GET", "/admin/quality-safety", "/admin/quality-safety", "clinical_lead"),
+    RouteDrive("GET", "/admin/security", "/admin/security", "sre_oncall"),
+    RouteDrive("GET", "/admin/cost", "/admin/cost", "platform_admin"),
 )
 
 

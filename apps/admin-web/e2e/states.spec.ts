@@ -37,10 +37,14 @@ vi.mock("next/server", () => ({
 import NotFound from "../app/not-found";
 import { AccessConsole } from "../src/access/console";
 import { CicdConsole } from "../src/cicd/console";
+import { CostConsole } from "../src/cost/console";
 import { ModelLanesConsole } from "../src/model-lanes/console";
 import { OpsConsole } from "../src/ops/console";
 import { CONSOLE_PAGES } from "../src/ops/nav";
 import { OverviewConsole } from "../src/overview/console";
+import { ProtocolsConsole } from "../src/protocols/console";
+import { QualitySafetyConsole } from "../src/safety/console";
+import { SecurityConsole } from "../src/security/console";
 import { NotFoundView } from "../src/ui/states";
 import { VoiceConsole } from "../src/voice/console";
 import { AXE_TIMEOUT_MS, documentFor, violations } from "./support/axe";
@@ -165,6 +169,15 @@ function refusedPages(lang: "tr" | "en"): Record<string, ReactElement> {
     }),
     "access refused": createElement(AccessConsole, { state: refused, lang }),
     "access unavailable": createElement(AccessConsole, { state: down, lang }),
+    // INT-565
+    "quality-safety refused": createElement(QualitySafetyConsole, { state: refused, lang }),
+    "quality-safety unavailable": createElement(QualitySafetyConsole, { state: down, lang }),
+    "protocols refused": createElement(ProtocolsConsole, { state: refused, lang }),
+    "protocols unavailable": createElement(ProtocolsConsole, { state: down, lang }),
+    "security refused": createElement(SecurityConsole, { state: refused, lang }),
+    "security unavailable": createElement(SecurityConsole, { state: down, lang }),
+    "cost refused": createElement(CostConsole, { state: refused, lang }),
+    "cost unavailable": createElement(CostConsole, { state: down, lang }),
   };
 }
 

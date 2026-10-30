@@ -39,6 +39,10 @@
  *
  * - **PolicyGuard classes are sealed** (`UnknownPolicyClass`). Invariant 2's
  *   categories are a fixed set; a class outside it is a tampered or drifted body.
+ *   Their counts are read from the scrape at serve time (INT-565): with none
+ *   behind the section, a count — a zero included — is refused
+ *   (`PolicyGuardCountWithoutScrape`), so "no blocks" and "no data" never look
+ *   alike.
  *
  * - **A rate is a measurement, never a claim** (`UnlabelledMeasurement`, reused
  *   from INT-183). Invariant 20: an acceptance figure is shown only with a named
@@ -110,12 +114,19 @@ export interface FalseRedQueuePayload {
 export interface PolicyGuardClassRow {
   /** A `ViolationClass`: diagnosis | treatment | prognosis | multi_question | … */
   readonly class: string;
-  readonly count: number;
+  /** Blocks in the window, or null when no scrape was read — never a bare 0. */
+  readonly count: number | null;
 }
 
 export interface PolicyGuardPayload {
   readonly metric_id: string;
   readonly metric_status: string;
+  /** The window the counts are summed over (INT-565: `24h`). */
+  readonly window: string;
+  /** False when the route read no scrape (INT-565); then every count is null. */
+  readonly source_available: boolean;
+  /** Why the scrape was not read (`prometheus_unconfigured`, …), else null. */
+  readonly source_reason: string | null;
   readonly allowed_classes: readonly string[];
   readonly classes: readonly PolicyGuardClassRow[];
   readonly note: string;
@@ -202,12 +213,16 @@ export interface FalseRedQueuePresentation {
 
 export interface PolicyGuardClassPresentation {
   readonly className: string;
-  readonly count: string;
+  /** The count, or null while no scrape backs the section. */
+  readonly count: string | null;
 }
 
 export interface PolicyGuardPresentation {
   readonly metricId: string;
   readonly metricStatus: string;
+  readonly window: string;
+  readonly sourceAvailable: boolean;
+  readonly sourceReason: string | null;
   readonly note: string;
   readonly classes: readonly PolicyGuardClassPresentation[];
 }
@@ -310,6 +325,18 @@ export class UnknownPolicyClass extends Error {
         `new class is a tampered or drifted body`,
     );
     this.name = "UnknownPolicyClass";
+  }
+}
+
+/** A PolicyGuard count presented while no scrape backs the section (inv 17). */
+export class PolicyGuardCountWithoutScrape extends Error {
+  constructor(className: string) {
+    super(
+      `refusing to render a PolicyGuard count for '${className}' while no metrics scrape ` +
+        `backs the section: policyguard.blocks_total is read at serve time, and a number with ` +
+        `no scrape behind it reads as "no blocks" when it means "no data" (invariant 17)`,
+    );
+    this.name = "PolicyGuardCountWithoutScrape";
   }
 }
 
@@ -471,11 +498,16 @@ export function renderPolicyGuardClasses(payload: PolicyGuardPayload): PolicyGua
     if (!payload.allowed_classes.includes(row.class)) {
       throw new UnknownPolicyClass(row.class, payload.allowed_classes);
     }
+    if (row.count === null) return { className: row.class, count: null };
+    if (!payload.source_available) throw new PolicyGuardCountWithoutScrape(row.class);
     return { className: row.class, count: count(row.count) };
   });
   return {
     metricId: payload.metric_id,
     metricStatus: payload.metric_status,
+    window: payload.window,
+    sourceAvailable: payload.source_available,
+    sourceReason: payload.source_available ? null : payload.source_reason,
     note: payload.note,
     classes,
   };

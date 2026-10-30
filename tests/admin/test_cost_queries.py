@@ -142,7 +142,7 @@ class TestQueryShapes:
             return _ok([])
 
         payload = compose_cost_payload(
-            priced, config_ref="inline", config_sha256="0" * 64, catalog=catalog, runner=runner
+            priced, config_ref="inline", config_digest="0" * 32, catalog=catalog, runner=runner
         )
         day = next(w for w in payload["windows"] if w["period"] == "day")
         row = next(
@@ -199,7 +199,7 @@ class TestAnswerRefusals:
             return _ok([])
 
         payload = compose_cost_payload(
-            config, config_ref="inline", config_sha256="0" * 64, catalog=catalog, runner=runner
+            config, config_ref="inline", config_digest="0" * 32, catalog=catalog, runner=runner
         )
         day = next(w for w in payload["windows"] if w["period"] == "day")
         row = next(

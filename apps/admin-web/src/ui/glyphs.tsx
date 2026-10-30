@@ -10,7 +10,18 @@
 import type { ReactElement } from "react";
 
 export type GlyphName =
-  "grid" | "gauge" | "waveform" | "key" | "branch" | "chip" | "search" | "mark";
+  | "grid"
+  | "gauge"
+  | "waveform"
+  | "key"
+  | "branch"
+  | "chip"
+  | "cross"
+  | "list"
+  | "lock"
+  | "coin"
+  | "search"
+  | "mark";
 
 const SHAPES: Record<GlyphName, ReactElement> = {
   // square.grid.2x2 — the overview
@@ -54,6 +65,37 @@ const SHAPES: Record<GlyphName, ReactElement> = {
       <rect x="6.5" y="6.5" width="11" height="11" rx="2.5" />
       <rect x="9.75" y="9.75" width="4.5" height="4.5" rx="1" />
       <path d="M9.5 3.5v3M14.5 3.5v3M9.5 17.5v3M14.5 17.5v3M3.5 9.5h3M3.5 14.5h3M17.5 9.5h3M17.5 14.5h3" />
+    </>
+  ),
+  // cross.case — clinical quality & safety (INT-565)
+  cross: (
+    <>
+      <rect x="4" y="4" width="16" height="16" rx="4" />
+      <path d="M12 8.5v7M8.5 12h7" />
+    </>
+  ),
+  // list.bullet.rectangle — protocols (INT-565)
+  list: (
+    <>
+      <rect x="4" y="4" width="16" height="16" rx="3" />
+      <path d="M10.5 9h5.5M10.5 12h5.5M10.5 15h5.5" />
+      <circle cx="7.75" cy="9" r="0.6" />
+      <circle cx="7.75" cy="12" r="0.6" />
+      <circle cx="7.75" cy="15" r="0.6" />
+    </>
+  ),
+  // lock — security (INT-565)
+  lock: (
+    <>
+      <rect x="5.5" y="10.5" width="13" height="9.5" rx="2.5" />
+      <path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5M12 14.25v2" />
+    </>
+  ),
+  // creditcard — cost (INT-565)
+  coin: (
+    <>
+      <rect x="3.5" y="6" width="17" height="12" rx="2.5" />
+      <path d="M3.5 10h17M7 14.5h3" />
     </>
   ),
   // magnifyingglass — not found

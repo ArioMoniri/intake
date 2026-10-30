@@ -144,6 +144,43 @@ _SAFETY_QUEUE_READERS = frozenset(
 )
 
 
+#: INT-565 — the Protocols module (files/08 §3). The pack tree and the
+#: proposal queue are platform content, not a tenant's: `clinical_lead` reviews
+#: protocols and approves proposals (§2.1), `qms_owner` owns the device change
+#: control a maturity promotion passes through, `platform_owner` sees
+#: everything, and `auditor` reads it as evidence.
+_PROTOCOLS_READERS = frozenset(
+    {AdminRole.CLINICAL_LEAD, AdminRole.QMS_OWNER, AdminRole.PLATFORM_OWNER, AdminRole.AUDITOR}
+)
+
+#: INT-565 — Clinical quality & safety (files/08 §3, §4 D/E). Its counts are
+#: summed over every tenant (no series carries a tenant label), so a role
+#: scoped to one tenant would read the others' volumes: the all-tenant
+#: clinical roles, the platform owner and the auditor read it.
+_QUALITY_SAFETY_READERS = _PROTOCOLS_READERS
+
+#: INT-565 — Security (files/08 §3; files/10 §7). Platform infrastructure and
+#: its integrity: the roles that run it (`platform_admin`, `sre_oncall`), the
+#: owner, `compliance_officer` (the audit chain and the pen-test record are
+#: evidence it answers for) and `auditor`.
+_SECURITY_READERS = frozenset(
+    {
+        AdminRole.PLATFORM_OWNER,
+        AdminRole.PLATFORM_ADMIN,
+        AdminRole.SRE_ONCALL,
+        AdminRole.COMPLIANCE_OFFICER,
+        AdminRole.AUDITOR,
+    }
+)
+
+#: INT-565 — Cost (files/08 §3). Platform spend by component, vendor and
+#: profile: the roles that run the platform and answer for capacity, and
+#: `auditor`. No clinical or tenant-scoped role has a reason to hold it.
+_COST_READERS = frozenset(
+    {AdminRole.PLATFORM_OWNER, AdminRole.PLATFORM_ADMIN, AdminRole.SRE_ONCALL, AdminRole.AUDITOR}
+)
+
+
 @dataclass(frozen=True)
 class AdminRoute:
     method: str
@@ -442,6 +479,15 @@ ADMIN_ROUTES: tuple[AdminRoute, ...] = (
         SAFETY_QUEUE_ACKNOWLEDGE.actor_roles,
         SAFETY_QUEUE_ACKNOWLEDGE.id,
     ),
+    # INT-565 — the Protocols, Clinical quality & safety, Security and Cost
+    # composites (files/08 §3). Reads, ids and counts only, audited like every
+    # route; no DangerousAction.
+    AdminRoute("GET", "/admin/protocols", "admin.protocols.read", _PROTOCOLS_READERS),
+    AdminRoute(
+        "GET", "/admin/quality-safety", "admin.quality_safety.read", _QUALITY_SAFETY_READERS
+    ),
+    AdminRoute("GET", "/admin/security", "admin.security.read", _SECURITY_READERS),
+    AdminRoute("GET", "/admin/cost", "admin.cost.read", _COST_READERS),
 )
 
 

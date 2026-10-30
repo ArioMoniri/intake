@@ -73,11 +73,11 @@ def recorded_runner(queries: Mapping[str, Any], issued: list[str] | None = None)
 
 
 def _compose(path: Path, runner: Runner | None, catalog: MetricsCatalog | None = None) -> Any:
-    ref, sha = config_identity(path, REPO)
+    ref, digest = config_identity(path, REPO)
     return compose_cost_payload(
         load_cost_config(path),
         config_ref=ref,
-        config_sha256=sha,
+        config_digest=digest,
         catalog=catalog or _catalog(),
         runner=runner,
     )
@@ -352,7 +352,7 @@ class TestBudgets:
         return compose_cost_payload(
             _single_vendor_config(limit_day, limit_month),
             config_ref="tests/fixtures/cost/inline",
-            config_sha256="0" * 64,
+            config_digest="0" * 32,
             catalog=_catalog(),
             runner=recorded_runner(_recorded()),
         )
