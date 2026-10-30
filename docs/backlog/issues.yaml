@@ -7470,3 +7470,22 @@
   tests: [apps/mobile/src/lib/consent/gate.test.ts, apps/mobile/src/lib/consent/ledger.test.ts, apps/mobile/src/lib/consent/store.test.ts, apps/mobile/e2e/consent.spec.ts, apps/mobile/e2e/visits.spec.ts, apps/mobile/src/lib/records/api.test.ts, apps/mobile/src/lib/records/screen.test.ts, tests/api/test_core_consent_visit_start.py]
   legal: "KVKK-5,KVKK-6"
   sec_row: "consent"
+- id: INT-586
+  epic: E13-infra
+  phase: P1
+  title: "opentelemetry-api lifted to 1.67.0 in the Keycloak provider, past GHSA-ccrj-gw8r-854m, so the vulnerabilities gate is green without an exception"
+  # GitHub #986. On 28 Oct 2026 osv-scanner began reporting GHSA-ccrj-gw8r-854m
+  # (quadratic CPU in W3C tracestate parsing, CVSS 5.3) against the test-classpath
+  # pin opentelemetry-api 1.62.0 in infra/keycloak/providers/webauthn-session-notes.
+  # Main and every PR went red. 1.67.0 fixes it, so the row is a bump only.
+  depends_on: [INT-378]
+  labels: [area:security]
+  status: done
+  evidence: docs/evidence/INT-586.md
+  acceptance:
+    - "opentelemetry-patched.version is 1.67.0; api, context and common 1.67.0 jar and pom sha256 replace the 1.62.0 lines in .mvn/checksums, each verified against Maven Central's sha1 and sha512; no exception row is added"
+    - "osv-scanner 2.5.1 over the repository reports no unfiltered finding, recorded before and after in evidence"
+    - "the provider's tests pass, and the CI keycloak-provider build resolves under --strict-checksums and reproduces the jar pin; the jar embeds its pom, so the pin moves to the rebuilt jar, and main's pom still reproduces the old pin"
+    - "the passkey login is re-recorded with the new pinned jar on a real Keycloak 26.7.4 off the laptop (provider admitted, stock refused), never edited by hand, and the run is torn down"
+  tests: [tests/admin/test_webauthn_session_notes_provider.py, tests/infra/test_staging_keycloak_provider.py]
+  sec_row: "cicd"

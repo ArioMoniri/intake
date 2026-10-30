@@ -246,7 +246,8 @@ def test_ids_unique_and_well_formed() -> None:
     # loaded only on the synthetic host; owner yes of 16 Oct 2026, GitHub #896).
     # + INT-537 (the app grants the core consent that visits and notes
     # require; INT-529 legal-author finding F2, GitHub #904).
-    assert len(ids) == 376
+    # + INT-586 (opentelemetry-api past GHSA-ccrj-gw8r-854m, GitHub #986).
+    assert len(ids) == 377
     import re
 
     for i in ids:
