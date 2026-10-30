@@ -1,5 +1,16 @@
 # PROGRESS — one entry per LOOP iteration (template in LOOP.md)
 
+### 2026-10-31T02:30:00+03:00 · INT-495 · legal re-check round 4 applied (push to #860)
+- Goal: the legal re-check of 31 Oct confirmed R4 and left one blocker here. The English listing must say that the app is in Turkish only.
+- Plan: put the reviewer's sentence and source verbatim at the head of the en-US description, mirror it in the Play en-US draft (one source), re-render store.config.json, and allow-list the dated INT-482 quote that main's brand gate flags.
+- Tests added (with the near-miss negative for any safety rule): `tests/legal/test_store_listing_drafts.py`. Both English listings open with the sentence and cite LOCALE_REGISTRY, and the Turkish ones do not. Near miss: a registry with `en`. Red: 2 failed / 47 passed. Green: `tests/legal` + `tests/release` 1077 passed.
+- Result (`make check` / `make safety` / `make security` summary): store-config drift check OK; ruff clean; no_placeholders, claims and PHI scans OK after staging (evidence, legal re-check round 4).
+- Invariants touched and still passing: 5, 18, 20.
+- Decisions / ADRs / `00_STATE.md` rows: none.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): App Store Connect writes until the owner's go; the review notes stay held.
+- Next: push to #860, carry it into INT-502, then INT-595.
+- LOOP_STATUS: CONTINUE
+
 ### 2026-10-28T16:30:00+03:00 · INT-585 · done (PR open)
 - Goal: GitHub #984, Sec-Row `onboarding`. Record the owner's 28 Oct SMS decisions ("1Y 2Y 3Y 4Y 5Y") as D34-D38 in files/00_STATE.md §3, and the live Netgsm OTP confirmation in docs/evidence/INT-576.md.
 - Plan:

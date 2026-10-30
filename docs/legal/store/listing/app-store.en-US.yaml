@@ -23,6 +23,7 @@ fields:
   promoText: "Before your visit, you can describe your complaints in your own words and check your note yourself."
   keywords: "doctor,visit,clinic,hospital,complaints,health,pre-visit,note,intake,preparation"
   description: |-
+    Önvizit is available in Turkish only: the app's screens and questions are all in Turkish.
     Önvizit is made for describing your complaints before a medical visit.
     From your answers, a structured pre-visit note is prepared for your doctor.
     The note is shown to you before it is sent.
@@ -44,6 +45,8 @@ sources:
   promoText: "apps/mobile/src/lib/i18n/en.ts intake.open.hint (\"in your own words\"), review.title and review.edit (the note checked before sending); legal review INT-502 B4, 29 Oct 2026"
   keywords: "apps/mobile/src/lib/i18n/en.ts — each keyword names what the app is used for (welcome.body, review.title, today.prep, visits.new.title); no voice or upload term (legal review INT-502 B1, B2)"
   description:
+    - text: "Önvizit is available in Turkish only: the app's screens and questions are all in Turkish."
+      source: "apps/mobile/src/lib/i18n/locale.ts LOCALE_REGISTRY — the build offers `tr` only (HB-O5 names any other language)"
     - text: "Önvizit is made for describing your complaints before a medical visit."
       source: "apps/mobile/src/lib/i18n/en.ts welcome.body (\"collects your complaints … before the visit\")"
     - text: "From your answers, a structured pre-visit note is prepared for your doctor."

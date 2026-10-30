@@ -61,6 +61,12 @@ from store_drafts_harness import (
 #: because ambiguity is the harm".
 SAFETY_LINE_TR = "Acil bir durum yaşıyorsanız 112'yi arayın veya en yakın acil servise başvurun."
 
+#: Legal re-check of INT-495, 31 Oct 2026, verbatim: the English description's first line.
+TURKISH_ONLY_EN = (
+    "Önvizit is available in Turkish only: the app's screens and questions are all in Turkish."
+)
+LOCALE_TS = REPO / "apps" / "mobile" / "src" / "lib" / "i18n" / "locale.ts"
+
 
 def _load_i18n_gate() -> ModuleType:
     """The register lexicon has one home (INT-253); read it, never copy it."""
@@ -257,3 +263,28 @@ def test_no_link_is_authored_in_listing_copy(
     planted.write_text(yaml.safe_dump(loaded, allow_unicode=True), encoding="utf-8")
     with pytest.raises(eas.StoreConfigError, match="link"):
         eas.render_for_repo(root)
+
+
+# --- the English listing names the app's one language ----------------------------------------
+
+
+def _offered_locales(source: str) -> set[str]:
+    """The locales LOCALE_REGISTRY registers, read from locale.ts."""
+    block = source.split("export const LOCALE_REGISTRY", 1)[1].split("});", 1)[0]
+    return set(re.findall(r"^  ([A-Za-z-]+): \{", block, flags=re.MULTILINE))
+
+
+def test_the_english_listing_opens_with_turkish_only_while_the_app_offers_only_turkish() -> None:
+    """Legal re-check, 31 Oct 2026: an English reader learns first that the app is in
+    Turkish only. That is true while LOCALE_REGISTRY offers `tr` alone, so a second locale
+    turns this red until the line is revisited (near miss: a registry with `en`)."""
+    offered = _offered_locales(LOCALE_TS.read_text(encoding="utf-8"))
+    assert offered == {"tr"}
+    for store, field in (("app-store", "description"), ("google-play", "full_description")):
+        loaded = body(listing_source(store, "en-US"))
+        assert lines(loaded["fields"][field])[0] == TURKISH_ONLY_EN, store
+        cited = {row["text"]: row["source"] for row in loaded["sources"][field]}
+        assert "LOCALE_REGISTRY" in cited[TURKISH_ONLY_EN], store
+        assert TURKISH_ONLY_EN not in body(listing_source(store, "tr"))["fields"][field]
+    near_miss = "export const LOCALE_REGISTRY = Object.freeze({\n  tr: {\n  },\n  en: {\n  },\n});"
+    assert _offered_locales(near_miss) == {"tr", "en"} != offered

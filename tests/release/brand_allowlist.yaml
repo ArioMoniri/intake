@@ -223,3 +223,7 @@ entries:
   kind: former_name
   line: '- name `Vizite`, slug `intake-mobile`, version `0.1.0`;'
   why: 'INT-421''s dated evidence: the `expo config` run output of 2026-10-02, before INT-420 renamed the app'
+- path: docs/evidence/INT-482.md
+  kind: former_name
+  line: 'app''s own `app.disclaimer` ("Vizite tanı koymaz. …") would fail the same gate if it were put'
+  why: 'INT-482''s dated evidence quotes the app.disclaimer string as it read before INT-420 renamed the app'
