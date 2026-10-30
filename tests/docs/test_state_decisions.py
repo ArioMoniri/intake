@@ -22,6 +22,10 @@ OWNER_28_OCT = {
     "D38": ("OpenBao", "INT-584"),
 }
 
+OWNER_30_OCT = {
+    "D39": ("never sends an SMS", "INT-488"),
+}
+
 
 def _rows() -> dict[str, str]:
     rows: dict[str, str] = {}
@@ -44,6 +48,17 @@ def test_the_owner_sms_decisions_are_recorded_once_with_owner_date_and_issue() -
     for decision, (fact, issue) in OWNER_28_OCT.items():
         assert decision in rows, f"{decision} is missing from files/00_STATE.md §3"
         _check(decision, rows[decision], fact, issue)
+
+
+def test_the_owner_review_sign_in_decision_is_recorded_with_its_limits() -> None:
+    rows = _rows()
+    for decision, (fact, issue) in OWNER_30_OCT.items():
+        assert decision in rows, f"{decision} is missing from files/00_STATE.md §3"
+        row = rows[decision]
+        assert "owner 30 Oct 2026" in row, f"{decision} must say who decided and when"
+        assert fact in row and issue in row
+        for limit in ("synthetic tenant", "default OFF", "OpenBao", "audited"):
+            assert limit in row, f"{decision} must keep the limit {limit!r}"
 
 
 def test_near_miss_a_decision_row_without_its_issue_is_refused() -> None:
