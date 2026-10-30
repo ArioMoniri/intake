@@ -158,7 +158,8 @@ def test_dryrun_plans_creates_and_updates(tmp_path: Path) -> None:
     # + INT-587 (the note reaches the clinician from a release build, GitHub #988)
     # + INT-588 (patient copy is true in the no-voice release build, GitHub #989)
     # + INT-591 (a release build offers no voice consent it cannot use, GitHub #993)
-    assert len(actions) == 384
+    # + INT-592 (a truthful NSHealthUpdateUsageDescription, ITMS-90683, GitHub #1000)
+    assert len(actions) == 385
     assert actions["INT-001"]["action"] == "update"
     assert actions["INT-001"]["number"] == 1
     assert actions["INT-004"]["action"] == "create"

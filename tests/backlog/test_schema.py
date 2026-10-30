@@ -261,7 +261,9 @@ def test_ids_unique_and_well_formed() -> None:
     # + INT-588 (patient copy is true in the no-voice release build; store-
     # listing legal review B6 precondition, GitHub #989).
     # + INT-591 (a release build offers no voice consent it cannot use, GitHub #993).
-    assert len(ids) == 384
+    # + INT-592 (a truthful NSHealthUpdateUsageDescription so App Store
+    # processing accepts the iOS build, ITMS-90683; GitHub #1000).
+    assert len(ids) == 385
     import re
 
     for i in ids:

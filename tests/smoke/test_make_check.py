@@ -426,7 +426,10 @@ def test_backlog_parses_and_is_complete() -> None:
     # #989); grows only with a stated reason.
     # + INT-591 (a release build offers no voice consent it cannot use, GitHub
     # #993); grows only with a stated reason.
-    assert len(ids) == 384, f"expected 175 blueprint + 209 added issues, got {len(ids)}"
+    # + INT-592 (a truthful NSHealthUpdateUsageDescription so App Store
+    # processing accepts the iOS build, ITMS-90683, GitHub #1000); grows only
+    # with a stated reason.
+    assert len(ids) == 385, f"expected 175 blueprint + 210 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 
