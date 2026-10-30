@@ -105,13 +105,43 @@ def test_every_field_the_plan_cannot_fill_is_blocked_with_its_owner(served: Path
         assert needle in blocked, needle
 
 
+def test_the_hold_is_the_one_switch_for_both_routes(served: Path) -> None:
+    """Lifting the hold (a legal-lane edit) puts the notes back on both routes, and an
+    empty hold is refused rather than read as lifted."""
+    path = eas.submission_path(served)
+    loaded = yaml.safe_load(path.read_text(encoding="utf-8"))
+    loaded["review_notes_hold"] = " "
+    path.write_text(yaml.safe_dump(loaded, allow_unicode=True), encoding="utf-8")
+    with pytest.raises(eas.StoreConfigError, match="review_notes_hold"):
+        eas.load_submission(path)
+    del loaded["review_notes_hold"]
+    path.write_text(yaml.safe_dump(loaded, allow_unicode=True), encoding="utf-8")
+    assert eas.render_for_repo(served).config["apple"]["review"] == {
+        "notes": loaded["review_notes"]
+    }
+    steps = _steps(asc_plan.build_plan(served))
+    assert steps[("appStoreReviewDetails", None)] == ("notes",)
+
+
 def test_the_review_notes_are_held_until_they_are_true(served: Path) -> None:
     """Legal review B5 (INT-502): the notes promise a 112 notice, a reviewer sign-in,
     voice and delivery. None of these holds for a store build today, so the notes are
     blocked with their owners rather than written."""
     blocked = "\n".join(asc_plan.build_plan(served).blocked)
-    for needle in ("appStoreReviewDetails.notes", "INT-117", "INT-488", "INT-587"):
+    for needle in (
+        "appStoreReviewDetails.notes",
+        "INT-117 Stage A (static 112 notice; no patient-facing RED on the review host)",
+        "INT-488",
+        "INT-587",
+    ):
         assert needle in blocked, needle
+    # R1: the EAS route is held by the same submission field, so neither the
+    # render nor the committed store.config.json carries a review block.
+    render = eas.render_for_repo(served)
+    assert "review" not in render.config["apple"]
+    assert any(r.startswith("review.notes") and "INT-587" in r for r in render.blocked)
+    committed = json.loads((REPO / "apps/mobile/store.config.json").read_text(encoding="utf-8"))
+    assert "review" not in committed["apple"]
 
 
 def _store_build_has_voice() -> bool:

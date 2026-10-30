@@ -122,7 +122,8 @@ def test_a_bound_link_and_the_seller_fields_reach_every_locale(tmp_path: Path) -
         assert info["privacyPolicyUrl"] == url
         assert info["supportUrl"].startswith("https://")
     assert result.config["apple"]["copyright"] == "2026 Sentetik Test"
-    assert result.blocked == ()
+    # INT-502 legal review B5/R1: only the held review notes stay blocked.
+    assert [r for r in result.blocked if not r.startswith("review.notes")] == []
 
 
 # --- 2. the render: store.config.json from served copy only ----------------------------------
@@ -137,14 +138,18 @@ def test_the_render_assembles_store_config_from_the_promoted_drafts(tmp_path: Pa
     assert {apple["info"][x]["title"] for x in LOCALES} == {APP_NAME}
     assert isinstance(apple["info"]["tr"]["keywords"], list)
     assert apple["release"] == {"automaticRelease": False}
-    assert apple["categories"] and apple["advisory"] and apple["review"]["notes"]
-    assert set(apple["review"]) == {"notes"}, "no reviewer contact or sign-in in the repo"
+    assert apple["categories"] and apple["advisory"]
+    # INT-502 legal review B5/R1: the held notes, and so any review block, are absent;
+    # no reviewer contact or sign-in is ever in the repo either.
+    assert "review" not in apple
+    assert any(reason.startswith("review.notes") for reason in result.blocked)
     assert all("privacyPolicyUrl" not in info for info in apple["info"].values())
     assert any("HB-L27" in reason for reason in result.blocked)
     assert any("HB-L21(e)" in reason for reason in result.blocked)
     text = eas.serialise(config)
     assert claims.scan_text(text, groups=STRICT) == ()
-    assert listing_mod.device_claim_hits(apple["review"]["notes"]) == ()
+    notes = eas.load_submission(eas.submission_path(promote(tmp_path / "again"))).review_notes
+    assert listing_mod.device_claim_hits(notes) == ()
     assert json.loads(text) == config
     assert set(result.sources) >= {
         "docs/legal/store/listing/app-store.tr.yaml",

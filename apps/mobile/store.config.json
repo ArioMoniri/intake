@@ -21,9 +21,6 @@
       "unrestrictedWebAccess": false,
       "seventeenPlus": true
     },
-    "review": {
-      "notes": "Önvizit is a pre-visit intake app. Before a medical visit, the user describes their complaints by voice or by typing, one question at a time. The app turns the answers into a structured note, shows it to the user, and sends it only to the clinician the user chooses.\n\nWhat the app does not do: it does not diagnose, it does not recommend treatment, and it does not tell the user how urgent a complaint is. It makes no claim about how well it measures anything.\n\nEmergencies: Önvizit is not an emergency service. The app shows a fixed notice telling the user to call 112, the emergency number in Türkiye, or to go to the nearest emergency department.\n\nApple Health: with the user's permission, the app reads step count, resting heart rate and sleep. It only reads and never writes to Apple Health. The data stays on the device unless the user adds a summary to their note, and it is never used for advertising.\n\nMicrophone: used only during a voice intake, to turn the answer into text. Audio is never written to disk, to a database or to logs.\n\nCamera: used only to photograph the user's own medical report so that it can be uploaded.\n\nAccount deletion: Profile > Your data lets the user request deletion of their account and data.\n\nTest environment and sign-in: this build connects to a test environment that holds simulated patients only. No real patient data is present. The reviewer account is a simulated patient, and its sign-in details are in the App Review Information section of this submission."
-    },
     "info": {
       "en-US": {
         "title": "Önvizit",
