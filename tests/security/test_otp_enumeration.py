@@ -475,3 +475,129 @@ def test_sent_and_withheld_requests_take_the_same_time(tmp_path: Path) -> None:
     assert ratio < 3, (sent_median, withheld_median)
     assert set(statuses) == {202}
     assert vendor.sends == 25, "every listed number was sent its code"
+
+
+# --- legal review, 30 Oct 2026: no stranger's ref on the chain (B1) ---------------------
+
+
+def _log_ref(phone: str) -> str:
+    """The harness's own tokenizer key, so the ref is the one the API writes."""
+    from intake_platform.tokenization import Tokenizer
+
+    tokenizer = Tokenizer(keys={"v1": b"unit-lane-tokenization-key"}, active_key_id="v1")
+    return str(tokenizer.log_ref(phone))
+
+
+def _row_text(entry: Any) -> str:
+    return " ".join(str(value) for value in vars(entry).values())
+
+
+def test_an_unlisted_number_leaves_no_ref_on_the_chain(tmp_path: Path) -> None:
+    """A number off the synthetic host's test list is someone the owner never
+    named: a stranger's number typed by a caller. Its withheld request is
+    still on the chain (the same one row an admission writes), but under a
+    system actor: the audit chain is kept ten years in WORM storage, and
+    INT-308 keeps no trace of a number nobody admitted."""
+    gate = SmsTestAllowlist(frozenset(LISTED))
+    with harness(tmp_path, recipients=gate) as otp:
+        rows = len(otp.audit_store.entries())
+        assert otp.request_otp(UNLISTED[0], device_id="device-1").status_code == 202
+        otp.settle()
+        appended = otp.audit_store.entries()[rows:]
+        assert [entry.action for entry in appended] == ["auth.otp.withheld"]
+        assert appended[0].actor == "system:otp-withheld"
+        ref = _log_ref(UNLISTED[0])
+        assert all(ref not in _row_text(entry) for entry in otp.audit_store.entries())
+
+
+def test_a_listed_number_in_its_wait_keeps_its_ref(tmp_path: Path) -> None:
+    """Near miss: a number on the list, withheld because it is in its resend
+    wait, is the owner's own; its row keeps the ref, as an admission's does."""
+    gate = SmsTestAllowlist(frozenset(LISTED))
+    with harness(tmp_path, recipients=gate) as otp:
+        assert otp.request_otp(LISTED[0], device_id="device-1").status_code == 202
+        rows = len(otp.audit_store.entries())
+        assert otp.request_otp(LISTED[0], device_id="device-2").status_code == 202
+        otp.settle()
+        appended = [e for e in otp.audit_store.entries()[rows:] if e.action == "auth.otp.withheld"]
+        assert len(appended) == 1
+        assert appended[0].actor == f"phone:{_log_ref(LISTED[0])}"
+
+
+# --- legal review, 30 Oct 2026: a crashed send is contained here too (B2) ----------------
+
+
+class Crashing:
+    """A vendor client with a bug: it raises with the number and the code in
+    its message, the shape of exception that ends up in a log or a tracker."""
+
+    async def send(self, *, phone_e164: str, code: str) -> DeliveryReceipt:
+        raise RuntimeError(f"vendor client crashed sending {code} to {phone_e164}")
+
+
+def _records_text(records: list[Any]) -> str:
+    """Every record as its message, its arguments and its formatted traceback."""
+    import traceback
+
+    out = []
+    for record in records:
+        if record.name.startswith(("httpx", "httpcore")):
+            continue  # the test client logging the dev peek URL it calls
+        out.append(record.getMessage())
+        out.append(repr(record.args))
+        if record.exc_info:
+            out.append("".join(traceback.format_exception(*record.exc_info)))
+    return "\n".join(out)
+
+
+def test_a_crashing_vendor_is_contained_on_this_branch(
+    tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    """The send runs after the response (above), so an exception the vendor
+    raises is the task's. Anything but the typed error is contained in
+    ``_deliver``: recorded as a failed delivery, logged by its type only."""
+    import logging
+
+    caplog.set_level(logging.DEBUG)
+    with harness(tmp_path, delivery=Crashing()) as otp:
+        assert otp.request_otp(PHONE).status_code == 202
+        code = otp.peek(PHONE)
+        otp.settle()
+        assert otp.audit_store.entries()[-1].action == "auth.otp.delivery_failed"
+    text = _records_text(caplog.records)
+    assert code not in text and PHONE not in text and "vendor client crashed" not in text
+    assert any("RuntimeError" in record.getMessage() for record in caplog.records)
+
+
+def test_a_crash_and_a_failing_audit_leak_nothing_through_the_task(
+    tmp_path: Path, caplog: pytest.LogCaptureFixture, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """An audit append that failed inside the handler chained the vendor's
+    exception as its context, and asyncio logged the unretrieved chain with
+    the code and the number in it."""
+    import gc
+    import logging
+
+    from intake_api.audit import AuditWriter
+
+    real_record = AuditWriter.record
+
+    async def failing_record(self: Any, **fields: Any) -> None:
+        if fields["action"] in {"auth.otp.delivery_failed", "auth.otp.sent"}:
+            raise OSError("unit: the audit store is unreachable")
+        await real_record(self, **fields)
+
+    monkeypatch.setattr(AuditWriter, "record", failing_record)
+    caplog.set_level(logging.DEBUG)
+    with harness(tmp_path, delivery=Crashing()) as otp:
+        assert otp.request_otp(PHONE).status_code == 202
+        code = otp.peek(PHONE)
+        otp.settle()
+        gc.collect()  # an unretrieved task exception is logged when the task is freed
+    text = _records_text(caplog.records)
+    assert code not in text and PHONE not in text and "vendor client crashed" not in text
+    messages = [record.getMessage() for record in caplog.records]
+    assert any("OSError" in m for m in messages), "the failed append is visible by type"
+    assert not any(
+        record.name == "asyncio" and record.levelno >= logging.ERROR for record in caplog.records
+    ), "the task's exception was left for asyncio to report"

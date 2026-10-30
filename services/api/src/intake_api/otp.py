@@ -623,7 +623,10 @@ class OtpAuthService:
             SEC_OTP_REQUESTS_TOTAL.labels(outcome=outcome).inc()
             await asyncio.to_thread(self._store.withhold_code, self._wiring.dev_otp_peek)
             await self._audit.record(
-                actor=actor,
+                # legal review, 30 Oct 2026: a number off the test list is a
+                # stranger's, typed by a caller; the chain is kept ten years in
+                # WORM storage, so its row names no ref of it (INT-308)
+                actor=actor if listed else "system:otp-withheld",
                 action="auth.otp.withheld",
                 resource_ref=f"request:{request_id}",
                 consent_scope="scope:auth",
@@ -788,8 +791,14 @@ class OtpAuthService:
             # INT-581: every verify is on the chain, a refused one too — the
             # number's 8-character log ref and the closed outcome, nothing more.
             # INT-579: one row for every kind of refusal, so the work is alike.
+            # Legal review, 30 Oct 2026: a `missing` verify names a number that
+            # has no code, typed by a caller; its row keeps no ref of it.
             await self._audit.record(
-                actor=f"phone:{self._tokenizer.log_ref(phone)}",
+                actor=(
+                    "system:otp-verify"
+                    if outcome == "missing"
+                    else f"phone:{self._tokenizer.log_ref(phone)}"
+                ),
                 action="auth.otp.verify_refused",
                 resource_ref=f"otp_verify:{outcome}",
                 consent_scope="scope:auth",
