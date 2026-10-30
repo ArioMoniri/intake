@@ -680,7 +680,9 @@ it or whose tests exercise it.
   SMS proxy still wired Netgsm (`proxy is None` was admitted); ADR-042 makes the dedicated proxy
   the only route out, so without it the tier stays at 503 and no secret is read. A failed
   verify now leaves `auth.otp.verify_refused` with the closed outcome (`otp_verify:<outcome>`)
-  and the number's 8-character log ref; every send (`requested`, `withheld`, `sent`,
+  and the number's 8-character log ref, except a `missing` one: a verify for a number with no
+  code is a caller typing someone's number, so its row is `system:otp-verify` with no ref (legal
+  review, 30 Oct 2026); every send (`requested`, `withheld`, `sent`,
   `delivery_failed`) and verify (`verified`, `verify_refused`) is on the hash chain, ids only.
   Netgsm's credentials still come from OpenBao alone (INT-528's test). Not closed here: the
   phone-tokenization key itself is read from `INTAKE_TOKENIZATION_KEY` in the host's root-only

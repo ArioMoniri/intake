@@ -758,8 +758,14 @@ class OtpAuthService:
             # INT-581: every verify is on the chain, a refused one too — the
             # number's 8-character log ref and the closed outcome, nothing more.
             # INT-579: one row for every kind of refusal, so the work is alike.
+            # Legal review, 30 Oct 2026: a `missing` verify names a number that
+            # has no code, typed by a caller; its row keeps no ref of it.
             await self._audit.record(
-                actor=f"phone:{self._tokenizer.log_ref(phone)}",
+                actor=(
+                    "system:otp-verify"
+                    if outcome == "missing"
+                    else f"phone:{self._tokenizer.log_ref(phone)}"
+                ),
                 action="auth.otp.verify_refused",
                 resource_ref=f"otp_verify:{outcome}",
                 consent_scope="scope:auth",

@@ -409,6 +409,54 @@ def test_every_send_and_verify_is_on_the_chain_with_ids_only(tmp_path: Path) -> 
     assert verify_entries(entries).ok
 
 
+def _unit_log_ref(phone: str) -> str:
+    """The harness's own tokenizer key, so the ref is the one the API writes."""
+    from intake_platform.tokenization import Tokenizer
+
+    tokenizer = Tokenizer(keys={"v1": b"unit-lane-tokenization-key"}, active_key_id="v1")
+    return str(tokenizer.log_ref(phone))
+
+
+def _row_text(entry: Any) -> str:
+    return " ".join(str(value) for value in vars(entry).values())
+
+
+def test_a_verify_for_a_number_with_no_code_keeps_no_ref(tmp_path: Path) -> None:
+    """Legal review, 30 Oct 2026. A verify for a number that never asked for
+    a code is a caller typing someone's number; the refusal is on the chain
+    (the same one row as any other refusal, so the work is alike), under a
+    system actor with no ref of a number nobody admitted."""
+    never = "+905320000001"
+    dpop = DpopClient()
+    with harness(tmp_path) as otp:
+        rows = len(otp.audit_store.entries())
+        response = otp.verify(dpop, phone=never, code="123456", request_id="0" * 32)
+        assert response.status_code == 401
+        appended = otp.audit_store.entries()[rows:]
+        assert [(e.action, e.resource_ref) for e in appended] == [
+            ("auth.otp.verify_refused", "otp_verify:missing")
+        ]
+        assert appended[0].actor == "system:otp-verify"
+        ref = _unit_log_ref(never)
+        assert all(ref not in _row_text(entry) for entry in otp.audit_store.entries())
+
+
+def test_a_wrong_code_on_a_requested_number_keeps_its_ref(tmp_path: Path) -> None:
+    """Near miss: the number asked for a code, so a wrong guess at it is about
+    that number, and its refusal keeps the ref."""
+    dpop = DpopClient()
+    with harness(tmp_path) as otp:
+        assert otp.sent(CANARY)
+        real = otp.peek(CANARY)
+        rows = len(otp.audit_store.entries())
+        otp.verify(dpop, phone=CANARY, code="000000" if real != "000000" else "111111")
+        appended = otp.audit_store.entries()[rows:]
+        assert [(e.action, e.resource_ref) for e in appended] == [
+            ("auth.otp.verify_refused", "otp_verify:invalid")
+        ]
+        assert appended[0].actor == f"phone:{_unit_log_ref(CANARY)}"
+
+
 # --- egress only through the dedicated proxy (ADR-042) -----------------------------------
 
 
