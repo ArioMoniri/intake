@@ -33,6 +33,7 @@ What these tests hold, in order of how much they matter:
 from __future__ import annotations
 
 import asyncio
+import base64
 import uuid
 from datetime import UTC, datetime, timedelta
 
@@ -85,6 +86,35 @@ def _mint(**overrides: object) -> tuple[str, CheckinClaims]:
     }
     params.update(overrides)
     return mint_checkin(**params)  # type: ignore[arg-type]
+
+
+def _b64u(segment: str) -> bytes:
+    return base64.urlsafe_b64decode(segment + "=" * (-len(segment) % 4))
+
+
+def _tamper_signature(signature: str, bit: int = 0) -> str:
+    """Flip one bit of the decoded signature and re-encode it: always a
+    different, well-formed 43-character spelling of a 32-byte digest. Rewriting
+    trailing characters is not a tamper: a signature that already ends in the
+    rewrite comes back unchanged, and the last character's two low bits are
+    padding, so a swap there can spell the same digest again."""
+    raw = bytearray(_b64u(signature))
+    raw[bit // 8] ^= 1 << (bit % 8)
+    return base64.urlsafe_b64encode(bytes(raw)).rstrip(b"=").decode("ascii")
+
+
+def _nonce_whose_signature_ends_in_aa() -> str:
+    """The first nonce, in a fixed order, whose token signature already ends in
+    "AA". About one random nonce in 1024 does: a 32-byte digest is 43 base64url
+    characters and the last one carries only four data bits (1/64 x 1/16)."""
+    for i in range(1 << 16):
+        nonce = base64.urlsafe_b64encode(i.to_bytes(16, "big")).rstrip(b"=").decode("ascii")
+        if _mint(nonce=nonce)[0].endswith("AA"):
+            return nonce
+    raise AssertionError("no nonce in the search range signs to a signature ending in AA")
+
+
+NONCE_SIGNING_TO_AA = _nonce_whose_signature_ends_in_aa()
 
 
 # --- 1. the payload is signed and carries no PHI -----------------------------------
@@ -233,8 +263,13 @@ def test_the_wrong_purpose_is_refused() -> None:
         )
 
 
-def test_a_replayed_nonce_is_refused_and_a_tampered_replay_does_not_burn_it() -> None:
-    token, _ = _mint()
+@pytest.mark.parametrize(
+    "nonce", [None, NONCE_SIGNING_TO_AA], ids=["random_nonce", "signature_ends_in_aa"]
+)
+def test_a_replayed_nonce_is_refused_and_a_tampered_replay_does_not_burn_it(
+    nonce: str | None,
+) -> None:
+    token, _ = _mint(nonce=nonce)
     store = InMemoryCheckinNonceStore()
     first = verify_checkin(
         token, expected_tenant_id=TENANT, signing_key=KEY, now=NOW, nonce_store=store
@@ -247,7 +282,7 @@ def test_a_replayed_nonce_is_refused_and_a_tampered_replay_does_not_burn_it() ->
     # A tampered copy of the SAME nonce fails the signature long before consume,
     # so it can never burn a nonce that a genuine token still needs.
     header, payload, signature = token.split(".")
-    tampered = f"{header}.{payload}.{signature[:-2] + 'AA'}"
+    tampered = f"{header}.{payload}.{_tamper_signature(signature)}"
     fresh_store = InMemoryCheckinNonceStore()
     with pytest.raises(CheckinSignatureInvalid):
         verify_checkin(
@@ -261,6 +296,31 @@ def test_a_replayed_nonce_is_refused_and_a_tampered_replay_does_not_burn_it() ->
     assert verify_checkin(
         token, expected_tenant_id=TENANT, signing_key=KEY, now=NOW, nonce_store=fresh_store
     )
+
+
+def test_near_miss_the_signature_tamper_differs_in_one_bit_even_when_it_ends_in_aa() -> None:
+    """The replay test's old tamper rewrote the last two characters to "AA", so
+    a signature that already ended in "AA" came back as the genuine token: it
+    verified, burned the nonce, and the test failed with DID NOT RAISE."""
+    header, payload, signature = _mint(nonce=NONCE_SIGNING_TO_AA)[0].split(".")
+    assert signature[:-2] + "AA" == signature
+    digest = _b64u(signature)
+    # a last-character swap is no tamper either: 'A' -> 'B' sets a padding bit
+    assert _b64u(signature[:-1] + "B") == digest
+    for bit in range(len(digest) * 8):
+        tampered = _tamper_signature(signature, bit)
+        assert tampered != signature
+        assert len(tampered) == len(signature)
+        flipped = _b64u(tampered)
+        assert sum((a ^ b).bit_count() for a, b in zip(flipped, digest, strict=True)) == 1
+        with pytest.raises(CheckinSignatureInvalid):
+            verify_checkin(
+                f"{header}.{payload}.{tampered}",
+                expected_tenant_id=TENANT,
+                signing_key=KEY,
+                now=NOW,
+                nonce_store=InMemoryCheckinNonceStore(),
+            )
 
 
 # --- 3. the wait duration ----------------------------------------------------------

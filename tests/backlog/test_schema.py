@@ -258,7 +258,9 @@ def test_ids_unique_and_well_formed() -> None:
     # + INT-587 (the note reaches the clinician from a release build: the
     # note-sync client, the in-app share consent and Doctor Link from the app;
     # store-listing legal review B4, GitHub #988).
-    assert len(ids) == 382
+    # + INT-593 (the check-in tampered-replay test always tampers: a signature
+    # that already ends in AA no longer makes it flaky, GitHub #1004).
+    assert len(ids) == 383
     import re
 
     for i in ids:
