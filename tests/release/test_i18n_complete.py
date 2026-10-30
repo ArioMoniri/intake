@@ -226,7 +226,11 @@ PROSE_REGISTER_FINDINGS = frozenset(
 #: imported rather than restated so there is one number). Flagged, not
 #: rewritten: this is the product's own description line and splitting it is a
 #: copy decision.
-B1_LENGTH_FINDINGS = frozenset({"welcome.body"})
+#:
+#: INT-588 struck the one entry, ``welcome.body``. It was not rewritten for
+#: length: its "sesli ya da yazılı olarak" clause was false in a release build,
+#: which has no voice, and removing it brought the sentence to 12 words.
+B1_LENGTH_FINDINGS: frozenset[str] = frozenset()
 
 #: What the canonical guard — the one invariant 2 names — says about the
 #: catalogue. Every entry here is a **guard defect, not a copy defect**: the
@@ -246,18 +250,11 @@ B1_LENGTH_FINDINGS = frozenset({"welcome.body"})
 #:               diagnosis.
 #:   multi_question — one question whose subject is set off by a comma.
 #:   jargon    — the length arm of the same check; see B1_LENGTH_FINDINGS.
-POLICYGUARD_FINDINGS: frozenset[tuple[str, str]] = frozenset(
-    {
-        # The ONLY survivor of INT-248, and the one entry that may be a real
-        # copy finding rather than a guard artefact: INT-253's B1 audit
-        # independently flagged this same string as the catalogue's single
-        # over-length sentence (17 words against a 15-word bound). Two
-        # different checks disliking one string is a signal, not noise.
-        # Left recorded for the copy owner; not rewritten here, because
-        # welcome copy is product voice and this issue is guard precision.
-        ("jargon", "welcome.body"),
-    }
-)
+POLICYGUARD_FINDINGS: frozenset[tuple[str, str]] = frozenset()
+# INT-588 struck the last pair, ("jargon", "welcome.body"): the survivor of
+# INT-248 that INT-253's B1 audit had also flagged (17 words against a 15-word
+# bound). Its voice clause was false in a release build, and without it the
+# sentence is 12 words, so the length arm no longer fires.
 # INT-248 emptied this. All 22 recorded pairs were guard false positives, and
 # fixing the guard's Turkish morphology resolved every one — including
 # ("diagnosis", "app.disclaimer"), which was the sentence that exists to
