@@ -21,7 +21,7 @@ export const tr = {
   "tabs.me": "Profilim",
 
   "welcome.body":
-    "Önvizit, muayeneden önce şikâyetlerinizi sesli ya da yazılı olarak toplar ve hekiminize düzenli bir ön not iletir.",
+    "Önvizit, muayeneden önce şikâyetlerinizi toplar ve hekiminize düzenli bir ön not iletir.",
   "welcome.devSignIn": "Deneme hesabıyla girin",
   "welcome.devNote":
     "Bu ekran geliştirme sürümüne özeldir; gerçek giriş telefon doğrulamasıyla yapılır.",
@@ -64,7 +64,7 @@ export const tr = {
   "auth.biometric.retry": "Yeniden deneyin",
   "auth.integrity.warnTitle": "Cihaz güvenliği",
   "auth.integrity.warnBody":
-    "Bu cihazda güvenlik değişikliği görünüyor. Görüşme sesli değil, yazılı olarak devam eder.",
+    "Bu cihazda güvenlik değişikliği görünüyor. Görüşme yazılı olarak devam eder.",
 
   "today.nextVisit": "Sıradaki vizit",
   "today.prep": "Vizit hazırlığı",
@@ -728,7 +728,8 @@ export const tr = {
   "review.shared": "Paylaşılıyor",
   "review.notShared": "Paylaşılmıyor",
   "review.send": "Hekiminize gönderin",
-  "review.sentInfo": "Notunuz gönderildi. Hekiminiz görüntülediğinde durumu burada görürsünüz.",
+  "review.sentInfo":
+    "Notunuz gönderildi. Ne zaman açıldığını Paylaşımlarınız bölümünde görebilirsiniz.",
   "review.empty": "Henüz yanıt yok. Önce birkaç soruyu yanıtlayın.",
   // INT-236 — hekime görünen erteleme işareti (02 §33: birebir
   // "eksik: ortam uygun değildi"), koşul işareti ve kesme noktası özeti.
@@ -751,7 +752,7 @@ export const tr = {
   "consent.documents": "Belge yükleme",
   "consent.health": "Sağlık verisi okuma",
   "consent.health.hint":
-    "Adım, nabız ve uyku verileriniz yalnızca bu telefonda okunur; hiçbir yere gönderilmez. Bir veri, notunuza ancak siz eklerseniz girer.",
+    "Adım, dinlenme nabzı ve uyku verileriniz bu telefonda okunur. Bir veri notunuza ancak siz eklerseniz girer; notunuzu gönderirseniz onunla birlikte gider.",
   "consent.on": "Açık",
   "consent.off": "Kapalı",
 
@@ -765,7 +766,7 @@ export const tr = {
   "consent.group.core": "Hizmet",
   "consent.group.voice": "Sesli görüşme",
   "consent.group.voice.hint":
-    "Ses analizi seçenekleri yalnızca sesli görüşmeyle birlikte çalışır. Yazı analizi ses kaydına değil, yazıya bakar; ayrı bir izindir.",
+    "Ses analizi seçenekleri yalnızca sesli görüşmeyle birlikte çalışır. Yazı analizi sese değil, yazıya bakar; ayrı bir izindir.",
   "consent.group.purposes": "Diğer amaçlar",
   "consent.group.learning": "Öğrenme",
   "consent.group.learning.hint":
@@ -951,7 +952,7 @@ export const tr = {
   "companion.thirdParty.kicker": "Yanınızda biri var mı",
   "companion.thirdParty.label": "Yanımda başka biri var",
   "companion.thirdParty.footer":
-    "Yanınızda biri varken bazı sorular sesli sorulmaz. Bu, mahremiyetiniz içindir.",
+    "Yanınızda biri varken bazı çok özel sorular sorulmaz. Bu, mahremiyetiniz içindir.",
   "companion.ack.kicker": "Onayınız",
   "companion.ack.label": "Hastanın adına konuştuğumu onaylıyorum",
   "companion.ack.notProof":
@@ -1228,7 +1229,10 @@ export const tr = {
   // puts the same invitation over the answer field and keeps the options
   // under it as the fallback.
   "dialogue.openInvite": "Kendi sözlerinizle anlatabilirsiniz.",
-  "intake.open.hint": "Kendi sözlerinizle yazabilir ya da söyleyebilirsiniz.",
+  // INT-588: the hint names dictation only where the button is drawn (a dev
+  // build with the voice consent); lib/buildCopy.ts chooses.
+  "intake.open.hint": "Kendi sözlerinizle yazabilirsiniz.",
+  "intake.open.hintVoice": "Kendi sözlerinizle yazabilir ya da söyleyebilirsiniz.",
   "intake.open.orChoose": "Ya da aşağıdan seçebilirsiniz.",
 
   // --- INT-414 · conversational delivery ------------------------------------

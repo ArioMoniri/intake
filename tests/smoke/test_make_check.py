@@ -422,7 +422,9 @@ def test_backlog_parses_and_is_complete() -> None:
     # + INT-587 (the note reaches the clinician from a release build: note-sync
     # client, in-app share consent, Doctor Link from the app, GitHub #988);
     # grows only with a stated reason.
-    assert len(ids) == 382, f"expected 175 blueprint + 207 added issues, got {len(ids)}"
+    # + INT-588 (patient copy is true in the no-voice release build, GitHub
+    # #989); grows only with a stated reason.
+    assert len(ids) == 383, f"expected 175 blueprint + 208 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 
