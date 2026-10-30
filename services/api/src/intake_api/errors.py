@@ -137,11 +137,19 @@ def previsit_output_recipient_unregistered() -> HTTPException:
     )
 
 
-def previsit_output_unconfigured() -> HTTPException:
+def _unconfigured(error: str, reason: str | None) -> HTTPException:
+    """A 503 with its code and, when one is known, its typed reason (INT-584:
+    ``tokenization_key_<state>``). Both are closed vocabularies, never text."""
+    detail = {"error": error} if reason is None else {"error": error, "reason": reason}
+    return HTTPException(status_code=503, detail=detail)
+
+
+def previsit_output_unconfigured(reason: str | None = None) -> HTTPException:
     """No tokenization key, so a hospital patient number cannot be resolved to
     the pseudonym that addresses a patient (invariant 14). Fail closed — a
-    scan of every patient row is not the fallback."""
-    return HTTPException(status_code=503, detail={"error": "previsit_output_unconfigured"})
+    scan of every patient row is not the fallback. ``reason`` says why there
+    is no key (INT-584)."""
+    return _unconfigured("previsit_output_unconfigured", reason)
 
 
 def not_found() -> HTTPException:
@@ -183,10 +191,11 @@ def dev_auth_unconfigured() -> HTTPException:
 # --- INT-131 OTP/DPoP auth codes ---------------------------------------------------
 
 
-def otp_auth_unconfigured() -> HTTPException:
+def otp_auth_unconfigured(reason: str | None = None) -> HTTPException:
     """OTP auth needs Redis + a tokenization key; without them it fails
-    closed while the dev-bearer tier keeps carrying the demo (INT-197)."""
-    return HTTPException(status_code=503, detail={"error": "otp_auth_unconfigured"})
+    closed while the dev-bearer tier keeps carrying the demo (INT-197).
+    ``reason`` is set when the missing piece is the key (INT-584)."""
+    return _unconfigured("otp_auth_unconfigured", reason)
 
 
 def otp_delivery_unavailable() -> HTTPException:

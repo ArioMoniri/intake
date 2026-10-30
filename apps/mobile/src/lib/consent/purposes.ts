@@ -12,10 +12,14 @@
  *   consent form. A device consent is not a toggle, so it has no row here.
  *
  * UI classification (the task's layering, 02 §7):
- * - `info`   — core: the basis is the service itself, shown as information,
- *   never a switch. Optional purposes never gate it.
  * - `toggle` — açık rıza purposes: OFF until the patient grants against a
- *   loaded, hash-bound text. There is no representable pre-tick.
+ *   loaded, hash-bound text. There is no representable pre-tick. `core` is
+ *   one of them (INT-537): the server registry makes it açık rıza and visits
+ *   and notes require it, so it is granted against its text like the rest —
+ *   asked in context, at the first visit — and withdrawn in one tap.
+ *   No optional purpose is needed to grant it or to use the service it
+ *   covers. Withdrawing it closes every other purpose with it (the server
+ *   cascade, which the core text states); re-granting it re-opens none.
  * - `optout` — the two learning purposes: on by default under their stated
  *   non-consent bases, with an opt-out switch and honest basis copy.
  */
@@ -35,7 +39,7 @@ export type PurposeId =
   | "research";
 
 export type LegalBasis = "explicit_consent" | "service_performance" | "deidentified_optout";
-export type PurposeUi = "info" | "toggle" | "optout";
+export type PurposeUi = "toggle" | "optout";
 
 export interface PurposeDef {
   id: PurposeId;
@@ -62,13 +66,27 @@ export const PURPOSES: readonly PurposeDef[] = [
   {
     id: "core",
     basis: "explicit_consent",
-    ui: "info",
+    ui: "toggle",
     defaultGranted: false,
     parent: null,
-    cascadeChildren: [],
+    // The server's dependents_of("core"): a withdrawn service consent leaves
+    // nothing to ride on, so every other purpose falls with it — explicit
+    // grants revoked, default-on ones opted out (consent/service.py). The
+    // core text says so to the patient.
+    cascadeChildren: [
+      "voice",
+      "wellbeing",
+      "lane:affect",
+      "lane:linguistic",
+      "documents",
+      "learning:personal",
+      "learning:service_improvement",
+      "satisfaction",
+      "research",
+    ],
     labelKey: "consent.core",
     whoKey: "consent.who.core",
-    basisKey: "consent.basis.service",
+    basisKey: "consent.basis.explicit",
     sessionKey: "core",
   },
   {

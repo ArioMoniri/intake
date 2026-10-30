@@ -9,6 +9,13 @@ tiles. It is built from exactly two sources, both server-side:
   ``self_hostable``, ``self_hosted_now``, the pin, ``probe`` and its last
   sweep result, ``licence_verified_at``. Invariant 13: the console reads the
   registry, it does not keep one.
+- **this host's inventory and the probe runner's last sweep** (INT-560) —
+  :func:`intake_probes.standing.standings` derives, per row, whether this
+  host runs it (``deployment``), whether its stack needs it, its last probe
+  result with that result's age, and a severity that is ``blocking`` only for
+  what this host needs whose probe is not currently healthy. A deployment
+  with no inventory (``INTAKE_HOST_INVENTORY_PATH``) keeps the registry-wide
+  reading and says it has none.
 - **Prometheus** — every other tile, through the fixed query table
   :data:`OPS_QUERIES`. Each query names only series catalogued in
   ``observability/metrics_catalog.yaml`` (a test holds that), so a tile cannot
@@ -42,6 +49,8 @@ from typing import Any, Final
 from intake_platform.analytics import K_ANONYMITY_FLOOR
 from intake_probes.console import ModelsModule
 from intake_probes.gate import ProbeResultRecord
+from intake_probes.inventory import HostReading, read_host_inventory
+from intake_probes.standing import standings
 
 from intake_api.admin.models_source import (
     PROBE_RESULTS_UNREADABLE,
@@ -344,7 +353,10 @@ _BUILDERS: Final[Mapping[str, Callable[[PromSession], dict[str, Any]]]] = {
 
 
 def _models_tile(
-    models: ModelsModule | None, results: Mapping[str, ProbeResultRecord] | None
+    models: ModelsModule | None,
+    results: Mapping[str, ProbeResultRecord] | None,
+    host: HostReading,
+    now: datetime,
 ) -> dict[str, Any]:
     if models is None or results is None:
         # a tile built from two sources is unknown when either is unreadable:
@@ -353,27 +365,54 @@ def _models_tile(
             "state": "unknown",
             "reason": "registry_unreadable" if models is None else PROBE_RESULTS_UNREADABLE,
             "release_blocked": None,
+            "host": None,
+            "host_reason": None,
             "rows": [],
         }
-    rows = [
-        {
-            "component": row.component,
-            "pin": row.pin,
-            "self_hostable": row.self_hostable,
-            "self_hosted_now": row.self_hosted_now,
-            "phi_path": row.phi_path,
-            "probe": row.probe,
-            "probe_status": (
-                results[row.component].status.value if row.component in results else "no_result"
-            ),
-            "licence_verified_at": (
-                row.licence_verified_at.isoformat() if row.licence_verified_at else None
-            ),
-            "severity": row.severity.value,
-        }
-        for row in models.rows
-    ]
-    return {"state": "ok", "reason": None, "release_blocked": models.release.blocked, "rows": rows}
+    inventory = host.inventory
+    standing = {s.component: s for s in standings(models, inventory, results, now)}
+    rows = []
+    for row in models.rows:
+        here = standing[row.component]
+        checked_at = here.probe.checked_at
+        rows.append(
+            {
+                "component": row.component,
+                "pin": row.pin,
+                "self_hostable": row.self_hostable,
+                "self_hosted_now": row.self_hosted_now,
+                "phi_path": row.phi_path,
+                "probe": row.probe,
+                "deployment": here.deployment.value,
+                "needed": here.needed,
+                "not_needed_reason": here.not_needed_reason,
+                "probe_status": here.probe.status,
+                "probe_checked_at": _iso(None if checked_at is None else checked_at.timestamp()),
+                "probe_age_s": here.probe.age_s,
+                "probe_stale": here.probe.stale,
+                "licence_verified_at": (
+                    row.licence_verified_at.isoformat() if row.licence_verified_at else None
+                ),
+                "severity": here.severity.value,
+                "severity_reason": here.reason.value,
+            }
+        )
+    return {
+        "state": "ok",
+        "reason": None,
+        "release_blocked": models.release.blocked,
+        "host": (
+            None
+            if inventory is None
+            else {"host_id": inventory.host_id, "data_class": inventory.data_class}
+        ),
+        "host_reason": host.reason,
+        "rows": rows,
+    }
+
+
+#: The reading a caller that names no host gets: no inventory, said so.
+_NO_HOST: Final = HostReading(None, "host_inventory_unconfigured")
 
 
 def build_ops_console(
@@ -382,14 +421,17 @@ def build_ops_console(
     models: ModelsModule | None,
     results: Mapping[str, ProbeResultRecord] | None,
     now: datetime,
+    host: HostReading = _NO_HOST,
     prom_misconfigured: bool = False,
 ) -> dict[str, Any]:
     """The whole ``intake.admin.ops.v1`` document.
 
     ``results`` is ``None`` when the probe runner's file was present and
-    refused (INT-377); an unset or absent file is an empty mapping.
+    refused (INT-377); an unset or absent file is an empty mapping. ``host``
+    is this deployment's inventory, or the code for why there is none
+    (INT-560).
     """
-    tiles: dict[str, Any] = {"models": _models_tile(models, results)}
+    tiles: dict[str, Any] = {"models": _models_tile(models, results, host, now)}
     session = _session(prom) if prom is not None else None
     for tile_id, builder in _BUILDERS.items():
         empty = dict(_EMPTY[tile_id])
@@ -423,6 +465,8 @@ def load_ops_console(now: datetime, env: Mapping[str, str] | None = None) -> dic
     the Prometheus tiles read ``prometheus_misconfigured``. An unreadable
     registry turns the models tile unknown rather than taking the page down,
     and so does a probe-results file that is present and not a sweep (INT-377).
+    An inventory that is unset, absent or refused leaves the tile known, with
+    the registry-wide reading and ``host_reason`` saying why (INT-560).
     """
     env = os.environ if env is None else env
     try:
@@ -439,5 +483,6 @@ def load_ops_console(now: datetime, env: Mapping[str, str] | None = None) -> dic
         models=models,
         results=None if sweep.refused else sweep.records,
         now=now,
+        host=read_host_inventory(env),
         prom_misconfigured=misconfigured,
     )

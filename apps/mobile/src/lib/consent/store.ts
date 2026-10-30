@@ -10,13 +10,19 @@ import { useSyncExternalStore } from "react";
 import { fetchConsentSnapshot, pushConsentOp } from "./api";
 import {
   applyServerScopes,
+  applyShareText,
   applyTexts,
+  dropRefusedHead,
   freshLedger,
   grant,
+  grantShare,
   seedFromSession,
   shiftQueue,
   withdraw,
+  withdrawShare,
   type LedgerState,
+  type ShareGrantReceipt,
+  type ShareStanding,
 } from "./ledger";
 import type { PurposeId } from "./purposes";
 
@@ -79,6 +85,16 @@ export function consentOutbox(): ConsentOutbox {
   return outbox;
 }
 
+/**
+ * Whether the working copy is this account's (INT-537). An unseeded ledger is
+ * a fresh one, so a screen that refuses on it would refuse an account that
+ * holds the consent. Seeding commits a new state, so a subscribed screen
+ * re-renders the moment this turns true.
+ */
+export function ledgerSeededFor(accountId: string): boolean {
+  return seededAccount === accountId;
+}
+
 export function subscribeToLedger(listener: () => void): () => void {
   listeners.add(listener);
   return () => {
@@ -128,7 +144,10 @@ export async function refreshLedgerFromServer(): Promise<void> {
   if (snapshot === null) {
     return;
   }
-  commit(applyServerScopes(applyTexts(state, snapshot.texts), snapshot.scopes));
+  const withTexts = applyTexts(state, snapshot.texts);
+  const withShare =
+    snapshot.shareText === null ? withTexts : applyShareText(withTexts, snapshot.shareText);
+  commit(applyServerScopes(withShare, snapshot.scopes));
   await flushConsentQueue();
 }
 
@@ -141,17 +160,41 @@ export async function refreshLedgerFromServer(): Promise<void> {
  *
  * A push that does not land leaves the outbox `held`; an emptied queue leaves
  * it `clear` (INT-397).
+ *
+ * One pass at a time (INT-587). The note outbox flushes before every send,
+ * often while a grant's own flush is still in flight; two passes reading the
+ * same head would push it twice and then shift the queue twice — dropping the
+ * op behind it unsent. A caller arriving mid-pass waits for it, then runs its
+ * own over whatever is still queued.
  */
-export async function flushConsentQueue(): Promise<void> {
+let flushing: Promise<void> | null = null;
+
+async function flushPass(): Promise<void> {
   while (state.queue.length > 0) {
     const next = state.queue[0];
-    if (!(await pushConsentOp(next))) {
+    const outcome = await pushConsentOp(next);
+    if (outcome === "wait") {
       moveOutbox("held");
       return;
     }
-    commit(shiftQueue(state, 1));
+    // INT-587 N5: a refusal is an answer, not a wait. The op is dropped (a
+    // refused grant undone, so it is asked again) and the ops behind it —
+    // a withdrawal above all — go on.
+    commit(outcome === "landed" ? shiftQueue(state, 1) : dropRefusedHead(state));
   }
   moveOutbox("clear");
+}
+
+export async function flushConsentQueue(): Promise<void> {
+  while (flushing !== null) {
+    await flushing;
+  }
+  flushing = flushPass();
+  try {
+    await flushing;
+  } finally {
+    flushing = null;
+  }
 }
 
 /** Grant locally (instant) and start a flush. Returns the flipped scopes so
@@ -175,4 +218,54 @@ export function withdrawLocal(id: PurposeId, atIso?: string): readonly PurposeId
     void flushConsentQueue();
   }
   return result.flipped;
+}
+
+// --- INT-587: the share consent, asked at the send ----------------------------------
+
+/**
+ * Grant the share consent for ONE note against the loaded share text and
+ * start a flush. Returns that note's receipt — the only thing the outbox
+ * queues or releases it against — or null when no share text is loaded
+ * (nothing changes — invariant 18).
+ */
+export function grantShareLocal(visitId: string, atIso?: string): ShareGrantReceipt | null {
+  const result = grantShare(state, atIso ?? new Date().toISOString(), visitId);
+  if (result.receipt === null) {
+    return null;
+  }
+  commit(result.state);
+  moveOutbox("sending");
+  void flushConsentQueue();
+  return result.receipt;
+}
+
+/**
+ * Withdraw the share consent: instant here, then pushed. Resolves true once
+ * the withdrawal has reached the server — which revokes every live share and
+ * Doctor Link in that same pass — and false while it waits on the phone.
+ */
+export async function withdrawShareLocal(atIso?: string): Promise<boolean> {
+  const result = withdrawShare(state, atIso ?? new Date().toISOString());
+  if (result.changed) {
+    commit(result.state);
+    moveOutbox("sending");
+  }
+  return consentQueueClear();
+}
+
+/** Push every queued consent change; true once none is left on the phone. */
+export async function consentQueueClear(): Promise<boolean> {
+  await flushConsentQueue();
+  return state.queue.length === 0;
+}
+
+/** What this phone knows of the share consent in this session. */
+export function shareStanding(): ShareStanding {
+  return state.share.standing;
+}
+
+/** When the share consent was last withdrawn on this phone (directly or via
+ * core), or null. A note granted before it is never sent on a later grant. */
+export function lastShareWithdrawal(): string | null {
+  return state.share.withdrawnAt;
 }

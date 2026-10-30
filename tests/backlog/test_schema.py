@@ -240,7 +240,34 @@ def test_ids_unique_and_well_formed() -> None:
     # retries an unreadable 200; the owner's real send, GitHub #971).
     # + INT-563 (four-eyes approval through a Keycloak WebAuthn step-up the
     # script-free console completes, ADR-043; GitHub #952).
-    assert len(ids) == 373
+    # + INT-420 (Önvizit everywhere: the owner's rebrand finished on main, with
+    # a guard against the old name; owner request, GitHub #712).
+    # + INT-560 (the operability registry page tells the truth about the host
+    # it runs on; owner request, GitHub #948).
+    # + INT-529 (synthetic-scope consent texts, marked sentetik test metni and
+    # loaded only on the synthetic host; owner yes of 16 Oct 2026, GitHub #896).
+    # + INT-537 (the app grants the core consent that visits and notes
+    # require; INT-529 legal-author finding F2, GitHub #904).
+    # + INT-586 (opentelemetry-api past GHSA-ccrj-gw8r-854m, GitHub #986).
+    # + INT-590 (decode-uri-component past CVE-2026-118664, GitHub #991).
+    # + INT-559 (the app's voice lane never writes patient audio to a file —
+    # invariant 3 with no dev exception, from the INT-536 legal review;
+    # GitHub #947).
+    # + INT-536 (consent-screen copy true for the host and matching the
+    # consent texts; from the INT-529 legal-author findings, GitHub #903).
+    # + INT-585 (the owner's 28 Oct SMS decisions recorded as D34-D38, and the
+    # live Netgsm OTP confirmation; owner in chat, GitHub #984).
+    # + INT-587 (the note reaches the clinician from a release build: the
+    # note-sync client, the in-app share consent and Doctor Link from the app;
+    # store-listing legal review B4, GitHub #988).
+    # + INT-588 (patient copy is true in the no-voice release build; store-
+    # listing legal review B6 precondition, GitHub #989).
+    # + INT-591 (a release build offers no voice consent it cannot use, GitHub #993).
+    # + INT-592 (a truthful NSHealthUpdateUsageDescription so App Store
+    # processing accepts the iOS build, ITMS-90683; GitHub #1000).
+    # + INT-584 (the phone-tokenization key moves into OpenBao with the same
+    # key material, no pseudonym changes; owner decision D38, GitHub #983).
+    assert len(ids) == 387
     import re
 
     for i in ids:

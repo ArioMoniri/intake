@@ -45,7 +45,7 @@ consent_text_version: v1-demo.1
 Ortak üzerinden giriş
 
 Bu ön görüşmeyi ortağınız üzerinden başlattınız. Verileriniz, ortağınız adına
-Vizite tarafından işlenir.
+Önvizit tarafından işlenir.
 """
 
 DOC_SET = "embed.dev-partner-alpha"
@@ -72,7 +72,7 @@ def test_bind_legal_document_is_hash_bound_over_the_whole_file(tmp_path: Path) -
     path = _author(tmp_path, "partner_processor.tr.md", _DISCLOSURE)
     bound = bind_legal_document(path)
     assert bound.version == "v1-demo.1"
-    assert "Vizite tarafından işlenir" in bound.body
+    assert "Önvizit tarafından işlenir" in bound.body
     assert len(bound.text_hash) == 64
     # a byte changed anywhere re-binds the hash (version + copy can never drift)
     path.write_text(_DISCLOSURE + "\n", encoding="utf-8")

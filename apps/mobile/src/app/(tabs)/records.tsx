@@ -89,6 +89,8 @@ function errorKey(error: unknown): MessageKey {
         return "records.err.session";
       case "consent":
         return "records.err.consent";
+      case "core_consent":
+        return "records.err.coreConsent";
       case "scan_unavailable":
         return "records.err.scanUnavailable";
       default:

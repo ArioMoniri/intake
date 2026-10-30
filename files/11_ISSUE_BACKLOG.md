@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**373 issues.** By phase: P0 182 · P1 137 · P2 47 · P3 7. By status: awaiting-human 38 · doing 7 · done 253 · todo 74 · withdrawn 1.
+**387 issues.** By phase: P0 184 · P1 149 · P2 47 · P3 7. By status: awaiting-human 39 · doing 7 · done 266 · todo 74 · withdrawn 1.
 
 ## P0
 
@@ -193,6 +193,8 @@
 | INT-540 | The onset anchor always resolves, so K2 cannot stay silent | E05-voice | INT-522 | area:voice | done |
 | INT-531 | A RED evaluated between turns reaches the patient within the 300 ms budget without waiting for the next turn | E05-voice | INT-521 | area:voice | done |
 | INT-550 | A new staff user enrols a passkey after the password step | E12-admin | INT-378, INT-421, INT-538 | area:security | done |
+| INT-420 | Önvizit everywhere — finish the Vizite→Önvizit rebrand on main | E08-mobile | INT-130, INT-320 | area:mobile | done |
+| INT-592 | iOS build carries a truthful NSHealthUpdateUsageDescription so App Store processing accepts it (ITMS-90683) | E08-mobile | INT-420, INT-208 | area:mobile | done |
 
 ## P1
 
@@ -335,6 +337,18 @@
 | INT-574 | test_the_red_never_waits_on_the_inbox_store is deterministic — no wall-clock budget under shared-runner load | E13-infra | INT-475 | area:api | done |
 | INT-576 | Netgsm OTP adapter parses the live success shape; an HTTP 200 the parser cannot read is never retried | E01-platform | INT-528 | area:api | done |
 | INT-563 | Console four-eyes approval through a WebAuthn step-up the script-free console can complete | E12-admin | INT-459, INT-378 | area:admin | done |
+| INT-560 | The operability registry page tells the truth: real probe results from the synthetic host, honest deployment and severity columns | E12-admin | INT-022, INT-183, INT-351, INT-377, INT-345 | area:observability | done |
+| INT-529 | Synthetic-scope consent texts, marked sentetik test metni and loaded only on the synthetic host | E14-legal | INT-038, INT-210 | area:legal, risk:legal | awaiting-human |
+| INT-537 | The app grants the core consent that visits and notes require | E08-mobile | INT-529, INT-132, INT-232 | area:mobile, risk:legal | done |
+| INT-536 | Consent-screen copy matches the consent texts and the host: affect cues never reach the doctor, and no 'stays in Türkiye' claim on the us-east-1 host | E14-legal | INT-529, INT-537 | area:legal | done |
+| INT-586 | opentelemetry-api lifted to 1.67.0 in the Keycloak provider, past GHSA-ccrj-gw8r-854m, so the vulnerabilities gate is green without an exception | E13-infra | INT-378 | area:security | done |
+| INT-590 | decode-uri-component lifted to 0.5.1 past CVE-2026-118664, so the vulnerabilities gate is green without an exception | E13-infra | INT-500 | area:security | done |
+| INT-559 | The app's voice lane never writes patient audio to a file — stream from memory (invariant 3), before voice ships in any build | E08-mobile | INT-194, INT-291, INT-446 | area:mobile, risk:security | done |
+| INT-585 | Record the owner's 28 Oct SMS decisions as D34-D38 and the live Netgsm OTP confirmation | E01-platform | INT-528, INT-576 | area:api | done |
+| INT-587 | The note reaches the clinician from a release build: note-sync client, in-app share consent, Doctor Link from the app | E08-mobile | INT-137, INT-142, INT-150, INT-232, INT-311, INT-529 | area:mobile, area:api | done |
+| INT-588 | Patient copy is true in the no-voice release build: no voice clause, no 'sent' before delivery, consent rows match the served texts | E08-mobile | INT-587, INT-253, INT-529 | area:mobile | done |
+| INT-591 | Release build hides the grant action for voice and lane:affect consents, keeps standing grants withdrawable | E08-mobile | INT-588, INT-132 | area:mobile | done |
+| INT-584 | The phone-tokenization key moves into OpenBao with the same key material — no pseudonym changes (D38) | E01-platform | INT-013, INT-017, INT-131, INT-345, INT-352 | area:api, risk:security | done |
 
 ## P2
 

@@ -102,6 +102,7 @@ from intake_api.embed import EmbedService, EmbedWiring
 from intake_api.otp import AuthWiring, OtpAuthService, ensure_consumer_tenant
 from intake_api.settings import ENV_MINIO_PASSWORD, ENV_MINIO_USER, ApiSettings
 from intake_api.state import ApiState
+from intake_api.tokenization_key import with_tokenization_key
 
 if TYPE_CHECKING:
     from intake_connectors.acibadem import AcibademAppointmentsClient
@@ -456,10 +457,10 @@ def _embed_from_settings(settings: ApiSettings) -> EmbedWiring | None:
     """
     if not settings.embed_launch_base_url:
         return None
-    from intake_platform.consent.texts import ConsentTextCatalog
     from intake_platform.embed import InMemoryNonceStore, TenantEmbedRegistry
 
     from intake_api.embed import OpenBaoSigningKeys
+    from intake_api.state import consent_catalog_for
 
     try:
         registry = TenantEmbedRegistry.from_yaml(settings.embed_registry_path)
@@ -479,13 +480,15 @@ def _embed_from_settings(settings: ApiSettings) -> EmbedWiring | None:
         # tenant's partner-processor disclosure from its own ``legal_root``
         # under the legal base (the parent of the global consents dir — in dev
         # the ~/.config/intake/dev-legal tree, in prod docs/legal).
-        consent_catalog=ConsentTextCatalog(settings.legal_root),
+        consent_catalog=consent_catalog_for(settings),
         legal_base=settings.legal_root.parent,
     )
 
 
 def wiring_from_env() -> ApiWiring:
-    settings = ApiSettings.from_env()
+    # INT-584 (owner decision D38): the phone-tokenization key comes from
+    # OpenBao secret/api/tokenization alone, never the environment
+    settings = with_tokenization_key(ApiSettings.from_env())
     return ApiWiring(
         settings=settings,
         engine=build_engine(settings.app_db_url),

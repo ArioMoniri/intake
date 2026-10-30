@@ -1,19 +1,23 @@
 /**
- * Dev-lane voice note (INT-194): recorded audio goes to OUR whisper-tr
- * ASR on the team GPU box (through the dev Mac's port forward) and the
- * transcript lands in the intake's patient-note field.
+ * Dev-lane voice (INT-194 → INT-559): the patient's words go to OUR
+ * whisper-tr ASR on the team GPU box (through the dev Mac's port forward)
+ * and the transcript lands in the intake's patient-note field.
  *
  * This is the demo bridge, not the product voice path: the product runtime
- * (INT-090s/135) is LiveKit with mlocked ≤60 s buffers and never writes
- * audio to disk (invariant 3). This lane is __DEV__-gated, synthetic
- * content only, and the recording file is deleted right after upload.
+ * (INT-090s/135, INT-515) is LiveKit, which streams. Until INT-559 this lane
+ * recorded a temporary file on the phone and deleted it after upload, and
+ * CLAUDE.md invariant 3 allows no such dev exception. Now the microphone is
+ * expo-audio's PCM stream into a bounded in-memory buffer (lib/capture) and
+ * the ASR request carries bytes from memory (lib/capture/asrClient.ts): no
+ * file path is ever created, and every buffer is zero by the time a turn
+ * settles. The lane stays __DEV__-gated and synthetic-content only.
  *
  * Host probing is shared with the extract bridge (INT-199) via dev/hosts.ts:
  * Metro hostUri first (LAN mode names the dev Mac), then app.json
  * extra.asrHosts; first /health that answers wins.
  */
-import * as FileSystem from "expo-file-system/legacy";
-
+import { transcribeSegmentAt } from "./capture/asrClient";
+import type { PcmSegment } from "./capture/types";
 import { configuredServiceCandidates } from "./dev/expoHosts";
 import { probeReachability, serviceCandidates, type ReachabilityReport } from "./dev/hosts";
 
@@ -38,26 +42,15 @@ export async function reachableAsrBaseUrl(): Promise<string | null> {
   return (await probeAsrReachability()).base;
 }
 
-/** Invariant-3 posture even in the dev lane: no audio lingers on disk. */
-export async function discardRecording(uri: string): Promise<void> {
-  await FileSystem.deleteAsync(uri, { idempotent: true }).catch(() => undefined);
-}
-
-export async function transcribeRecording(uri: string): Promise<string> {
+/**
+ * One segment from memory to the ASR daemon. The segment is zero by the time
+ * this settles, whichever way it went — there is no file to delete.
+ */
+export async function transcribeSegment(segment: PcmSegment): Promise<string> {
   const base = await reachableAsrBaseUrl();
   if (base === null) {
-    await discardRecording(uri);
+    segment.samples.fill(0);
     throw new Error("asr_unreachable");
   }
-  try {
-    const result = await FileSystem.uploadAsync(`${base}/transcribe`, uri, {
-      httpMethod: "POST",
-      headers: { "Content-Type": "application/octet-stream" },
-      uploadType: FileSystem.FileSystemUploadType.BINARY_CONTENT,
-    });
-    const parsed: { text?: string } = JSON.parse(result.body);
-    return (parsed.text ?? "").trim();
-  } finally {
-    await discardRecording(uri);
-  }
+  return transcribeSegmentAt(base, segment);
 }
