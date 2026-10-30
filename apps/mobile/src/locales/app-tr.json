@@ -2,6 +2,6 @@
   "CFBundleDisplayName": "Önvizit",
   "NSMicrophoneUsageDescription": "Sesli görüşme sırasında anlattıklarınızı hekiminize iletebilmek için mikrofon izni gereklidir. Ses kaydınız saklanmaz.",
   "NSCameraUsageDescription": "Rapor ve tahlil belgelerinizin fotoğrafını çekip vizitinize ekleyebilmeniz için kamera izni gereklidir. Fotoğraf yalnızca sizin yüklediğiniz belge olarak saklanır.",
-  "NSHealthShareUsageDescription": "Önvizit; adım, nabız ve uyku verilerinizi yalnızca bu cihazda görüntülemek ve ancak sizin onayınızla vizit notunuza eklemek için okur.",
-  "NSHealthUpdateUsageDescription": "Önvizit; Sağlık uygulamasına hiçbir veri yazmaz ve oradaki verilerinizi değiştirmez. Yalnızca okuma izni ister."
+  "NSHealthShareUsageDescription": "Önvizit adım, dinlenme nabzı ve uyku verilerinizi yalnızca okur. Bu veriler bu telefonda gösterilir. Notunuza ancak siz eklerseniz girer; notunuzu gönderirseniz onunla birlikte gider.",
+  "NSHealthUpdateUsageDescription": "Önvizit Sağlık uygulamasına hiçbir veri yazmaz ve oradaki verilerinizi değiştirmez. Yalnızca okuma izni ister."
 }

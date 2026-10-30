@@ -47,18 +47,16 @@ HEALTH_KEYS: Final[tuple[str, ...]] = (
 )
 
 #: Purpose strings over the B1 bound, recorded rather than rewritten (the
-#: i18n gate's rule). This set may only shrink. The share string predates
-#: INT-592 (INT-208, renamed in INT-420) and is one 19-word sentence; changing
-#: its wording is a legal decision, not part of this fix.
-B1_LENGTH_FINDINGS: Final[frozenset[str]] = frozenset({"NSHealthShareUsageDescription"})
+#: i18n gate's rule). This set may only shrink. It is empty: the INT-208
+#: share string was one 19-word sentence, and the legal review of INT-592
+#: replaced it with three short ones.
+B1_LENGTH_FINDINGS: Final[frozenset[str]] = frozenset()
 
 #: PolicyGuard's findings, read as (violation class, key). This set may only
-#: shrink. ``jargon`` is the guard's length arm (tests/release/
-#: test_i18n_complete.py records welcome.body the same way), so it is the
-#: same over-length share string as above, not a medical term.
-POLICYGUARD_FINDINGS: Final[frozenset[tuple[str, str]]] = frozenset(
-    {("jargon", "NSHealthShareUsageDescription")}
-)
+#: shrink. ``jargon`` is also the guard's length arm (tests/release/
+#: test_i18n_complete.py records welcome.body that way); the share string's
+#: entry went with its length.
+POLICYGUARD_FINDINGS: Final[frozenset[tuple[str, str]]] = frozenset()
 
 
 def _plist(locale: str) -> dict[str, str]:

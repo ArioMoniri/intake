@@ -4569,6 +4569,11 @@
 - Tests: brand.spec.ts has a write-denial oracle with near misses (false, empty, the library default, a write claim, a denial plus a claim) and a code-truth check (toRead only; no toShare/save/delete). The new tests/legal/test_ios_purpose_strings.py covers base = tr, tr/en parity, PolicyGuard and B1 over every purpose string, and the inventory row. Red run: 4 vitest + 5 pytest failures. Green run: mobile vitest 2971, `pnpm -r typecheck`, tests/legal + tests/release 964, claims scan, backlog and smoke pins at 382 (after merging main `4bb5ecae`, which brought INT-585's row). 3 of 3 mutations killed.
 - Invariants touched and still passing: 2 and 5 (siz, B1, PolicyGuard-clean, tr first); 13/18 (the declared key has an inventory row, with no new data category); 16 (Sec-Row `mobile`); 17 (no placeholders); 20 (claims scan covers the locales).
 - Decisions / ADRs / `00_STATE.md` rows: none. The pre-existing 19-word share string is recorded as a B1/PolicyGuard-length finding, not rewritten; its wording is the legal lane's call.
-- Blocked on: the legal-reviewer's read of the tr and en strings.
-- Next: legal review, merge, then TestFlight build 7.
+- Blocked on: nothing. The legal-reviewer approved #1001 (30 Oct).
+- Update (legal review applied):
+  - The share string is now the reviewer's variant A, for a build carrying INT-587: an added Health line travels with a sent note. It is the same text in app.json and app-tr/en.json.
+  - The update string loses the semicolon after "Önvizit".
+  - The recorded length finding is cleared, so both findings sets are empty.
+  - Tests first: red 4 vitest + 2 pytest; green brand 19, mobile 2972, legal + release 964.
+- Next: merge #995 (INT-587) before or with #1001, then TestFlight build 7.
 - LOOP_STATUS: CONTINUE

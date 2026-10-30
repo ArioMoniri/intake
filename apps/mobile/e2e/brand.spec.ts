@@ -93,7 +93,10 @@ describe("the name a patient sees is Önvizit", () => {
 
   it("names Önvizit in the HealthKit purpose string App Review reads", () => {
     const why = healthKitPlugin().NSHealthShareUsageDescription;
-    expect(typeof why === "string" && why.startsWith(`${BRAND};`)).toBe(true);
+    // INT-592 legal review: the name opens the sentence as its subject, with
+    // no semicolon after it.
+    expect(typeof why === "string" && why.startsWith(`${BRAND} `)).toBe(true);
+    expect(why).not.toContain(`${BRAND};`);
   });
 });
 
@@ -163,7 +166,8 @@ describe("INT-592: the HealthKit write purpose string is present and true", () =
   it("declares a non-empty write string in the base Info.plist (ITMS-90683)", () => {
     const why = healthKitPlugin().NSHealthUpdateUsageDescription;
     expect(typeof why).toBe("string");
-    expect((why as string).startsWith(`${BRAND};`)).toBe(true);
+    expect((why as string).startsWith(`${BRAND} `)).toBe(true);
+    expect(why).not.toContain(`${BRAND};`);
     expect(deniesWriting(why, "tr")).toBe(true);
   });
 
@@ -196,12 +200,29 @@ describe("INT-592: the HealthKit write purpose string is present and true", () =
       tr: plist("tr").NSHealthShareUsageDescription,
       en: plist("en").NSHealthShareUsageDescription,
     };
-    for (const word of [/adım/u, /nabız/u, /uyku/u]) {
+    for (const word of [/adım/u, /dinlenme nabzı/u, /uyku/u]) {
       expect(share.tr).toMatch(word);
     }
-    for (const word of [/\bstep/iu, /\bheart rate\b/iu, /\bsleep\b/iu]) {
+    for (const word of [/\bstep/iu, /\bresting heart rate\b/iu, /\bsleep\b/iu]) {
       expect(share.en).toMatch(word);
     }
+  });
+
+  it("says where an added reading goes: into the note, and with it when sent (INT-587)", () => {
+    // Variant A of the legal review, for a build that carries INT-587: a line
+    // the patient adds to the note travels with the note they send.
+    const share = {
+      tr: plist("tr").NSHealthShareUsageDescription,
+      en: plist("en").NSHealthShareUsageDescription,
+    };
+    expect(share.tr).toContain("Notunuza ancak siz eklerseniz girer");
+    expect(share.tr).toContain("notunuzu gönderirseniz onunla birlikte gider");
+    expect(share.en).toContain("enter your note only if you add them");
+    expect(share.en).toContain("go with the note if you send it");
+    // Near miss: the INT-208 wording said the data is only shown on the device,
+    // which stops being the whole truth once a sent note carries it.
+    expect(share.tr).not.toMatch(/yalnızca bu cihazda görüntülemek/u);
+    expect(share.en).not.toMatch(/only to show it on this device/iu);
   });
 
   it("stays true in code: the connector asks to read and never to write", () => {
