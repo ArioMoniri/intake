@@ -47,7 +47,7 @@ advisory:
     note: "The legal lane decides whether clinical sexual-health questions count here."
   medicalOrTreatmentInformation:
     answer: INFREQUENT_OR_MILD
-    source: "packages/protocols/base/intake.yaml — the intake asks about complaints, medicines and history and gives no treatment advice; a build sent for review runs with device_functions off (files/06_COMPLIANCE_TR.md §0.3 Stage A, INT-117), so it shows no urgency or treatment instruction (re-sourced, legal re-check 29 Oct 2026)"
+    source: "packages/protocols/base/intake.yaml — the intake asks about complaints, medicines and history and gives no treatment advice; a build sent for review must run with device_functions off (files/06_COMPLIANCE_TR.md §0.3 Stage A, INT-117; app-review-notes §1 item 11), so that it shows no urgency or treatment instruction (re-sourced, legal re-check 29 Oct 2026)"
   profanityOrCrudeHumor:
     answer: NONE
     source: "CLAUDE.md clinical content rules — B1 Turkish, siz register, empathetic copy"
@@ -121,7 +121,7 @@ content_rights:
 # INT-502 legal review B5 and re-check R1/R2: while this is set, the notes reach
 # neither store.config.json nor App Store Connect. Removing it is a legal-lane edit,
 # made only when every owner below has made the notes true of the review build.
-review_notes_hold: "INT-117 Stage A (static 112 notice; no patient-facing RED on the review host), INT-488 reviewer sign-in, INT-587 delivery"
+review_notes_hold: "INT-117 Stage A (static 112 notice; no patient-facing RED on the review host), INT-488 reviewer sign-in, INT-587 delivery, INT-440/INT-454 release voice (voice intake, Microphone), a malware scanner on the review host (Camera: upload fails closed, docs/runbooks/staging.md)"
 review_notes: |-
   Önvizit is a pre-visit intake app. Before a medical visit, the user describes their complaints by voice or by typing, one question at a time. The app turns the answers into a structured note, shows it to the user, and sends it only to the clinician the user chooses.
 
