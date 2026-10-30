@@ -272,6 +272,7 @@ def _stored(device: Authenticator, sign_count: int = 0) -> StoredCredential:
         public_key=registered.public_key,
         sign_count=sign_count,
         user_handle=HANDLE,
+        backup_eligible=registered.backup_eligible,
     )
 
 
@@ -369,6 +370,7 @@ def test_a_counter_that_does_not_move_forward_is_refused(stored: int, presented:
         public_key=credential.public_key,
         sign_count=stored,
         user_handle=HANDLE,
+        backup_eligible=False,
     )
     _refused(PasskeyReason.SIGN_COUNT, lambda: _assert(device, credential))
 
@@ -384,6 +386,7 @@ def test_near_miss_a_counter_that_moves_forward_or_stays_at_zero_passes(
         public_key=base.public_key,
         sign_count=stored,
         user_handle=HANDLE,
+        backup_eligible=False,
     )
     assert _assert(device, credential).sign_count == presented
 
@@ -428,3 +431,80 @@ def test_configuration_refuses_an_rp_id_that_is_not_a_dns_name(rp_id: str) -> No
 @pytest.mark.parametrize("value", ["YQ==", "a+b/", "a b", "a"])
 def test_base64url_is_strict(value: str) -> None:
     _refused(PasskeyReason.MALFORMED, lambda: b64url_decode(value))
+
+
+# --- review fixes: CBOR semantic tags, and BE against the stored value ---------------
+
+
+@pytest.mark.parametrize(
+    "where",
+    ["attestation object", "attestation member", "COSE key value", "extensions value"],
+)
+def test_every_cbor_semantic_tag_is_refused(where: str) -> None:
+    """cbor2 decodes the tags it knows (an epoch date, a bignum, a URI)
+    silently, so a refusal by type after decoding would miss them; the shape
+    walker refuses major type 6 wherever it sits."""
+    device = Authenticator()
+    if where == "attestation object":
+        response = device.register(_creation_options())
+        inner = response["response"]
+        decoded = cbor2.loads(b64url_decode(inner["attestationObject"]))
+        inner["attestationObject"] = b64url(cbor2.dumps(cbor2.CBORTag(55799, decoded)))
+    elif where == "attestation member":
+        response = device.register(_creation_options())
+        inner = response["response"]
+        decoded = cbor2.loads(b64url_decode(inner["attestationObject"]))
+        decoded["fmt"] = cbor2.CBORTag(32, "none")
+        inner["attestationObject"] = b64url(cbor2.dumps(decoded))
+    elif where == "COSE key value":
+        numbers = device.key.public_key().public_numbers()
+        cose = cbor2.dumps(
+            {
+                1: 2,
+                3: -7,
+                -1: 1,
+                -2: cbor2.CBORTag(24, numbers.x.to_bytes(32, "big")),
+                -3: numbers.y.to_bytes(32, "big"),
+            }
+        )
+        response = device.register(_creation_options(), cose=cose)
+    else:
+        flags = device.flags(up=True, uv=True, attested=True) | FLAG_ED
+        response = device.register(
+            _creation_options(),
+            flags=flags,
+            trailing=cbor2.dumps({"credProtect": cbor2.CBORTag(1, 2)}),
+        )
+    _refused(PasskeyReason.MALFORMED, lambda: _register(device, response))
+
+
+def test_near_miss_the_same_shapes_untagged_register() -> None:
+    device = Authenticator()
+    flags = device.flags(up=True, uv=True, attested=True) | FLAG_ED
+    response = device.register(
+        _creation_options(), flags=flags, trailing=cbor2.dumps({"credProtect": 2})
+    )
+    assert _register(device, response).credential_id == device.credential_id
+
+
+def test_backup_eligibility_must_match_the_stored_value_at_assertion() -> None:
+    """BE is fixed for a credential's life (WebAuthn §6.1.3); a flip is a
+    different authenticator answering under this credential id."""
+    device = Authenticator(backed_up=False)
+    registered = _register(device)
+    flipped = StoredCredential(
+        credential_id=registered.credential_id,
+        public_key=registered.public_key,
+        sign_count=0,
+        user_handle=HANDLE,
+        backup_eligible=True,
+    )
+    _refused(PasskeyReason.BACKUP_FLAGS, lambda: _assert(device, flipped))
+    same = StoredCredential(
+        credential_id=registered.credential_id,
+        public_key=registered.public_key,
+        sign_count=0,
+        user_handle=HANDLE,
+        backup_eligible=False,
+    )
+    assert _assert(device, same).sign_count == 0

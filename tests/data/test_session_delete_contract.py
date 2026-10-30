@@ -502,9 +502,6 @@ def test_the_clocks_that_grant_erasure_are_exactly_these() -> None:
         "RET_NOTIFICATION_PREFERENCE",
         "RET_PREVISIT_OUTPUT",
         "RET_SATISFACTION",
-        # INT-582 (D36): a passkey is patient-deletable on the record clock —
-        # the decision is D36's new category, proposed for the legal lane
-        "RET_PASSKEY",
     }
 
 
@@ -528,7 +525,6 @@ def test_the_tables_that_hold_the_subjects_data_are_what_the_annotations_say() -
         "patient_overlays",
         "notification_preferences",
         "record_embeddings",
-        "patient_passkeys",
     }
 
 

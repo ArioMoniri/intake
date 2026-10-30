@@ -266,7 +266,13 @@ async def _cancel_live_shares(
     return cancelled
 
 
-@router.delete("/delete/{request_id}", response_model=DsarRequestOut)
+@router.delete(
+    "/delete/{request_id}",
+    response_model=DsarRequestOut,
+    # INT-582 review: withdrawing a scheduled erasure is a data_delete step-up
+    # too, or an OTP-only session (a SIM swap) could cancel the holder's
+    dependencies=[require_step_up(StepUpAction.DATA_DELETE)],
+)
 async def cancel_delete(
     request_id: uuid.UUID, principal: Principal, state: State
 ) -> DsarRequestOut:

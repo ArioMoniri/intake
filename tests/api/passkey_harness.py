@@ -162,12 +162,28 @@ class PasskeyKit:
 
     # --- the passkey ceremonies --------------------------------------------------------
 
-    def register(self, session: Session | None, device: Authenticator, **knobs: Any) -> Any:
-        options = self.call(session, "POST", "/v1/me/passkeys/registration/options")
+    def register(
+        self,
+        session: Session | None,
+        device: Authenticator,
+        *,
+        grant: str | None = None,
+        **knobs: Any,
+    ) -> Any:
+        """Enrol ``device``. ``grant`` is a passkey_add grant, sent on both
+        registration calls — required once the patient already holds a passkey."""
+        headers = {"X-Intake-Step-Up-Grant": grant} if grant is not None else None
+        options = self.call(
+            session, "POST", "/v1/me/passkeys/registration/options", headers=headers
+        )
         assert options.status_code == 200, options.text
         credential = device.register(options.json(), **knobs)
         return self.call(
-            session, "POST", "/v1/me/passkeys/registration", json_body={"credential": credential}
+            session,
+            "POST",
+            "/v1/me/passkeys/registration",
+            json_body={"credential": credential},
+            headers=headers,
         )
 
     def step_up_options(self, session: Session | None, action: str) -> Any:

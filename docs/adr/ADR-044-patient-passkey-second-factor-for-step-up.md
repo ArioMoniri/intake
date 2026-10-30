@@ -27,10 +27,20 @@ The passkey is a second factor for **step-up**, never a sign-in replacement:
 
 1. **Sign-in and step-up.** Sign-in stays OTP + DPoP. A grant from a passkey assertion is
    required, per action and per request, on the routes `intake_api.passkey.gate.STEP_UP_ROUTES`
-   names (D36's four, plus removing a passkey and cancelling a recovery). The grant is
+   names (D36's four, plus the mechanism's own three: adding a passkey while one is active,
+   removing a passkey, and cancelling a recovery; and withdrawing a scheduled erasure rides
+   data_delete). The grant is
    single-use, lives 120 s, and is bound to the tenant, the patient, the DPoP device session
    and the action.
-2. **Registration** happens only from an OTP-verified DPoP session.
+2. **Registration** happens only from an OTP-verified DPoP session, and while the patient
+   holds an active passkey — including during a recovery's cool-off — both registration
+   routes also require that passkey's `passkey_add` grant (the options read it, the
+   registration spends it). An un-stepped caller is told nothing about the existing
+   passkeys: no user handle, no credential id, and the step-up options list no
+   credential id either (a passkey is discoverable). Enrolment on the OTP tier alone stays
+   for a patient with no passkey and after a completed recovery. Without this, a
+   SIM-swapper enrolled their own passkey beside the patient's and walked through D36 —
+   the security review's B1, 30 Oct 2026.
 3. **Hand-rolled verifier.** The verifier is a small, hand-rolled WebAuthn Level 3 check,
    `intake_api.passkey.webauthn`, built on `cbor2` and `cryptography`. Both are already
    licence-verified for App Attest (INT-344), and the strict-decoder style follows
@@ -72,11 +82,19 @@ phone-change route, when it is built, is held to this by
 `test_no_route_changes_the_phone_number_without_the_gate`. The relying party is D34's synthetic
 host, so moving to the production domain at real launch invalidates every passkey made before
 it, because a passkey is bound to its RP ID. That move needs its own decision and a re-enrolment
-path. Android has no allowed origin yet, so it stays on the OTP tier until its
-`android:apk-key-hash:` origin is configured. Stored data is the public half only: a credential
-id, a public key, the counter, BE/BS, and an opaque per-patient user handle. This is a new
-personal-data category, `authentication_credential`, on the proposed KVKK m.12/1 security basis,
-for the legal lane to confirm. The DSAR export lists it and the erasure removes it.
+path. Android cannot enrol today: an Android passkey's clientDataJSON names an
+`android:apk-key-hash:` origin, and `PasskeyConfig` accepts only `https://` origins on the RP
+ID, so Android stays on the OTP tier until a decision adds that origin form and its check.
+Stored data is the public half only: a credential id, a public key, the counter, BE/BS, and
+an opaque per-patient user handle. It is a new personal-data category,
+`authentication_credential`. **The legal lane decided its basis (review B1, 30 Oct 2026):
+KVKK m.5/2-c — necessary for performing the service contract, the optional account-security
+step-up the patient enrolled in** — not the m.5/2-ç legal-obligation ground first proposed;
+the m.6 condition is not triggered because no biometric data reaches the controller. Its
+clock ends at removal, after a recovery's cool-off (at the latest at the next periodic
+destruction, retention class `recovered_passkeys`), or with the record on DSAR erasure; it
+has no recipient. The audit rows keep `basis:KVKK-12`: the chain is the m.12 record. The
+DSAR export lists the passkeys.
 
 **What enforces it.**
 - `tests/api/test_passkey_webauthn.py`: every check, each with its near miss.

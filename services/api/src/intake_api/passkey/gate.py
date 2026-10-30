@@ -42,7 +42,7 @@ from intake_api.auth import Principal
 from intake_api.consent_guard import _iter_api_routes
 from intake_api.passkey.actions import D36_ACTIONS, StepUpAction
 from intake_api.passkey.challenges import Spent
-from intake_api.passkey.metrics import PasskeyEvent, record_event
+from intake_api.passkey.metrics import MetricReason, PasskeyEvent, record_event
 from intake_api.passkey.service import (
     MANUAL_PATH,
     RECOVERY_COOLOFF_S,
@@ -79,7 +79,18 @@ STEP_UP_ROUTES: Mapping[StepUpAction, tuple[str, ...]] = MappingProxyType(
         # where the data leaves: the answer itself, not the tracker row that
         # records the request (which returns no personal data)
         StepUpAction.DATA_EXPORT: ("GET /v1/me/dsar/export/{request_id}",),
-        StepUpAction.DATA_DELETE: ("POST /v1/me/dsar/delete",),
+        # scheduling the erasure, and withdrawing one somebody scheduled: a
+        # SIM-swapper must not cancel the holder's erasure either
+        StepUpAction.DATA_DELETE: (
+            "POST /v1/me/dsar/delete",
+            "DELETE /v1/me/dsar/delete/{request_id}",
+        ),
+        # both halves of an enrolment: the options (which name the existing
+        # passkeys) and the registration (which spends the grant)
+        StepUpAction.PASSKEY_ADD: (
+            "POST /v1/me/passkeys/registration/options",
+            "POST /v1/me/passkeys/registration",
+        ),
         StepUpAction.PASSKEY_REMOVE: ("DELETE /v1/me/passkeys/{passkey_id}",),
         StepUpAction.RECOVERY_CANCEL: ("DELETE /v1/me/passkeys/recovery",),
     }
@@ -94,16 +105,21 @@ def step_up_required(action: StepUpAction) -> HTTPException:
 
 
 class StepUpGate:
-    """One gate per action; the instance is what the route scan reads."""
+    """One gate per action; the instance is what the route scan reads.
 
-    def __init__(self, action: StepUpAction) -> None:
+    ``spend=False`` reads the grant without spending it: only for the
+    registration options, whose act the registration completes and spends.
+    Every other gate spends."""
+
+    def __init__(self, action: StepUpAction, *, spend: bool = True) -> None:
         self.action = action
+        self.spend = spend
 
     async def _refuse(
         self, state: ApiState, caller: Caller, reason: str, error: HTTPException
     ) -> HTTPException:
         await audit_event(state.audit, caller, "step_up.refused", f"step-up:{self.action.value}")
-        record_event(PasskeyEvent.GATE_REFUSED, reason)
+        record_event(PasskeyEvent.GATE_REFUSED, MetricReason(reason))
         return error
 
     async def __call__(
@@ -136,7 +152,8 @@ class StepUpGate:
         grant = request.headers.get(GRANT_HEADER)
         if not grant:
             raise await self._refuse(state, caller, "grant_absent", step_up_required(self.action))
-        spent = await asyncio.to_thread(service.spend_grant, grant, caller, self.action)
+        check = service.spend_grant if self.spend else service.check_grant
+        spent = await asyncio.to_thread(check, grant, caller, self.action)
         if spent is not Spent.OK:
             reason = f"grant_{spent.value}"
             raise await self._refuse(state, caller, reason, step_up_refused(self.action, reason))
@@ -145,9 +162,9 @@ class StepUpGate:
         record_event(PasskeyEvent.GATE_PASSKEY)
 
 
-def require_step_up(action: StepUpAction) -> params.Depends:
+def require_step_up(action: StepUpAction, *, spend: bool = True) -> params.Depends:
     """Put the step-up for ``action`` in front of a route."""
-    dependency: params.Depends = Depends(StepUpGate(action))
+    dependency: params.Depends = Depends(StepUpGate(action, spend=spend))
     return dependency
 
 

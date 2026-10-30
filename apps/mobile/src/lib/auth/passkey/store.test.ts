@@ -10,9 +10,12 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import type { PasskeyPorts, ServerAnswer } from "./ceremony";
 import {
   addPasskey,
+  cancelPasskeyRecovery,
   loadPasskeys,
   parsePasskeyList,
+  passkeyRows,
   passkeySnapshot,
+  removePasskey,
   resetPasskeys,
   startPasskeyRecovery,
 } from "./store";
@@ -41,10 +44,15 @@ describe("the list", () => {
           { recovery_ends_at: null },
         ],
       }),
-    ).toEqual({ enrolment: "enrolled", recoveryEndsAt: "2026-11-02T10:00:00+00:00" });
+    ).toEqual({
+      enrolment: "enrolled",
+      recoveryEndsAt: "2026-11-02T10:00:00+00:00",
+      passkeyIds: [],
+    });
     expect(parsePasskeyList({ enrolment: "offered", passkeys: [] })).toEqual({
       enrolment: "offered",
       recoveryEndsAt: null,
+      passkeyIds: [],
     });
   });
 
@@ -71,6 +79,7 @@ describe("the list", () => {
       enrolment: "enrolled",
       recoveryEndsAt: null,
       notice: null,
+      passkeyIds: [],
     });
   });
 });
@@ -135,5 +144,101 @@ describe("the lost phone", () => {
     mocks.authedFetch.mockResolvedValue(response(404, { error: "not_found" }));
     await startPasskeyRecovery();
     expect(passkeySnapshot()).toMatchObject({ recoveryEndsAt: null, notice: "recovery_failed" });
+  });
+});
+
+describe("INT-582 review: cancelling a recovery, removing a passkey, the rows shown", () => {
+  const OFFER = {
+    enrolled: true,
+    publicKey: {
+      challenge: "Y2hhbGxlbmdl",
+      rpId: "3-211-2-143.sslip.io",
+      allowCredentials: [],
+      userVerification: "required",
+    },
+  };
+  const ok = (body: unknown, status = 200): ServerAnswer => ({ ok: true, status, body });
+  const holder: PasskeyPorts = {
+    native: async () => ({
+      create: async () => null,
+      get: async () => ({
+        id: "Y3JlZA",
+        rawId: "Y3JlZA",
+        type: "public-key",
+        response: { clientDataJSON: "e30", authenticatorData: "AA", signature: "AA" },
+      }),
+    }),
+    registrationOptions: async () => ok({}),
+    register: async () => ok({}),
+    stepUpOptions: vi.fn(async () => ok(OFFER)),
+    stepUp: vi.fn(async () => ok({ grant: "grant-value" })),
+  };
+
+  it("cancelling a running recovery steps up with recovery_cancel, then withdraws it", async () => {
+    mocks.authedFetch.mockImplementation(async (path: string, init?: RequestInit) => {
+      if (path === "/v1/me/passkeys/recovery" && init?.method === "DELETE") {
+        return response(200, { cancelled: 1 });
+      }
+      return response(200, { enrolment: "enrolled", passkeys: [{ passkey_id: "p1" }] });
+    });
+    await cancelPasskeyRecovery(holder);
+    expect(holder.stepUpOptions).toHaveBeenCalledWith("recovery_cancel");
+    const cancel = mocks.authedFetch.mock.calls.find(
+      ([path, init]) => path === "/v1/me/passkeys/recovery" && init?.method === "DELETE",
+    );
+    expect((cancel?.[1] as RequestInit).headers).toEqual({
+      "X-Intake-Step-Up-Grant": "grant-value",
+    });
+    expect(passkeySnapshot()).toMatchObject({ recoveryEndsAt: null, notice: "recovery_cancelled" });
+  });
+
+  it("removing the passkey steps up with passkey_remove and names the passkey it removes", async () => {
+    mocks.authedFetch.mockImplementation(async (path: string, init?: RequestInit) => {
+      if (init?.method === "DELETE") {
+        return response(204, null);
+      }
+      return response(200, { enrolment: "enrolled", passkeys: [{ passkey_id: "p1" }] });
+    });
+    await loadPasskeys();
+    await removePasskey(holder);
+    expect(holder.stepUpOptions).toHaveBeenCalledWith("passkey_remove");
+    const removal = mocks.authedFetch.mock.calls.find(([, init]) => init?.method === "DELETE");
+    expect(removal?.[0]).toBe("/v1/me/passkeys/p1");
+    expect(passkeySnapshot().notice).toBe("removed");
+  });
+
+  it("shows the cancel row only while a recovery is running (near miss: none without one)", () => {
+    expect(
+      passkeyRows(
+        { enrolment: "enrolled", recoveryEndsAt: null, notice: null, passkeyIds: ["p"] },
+        false,
+      ),
+    ).toEqual(["enrolled", "remove", "lost"]);
+    expect(
+      passkeyRows(
+        {
+          enrolment: "enrolled",
+          recoveryEndsAt: "2026-11-02T10:00:00+00:00",
+          notice: null,
+          passkeyIds: ["p"],
+        },
+        false,
+      ),
+    ).toEqual(["enrolled", "recoveryEnds", "cancelRecovery"]);
+    expect(
+      passkeyRows(
+        { enrolment: "offered", recoveryEndsAt: null, notice: null, passkeyIds: [] },
+        false,
+      ),
+    ).toEqual(["add"]);
+  });
+
+  it("'I lost my phone' asks to be confirmed before it starts anything", () => {
+    expect(
+      passkeyRows(
+        { enrolment: "enrolled", recoveryEndsAt: null, notice: null, passkeyIds: ["p"] },
+        true,
+      ),
+    ).toEqual(["enrolled", "remove", "lostConfirm"]);
   });
 });

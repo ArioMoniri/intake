@@ -4598,3 +4598,14 @@
 - Blocked on: nothing. Turning the tier on at the synthetic host waits for INT-580's AASA (#999) and a build carrying the native module.
 - Next: main (with #995) merged in and the passkey proof plugged into INT-587's seam; the PR opens after the SMS stack, because it needs #999's associatedDomains.
 - LOOP_STATUS: CONTINUE
+
+### 2026-10-30T23:30:00+03:00 · INT-582 · review fixes (backup branch, no PR)
+- Goal: both independent reviews said REVISE. Security B1: an OTP-only session could enrol a second passkey while one was active, remove the patient's and schedule the erasure. Legal B1–B4 and N1–N9: the basis, the cancel the copy promised, the offer's absolute promise, destruction of a recovered passkey whose patient never returns, and the copy and register notes.
+- Plan: test-first. `passkey_add` step-up on both registration routes while a passkey is active (cool-off included), no ids to an un-stepped caller, the erasure cancel behind `data_delete`, tag-free CBOR, BE checked at assertion, a closed metric reason; KVKK m.5/2-c with the m.6 condition recorded; the recovered_passkeys event-clock retention class with its audited destroyer; the cancel, remove and confirm rows in the app.
+- Tests added (each with its near miss): `tests/api/test_passkey_enrol_gate.py` (12), `tests/legal/test_passkey_retention.py` (4), +6 in `tests/api/test_passkey_webauthn.py`, annotation and erasure-clock expectations, +9 vitest (ceremony, rp, store).
+- Result: red run — 35 failed plus one collection error (Python), 8 failed (app); green run — passkey API 170, retention/data/store labels 227, release 236, mobile 3186 passed; ruff, mypy --strict, tsc clean (evidence, "Review fixes").
+- Invariants touched and still passing: 4 (every new refusal and each periodic destruction audited), 6 (closed metric labels; ids only), 14 (tag-free CBOR), 17, 18 (annotation and retention class), 19.
+- Decisions / ADRs / `00_STATE.md` rows: ADR-044 §2 and its Android sentence corrected; the basis is the legal lane's decision (m.5/2-c), recorded in the evidence, the ADR and COUNSEL_BRIEF.
+- Blocked on: nothing; the PR still waits for #999.
+- Next: both reviewers re-verify.
+- LOOP_STATUS: CONTINUE

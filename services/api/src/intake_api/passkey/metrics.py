@@ -14,7 +14,7 @@ import enum
 
 from prometheus_client import Counter
 
-__all__ = ["PASSKEY_EVENTS", "PasskeyEvent", "record_event"]
+__all__ = ["PASSKEY_EVENTS", "MetricReason", "PasskeyEvent", "record_event"]
 
 
 class PasskeyEvent(enum.StrEnum):
@@ -31,6 +31,39 @@ class PasskeyEvent(enum.StrEnum):
     RECOVERY_COMPLETED = "recovery_completed"
 
 
+class MetricReason(enum.StrEnum):
+    """The closed ``reason`` label: a WebAuthn check, a challenge or grant
+    outcome, or ``none``. A value outside it cannot be counted — the
+    conversion raises — so a free string never becomes a label (invariant 6)."""
+
+    NONE = "none"
+    MALFORMED = "passkey_malformed"
+    CEREMONY = "passkey_ceremony"
+    CHALLENGE = "passkey_challenge"
+    ORIGIN = "passkey_origin"
+    CROSS_ORIGIN = "passkey_cross_origin"
+    RP_ID = "passkey_rp_id"
+    USER_PRESENCE = "passkey_user_presence"
+    USER_VERIFICATION = "passkey_user_verification"
+    BACKUP_FLAGS = "passkey_backup_flags"
+    ATTESTATION_FORMAT = "passkey_attestation_format"
+    ALGORITHM = "passkey_algorithm"
+    CREDENTIAL_ID = "passkey_credential_id"
+    USER_HANDLE = "passkey_user_handle"
+    SIGNATURE = "passkey_signature"
+    SIGN_COUNT = "passkey_sign_count"
+    CHALLENGE_MISSING = "challenge_missing"
+    CHALLENGE_EXPIRED = "challenge_expired"
+    CHALLENGE_MISMATCH = "challenge_mismatch"
+    GRANT_ABSENT = "grant_absent"
+    GRANT_MISSING = "grant_missing"
+    GRANT_EXPIRED = "grant_expired"
+    GRANT_MISMATCH = "grant_mismatch"
+    CREDENTIAL_UNKNOWN = "credential_unknown"
+    PASSKEY_EXISTS = "passkey_exists"
+    NOT_CONFIGURED = "passkey_not_configured"
+
+
 PASSKEY_EVENTS = Counter(
     "passkey_events_total",
     "Patient passkey outcomes (INT-582, D36): registrations, step-ups, the gate's "
@@ -40,5 +73,5 @@ PASSKEY_EVENTS = Counter(
 )
 
 
-def record_event(event: PasskeyEvent, reason: str = "none") -> None:
-    PASSKEY_EVENTS.labels(event=event.value, reason=reason).inc()
+def record_event(event: PasskeyEvent, reason: MetricReason = MetricReason.NONE) -> None:
+    PASSKEY_EVENTS.labels(event=event.value, reason=reason.value).inc()

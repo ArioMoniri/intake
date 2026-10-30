@@ -98,6 +98,8 @@ class DestroyableClass(enum.StrEnum):
     TRAFFIC_LOGS_5651 = "traffic_logs_5651"
     SATISFACTION = "satisfaction"
     RESEARCH_EXTRACTS = "research_extracts"
+    # INT-582 (legal B4): a passkey whose recovery cool-off has ended
+    RECOVERED_PASSKEYS = "recovered_passkeys"
 
 
 class RetentionKind(enum.StrEnum):
@@ -105,6 +107,10 @@ class RetentionKind(enum.StrEnum):
     EXPIRY = "expiry"
     YEARS = "years"
     WITH_ACCOUNT = "with_account"
+    # INT-582: due when an event the inventory names has run its course — the
+    # item carries the instant (expires_at); the class carries no number, the
+    # code that defines the event does (a passkey recovery's cool-off)
+    EVENT_CLOCK = "event_clock"
     UNSPECIFIED = "unspecified"
 
 

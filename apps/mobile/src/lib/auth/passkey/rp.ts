@@ -15,12 +15,13 @@
 /** D34's synthetic host. The production domain is revisited at real launch. */
 export const PASSKEY_RP_ID = "3-211-2-143.sslip.io";
 
-/** The four D36 actions, and the mechanism's own two (remove, cancel recovery). */
+/** The four D36 actions, and the mechanism's own three (add while one is active, remove, cancel recovery). */
 export const STEP_UP_ACTIONS = [
   "doctor_link_issue",
   "phone_change",
   "data_export",
   "data_delete",
+  "passkey_add",
   "passkey_remove",
   "recovery_cancel",
 ] as const;
@@ -158,7 +159,6 @@ export function guardStepUpOffer(raw: unknown): StepUpOffer | null {
     body.enrolled !== true ||
     options === null ||
     allowed === null ||
-    allowed.length === 0 ||
     options.rpId !== PASSKEY_RP_ID ||
     options.userVerification !== "required" ||
     !b64(options.challenge)

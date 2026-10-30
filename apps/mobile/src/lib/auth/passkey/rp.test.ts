@@ -69,12 +69,13 @@ describe("the relying party is D34's domain-bound host", () => {
     }
   });
 
-  it("names D36's four actions and the mechanism's own two, and no other", () => {
+  it("names D36's four actions and the mechanism's own three, and no other", () => {
     expect([...STEP_UP_ACTIONS]).toEqual([
       "doctor_link_issue",
       "phone_change",
       "data_export",
       "data_delete",
+      "passkey_add",
       "passkey_remove",
       "recovery_cancel",
     ]);
@@ -152,7 +153,7 @@ describe("the step-up answer", () => {
 
   it.each([
     ["another relying party", { rpId: "evil.example" }],
-    ["no credential to ask for", { allowCredentials: [] }],
+    ["a malformed credential descriptor", { allowCredentials: [{ type: "public-key", id: "" }] }],
     ["verification only preferred", { userVerification: "preferred" }],
     ["a missing challenge", { challenge: undefined }],
   ])("refuses %s", (_label, overrides) => {
@@ -162,5 +163,14 @@ describe("the step-up answer", () => {
   it("refuses something that is not an answer", () => {
     expect(guardStepUpOffer("enrolled")).toBeNull();
     expect(guardStepUpOffer({ enrolled: "yes" })).toBeNull();
+  });
+});
+
+describe("INT-582 review: no credential id is needed to step up", () => {
+  it("an enrolled answer with an empty allowCredentials passes (a discoverable passkey)", () => {
+    expect(guardStepUpOffer(offer({ allowCredentials: [] }))).toMatchObject({
+      enrolled: true,
+      options: { allowCredentials: [] },
+    });
   });
 });

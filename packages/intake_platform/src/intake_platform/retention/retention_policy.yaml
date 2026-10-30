@@ -186,6 +186,26 @@ classes:
       06 §3: "Satisfaction: with account." Event-based retention: rows become
       due the moment the account is deleted, and not before.
 
+  - data_class: recovered_passkeys
+    # INT-582 (legal B4, 30 Oct 2026): a passkey whose recovery cool-off has
+    # ended is destroyed at the patient's next gate or list call — and, for a
+    # patient who never returns, here. Without this row the public half would
+    # stay on file indefinitely (KVKK-7). The cool-off is the API's constant
+    # (intake_api.passkey.service.RECOVERY_COOLOFF_S, ADR-044); the inventory
+    # sweep (executors.recovered_passkey_inventory) hands each item the
+    # instant its cool-off ends, so the row carries no number of its own.
+    basis: "KVKK m.5/2-c — necessary for performing the service contract: the optional account-security step-up the patient enrolled in (D36, against SIM swap)"
+    retention: { kind: event_clock }
+    action: destroy
+    destruction_path: periodic
+    dsar_erasable: true
+    status: sourced
+    source: >-
+      06 §3 holds no sign-in-factor row; the class rides 06 §1 KVKK-7 +
+      DEST-2017's periodic destruction (≤ 6 months) on an event clock the owner's
+      D36 sets up (ADR-044): due when a passkey recovery's cool-off ends; each
+      destroyed passkey is audited as passkey.recovery.complete.
+
   - data_class: research_extracts
     basis: "KVKK m.6 + KSVY-16 — research under ethics approval"
     # "Per ethics protocol" is a pointer, not a duration: the registered

@@ -438,7 +438,8 @@ class SignInFactorDeclaration:
     factor (INT-582: passkeys, D36).
 
     A passkey is account security, not a consented purpose: it rides the
-    KVKK m.12 security obligation (``inventory.BASIS_ACCOUNT_SECURITY``).
+    service contract the patient enrolled in — KVKK m.5/2-c, the legal lane's
+    decision (``inventory.BASIS_ACCOUNT_SECURITY``).
     Gate it on ``core`` and a patient who withdrew consent could neither
     remove the passkey nor recover from a lost phone — and the step-up it
     powers sits in front of the statutory rights routes, which a withdrawal
@@ -802,7 +803,7 @@ def unguarded_data_routes(app: FastAPI) -> list[str]:
     consent) and notification_preference under NOTIFICATION_PREFERENCE_PREFIX
     (INT-141, the message-refusal register a withdrawal must not lock) and
     sign_in_factor under SIGN_IN_FACTOR_PREFIX (INT-582, the patient's own
-    passkeys, an account-security control on the KVKK m.12 obligation) and
+    passkeys, an account-security control on the KVKK m.5/2-c contract) and
     doctor_link_redemption under DOCTOR_LINK_PREFIX (INT-150, the clinician
     holding a token and no account, whose consent check runs record-level
     inside the endpoint) and administrative_action under ADMIN_PREFIX

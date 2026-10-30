@@ -44,7 +44,7 @@ from passkey_harness import (  # noqa: E402
     Session,
     build_passkey_kit,
 )
-from passkey_testkit import Authenticator, b64url  # noqa: E402
+from passkey_testkit import Authenticator  # noqa: E402
 
 DELETE = "/v1/me/dsar/delete"
 
@@ -287,12 +287,13 @@ def test_near_miss_a_challenge_inside_its_window_passes(kit: PasskeyKit) -> None
     assert kit.finish_step_up(session, "data_delete", device.assertion(options)).status_code == 200
 
 
-def test_step_up_options_name_only_the_patients_own_credentials(kit: PasskeyKit) -> None:
-    session, device = _enrolled(kit)
-    _enrolled(kit, PHONE_B)
+def test_step_up_options_name_the_rp_and_require_verification(kit: PasskeyKit) -> None:
+    # no credential id is listed (tests/api/test_passkey_enrol_gate.py): the
+    # passkey is discoverable, and the server matches the returned rawId
+    session, _device = _enrolled(kit)
     body = kit.step_up_options(session, "data_delete").json()
     public_key = body["publicKey"]
-    assert [item["id"] for item in public_key["allowCredentials"]] == [b64url(device.credential_id)]
+    assert public_key["allowCredentials"] == []
     assert public_key["rpId"] == "3-211-2-143.sslip.io"
     assert public_key["userVerification"] == "required"
 

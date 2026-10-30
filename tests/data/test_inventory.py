@@ -55,7 +55,8 @@ EXPECTED_TABLES = {
     "record_embeddings",
     # INT-582 (D36) — the PUBLIC half of each patient passkey: credential id,
     # public key, counter, backup flags, an opaque handle. A new category
-    # (authentication_credential) on the legal-obligation (KVKK m.12) basis.
+    # (authentication_credential) on the service-contract basis (KVKK m.5/2-c),
+    # the legal lane's decision.
     "patient_passkeys",
 }
 
@@ -105,9 +106,10 @@ def test_clinical_payload_columns_are_marked_special_category() -> None:
 def test_passkey_columns_carry_the_d36_annotation_and_hold_no_secret() -> None:
     """INT-582 (D36): the new personal-data category is annotated on every
     column that holds passkey material — the authenticator category, the
-    KVKK m.12 security basis, the patient-deletable record clock, and a
-    recipient list with no clinic in it. The near miss: the table has no
-    column a secret, an identifier or a device model could sit in."""
+    legal lane's basis (KVKK m.5/2-c, the service contract; never the m.5/2-ç
+    legal-obligation ground the first draft proposed), a clock that ends at
+    removal, recovery or erasure, and no recipient. The near miss: the table
+    has no column a secret, an identifier or a device model could sit in."""
     table = _tables()["patient_passkeys"]
     material = (
         "credential_id",
@@ -122,10 +124,14 @@ def test_passkey_columns_carry_the_d36_annotation_and_hold_no_secret() -> None:
     for name in material:
         annotation = table.columns[name].info[INVENTORY_KEY]
         assert annotation["category"] == "authentication_credential", name
-        assert annotation["basis"].startswith("KVKK m.5/2-ç"), name
-        assert "KVKK m.12/1" in annotation["basis"], name
-        assert "patient-deletable" in annotation["retention"], name
-        assert "never shared with a clinic" in annotation["recipients"], name
+        assert annotation["basis"].startswith("KVKK m.5/2-c"), name
+        assert "m.5/2-ç" not in annotation["basis"], name
+        assert annotation["retention"].startswith("until the patient removes it"), name
+        assert "periodic destruction (≤ 6 months)" in annotation["retention"], name
+        assert annotation["recipients"] == (
+            "no recipient; processed by the controller only; stored by the hosting "
+            "processor with the database"
+        ), name
     assert not {"private_key", "secret", "phone", "aaguid", "name", "device_name"} & set(
         table.columns.keys()
     )

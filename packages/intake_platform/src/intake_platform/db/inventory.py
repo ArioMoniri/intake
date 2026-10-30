@@ -90,16 +90,21 @@ CAT_AUTHENTICATOR = "authentication_credential"
 BASIS_CONTRACT = "KVKK m.5/2-c — processing necessary for the service contract"
 BASIS_HEALTH_CONSENT = "KVKK m.6 — special-category health data under açık rıza per consent scope"
 BASIS_LEGAL_OBLIGATION = "KVKK m.5/2-ç — legal obligation (KVKK m.12 security; KSVY audit duties)"
-# INT-582 (D36): the step-up exists to stop a SIM swap from reaching the
-# patient's record, which is the KVKK m.12/1 duty to take the technical
-# measures that prevent unlawful access — so the passkey rides that obligation
-# rather than consent: a security control the patient could only use by
-# consenting would be withdrawn exactly when it is needed. Proposed for the
-# legal lane to confirm (docs/evidence/INT-582.md).
+# INT-582 (D36) — the legal lane's decision (review B1, 30 Oct 2026): the
+# passkey is processed because it is necessary to perform the service the
+# patient chose — the optional step-up they enrolled in — so KVKK m.5/2-c, not
+# the m.5/2-ç legal-obligation ground engineering first proposed. KVKK m.12 is
+# the duty the step-up helps meet, not the ground for holding the key; the
+# audit rows keep their own basis:KVKK-12 reference for that reason.
+# KVKK m.6 condition: the face or fingerprint check runs on the patient's phone
+# and no biometric data reaches the controller — only a public key, which is
+# not biometric data — so the m.6 special-category condition (açık rıza for
+# biometrics) is not triggered. Were biometric data ever to reach the
+# controller, m.6's condition would apply and this basis would no longer hold
+# (docs/legal/COUNSEL_BRIEF.md).
 BASIS_ACCOUNT_SECURITY = (
-    "KVKK m.5/2-ç — legal obligation: the KVKK m.12/1 duty to take the technical "
-    "measures that prevent unlawful access to the patient's record (D36 step-up "
-    "against SIM swap)"
+    "KVKK m.5/2-c — necessary for performing the service contract: the optional "
+    "account-security step-up the patient enrolled in (D36, against SIM swap)"
 )
 # INT-536 (INT-529 F5, COUNSEL_BRIEF §2.9): both satisfaction write routes
 # require the `satisfaction` consent scope (files/06 §2: açık rıza, default
@@ -186,15 +191,16 @@ RET_PREVISIT_OUTPUT = (
     "The receiving hospital's own retention is a DPA clause named per recipient row "
     "(infra/previsit_output/recipients.yaml retention_ref), never a period set here"
 )
-# INT-582 (D36): files/06 §3 has no row for a sign-in factor. It rides the
-# record clock the matrix already defines, as RET_NOTIFICATION_PREFERENCE does,
-# for a stated reason: a passkey cannot outlive the account it signs in to.
-# The patient removes it at will (a removal is itself a step-up), the recovery
-# path removes it after its cool-off, and a DSAR erasure erases it.
+# INT-582 (D36), the legal lane's wording (review B4): files/06 §3 has no row
+# for a sign-in factor. A passkey ends when the patient removes it (a step-up
+# of its own); after a recovery's cool-off it is destroyed at the first gate or
+# list call and, if the patient never returns, by the next periodic destruction
+# (retention class recovered_passkeys, DEST-2017's ≤ 6-month interval); a DSAR
+# erasure removes it with the record.
 RET_PASSKEY = (
-    "while the patient keeps the passkey, on the 06 §3 record clock: patient-deletable "
-    "at any time, removed by the recovery path after its cool-off, and erased with the "
-    "record by a DSAR erasure — a sign-in factor cannot outlive the account"
+    "until the patient removes it; after a recovery's cool-off at the first gate or "
+    "list call and at the latest at the next periodic destruction (≤ 6 months); with "
+    "the record on DSAR erasure"
 )
 # INT-223: files/06 §3 has no row for guardian linkage, and inventing one
 # would be inventing a retention clock. The gate stays shut instead.
@@ -209,12 +215,13 @@ REC_INTERNAL = "internal services only; never leaves the PHI boundary"
 REC_CLINICIAN = "tenant clinicians via a consented share (Doctor Link / clinic console)"
 REC_PATIENT_CLINICIAN = "the patient (own record) and tenant clinicians via consented share"
 REC_AUDITOR = "supervisory authority or auditor on lawful request; WORM export"
-# INT-582 (D36): a passkey's public half is read by the API's verifier and by
-# the patient (the passkey list, the DSAR export). No clinic, clinician, share
-# or Doctor Link ever carries it.
+# INT-582 (D36), the legal lane's wording (review B4): nobody receives a
+# passkey's public half. The controller's API verifies against it, and the
+# hosting processor stores it with the rest of the database; showing the
+# patient their own list or DSAR export is not a disclosure to a recipient.
 REC_PASSKEY = (
-    "the patient (own passkey list and DSAR export) and the API's step-up verifier; "
-    "never shared with a clinic or a clinician, never leaves the PHI boundary"
+    "no recipient; processed by the controller only; stored by the hosting processor "
+    "with the database"
 )
 # INT-224: the health-platform reads (HealthKit / Health Connect) never leave
 # the handset. There is no recipient at all until the patient chooses to add a

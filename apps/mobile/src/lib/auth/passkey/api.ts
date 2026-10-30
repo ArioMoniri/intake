@@ -54,9 +54,12 @@ function post(body?: unknown, headers: Record<string, string> = {}): RequestInit
 }
 
 export const passkeyApi = {
-  registrationOptions: (): Promise<ServerAnswer> => send(`${BASE}/registration/options`, post()),
-  register: (credential: RegistrationCredential): Promise<ServerAnswer> =>
-    send(`${BASE}/registration`, post({ credential })),
+  registrationOptions: (headers: Record<string, string> = {}): Promise<ServerAnswer> =>
+    send(`${BASE}/registration/options`, post(undefined, headers)),
+  register: (
+    credential: RegistrationCredential,
+    headers: Record<string, string> = {},
+  ): Promise<ServerAnswer> => send(`${BASE}/registration`, post({ credential }, headers)),
   stepUpOptions: (action: StepUpAction): Promise<ServerAnswer> =>
     send(`${BASE}/step-up/options`, post({ action })),
   stepUp: (action: StepUpAction, credential: AssertionCredential): Promise<ServerAnswer> =>

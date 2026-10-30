@@ -804,7 +804,22 @@ Thirteen keys are unauthored (`dsar/strings.py:34-62`):
 *(Updated 27 Sep 2026 by INT-395. The survey found nine keys; INT-395 added the last four,
 because the export now lists every table the inventory annotations put under the
 subject's access right and no existing heading fits these four. Each is one more
-heading, with no wording drafted; the export refuses without it exactly as before.)*
+heading, with no wording drafted; the export refuses without it exactly as before.
+Updated 30 Oct 2026 by INT-582: `dsar_export.section.passkeys` is the fourteenth key —
+title, footer and twelve section headings.)*
+
+**Patient passkeys (INT-582, D36) — the legal lane's basis decision, 30 Oct 2026.** A
+passkey's public half (`patient_passkeys`, category `authentication_credential`) rests on
+KVKK m.5/2-c: necessary for performing the service contract, the optional account-security
+step-up the patient enrolled in. **The m.6 condition:** the face or fingerprint check runs
+on the patient's phone and no biometric data reaches the controller — the stored public
+key is not biometric data — so the m.6 special-category condition (açık rıza for
+biometrics) is not triggered. If biometric data ever reached the controller, m.6 would
+apply and this basis would not hold. Retention: until the patient removes it; after a
+recovery's cool-off at the first gate or list call and at the latest at the next periodic
+destruction (≤ 6 months); with the record on DSAR erasure. Recipients: none; processed by
+the controller only; stored by the hosting processor with the database. Counsel's
+countersignature is still owed before real patients.
 
 **The one substantive question inside that list**, recorded verbatim at
 `dsar/strings.py:11-14`: `dsar_export.footer` is deliberately its own key rather than a

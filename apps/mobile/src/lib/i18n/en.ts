@@ -314,19 +314,26 @@ export const en: Record<MessageKey, string> = {
   "passkey.add": "Add a passkey",
   "passkey.enrolled": "Your passkey is on",
   "passkey.offer":
-    "A passkey lets you confirm important actions with your face or fingerprint. A doctor link, a copy of your record and deleting it are such actions. Even if someone takes over your number, only you can do them.",
+    "A passkey lets you confirm important actions with your phone's lock. A sharing link, a copy of your record and its deletion are such actions. It makes them harder for someone who takes over your number. Your face and fingerprint data stay on your phone and never reach us.",
   "passkey.lost": "I lost my phone",
+  "passkey.lost.confirm": "Confirm the removal request",
+  "passkey.remove": "Remove the passkey",
+  "passkey.cancelRecovery": "Cancel this request",
   "passkey.recoveryEnds": "Day the passkey will be removed",
   "passkey.recoveryNote":
-    "If you still have your old phone, you can cancel this request there. Until that day these actions still need the passkey.",
+    "If you still have your old phone, you can cancel this request there. Until that day, a sharing link, a copy and deletion still need the passkey.",
   "passkey.notice.added": "Your passkey was added.",
   "passkey.notice.unsupported": "This phone does not support passkeys.",
   "passkey.notice.exists": "This passkey is already added.",
   "passkey.notice.failed": "The passkey could not be added.",
+  "passkey.notice.removed": "Your passkey was removed.",
+  "passkey.notice.removeFailed": "The passkey could not be removed.",
   "passkey.notice.recoveryFailed": "This request could not be sent.",
+  "passkey.notice.recoveryCancelled": "The removal request was cancelled.",
+  "passkey.notice.cancelFailed": "This request could not be cancelled.",
   "passkey.stepUp.cancelled": "Not confirmed, so nothing was done.",
   "passkey.stepUp.refused":
-    "This action could not be confirmed with your passkey. If you wish, you can apply to the data controller and have a person review it.",
+    "This action could not be confirmed with your passkey, so it was not done. If you wish, you can apply to us in writing. A person reviews your application and we reply within thirty days at the latest.",
   "me.signOut": "Sign out",
   "me.syntheticBadge": "Synthetic test account",
 
@@ -851,8 +858,12 @@ export const en: Record<MessageKey, string> = {
   // user knows what will happen before they act.
   "a11y.data.exportHint": "Double tapping sends your copy request.",
   "a11y.data.deleteHint": "Double tapping starts your erasure request.",
-  "a11y.passkey.addHint": "Double tapping sets up passkey sign-in on this phone.",
-  "a11y.passkey.lostHint": "Double tapping starts the request to remove the passkey.",
+  "a11y.passkey.addHint": "Double tapping adds a passkey to this phone.",
+  // the line above ends in "passkey … phone." and the next key would read as
+  // its value to gitleaks' generic-api-key rule; this comment keeps them apart
+  "a11y.passkey.lostHint": "Double tapping asks to remove the passkey after a waiting period.",
+  "a11y.passkey.removeHint": "Double tapping removes your passkey sign-in from this account.",
+  "a11y.passkey.cancelHint": "Double tapping cancels the removal request.",
   "a11y.data.withdrawHint": "Double tapping withdraws your erasure request.",
   "a11y.learned.shareHint": "Double tapping changes who this detail is shared with.",
   "a11y.learned.forgetHint": "Double tapping deletes this detail from your record.",

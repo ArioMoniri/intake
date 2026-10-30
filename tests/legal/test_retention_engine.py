@@ -192,6 +192,8 @@ def test_policy_classes_are_exactly_the_destroyable_enum(policy: RetentionPolicy
         "consent_records_consumer_tenant",
         "consent_records_hospital_tenant",
         "doctor_link_tokens",
+        # INT-582 (legal B4): the event clock that destroys a recovered passkey
+        "recovered_passkeys",
         "research_extracts",
         "satisfaction",
         "telemetry",

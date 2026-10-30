@@ -150,5 +150,24 @@ class ChallengeStore:
         self._put(self._key("grant", _digest(grant.encode("ascii"))), binding, GRANT_TTL_S)
         return grant
 
+    def check_grant(self, grant: str, binding: Binding) -> Spent:
+        """Read a grant without spending it — for the one route whose act is
+        completed by a second request (the registration options, whose
+        registration then spends the same grant). A mismatch still burns it,
+        exactly as a spend would."""
+        key = self._key("grant", _digest(grant.encode("utf-8")))
+        raw = self._r.get(key)
+        if raw is None:
+            return Spent.MISSING
+        record = json.loads(raw.decode("utf-8") if isinstance(raw, bytes) else str(raw))
+        expires = float(record.pop("expires"))
+        record.pop("note", None)
+        if record != binding.as_record():
+            self._r.delete(key)
+            return Spent.MISMATCH
+        if expires < self._now():
+            return Spent.EXPIRED
+        return Spent.OK
+
     def consume_grant(self, grant: str, binding: Binding) -> Spent:
         return self._spend(self._key("grant", _digest(grant.encode("utf-8"))), binding)[0]

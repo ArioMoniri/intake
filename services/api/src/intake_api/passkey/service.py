@@ -44,7 +44,7 @@ from intake_api.dev_fixture import DevAccount
 from intake_api.passkey import store
 from intake_api.passkey.actions import StepUpAction
 from intake_api.passkey.challenges import CHALLENGE_TTL_S, Binding, Ceremony, ChallengeStore, Spent
-from intake_api.passkey.metrics import PasskeyEvent, record_event
+from intake_api.passkey.metrics import MetricReason, PasskeyEvent, record_event
 from intake_api.passkey.webauthn import (
     COSE_ES256,
     PasskeyConfig,
@@ -71,7 +71,10 @@ __all__ = [
     "step_up_refused",
 ]
 
-#: The audit ground: the KVKK m.12 security obligation (inventory.BASIS_ACCOUNT_SECURITY).
+#: The audit ground for the passkey rows on the hash chain ONLY: the chain
+#: itself is the KVKK m.12 security record. The stored passkey rests on the
+#: service contract (KVKK m.5/2-c, inventory.BASIS_ACCOUNT_SECURITY), the legal
+#: lane's decision; the two are different questions and keep different refs.
 PASSKEY_BASIS_REF = "basis:KVKK-12"
 #: Where a refusal made on the step-up signal alone sends the patient: an
 #: application to the controller under KVKK m.13, reviewed by a person — the
@@ -221,6 +224,9 @@ class PasskeyService:
     def spend_grant(self, grant: str, caller: Caller, action: StepUpAction) -> Spent:
         return self._challenges.consume_grant(grant, caller.binding(Ceremony.STEP_UP, action))
 
+    def check_grant(self, grant: str, caller: Caller, action: StepUpAction) -> Spent:
+        return self._challenges.check_grant(grant, caller.binding(Ceremony.STEP_UP, action))
+
     # --- registration ----------------------------------------------------------------------
 
     async def registration_options(self, caller: Caller) -> dict[str, Any]:
@@ -254,7 +260,7 @@ class PasskeyService:
         self, caller: Caller, reason: str, status: int = 400
     ) -> NoReturn:
         await audit_event(self._audit, caller, "passkey.register.refused", "ceremony:register")
-        record_event(PasskeyEvent.REGISTRATION_REFUSED, reason)
+        record_event(PasskeyEvent.REGISTRATION_REFUSED, MetricReason(reason))
         if status == 409:
             raise HTTPException(status_code=409, detail={"error": "passkey_exists"})
         raise HTTPException(
@@ -335,9 +341,11 @@ class PasskeyService:
             "publicKey": {
                 "challenge": b64url(challenge),
                 "rpId": self._config.rp_id,
-                "allowCredentials": [
-                    {"type": "public-key", "id": row.credential_id} for row in rows
-                ],
+                # empty on purpose: a passkey is discoverable (residentKey
+                # required), so no credential id reaches a caller who has
+                # not yet stepped up; the returned rawId is matched against
+                # this patient's own rows below
+                "allowCredentials": [],
                 "userVerification": "required",
                 "timeout": CHALLENGE_TTL_S * 1000,
             },
@@ -345,7 +353,7 @@ class PasskeyService:
 
     async def _refuse_step_up(self, caller: Caller, action: StepUpAction, reason: str) -> NoReturn:
         await audit_event(self._audit, caller, "passkey.step_up.refused", f"step-up:{action.value}")
-        record_event(PasskeyEvent.STEP_UP_REFUSED, reason)
+        record_event(PasskeyEvent.STEP_UP_REFUSED, MetricReason(reason))
         raise step_up_refused(action, reason)
 
     async def step_up(
@@ -390,6 +398,7 @@ class PasskeyService:
                     public_key=b64url_decode(row.public_key),
                     sign_count=row.sign_count,
                     user_handle=b64url_decode(row.user_handle),
+                    backup_eligible=row.backup_eligible,
                 ),
                 client_data_json=client_data_raw,
                 authenticator_data=auth_data_raw,

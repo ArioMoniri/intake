@@ -55,14 +55,24 @@ export type ServerAnswer =
 export interface PasskeyPorts {
   /** The native passkey module, or null where this phone/build has none. */
   native(): Promise<PasskeyNative | null>;
-  registrationOptions(): Promise<ServerAnswer>;
-  register(credential: RegistrationCredential): Promise<ServerAnswer>;
+  registrationOptions(headers?: Record<string, string>): Promise<ServerAnswer>;
+  register(
+    credential: RegistrationCredential,
+    headers?: Record<string, string>,
+  ): Promise<ServerAnswer>;
   stepUpOptions(action: StepUpAction): Promise<ServerAnswer>;
   stepUp(action: StepUpAction, credential: AssertionCredential): Promise<ServerAnswer>;
 }
 
 export type EnrolFailure =
-  "unsupported" | "cancelled" | "unavailable" | "exists" | "refused" | "session";
+  | "unsupported"
+  | "cancelled"
+  | "unavailable"
+  | "exists"
+  | "refused"
+  | "session"
+  // INT-582 review B1: a second passkey needs the first, which could not confirm it
+  | "step_up";
 export type EnrolResult = { ok: true } | { ok: false; reason: EnrolFailure };
 
 export type StepUpResult =
@@ -90,7 +100,21 @@ export async function enrol(ports: PasskeyPorts): Promise<EnrolResult> {
   if (native === null) {
     return { ok: false, reason: "unsupported" };
   }
-  const answer = await ports.registrationOptions();
+  // INT-582 review B1: while a passkey is active, adding another is a
+  // passkey_add step-up — the server says so, and the grant rides both calls
+  let headers: Record<string, string> = {};
+  let answer = await ports.registrationOptions();
+  if (!answer.ok && answer.status === 403 && answer.error === "step_up_required") {
+    const stepped = await stepUpFor("passkey_add", ports);
+    if (stepped.kind === "cancelled") {
+      return { ok: false, reason: "cancelled" };
+    }
+    if (stepped.kind !== "passkey") {
+      return { ok: false, reason: "step_up" };
+    }
+    headers = { "X-Intake-Step-Up-Grant": stepped.grant };
+    answer = await ports.registrationOptions(headers);
+  }
   if (!answer.ok) {
     return { ok: false, reason: enrolFailure(answer) };
   }
@@ -108,7 +132,7 @@ export async function enrol(ports: PasskeyPorts): Promise<EnrolResult> {
   if (credential === null) {
     return { ok: false, reason: "cancelled" };
   }
-  const registered = await ports.register(credential);
+  const registered = await ports.register(credential, headers);
   return registered.ok ? { ok: true } : { ok: false, reason: enrolFailure(registered) };
 }
 

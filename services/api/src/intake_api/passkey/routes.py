@@ -125,7 +125,18 @@ def _iso(value: datetime | None) -> str | None:
     return None if value is None else aware(value).isoformat()
 
 
-@router.post("/registration/options")
+# Enrolment while a passkey is active is a step-up of its own (passkey_add):
+# without it a SIM-swapper enrols their own passkey beside the patient's and
+# walks through D36. A patient with no active passkey enrols on the OTP tier,
+# which is also where a completed recovery leaves them. The options read the
+# grant (they name the existing passkeys, so an un-stepped caller gets none of
+# it); the registration spends it.
+
+
+@router.post(
+    "/registration/options",
+    dependencies=[require_step_up(StepUpAction.PASSKEY_ADD, spend=False)],
+)
 async def registration_options(
     request: Request, principal: Principal, state: State
 ) -> dict[str, Any]:
@@ -133,7 +144,12 @@ async def registration_options(
     return await service.registration_options(caller_of(request, principal))
 
 
-@router.post("/registration", status_code=201, response_model=PasskeyOut)
+@router.post(
+    "/registration",
+    status_code=201,
+    response_model=PasskeyOut,
+    dependencies=[require_step_up(StepUpAction.PASSKEY_ADD)],
+)
 async def register(
     payload: RegistrationIn, request: Request, principal: Principal, state: State
 ) -> PasskeyOut:

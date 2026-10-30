@@ -91,7 +91,7 @@ describe("enrolment", () => {
   it("creates the passkey on the phone and registers what the phone returned", async () => {
     const wired = ports();
     expect(await enrol(wired)).toEqual({ ok: true });
-    expect(wired.register).toHaveBeenCalledWith(REGISTRATION);
+    expect(wired.register).toHaveBeenCalledWith(REGISTRATION, {});
   });
 
   it("a phone without passkeys asks the server nothing", async () => {
@@ -197,5 +197,43 @@ describe("the step-up", () => {
     expect(await stepUpFor("data_delete", odd)).toEqual({ kind: "refused", manualPath: false });
     const empty = ports({ stepUp: vi.fn(async () => ok({ grant: "" })) });
     expect(await stepUpFor("data_delete", empty)).toEqual({ kind: "refused", manualPath: false });
+  });
+});
+
+describe("INT-582 review B1: a second passkey is a passkey_add step-up", () => {
+  const GRANT = { "X-Intake-Step-Up-Grant": "grant-value" };
+
+  it("asks the patient's passkey first, then enrols with the grant on both calls", async () => {
+    const registrationOptions = vi.fn(async (headers?: Record<string, string>) =>
+      headers && "X-Intake-Step-Up-Grant" in headers
+        ? ok(CREATION)
+        : no(403, "step_up_required", true),
+    );
+    const wired = ports({ registrationOptions });
+    expect(await enrol(wired)).toEqual({ ok: true });
+    expect(wired.stepUpOptions).toHaveBeenCalledWith("passkey_add");
+    expect(registrationOptions).toHaveBeenLastCalledWith(GRANT);
+    expect(wired.register).toHaveBeenCalledWith(REGISTRATION, GRANT);
+  });
+
+  it("near miss: a patient with no passkey enrols with no step-up and no header", async () => {
+    const wired = ports();
+    expect(await enrol(wired)).toEqual({ ok: true });
+    expect(wired.stepUpOptions).not.toHaveBeenCalled();
+    expect(wired.register).toHaveBeenCalledWith(REGISTRATION, {});
+  });
+
+  it("a passkey that cannot confirm the addition is the step-up refusal; a closed sheet is a cancel", async () => {
+    const demanding = vi.fn(async () => no(403, "step_up_required", true));
+    const refused = ports({
+      registrationOptions: demanding,
+      stepUp: vi.fn(async () => no(403, "step_up_refused", true)),
+    });
+    expect(await enrol(refused)).toEqual({ ok: false, reason: "step_up" });
+    const closed = ports(
+      { registrationOptions: demanding },
+      native({ get: vi.fn(async () => null) }),
+    );
+    expect(await enrol(closed)).toEqual({ ok: false, reason: "cancelled" });
   });
 });

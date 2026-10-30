@@ -150,6 +150,18 @@ def due_for_destruction(
                 )
             elif now >= item.expires_at:
                 due.append(DueItem(item.data_class, item.item_ref, item.expires_at))
+        elif kind is RetentionKind.EVENT_CLOCK:
+            if item.expires_at is None:
+                refused.append(
+                    RefusedItem(
+                        item.data_class,
+                        item.item_ref,
+                        "event-clock class item without the instant its event ends — "
+                        "refused rather than guessed",
+                    )
+                )
+            elif now >= item.expires_at:
+                due.append(DueItem(item.data_class, item.item_ref, item.expires_at))
         elif kind is RetentionKind.WITH_ACCOUNT:
             if item.account_deleted_at is not None and now >= item.account_deleted_at:
                 due.append(DueItem(item.data_class, item.item_ref, item.account_deleted_at))

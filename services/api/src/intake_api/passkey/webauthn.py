@@ -12,6 +12,8 @@ records the comparison and both licence reads.
 
 What is accepted, and only this:
 
+* CBOR: definite lengths, no duplicate keys, bounded depth and no semantic
+  tag anywhere (:mod:`intake_api.passkey.cbor`).
 * clientDataJSON: one JSON object, no duplicate member, ``type`` the ceremony's,
   ``challenge`` the live server challenge (base64url, no padding), ``origin`` one
   of the configured origins exactly, ``crossOrigin`` absent or false and no
@@ -25,7 +27,7 @@ What is accepted, and only this:
   is COSE EC2 / ES256 / P-256 and nothing else; the credential id in authData
   is the one the response names.
 * assertion: ECDSA P-256 SHA-256 over authData ‖ SHA-256(clientDataJSON) under
-  the stored key; a userHandle, when sent, is the stored one; the signature
+  the stored key; BE as it registered; a userHandle, when sent, is the stored one; the signature
   counter obeys WebAuthn §6.1.1 (see :func:`sign_count_advances`).
 
 Every refusal names one :class:`PasskeyReason`. Nothing here logs; callers log
@@ -39,7 +41,6 @@ import base64
 import binascii
 import hashlib
 import hmac
-import io
 import json
 import re
 from collections.abc import Mapping
@@ -48,10 +49,11 @@ from enum import StrEnum
 from typing import Any
 from urllib.parse import urlsplit
 
-import cbor2
 from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import ec
+
+from intake_api.passkey.cbor import CborShapeError, decode_map, decode_one
 
 __all__ = [
     "CEREMONY_CREATE",
@@ -86,7 +88,6 @@ _FLAG_BE = 0x08
 _FLAG_BS = 0x10
 _FLAG_AT = 0x40
 _FLAG_ED = 0x80
-_CBOR_MAX_DEPTH = 8
 _COSE_KEYS = frozenset({1, 3, -1, -2, -3})
 _ATTESTATION_KEYS = frozenset({"fmt", "attStmt", "authData"})
 _B64URL = re.compile(r"^[A-Za-z0-9_-]*$")
@@ -213,12 +214,15 @@ class RegisteredCredential:
 
 @dataclass(frozen=True)
 class StoredCredential:
-    """The stored credential an assertion is checked against."""
+    """The stored credential an assertion is checked against. ``backup_eligible``
+    is the BE flag it registered with: fixed for the credential's life
+    (WebAuthn §6.1.3), so an assertion that flips it is refused."""
 
     credential_id: bytes
     public_key: bytes
     sign_count: int
     user_handle: bytes
+    backup_eligible: bool
 
 
 @dataclass(frozen=True)
@@ -274,25 +278,17 @@ def _check_client_data(
 
 
 def _decode_one(data: bytes) -> tuple[Any, int]:
-    stream = io.BytesIO(data)
     try:
-        value = cbor2.CBORDecoder(
-            stream,
-            read_size=1,
-            max_depth=_CBOR_MAX_DEPTH,
-            allow_indefinite=False,
-            allow_duplicate_keys=False,
-        ).decode()
-    except (cbor2.CBORError, ValueError, EOFError, RecursionError) as exc:
+        return decode_one(data)
+    except CborShapeError as exc:
         raise _malformed() from exc
-    return value, stream.tell()
 
 
 def _decode_map(data: bytes) -> Mapping[Any, Any]:
-    value, used = _decode_one(data)
-    if used != len(data) or not isinstance(value, dict):
-        raise _malformed()
-    return value
+    try:
+        return decode_map(data)
+    except CborShapeError as exc:
+        raise _malformed() from exc
 
 
 def _cose_es256_point(cose: object) -> bytes:
@@ -446,6 +442,8 @@ def verify_assertion(
     )
     parsed = _parse_auth_data(authenticator_data, attested=False)
     _check_flags_and_rp(parsed, config)
+    if bool(parsed.flags & _FLAG_BE) is not credential.backup_eligible:
+        raise PasskeyRefused(PasskeyReason.BACKUP_FLAGS)
     signed = authenticator_data + hashlib.sha256(client_data_json).digest()
     try:
         public_key = ec.EllipticCurvePublicKey.from_encoded_point(

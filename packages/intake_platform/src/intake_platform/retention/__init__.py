@@ -33,6 +33,7 @@ from intake_platform.retention.executors import (
     ObjectRemover,
     UnknownBucketError,
     WormBundleProtectedError,
+    recovered_passkey_inventory,
     sqlalchemy_destroyers,
 )
 from intake_platform.retention.planner import (
@@ -115,5 +116,6 @@ __all__ = [
     "load_default_policy",
     "load_policy",
     "parse_policy",
+    "recovered_passkey_inventory",
     "sqlalchemy_destroyers",
 ]

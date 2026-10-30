@@ -95,8 +95,15 @@ def test_the_creation_options_ask_for_a_verified_platform_passkey_with_no_attest
     device = _enrol(kit, session)
     stored_handle = unb64url(kit.passkey_rows()[0].user_handle)
     assert device.user_handle == stored_handle  # the one the phone was offered
-    second = kit.call(session, "POST", "/v1/me/passkeys/registration/options").json()["publicKey"]
-    third = kit.call(session, "POST", "/v1/me/passkeys/registration/options").json()["publicKey"]
+    # a second passkey is a step-up of its own (passkey_add); the options a
+    # stepped-up holder gets carry the same handle and exclude the first
+    grant = kit.grant(session, device, "passkey_add")
+    second = kit.call(
+        session, "POST", "/v1/me/passkeys/registration/options", headers={GRANT_HEADER: grant}
+    ).json()["publicKey"]
+    third = kit.call(
+        session, "POST", "/v1/me/passkeys/registration/options", headers={GRANT_HEADER: grant}
+    ).json()["publicKey"]
     # one handle per patient once enrolled, so a second passkey is the same account
     assert unb64url(second["user"]["id"]) == unb64url(third["user"]["id"]) == stored_handle
     assert second["excludeCredentials"] == [
@@ -162,7 +169,7 @@ def test_a_registration_challenge_is_single_use_and_bound_to_its_session(
 def test_the_same_credential_cannot_be_registered_twice(kit: PasskeyKit) -> None:
     session = kit.sign_in()
     device = _enrol(kit, session)
-    again = kit.register(session, device)
+    again = kit.register(session, device, grant=kit.grant(session, device, "passkey_add"))
     assert again.status_code == 409
     assert again.json() == {"error": "passkey_exists"}
 

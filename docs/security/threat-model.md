@@ -624,7 +624,8 @@ it or whose tests exercise it.
   already-audited `cbor2` and `cryptography` rather than a library that would add
   `pyOpenSSL`) checks the ceremony type, the challenge, the exact origin, `crossOrigin`,
   the RP ID hash (D34's host), user presence **and** verification, the backup flags,
-  `fmt: none`, ES256 only, the credential id, the signature and the counter (WebAuthn
+  `fmt: none`, ES256 only, CBOR with no semantic tag anywhere, BE against the value it
+  registered with, the credential id, the signature and the counter (WebAuthn
   §6.1.1: a counter that does not move forward is refused as a clone; a synced passkey's
   0 against 0 passes). A patient **without** a passkey is **not** locked out: today's
   OTP-session tier still applies and the response offers enrolment
@@ -632,17 +633,32 @@ it or whose tests exercise it.
   action is refused 503, never downgraded, because the downgrade is what a SIM swap
   wants. Every refusal on the step-up signal alone names the manual path
   (`kvkk_m13_application`: a person reviews it, KVKK m.11(1)(g)). Registration happens
-  only from an OTP-verified DPoP session; removing a passkey and cancelling a recovery
-  are step-ups of their own, else an OTP-only attacker would remove the passkey first.
-  The stored datum is the public half only (credential id, public key, counter, BE/BS, an
-  opaque per-patient user handle); its inventory annotation is a new category,
-  `authentication_credential`, proposed on the KVKK m.12/1 security-obligation basis for
-  the legal lane to confirm, erased by a DSAR erasure and listed in the export.
+  only from an OTP-verified DPoP session, and **[S/E] while any passkey is active —
+  including during a recovery's cool-off — both registration routes also require its
+  `passkey_add` grant** (the options read it, the registration spends it). The security
+  review (30 Oct 2026, B1) found the path this closes: a SIM-swapper enrolled their own
+  passkey beside the patient's, used it to remove the patient's, then scheduled the
+  erasure (`tests/api/test_passkey_enrol_gate.py` replays it; it now stops at its first
+  step). An un-stepped caller learns nothing about the existing passkeys: the
+  registration options refuse it, and the step-up options list no credential id (a
+  passkey is discoverable; the returned rawId is matched against the patient's own).
+  Removing a passkey, cancelling a recovery and withdrawing a scheduled erasure
+  (`DELETE /v1/me/dsar/delete/{id}`, `data_delete`) are step-ups too, else an OTP-only
+  attacker would remove the passkey, cancel the holder's objection, or cancel the
+  holder's erasure. The stored datum is the public half only (credential id, public key,
+  counter, BE/BS, an opaque per-patient user handle), a new category,
+  `authentication_credential`, on the legal lane's basis (KVKK m.5/2-c — the optional
+  account-security step-up the patient enrolled in; no biometric data reaches the
+  controller, so m.6 is not triggered), with no recipient, erased by a DSAR erasure and
+  listed in the export.
 - **Lost phone — recovery, stated (INT-582):** the OTP tier starts a recovery
   (`POST /v1/me/passkeys/recovery`); the passkey keeps guarding the four actions through a
   cool-off (`RECOVERY_COOLOFF_S`, 72 h, an engineering default for the owner to confirm)
   and its holder can cancel by stepping up (`recovery_cancel`); after the cool-off the
-  passkey stops counting, is deleted (audited `passkey.recovery.complete`) and the patient
+  passkey stops counting, is deleted (audited `passkey.recovery.complete`) at the next gate
+  or list call — and, for a patient who never returns, by the retention engine's periodic
+  run (class `recovered_passkeys`, an event clock due when the cool-off ends; DEST-2017's
+  ≤ 6-month interval; `tests/legal/test_passkey_retention.py`) — and the patient
   is back on the OTP tier with enrolment offered. A SIM-swap attacker must therefore hold
   the number unnoticed for the whole cool-off while D35's push notice reaches the
   patient's signed-in devices (INT-583 builds that channel; until it lands the

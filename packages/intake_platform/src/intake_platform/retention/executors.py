@@ -49,6 +49,7 @@ from __future__ import annotations
 
 import uuid
 from collections.abc import Callable, Sequence
+from datetime import UTC, datetime, timedelta
 from typing import Any, Protocol, cast
 
 from sqlalchemy import Engine, delete, select, update
@@ -64,6 +65,7 @@ from intake_platform.db.models import (
     Event,
     IntakeSession,
     Note,
+    PatientPasskey,
     PreVisitOutputRow,
     RecordEmbedding,
     Share,
@@ -71,6 +73,7 @@ from intake_platform.db.models import (
 )
 from intake_platform.records.index import document_ref_of
 from intake_platform.retention.engine import Destroyer
+from intake_platform.retention.planner import InventoryItem
 from intake_platform.retention.policy import DestroyableClass
 
 __all__ = [
@@ -78,6 +81,7 @@ __all__ = [
     "ObjectRemover",
     "UnknownBucketError",
     "WormBundleProtectedError",
+    "recovered_passkey_inventory",
     "sqlalchemy_destroyers",
 ]
 
@@ -148,12 +152,53 @@ def _as_ints(field_name: str, refs: Sequence[str]) -> list[int]:
         ) from err
 
 
+def _aware(value: datetime) -> datetime:
+    return value if value.tzinfo is not None else value.replace(tzinfo=UTC)
+
+
+def recovered_passkey_inventory(engine: Engine, *, cooloff: timedelta) -> list[InventoryItem]:
+    """INT-582 (legal B4): every passkey with a recovery running, as an
+    event-clock item due when its cool-off ends. The cool-off is the API's
+    (``intake_api.passkey.service.RECOVERY_COOLOFF_S``) and comes in as an
+    argument; a cancelled recovery has no ``recovery_requested_at`` and is not
+    listed at all. Ids only (invariant 6)."""
+    with Session(engine) as session:
+        rows = session.execute(
+            select(
+                PatientPasskey.id,
+                PatientPasskey.patient_id,
+                PatientPasskey.recovery_requested_at,
+            ).where(PatientPasskey.recovery_requested_at.is_not(None))
+        ).all()
+    items: list[InventoryItem] = []
+    for passkey_id, patient_id, requested in rows:
+        started = _aware(requested)
+        items.append(
+            InventoryItem(
+                data_class=DestroyableClass.RECOVERED_PASSKEYS,
+                item_ref=str(passkey_id),
+                clock_start=started,
+                expires_at=started + cooloff,
+                subject_ref=f"patient:{patient_id}",
+            )
+        )
+    return items
+
+
 def sqlalchemy_destroyers(
-    engine: Engine, *, remove_object: Callable[[str], None]
+    engine: Engine,
+    *,
+    remove_object: Callable[[str], None],
+    record_passkey_recovery: Callable[[str], None] | None = None,
 ) -> dict[DestroyableClass, Destroyer]:
     """Destroyers for the classes whose stores are the INT-030 tables.
     ``remove_object`` receives each document's ``object_ref`` — wire a
-    :class:`DocumentObjectDestroyer` there in anything beyond the unit lane."""
+    :class:`DocumentObjectDestroyer` there in anything beyond the unit lane.
+
+    ``record_passkey_recovery`` (INT-582) audits each destroyed recovered
+    passkey as ``passkey.recovery.complete`` by its id. Without it the class is
+    not routed, so a due passkey refuses loudly (NoExecutorRegisteredError)
+    rather than disappearing unaudited."""
 
     def destroy_events(refs: Sequence[str]) -> int:
         ids = _as_ints("event", refs)
@@ -218,9 +263,31 @@ def sqlalchemy_destroyers(
             )
             return int(result.rowcount)
 
-    return {
+    def destroy_recovered_passkeys(refs: Sequence[str]) -> int:
+        if record_passkey_recovery is None:  # pragma: no cover — never routed without it
+            raise ValueError("a recovered passkey is destroyed only where it can be audited")
+        ids = _as_uuids("passkey", refs)
+        with Session(engine) as session, session.begin():
+            gone = session.scalars(
+                delete(PatientPasskey)
+                .where(
+                    PatientPasskey.id.in_(ids),
+                    # only a passkey whose recovery is still running is this
+                    # class's: a cancelled one survives even if listed earlier
+                    PatientPasskey.recovery_requested_at.is_not(None),
+                )
+                .returning(PatientPasskey.id)
+            ).all()
+        for passkey_id in gone:
+            record_passkey_recovery(str(passkey_id))
+        return len(gone)
+
+    routes: dict[DestroyableClass, Destroyer] = {
         DestroyableClass.TELEMETRY: destroy_events,
         DestroyableClass.SATISFACTION: destroy_events,
         DestroyableClass.CONSENT_RECORDS_HOSPITAL_TENANT: destroy_consents,
         DestroyableClass.CLINICAL_RECORD: destroy_clinical,
     }
+    if record_passkey_recovery is not None:
+        routes[DestroyableClass.RECOVERED_PASSKEYS] = destroy_recovered_passkeys
+    return routes

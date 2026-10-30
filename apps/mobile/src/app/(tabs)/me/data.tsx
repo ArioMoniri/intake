@@ -36,8 +36,12 @@ import { ListGroup, ListRow } from "@/components/ListRow";
 import { AppText, RAIL_EDGES, Screen } from "@/components/Themed";
 import {
   type PasskeyNotice,
+  type PasskeyRow,
   addPasskey,
+  cancelPasskeyRecovery,
   loadPasskeys,
+  passkeyRows,
+  removePasskey,
   startPasskeyRecovery,
   usePasskeys,
 } from "@/lib/auth/passkey/store";
@@ -184,57 +188,122 @@ const NOTICE_KEYS: Record<PasskeyNotice, MessageKey> = {
   added: "passkey.notice.added",
   unsupported: "passkey.notice.unsupported",
   exists: "passkey.notice.exists",
-  cancelled: "passkey.notice.failed",
+  cancelled: "passkey.stepUp.cancelled",
   unavailable: "passkey.notice.failed",
   refused: "passkey.notice.failed",
   session: "passkey.notice.failed",
+  step_up: "passkey.stepUp.refused",
+  removed: "passkey.notice.removed",
+  remove_failed: "passkey.notice.removeFailed",
   recovery_started: "passkey.recoveryNote",
   recovery_failed: "passkey.notice.recoveryFailed",
+  recovery_cancelled: "passkey.notice.recoveryCancelled",
+  cancel_failed: "passkey.notice.cancelFailed",
 };
 
 /**
  * INT-582 (D36): the passkey that guards this screen's two actions. Offered
- * to a patient who has none (the server's word, `offered`), shown as on with
- * the lost-phone path for one who has, and absent where the passkey tier is
- * not available — nothing here is promised that the server did not confirm.
+ * to a patient who has none (the server's word, `offered`); shown as on, with
+ * a removal (a step-up of its own) and the lost-phone path, for one who has;
+ * absent where the passkey tier is not available. "Telefonumu kaybettim"
+ * takes two taps, like the erasure, and a running recovery shows its day and
+ * the cancel its note promises (a recovery_cancel step-up). Which rows show
+ * is `passkeyRows` — pure and tested — and nothing here is promised that the
+ * server did not confirm.
  */
 function PasskeySection() {
-  const { enrolment, recoveryEndsAt, notice } = usePasskeys();
+  const current = usePasskeys();
+  const [lostArmed, setLostArmed] = useState(false);
   useEffect(() => {
     void loadPasskeys();
   }, []);
-  if (enrolment !== "offered" && enrolment !== "enrolled") {
+  const rows = passkeyRows(current, lostArmed);
+  if (rows.length === 0) {
     return null;
   }
-  return (
-    <View style={styles.section}>
-      <Kicker label={t("passkey.title")} />
-      {enrolment === "offered" ? (
-        <ListGroup footer={t("passkey.offer")}>
+  const row = (kind: PasskeyRow) => {
+    switch (kind) {
+      case "add":
+        return (
           <ListRow
+            key={kind}
             icon="key"
             label={t("passkey.add")}
             hint={t("a11y.passkey.addHint")}
             onPress={() => void addPasskey()}
           />
-        </ListGroup>
-      ) : (
-        <ListGroup footer={recoveryEndsAt === null ? undefined : t("passkey.recoveryNote")}>
-          <ListRow icon="key" label={t("passkey.enrolled")} />
-          {recoveryEndsAt === null ? (
-            <ListRow
-              label={t("passkey.lost")}
-              hint={t("a11y.passkey.lostHint")}
-              onPress={() => void startPasskeyRecovery()}
-            />
-          ) : (
-            <ListRow label={t("passkey.recoveryEnds")} sublabel={formatDsarDay(recoveryEndsAt)} />
-          )}
-        </ListGroup>
-      )}
+        );
+      case "enrolled":
+        return <ListRow key={kind} icon="key" label={t("passkey.enrolled")} />;
+      case "remove":
+        return (
+          <ListRow
+            key={kind}
+            label={t("passkey.remove")}
+            hint={t("a11y.passkey.removeHint")}
+            onPress={() => void removePasskey()}
+          />
+        );
+      case "lost":
+        return (
+          <ListRow
+            key={kind}
+            label={t("passkey.lost")}
+            hint={t("a11y.passkey.lostHint")}
+            onPress={() => setLostArmed(true)}
+          />
+        );
+      case "lostConfirm":
+        return (
+          <ListRow
+            key={kind}
+            label={t("passkey.lost.confirm")}
+            hint={t("a11y.passkey.lostHint")}
+            onPress={() => {
+              setLostArmed(false);
+              void startPasskeyRecovery();
+            }}
+          />
+        );
+      case "recoveryEnds":
+        return (
+          <ListRow
+            key={kind}
+            label={t("passkey.recoveryEnds")}
+            sublabel={
+              current.recoveryEndsAt === null ? undefined : formatDsarDay(current.recoveryEndsAt)
+            }
+          />
+        );
+      case "cancelRecovery":
+        return (
+          <ListRow
+            key={kind}
+            label={t("passkey.cancelRecovery")}
+            hint={t("a11y.passkey.cancelHint")}
+            onPress={() => void cancelPasskeyRecovery()}
+          />
+        );
+    }
+  };
+  const footer =
+    current.enrolment === "offered"
+      ? t("passkey.offer")
+      : current.recoveryEndsAt !== null
+        ? t("passkey.recoveryNote")
+        : undefined;
+  const notice = current.notice;
+  return (
+    <View style={styles.section}>
+      <Kicker label={t("passkey.title")} />
+      <ListGroup footer={footer}>{rows.map(row)}</ListGroup>
       {notice === null || notice === "recovery_started" ? null : (
         <AnnouncedText
-          tone={notice === "added" ? "status" : "error"}
+          tone={
+            notice === "added" || notice === "removed" || notice === "recovery_cancelled"
+              ? "status"
+              : "error"
+          }
           role="caption"
           color="inkSoft"
           message={t(NOTICE_KEYS[notice])}
