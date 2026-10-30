@@ -243,10 +243,11 @@ def test_ids_unique_and_well_formed() -> None:
     # + INT-537 (the app grants the core consent that visits and notes
     # require; INT-529 legal-author finding F2, GitHub #904).
     # + INT-586 (opentelemetry-api past GHSA-ccrj-gw8r-854m, GitHub #986).
+    # + INT-590 (decode-uri-component past CVE-2026-118664, GitHub #991).
     # + INT-559 (the app's voice lane never writes patient audio to a file —
     # invariant 3 with no dev exception, from the INT-536 legal review;
     # GitHub #947).
-    assert len(ids) == 376
+    assert len(ids) == 377
     import re
 
     for i in ids:
