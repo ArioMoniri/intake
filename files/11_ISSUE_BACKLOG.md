@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**374 issues.** By phase: P0 183 · P1 137 · P2 47 · P3 7. By status: awaiting-human 38 · doing 7 · done 254 · todo 74 · withdrawn 1.
+**382 issues.** By phase: P0 183 · P1 145 · P2 47 · P3 7. By status: awaiting-human 39 · doing 7 · done 261 · todo 74 · withdrawn 1.
 
 ## P0
 
@@ -318,6 +318,8 @@
 | INT-414 | Conversational question delivery — warm opener, context- and affect-aware lead-ins, questions verbatim | E08-mobile | INT-415 | area:mobile | done |
 | INT-447 | Clinical decisions batch 2 — verify INT-414's 48 delivery lines (PolicyGuard, B1, siz, sourced) | E08-mobile | INT-432 | area:mobile, risk:clinical | done |
 | INT-449 | Turkish voice casting: the best native Turkish ElevenLabs voice and model, natural intonation | E05-voice | INT-415 | area:voice | done |
+| INT-450 | admin-web UI upgrade with owner-listed component libraries (licence-checked) | E12-admin | INT-181, INT-182, INT-187, INT-351, INT-366 | area:admin | done |
+| INT-459 | admin-web premium redesign | E12-admin | INT-450 | area:admin | done |
 | INT-463 | All CI jobs on the AWS self-hosted runner | E13-infra | INT-206, INT-426 | area:ci, approval:human-infra | awaiting-human |
 | INT-467 | A pool of three ephemeral intake-aws-ci runners, each isolated as runner 1 is | E13-infra | INT-463 | area:ci, approval:human-infra | awaiting-human |
 | INT-460 | Second admin approver for synthetic staging: a second Keycloak user, never a second dev bearer | E12-admin | INT-180, INT-325, INT-365 | area:admin, risk:security | done |
@@ -335,6 +337,12 @@
 | INT-576 | Netgsm OTP adapter parses the live success shape; an HTTP 200 the parser cannot read is never retried | E01-platform | INT-528 | area:api | done |
 | INT-578 | OTP brute force and replay — 6 digits, TTL ≤ 5 min, single use, 5 attempts then lockout, HMAC+pepper, device-bound | E01-platform | INT-131, INT-344, INT-528 | area:api, risk:security | done |
 | INT-560 | The operability registry page tells the truth: real probe results from the synthetic host, honest deployment and severity columns | E12-admin | INT-022, INT-183, INT-351, INT-377, INT-345 | area:observability | done |
+| INT-529 | Synthetic-scope consent texts, marked sentetik test metni and loaded only on the synthetic host | E14-legal | INT-038, INT-210 | area:legal, risk:legal | awaiting-human |
+| INT-537 | The app grants the core consent that visits and notes require | E08-mobile | INT-529, INT-132, INT-232 | area:mobile, risk:legal | done |
+| INT-536 | Consent-screen copy matches the consent texts and the host: affect cues never reach the doctor, and no 'stays in Türkiye' claim on the us-east-1 host | E14-legal | INT-529, INT-537 | area:legal | done |
+| INT-586 | opentelemetry-api lifted to 1.67.0 in the Keycloak provider, past GHSA-ccrj-gw8r-854m, so the vulnerabilities gate is green without an exception | E13-infra | INT-378 | area:security | done |
+| INT-590 | decode-uri-component lifted to 0.5.1 past CVE-2026-118664, so the vulnerabilities gate is green without an exception | E13-infra | INT-500 | area:security | done |
+| INT-559 | The app's voice lane never writes patient audio to a file — stream from memory (invariant 3), before voice ships in any build | E08-mobile | INT-194, INT-291, INT-446 | area:mobile, risk:security | done |
 | INT-577 | SMS pumping and overuse — per-number/device/IP/tenant limits, global caps, spend kill switch, +90 mobile only, spike alert | E01-platform | INT-131, INT-263, INT-308, INT-528, INT-578 | area:api, risk:security | done |
 
 ## P2

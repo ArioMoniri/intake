@@ -459,10 +459,10 @@ def _embed_from_settings(settings: ApiSettings) -> EmbedWiring | None:
     """
     if not settings.embed_launch_base_url:
         return None
-    from intake_platform.consent.texts import ConsentTextCatalog
     from intake_platform.embed import InMemoryNonceStore, TenantEmbedRegistry
 
     from intake_api.embed import OpenBaoSigningKeys
+    from intake_api.state import consent_catalog_for
 
     try:
         registry = TenantEmbedRegistry.from_yaml(settings.embed_registry_path)
@@ -482,7 +482,7 @@ def _embed_from_settings(settings: ApiSettings) -> EmbedWiring | None:
         # tenant's partner-processor disclosure from its own ``legal_root``
         # under the legal base (the parent of the global consents dir — in dev
         # the ~/.config/intake/dev-legal tree, in prod docs/legal).
-        consent_catalog=ConsentTextCatalog(settings.legal_root),
+        consent_catalog=consent_catalog_for(settings),
         legal_base=settings.legal_root.parent,
     )
 

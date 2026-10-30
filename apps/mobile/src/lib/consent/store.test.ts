@@ -18,6 +18,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   consentOutbox,
   flushConsentQueue,
+  ledgerSeededFor,
   ledgerSnapshot,
   resetLedger,
   seedLedgerForAccount,
@@ -147,5 +148,26 @@ describe("the outbox tells a change on its way from a change that waits (INT-397
     await settle();
     resetLedger();
     expect(consentOutbox()).toBe("clear");
+  });
+});
+
+describe("which account the working copy belongs to (INT-537)", () => {
+  // The visit-start gate reads the ledger, and a ledger nobody seeded is a
+  // fresh one: it would refuse a dev account that holds core. The screen
+  // asks whether the copy is this account's before it refuses anything.
+  it("is nobody's until an account seeds it", () => {
+    expect(ledgerSeededFor("hesap-1")).toBe(false);
+  });
+
+  it("is the seeding account's, and only that account's", async () => {
+    await seeded();
+    expect(ledgerSeededFor("hesap-1")).toBe(true);
+    expect(ledgerSeededFor("hesap-2")).toBe(false);
+  });
+
+  it("is nobody's again after sign-out", async () => {
+    await seeded();
+    resetLedger();
+    expect(ledgerSeededFor("hesap-1")).toBe(false);
   });
 });

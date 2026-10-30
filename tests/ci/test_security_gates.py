@@ -981,13 +981,17 @@ LOCKFILE = REPO / "pnpm-lock.yaml"
 # expires on 2 Nov 2026. The record's range ends at last_affected 4.2.0, and 4.3.0
 # shipped on 4 Oct, so a root override floor lifts the one transitive copy
 # (@expo/ngrok > got > cacheable-request) out of it (docs/evidence/INT-501.md).
+#
+# INT-590 raises the decode-uri-component floor: CVE-2026-118664 (published 30 Oct
+# 2026, quadratic replacement of percent-encoded runs) affects 0.5.0 and is fixed
+# in 0.5.1, so the root override floor moves up (docs/evidence/INT-590.md).
 FIXED_VERSIONS: dict[str, tuple[int, int, int]] = {
     "vitest": (4, 1, 11),  # GHSA-5xrq-8626-4rwp (3.2.6), GHSA-82fw-gwwq-j7x9 (4.1.11)
     "@vitest/mocker": (4, 1, 11),  # GHSA-82fw-gwwq-j7x9
     "vite": (6, 4, 3),  # GHSA-fx2h-pf6j-xcff, GHSA-4w7w-66w2-5vf9, GHSA-v6wh-96g9-6wx3
     "esbuild": (0, 25, 0),  # GHSA-67mh-4wv8-2f99
     "uuid": (11, 1, 1),  # GHSA-w5hq-g745-h8pq (CVE-2026-41907, CVE-2026-41988)
-    "decode-uri-component": (0, 5, 0),  # GHSA-vcc3-ghjq-m6fr (CVE-2026-45822)
+    "decode-uri-component": (0, 5, 1),  # GHSA-vcc3-ghjq-m6fr (CVE-2026-45822), CVE-2026-118664
     "shell-quote": (1, 11, 0),  # GHSA-pqg4-j6r4-53mv (CVE-2026-102422)
     "compression": (1, 8, 2),  # GHSA-vc2v-76pw-4v95 (CVE-2026-87776)
     "source-map-js": (1, 2, 2),  # GHSA-68fv-2mgg-jv7q (CVE-2026-93749)
@@ -1015,6 +1019,7 @@ ADVISORY_IDS = (
     "CVE-2026-41907",
     "CVE-2026-41988",
     "CVE-2026-45822",
+    "CVE-2026-118664",  # INT-590
     # INT-500: as trivy 0.70.0 and osv-scanner 2.5.1 named them on 16 Oct 2026
     "CVE-2026-102422",
     "GHSA-pqg4-j6r4-53mv",

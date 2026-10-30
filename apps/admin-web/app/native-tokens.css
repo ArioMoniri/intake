@@ -1,0 +1,79 @@
+/* INT-459 — the Apple-native layer's tokens that do not change with the theme:
+   type, geometry, the glass and the two springs. Every colour, in both
+   themes, is in app/palette.css, the one file a palette change touches; it
+   loads next and redefines every colour token console.css and refresh.css set,
+   so the earlier sheets' values never leak through. The springs are
+   damped-spring step responses sampled into linear(), derived in
+   docs/evidence/INT-459.md; nothing here is copied from a third-party
+   library. */
+
+:root {
+  --font:
+    -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI Variable Text", "Segoe UI",
+    system-ui, sans-serif;
+  --font-rounded:
+    ui-rounded, "SF Pro Rounded", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
+  --sidebar-width: 236px;
+  --gutter: 28px;
+  --radius-card: 14px;
+  --radius-control: 8px;
+  --radius-chrome: 18px;
+  --glass: blur(24px) saturate(180%);
+  /* Damped-spring step responses sampled into linear(): smooth is critically
+     damped (zeta 1, omega 9.2); snappy is zeta 0.82, omega 8.2 (1 % overshoot). */
+  --spring-smooth: linear(
+    0,
+    0.057,
+    0.179,
+    0.319,
+    0.453,
+    0.571,
+    0.669,
+    0.748,
+    0.811,
+    0.859,
+    0.895,
+    0.923,
+    0.944,
+    0.959,
+    0.97,
+    0.979,
+    0.985,
+    0.989,
+    0.992,
+    0.994,
+    0.996,
+    0.997,
+    0.998,
+    0.999,
+    1
+  );
+  --spring-snappy: linear(
+    0,
+    0.048,
+    0.16,
+    0.298,
+    0.439,
+    0.57,
+    0.682,
+    0.774,
+    0.847,
+    0.902,
+    0.942,
+    0.97,
+    0.989,
+    1,
+    1.007,
+    1.01,
+    1.011,
+    1.011,
+    1.009,
+    1.008,
+    1.006,
+    1.005,
+    1.004,
+    1.003,
+    1
+  );
+}
