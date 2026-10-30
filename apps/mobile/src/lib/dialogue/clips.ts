@@ -11,10 +11,10 @@
  * The clips under FileSystem.cacheDirectory/dialogue/ are AGENT-VOICE
  * audio: WAVs synthesized from catalog tr strings, one per question per
  * session. They are NOT patient audio — invariant 3 governs PATIENT
- * recordings, which keep the existing delete-after-upload posture in
- * lib/voice.ts (transcribeRecording deletes the file in its finally
- * block). The dialogue cache is still deleted wholesale on unmount AND on
- * session end: no session leaves audio behind, of either kind.
+ * audio, which never touches a file at all (lib/capture, INT-559: a bounded
+ * in-memory buffer, zeroed on every trigger). The dialogue cache is still
+ * deleted wholesale on unmount AND on session end: no session leaves audio
+ * behind, of either kind.
  */
 import * as FileSystem from "expo-file-system/legacy";
 

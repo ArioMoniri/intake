@@ -1452,6 +1452,24 @@ metrics:
     unit: "count"
     status: planned
     description: Open penetration-test findings.
+  # --- INT-584 (owner decision D38): where the API's phone-tokenization key
+  # came from. 08 §4 names no id for it, so the entry carries none. Both
+  # labels are closed vocabularies of ids (inv. 6): never a key, a pseudonym
+  # or a number.
+  - name: tokenization_key_state
+    type: gauge
+    labels: [state, origin]
+    owner: security
+    unit: "bool"
+    description: >-
+      1 on the API's current phone-tokenization key state and origin, set once
+      at wiring; every other series is cleared. state is loaded, absent,
+      unreadable or malformed (the last three keep the OTP tier and the
+      previsit read-back at 503 with tokenization_key_<state>); origin is
+      env_file (carried across from the synthetic host's env file by
+      infra/staging/tokenization_key.sh, D38), generated (made in OpenBao),
+      process_local (dev under file-dev KEKs only), unrecorded, or none when
+      no key loaded. Emitted by intake_api.tokenization_key.
   # --- files/08 §4 N. Reliability & client (files/10 §6)
   - name: slo_error_budget_remaining
     id: slo.error_budget_remaining
@@ -1507,16 +1525,22 @@ metrics:
     labels: [component]
     owner: platform
     unit: "bool (0/1)"
-    status: planned
-    description: Synthetic probe status by component (1 = healthy).
+    status: live
+    description: >-
+      Synthetic probe status by registry component (1 = healthy, 0 = the probe
+      ran and was not). Emitted by intake_probes.host_sweep on every host
+      sweep (INT-560); a component the sweep skipped has no series, because a
+      skip is not an observation. The label is a registry component id.
   - name: probe_latency_ms
     id: probe.latency_ms
     type: histogram
     labels: [component]
     owner: platform
     unit: "ms"
-    status: planned
-    description: Synthetic probe latency by component.
+    status: live
+    description: >-
+      Synthetic probe latency by registry component, in milliseconds, for
+      every probe that ran (INT-560, intake_probes.host_sweep).
   - name: deploy_frequency
     id: deploy.frequency
     type: gauge
@@ -1978,6 +2002,9 @@ metrics:
   # Both labels are closed enumerations: no phone, code, job id or tenant
   # (inv. 6). A credentials_refused or otp_package_missing outcome is the
   # operator's cue that the vendor account, not the patient, is the problem.
+  # INT-576: unparseable_response and accepted_without_job_id are 2xx answers
+  # the adapter could not read; Netgsm may have sent the code, so they are
+  # never retried, and a rise in either means the answer's shape has moved.
   - name: otp_sms_delivery_total
     type: counter
     labels: [vendor, outcome]
@@ -1987,7 +2014,8 @@ metrics:
       OTP SMS delivery attempts by vendor (netgsm) and outcome: accepted, a
       Netgsm refusal (message_refused, credentials_refused, sender_refused,
       number_refused, otp_package_missing, parameters_refused,
-      vendor_system_error, unknown_vendor_code, not_a_tr_mobile,
+      send_limit_exceeded, vendor_system_error, unknown_vendor_code,
+      unparseable_response, accepted_without_job_id, not_a_tr_mobile,
       code_not_sendable, not_on_test_allowlist) or a transport reason (egress_denied, timeout,
       unreachable, auth_failed, rate_limited, rejected, vendor_unavailable,
       malformed_response). Emitted by intake_api.otp_netgsm.

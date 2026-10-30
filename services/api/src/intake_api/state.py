@@ -15,6 +15,8 @@ from intake_platform.egress import TransferRecord
 from intake_platform.envelope import EnvelopeCipher
 from intake_platform.flags import FlagProvider, default_provider
 from intake_platform.legal import LegalStringsCatalog
+from intake_platform.legal.synthetic import DeploymentDataClass, SyntheticConsentTextCatalog
+from intake_platform.model_lanes.store import ENV_MODEL_LANES_REDIS_URL, model_lanes_store_from_env
 from intake_platform.previsit_output import RecipientRegistry, load_recipients
 from intake_platform.red_tenant import TenantRedConfig
 from intake_platform.safety_inbox import SafetyInbox, SafetyInboxOutbox
@@ -36,14 +38,28 @@ if TYPE_CHECKING:
     from intake_api.embed.service import EmbedService
     from intake_api.otp import OtpAuthService
 
-__all__ = ["ApiState", "State", "get_state"]
+__all__ = ["ApiState", "State", "consent_catalog_for", "get_state"]
 
 
 def _utc_now() -> datetime:
     return datetime.now(UTC)
 
 
-def _catalog_from_settings(settings: ApiSettings) -> ConsentTextCatalog:
+def consent_catalog_for(settings: ApiSettings) -> ConsentTextCatalog:
+    """The one place a consent catalog is built from settings (INT-529): the
+    synthetic deployment reads the synthetic index, every other deployment the
+    real tree — and ApiSettings has already refused any mixed pairing. INT-536:
+    the synthetic catalog also obeys ADR-035's bound data class, read from the
+    deployment's model-lane control store when one is named."""
+    if settings.deployment_data_class is DeploymentDataClass.SYNTHETIC:
+        bound = (
+            model_lanes_store_from_env({ENV_MODEL_LANES_REDIS_URL: settings.model_lanes_redis_url})
+            if settings.model_lanes_redis_url
+            else None
+        )
+        return SyntheticConsentTextCatalog(
+            settings.legal_root, data_class=settings.deployment_data_class, bound=bound
+        )
     return ConsentTextCatalog(settings.legal_root)
 
 
@@ -145,7 +161,7 @@ class ApiState:
     _red_rules_loaded: bool = field(init=False, default=False)
 
     def __post_init__(self) -> None:
-        self.consent_catalog = _catalog_from_settings(self.settings)
+        self.consent_catalog = consent_catalog_for(self.settings)
         self.legal_strings = LegalStringsCatalog(self.settings.legal_strings_path)
         self.tokenizer = _tokenizer_from_settings(self.settings)
 

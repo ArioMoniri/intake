@@ -10,6 +10,8 @@
       "state": "ok",
       "reason": null,
       "release_blocked": true,
+      "host": null,
+      "host_reason": "host_inventory_unconfigured",
       "rows": [
         {
           "component": "postgres",
@@ -18,9 +20,16 @@
           "self_hosted_now": true,
           "phi_path": true,
           "probe": "postgres_select1",
+          "deployment": "undeclared",
+          "needed": null,
+          "not_needed_reason": null,
           "probe_status": "no_result",
+          "probe_checked_at": null,
+          "probe_age_s": null,
+          "probe_stale": true,
           "licence_verified_at": null,
-          "severity": "blocking"
+          "severity": "blocking",
+          "severity_reason": "release_blocked"
         },
         {
           "component": "redis",
@@ -29,9 +38,16 @@
           "self_hosted_now": true,
           "phi_path": false,
           "probe": "redis_ping",
+          "deployment": "undeclared",
+          "needed": null,
+          "not_needed_reason": null,
           "probe_status": "no_result",
+          "probe_checked_at": null,
+          "probe_age_s": null,
+          "probe_stale": true,
           "licence_verified_at": null,
-          "severity": "attention"
+          "severity": "attention",
+          "severity_reason": "probe_not_healthy"
         },
         {
           "component": "minio",
@@ -40,9 +56,16 @@
           "self_hosted_now": true,
           "phi_path": true,
           "probe": "minio_ready",
+          "deployment": "undeclared",
+          "needed": null,
+          "not_needed_reason": null,
           "probe_status": "no_result",
-          "licence_verified_at": null,
-          "severity": "blocking"
+          "probe_checked_at": null,
+          "probe_age_s": null,
+          "probe_stale": true,
+          "licence_verified_at": "2026-09-26",
+          "severity": "blocking",
+          "severity_reason": "release_blocked"
         },
         {
           "component": "hapi",
@@ -51,9 +74,16 @@
           "self_hosted_now": true,
           "phi_path": true,
           "probe": "http_health",
+          "deployment": "undeclared",
+          "needed": null,
+          "not_needed_reason": null,
           "probe_status": "no_result",
+          "probe_checked_at": null,
+          "probe_age_s": null,
+          "probe_stale": true,
           "licence_verified_at": null,
-          "severity": "blocking"
+          "severity": "blocking",
+          "severity_reason": "release_blocked"
         },
         {
           "component": "ehrbase",
@@ -62,9 +92,16 @@
           "self_hosted_now": false,
           "phi_path": true,
           "probe": "http_health",
+          "deployment": "undeclared",
+          "needed": null,
+          "not_needed_reason": null,
           "probe_status": "no_result",
+          "probe_checked_at": null,
+          "probe_age_s": null,
+          "probe_stale": true,
           "licence_verified_at": "2026-08-29",
-          "severity": "attention"
+          "severity": "attention",
+          "severity_reason": "planned_not_running"
         },
         {
           "component": "openbao",
@@ -73,9 +110,16 @@
           "self_hosted_now": true,
           "phi_path": true,
           "probe": "openbao_seal_status",
+          "deployment": "undeclared",
+          "needed": null,
+          "not_needed_reason": null,
           "probe_status": "no_result",
+          "probe_checked_at": null,
+          "probe_age_s": null,
+          "probe_stale": true,
           "licence_verified_at": null,
-          "severity": "blocking"
+          "severity": "blocking",
+          "severity_reason": "release_blocked"
         },
         {
           "component": "api",
@@ -84,20 +128,34 @@
           "self_hosted_now": false,
           "phi_path": true,
           "probe": "http_health",
+          "deployment": "undeclared",
+          "needed": null,
+          "not_needed_reason": null,
           "probe_status": "no_result",
+          "probe_checked_at": null,
+          "probe_age_s": null,
+          "probe_stale": true,
           "licence_verified_at": null,
-          "severity": "attention"
+          "severity": "attention",
+          "severity_reason": "planned_not_running"
         },
         {
           "component": "probes",
           "pin": null,
           "self_hostable": true,
-          "self_hosted_now": false,
+          "self_hosted_now": true,
           "phi_path": false,
           "probe": "http_health",
+          "deployment": "undeclared",
+          "needed": null,
+          "not_needed_reason": null,
           "probe_status": "no_result",
+          "probe_checked_at": null,
+          "probe_age_s": null,
+          "probe_stale": true,
           "licence_verified_at": null,
-          "severity": "ok"
+          "severity": "attention",
+          "severity_reason": "probe_not_healthy"
         },
         {
           "component": "metrics",
@@ -106,9 +164,16 @@
           "self_hosted_now": false,
           "phi_path": false,
           "probe": "http_health",
+          "deployment": "undeclared",
+          "needed": null,
+          "not_needed_reason": null,
           "probe_status": "no_result",
+          "probe_checked_at": null,
+          "probe_age_s": null,
+          "probe_stale": true,
           "licence_verified_at": null,
-          "severity": "ok"
+          "severity": "ok",
+          "severity_reason": "ok"
         },
         {
           "component": "learning",
@@ -117,9 +182,16 @@
           "self_hosted_now": false,
           "phi_path": false,
           "probe": "http_health",
+          "deployment": "undeclared",
+          "needed": null,
+          "not_needed_reason": null,
           "probe_status": "no_result",
+          "probe_checked_at": null,
+          "probe_age_s": null,
+          "probe_stale": true,
           "licence_verified_at": null,
-          "severity": "ok"
+          "severity": "ok",
+          "severity_reason": "ok"
         },
         {
           "component": "voice-runtime",
@@ -128,9 +200,16 @@
           "self_hosted_now": false,
           "phi_path": true,
           "probe": "livekit_room_join",
+          "deployment": "undeclared",
+          "needed": null,
+          "not_needed_reason": null,
           "probe_status": "no_result",
+          "probe_checked_at": null,
+          "probe_age_s": null,
+          "probe_stale": true,
           "licence_verified_at": null,
-          "severity": "attention"
+          "severity": "attention",
+          "severity_reason": "planned_not_running"
         },
         {
           "component": "edge-tls",
@@ -139,9 +218,16 @@
           "self_hosted_now": false,
           "phi_path": true,
           "probe": "cert_expiry_days",
+          "deployment": "undeclared",
+          "needed": null,
+          "not_needed_reason": null,
           "probe_status": "no_result",
+          "probe_checked_at": null,
+          "probe_age_s": null,
+          "probe_stale": true,
           "licence_verified_at": null,
-          "severity": "attention"
+          "severity": "attention",
+          "severity_reason": "planned_not_running"
         },
         {
           "component": "backups",
@@ -150,9 +236,16 @@
           "self_hosted_now": false,
           "phi_path": true,
           "probe": "backup_freshness",
+          "deployment": "undeclared",
+          "needed": null,
+          "not_needed_reason": null,
           "probe_status": "no_result",
+          "probe_checked_at": null,
+          "probe_age_s": null,
+          "probe_stale": true,
           "licence_verified_at": null,
-          "severity": "attention"
+          "severity": "attention",
+          "severity_reason": "planned_not_running"
         },
         {
           "component": "ci-runners",
@@ -161,9 +254,16 @@
           "self_hosted_now": false,
           "phi_path": false,
           "probe": "runner_heartbeat",
+          "deployment": "undeclared",
+          "needed": null,
+          "not_needed_reason": null,
           "probe_status": "no_result",
+          "probe_checked_at": null,
+          "probe_age_s": null,
+          "probe_stale": true,
           "licence_verified_at": null,
-          "severity": "ok"
+          "severity": "ok",
+          "severity_reason": "ok"
         },
         {
           "component": "langfuse",
@@ -172,9 +272,16 @@
           "self_hosted_now": false,
           "phi_path": false,
           "probe": "http_health",
+          "deployment": "undeclared",
+          "needed": null,
+          "not_needed_reason": null,
           "probe_status": "no_result",
+          "probe_checked_at": null,
+          "probe_age_s": null,
+          "probe_stale": true,
           "licence_verified_at": "2026-08-29",
-          "severity": "ok"
+          "severity": "ok",
+          "severity_reason": "ok"
         },
         {
           "component": "langfuse-clickhouse",
@@ -183,9 +290,16 @@
           "self_hosted_now": false,
           "phi_path": false,
           "probe": "http_health",
+          "deployment": "undeclared",
+          "needed": null,
+          "not_needed_reason": null,
           "probe_status": "no_result",
+          "probe_checked_at": null,
+          "probe_age_s": null,
+          "probe_stale": true,
           "licence_verified_at": "2026-08-29",
-          "severity": "ok"
+          "severity": "ok",
+          "severity_reason": "ok"
         },
         {
           "component": "qwen3.5-9b",
@@ -194,9 +308,16 @@
           "self_hosted_now": true,
           "phi_path": true,
           "probe": "http_health",
+          "deployment": "undeclared",
+          "needed": null,
+          "not_needed_reason": null,
           "probe_status": "no_result",
+          "probe_checked_at": null,
+          "probe_age_s": null,
+          "probe_stale": true,
           "licence_verified_at": null,
-          "severity": "blocking"
+          "severity": "blocking",
+          "severity_reason": "release_blocked"
         },
         {
           "component": "whisper-tr-medical",
@@ -205,9 +326,16 @@
           "self_hosted_now": true,
           "phi_path": true,
           "probe": "http_health",
+          "deployment": "undeclared",
+          "needed": null,
+          "not_needed_reason": null,
           "probe_status": "no_result",
+          "probe_checked_at": null,
+          "probe_age_s": null,
+          "probe_stale": true,
           "licence_verified_at": null,
-          "severity": "blocking"
+          "severity": "blocking",
+          "severity_reason": "release_blocked"
         },
         {
           "component": "freya-tts",
@@ -216,9 +344,16 @@
           "self_hosted_now": true,
           "phi_path": true,
           "probe": "http_health",
+          "deployment": "undeclared",
+          "needed": null,
+          "not_needed_reason": null,
           "probe_status": "no_result",
+          "probe_checked_at": null,
+          "probe_age_s": null,
+          "probe_stale": true,
           "licence_verified_at": null,
-          "severity": "blocking"
+          "severity": "blocking",
+          "severity_reason": "release_blocked"
         },
         {
           "component": "voxcpm2-tts",
@@ -227,9 +362,34 @@
           "self_hosted_now": true,
           "phi_path": true,
           "probe": "http_health",
+          "deployment": "undeclared",
+          "needed": null,
+          "not_needed_reason": null,
           "probe_status": "no_result",
+          "probe_checked_at": null,
+          "probe_age_s": null,
+          "probe_stale": true,
           "licence_verified_at": "2026-08-29",
-          "severity": "blocking"
+          "severity": "blocking",
+          "severity_reason": "release_blocked"
+        },
+        {
+          "component": "qwen3.6-35b-a3b",
+          "pin": "Qwen/Qwen3.6-35B-A3B@995ad96eacd98c81ed38be0c5b274b04031597b0",
+          "self_hostable": true,
+          "self_hosted_now": false,
+          "phi_path": true,
+          "probe": "http_health",
+          "deployment": "undeclared",
+          "needed": null,
+          "not_needed_reason": null,
+          "probe_status": "no_result",
+          "probe_checked_at": null,
+          "probe_age_s": null,
+          "probe_stale": true,
+          "licence_verified_at": "2026-09-27",
+          "severity": "attention",
+          "severity_reason": "planned_not_running"
         },
         {
           "component": "deid-tr-ner-v1",
@@ -238,9 +398,16 @@
           "self_hosted_now": true,
           "phi_path": true,
           "probe": "backup_freshness",
+          "deployment": "undeclared",
+          "needed": null,
+          "not_needed_reason": null,
           "probe_status": "no_result",
+          "probe_checked_at": null,
+          "probe_age_s": null,
+          "probe_stale": true,
           "licence_verified_at": null,
-          "severity": "attention"
+          "severity": "attention",
+          "severity_reason": "probe_not_healthy"
         },
         {
           "component": "wazuh-manager",
@@ -249,9 +416,16 @@
           "self_hosted_now": false,
           "phi_path": true,
           "probe": "tcp_connect",
+          "deployment": "undeclared",
+          "needed": null,
+          "not_needed_reason": null,
           "probe_status": "no_result",
+          "probe_checked_at": null,
+          "probe_age_s": null,
+          "probe_stale": true,
           "licence_verified_at": "2026-08-29",
-          "severity": "attention"
+          "severity": "attention",
+          "severity_reason": "planned_not_running"
         },
         {
           "component": "wazuh-indexer",
@@ -260,9 +434,16 @@
           "self_hosted_now": false,
           "phi_path": true,
           "probe": "tcp_connect",
+          "deployment": "undeclared",
+          "needed": null,
+          "not_needed_reason": null,
           "probe_status": "no_result",
+          "probe_checked_at": null,
+          "probe_age_s": null,
+          "probe_stale": true,
           "licence_verified_at": "2026-08-29",
-          "severity": "attention"
+          "severity": "attention",
+          "severity_reason": "planned_not_running"
         },
         {
           "component": "falco",
@@ -271,9 +452,16 @@
           "self_hosted_now": false,
           "phi_path": true,
           "probe": "http_health",
+          "deployment": "undeclared",
+          "needed": null,
+          "not_needed_reason": null,
           "probe_status": "no_result",
+          "probe_checked_at": null,
+          "probe_age_s": null,
+          "probe_stale": true,
           "licence_verified_at": "2026-08-29",
-          "severity": "attention"
+          "severity": "attention",
+          "severity_reason": "planned_not_running"
         },
         {
           "component": "egress-proxy",
@@ -282,9 +470,34 @@
           "self_hosted_now": false,
           "phi_path": true,
           "probe": "tcp_connect",
+          "deployment": "undeclared",
+          "needed": null,
+          "not_needed_reason": null,
           "probe_status": "no_result",
+          "probe_checked_at": null,
+          "probe_age_s": null,
+          "probe_stale": true,
           "licence_verified_at": "2026-08-29",
-          "severity": "attention"
+          "severity": "attention",
+          "severity_reason": "planned_not_running"
+        },
+        {
+          "component": "sms-egress",
+          "pin": null,
+          "self_hostable": true,
+          "self_hosted_now": false,
+          "phi_path": true,
+          "probe": "tcp_connect",
+          "deployment": "undeclared",
+          "needed": null,
+          "not_needed_reason": null,
+          "probe_status": "no_result",
+          "probe_checked_at": null,
+          "probe_age_s": null,
+          "probe_stale": true,
+          "licence_verified_at": "2026-08-29",
+          "severity": "attention",
+          "severity_reason": "planned_not_running"
         },
         {
           "component": "edge-ingress",
@@ -293,9 +506,16 @@
           "self_hosted_now": false,
           "phi_path": true,
           "probe": "http_health",
+          "deployment": "undeclared",
+          "needed": null,
+          "not_needed_reason": null,
           "probe_status": "no_result",
+          "probe_checked_at": null,
+          "probe_age_s": null,
+          "probe_stale": true,
           "licence_verified_at": "2026-09-03",
-          "severity": "attention"
+          "severity": "attention",
+          "severity_reason": "planned_not_running"
         },
         {
           "component": "edge-crowdsec",
@@ -304,9 +524,88 @@
           "self_hosted_now": false,
           "phi_path": true,
           "probe": "tcp_connect",
+          "deployment": "undeclared",
+          "needed": null,
+          "not_needed_reason": null,
           "probe_status": "no_result",
+          "probe_checked_at": null,
+          "probe_age_s": null,
+          "probe_stale": true,
           "licence_verified_at": "2026-09-03",
-          "severity": "attention"
+          "severity": "attention",
+          "severity_reason": "planned_not_running"
+        },
+        {
+          "component": "keycloak",
+          "pin": null,
+          "self_hostable": true,
+          "self_hosted_now": true,
+          "phi_path": false,
+          "probe": "http_health",
+          "deployment": "undeclared",
+          "needed": null,
+          "not_needed_reason": null,
+          "probe_status": "no_result",
+          "probe_checked_at": null,
+          "probe_age_s": null,
+          "probe_stale": true,
+          "licence_verified_at": null,
+          "severity": "attention",
+          "severity_reason": "licence_unverified"
+        },
+        {
+          "component": "oauth2-proxy",
+          "pin": null,
+          "self_hostable": true,
+          "self_hosted_now": true,
+          "phi_path": false,
+          "probe": "http_health",
+          "deployment": "undeclared",
+          "needed": null,
+          "not_needed_reason": null,
+          "probe_status": "no_result",
+          "probe_checked_at": null,
+          "probe_age_s": null,
+          "probe_stale": true,
+          "licence_verified_at": null,
+          "severity": "attention",
+          "severity_reason": "licence_unverified"
+        },
+        {
+          "component": "admin-web",
+          "pin": null,
+          "self_hostable": true,
+          "self_hosted_now": true,
+          "phi_path": false,
+          "probe": "http_health",
+          "deployment": "undeclared",
+          "needed": null,
+          "not_needed_reason": null,
+          "probe_status": "no_result",
+          "probe_checked_at": null,
+          "probe_age_s": null,
+          "probe_stale": true,
+          "licence_verified_at": null,
+          "severity": "attention",
+          "severity_reason": "licence_unverified"
+        },
+        {
+          "component": "caddy",
+          "pin": null,
+          "self_hostable": true,
+          "self_hosted_now": true,
+          "phi_path": false,
+          "probe": "tcp_connect",
+          "deployment": "undeclared",
+          "needed": null,
+          "not_needed_reason": null,
+          "probe_status": "no_result",
+          "probe_checked_at": null,
+          "probe_age_s": null,
+          "probe_stale": true,
+          "licence_verified_at": null,
+          "severity": "attention",
+          "severity_reason": "licence_unverified"
         }
       ]
     },

@@ -61,7 +61,8 @@ from staging_host_kit import (
 
 def test_the_api_policy_reads_the_netgsm_document_and_nothing_else_under_secret() -> None:
     """Read only, on the one document; nothing else under the API's own
-    subtree (the INT-428 model-lane grants live under secret/model-lanes/)."""
+    subtree but INT-584's read on the tokenization key (the INT-428 model-lane
+    grants live under secret/model-lanes/)."""
     text = POLICY.read_text(encoding="utf-8")
     paths = re.findall(r'^path "([^"]+)"\s*\{\s*capabilities\s*=\s*(\[[^\]]*\])', text, re.M)
     under_api = {
@@ -69,7 +70,10 @@ def test_the_api_policy_reads_the_netgsm_document_and_nothing_else_under_secret(
         for path, caps in paths
         if path.startswith(("secret/data/api", "secret/metadata/api", "secret/api"))
     }
-    assert under_api == {"secret/data/api/netgsm": '["read"]'}
+    assert under_api == {
+        "secret/data/api/netgsm": '["read"]',
+        "secret/data/api/tokenization": '["read"]',
+    }
 
 
 def test_init_enables_the_kv_engine_before_it_writes_the_policy() -> None:
@@ -522,3 +526,37 @@ def test_last_prints_only_the_netgsm_outcome_lines(tmp_path: Path) -> None:
     assert "logs --no-color --since 30m api" in (tmp_path / "compose.log").read_text(
         encoding="utf-8"
     )
+
+
+def test_shape_passes_through_to_the_check_and_takes_no_number(tmp_path: Path) -> None:
+    """INT-576: the owner's opt-in diagnostic is the same one send, with the
+    answer's structure printed after the outcome (intake_api.otp_send_check)."""
+    host = Host(tmp_path)
+    result = subprocess.run(  # noqa: S603 — fixed argv, our own scripts
+        host.script(TEST_OTP_SCRIPT, f"{_COMPOSE}\nmain --shape"),
+        env=_compose_env(host, tmp_path),
+        capture_output=True,
+        text=True,
+        stdin=subprocess.DEVNULL,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr
+    assert (tmp_path / "compose.log").read_text(encoding="utf-8") == (
+        "exec -T api python -m intake_api.otp_send_check --shape\n"
+    )
+
+
+@pytest.mark.parametrize("argv", ["--shape --last", "--number 5321234567", "--shape=1"])
+def test_any_other_argument_runs_nothing(tmp_path: Path, argv: str) -> None:
+    host = Host(tmp_path)
+    result = subprocess.run(  # noqa: S603 — fixed argv, our own scripts
+        host.script(TEST_OTP_SCRIPT, f"{_COMPOSE}\nmain {argv}"),
+        env=_compose_env(host, tmp_path),
+        capture_output=True,
+        text=True,
+        stdin=subprocess.DEVNULL,
+        check=False,
+    )
+    assert result.returncode != 0
+    assert "usage: netgsm_test_otp.sh [--last | --shape]" in result.stderr
+    assert not (tmp_path / "compose.log").exists()

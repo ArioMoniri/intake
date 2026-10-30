@@ -151,10 +151,13 @@ describe("native-stack transition policy (MOTION-1)", () => {
     for (const cls of ROUTE_CLASSES.filter((c) => c !== "intake")) {
       expect(transitionFor(cls, { reduce: false }).gestureEnabled, cls).toBeUndefined();
     }
-    // Its siblings in the visits stack are ordinary hierarchy.
-    for (const route of ["(tabs)/visits/[visitId]/index", "(tabs)/visits/[visitId]/review"]) {
+    // Its siblings in the visits stack are ordinary hierarchy — except Review
+    // & send, which renders the share consent text since INT-587 and so takes
+    // the legal class (the payload rule above finds it, and fails without it).
+    for (const route of ["(tabs)/visits/[visitId]/index", "(tabs)/visits/[visitId]/shares"]) {
       expect(routeClassOf(route), route).toBe("hierarchy");
     }
+    expect(routeClassOf("(tabs)/visits/[visitId]/review")).toBe("legal");
   });
 
   it("legal tab screens take no transition; other tabs take duration.fade", () => {

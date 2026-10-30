@@ -114,7 +114,7 @@ def test_encoding_characters_are_read_from_msh2_not_assumed() -> None:
     parsed by *its own* declaration, so a hospital that uses them is understood
     rather than mis-split."""
     custom = (
-        b"MSH|@~\\&|LIS|ACIBADEM|INTAKE|VIZITE|20260901101500||ORU@R01|M1|P|2.5.1\r"
+        b"MSH|@~\\&|LIS|ACIBADEM|INTAKE|ONVIZIT|20260901101500||ORU@R01|M1|P|2.5.1\r"
         b"OBX|1|NM|14749-6@Glucose@LN||95|mg/dL|||||F\r"
     )
     (glucose,) = Hl7v2OruChannel().parse(message(custom))
@@ -123,7 +123,7 @@ def test_encoding_characters_are_read_from_msh2_not_assumed() -> None:
 
 
 def test_an_oversized_message_is_refused_without_being_read_into_fields() -> None:
-    huge = ("MSH|^~\\&|LIS|ACIBADEM|INTAKE|VIZITE|20260901|" + "A" * (2 * 1024 * 1024)).encode()
+    huge = ("MSH|^~\\&|LIS|ACIBADEM|INTAKE|ONVIZIT|20260901|" + "A" * (2 * 1024 * 1024)).encode()
     with pytest.raises(Hl7v2ParseError):
         Hl7v2OruChannel().parse(message(huge))
 
@@ -132,7 +132,7 @@ def test_a_parse_error_carries_no_value_from_the_message() -> None:
     """The failure mode invariant 6 exists for: a malformed OBX must produce an
     error that names a position, never the patient value beside it."""
     bad = (
-        b"MSH|^~\\&|LIS|ACIBADEM|INTAKE|VIZITE|20260901||ORU^R01|M1|P|2.5.1\r"
+        b"MSH|^~\\&|LIS|ACIBADEM|INTAKE|ONVIZIT|20260901||ORU^R01|M1|P|2.5.1\r"
         b"OBX\r"  # a truncated OBX with no fields at all
     )
     try:

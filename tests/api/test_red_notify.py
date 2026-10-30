@@ -18,7 +18,8 @@ the shared store — rather than a parallel mechanism:
    REMOTE puts it then; never twice.
 
 The RED answer never waits on the inbox store or the audit chain (invariant 21:
-the device paints the RED from this response). Every notification is audited by
+the device paints the RED from this response) — asserted as an ordering against
+a store the test holds, never as a wall-clock budget (INT-574). Every notification is audited by
 id under the core consent scope (invariant 4), and no answer value reaches an
 entry, an audit row or a log line (invariant 6).
 
@@ -29,7 +30,7 @@ from __future__ import annotations
 
 import json
 import logging
-import time
+import threading
 from collections.abc import Iterator
 from datetime import UTC, datetime
 from pathlib import Path
@@ -37,7 +38,6 @@ from typing import Any
 
 import fakeredis
 import pytest
-import redis
 import yaml
 from api_harness import ADMIN_TOKEN, PATIENT_TOKEN, ApiHarness, build_harness
 from intake_api.dev_fixture import DEV_TENANT_ID
@@ -47,7 +47,7 @@ from intake_platform.safety_inbox import (
     InboxEntry,
     RedisSafetyInboxStore,
     SafetyInbox,
-    SafetyInboxOutbox,
+    SafetyInboxUnavailable,
     entry_id_for,
 )
 from prometheus_client import REGISTRY
@@ -65,7 +65,6 @@ REFERENCE_TIME = "2026-08-29T10:00:00+03:00"
 FIRING = {"ziyaret.basvuru_nedeni": "sentetik_yasamsal", "sure_dakika": "2026-08-29"}
 ANSWER_VALUES = ("sentetik_yasamsal", "2026-08-29", "sentetik_sari")
 LOCATION_PATH = "/v1/triage/red-location"
-RED_BUDGET_MS = 300.0
 
 
 class Clock:
@@ -80,32 +79,50 @@ def _sample(name: str) -> float:
     return REGISTRY.get_sample_value(name) or 0.0
 
 
-def _down_store() -> RedisSafetyInboxStore:
-    server = fakeredis.FakeServer()
-    server.connected = False
-    return RedisSafetyInboxStore(fakeredis.FakeStrictRedis(server=server))
+#: A liveness wait on an event in another thread: how long the test gives it
+#: before it fails rather than hangs. Not a budget — no assertion in this file
+#: reads a clock (INT-574): on the shared CI runner one cold request read
+#: 350 ms and 620 ms against a 300 ms wall-clock budget, which measured the
+#: runner's load, not whether the RED had waited.
+LIVENESS_S = 10.0
+
+#: How long the held store holds a write before it gives up (refuses, and
+#: counts the refusal), so that a RED which DID wait on the store comes back
+#: and fails the test instead of hanging the shard. Far above any request;
+#: still never a budget — the test asserts the count, not a duration.
+HELD_S = 30.0
 
 
-#: How long the stalled store hangs on every write before it refuses. The
-#: "never waits" test measures the RED against this, not against a wall-clock
-#: budget: on the shared CI runner the same request read 350 ms and 620 ms
-#: under load (#963, main's own run on 78330ff4), which says nothing about
-#: whether the RED waited on the store. The 300 ms budget is measured on a
-#: fake clock in the runtime (INT-531).
-STALL_S = 1.5
+class _HeldStore(RedisSafetyInboxStore):
+    """A reachable store that holds every write until the test opens it.
 
+    Nothing can be written while it is held, whatever the runner's load, so a
+    RED observed back while the store is still closed did not wait on its
+    write — an ordering, not a timing. ``entered`` says a write has reached
+    the hold; :meth:`open` lets the held writes through to the store, or has
+    them refused the way a down store refuses (``SafetyInboxUnavailable``,
+    which keeps the entry pending in the outbox).
+    """
 
-class _StalledRedis(fakeredis.FakeStrictRedis):
-    """A store that is reachable but not answering: every write hangs for
-    STALL_S, then fails, so the pump keeps the entry pending."""
+    def __init__(self) -> None:
+        super().__init__(fakeredis.FakeStrictRedis())
+        self.entered = threading.Event()
+        self.opened = threading.Event()
+        self.gave_up = 0
+        self._refusing = False
 
-    def pipeline(self, transaction: bool = True, shard_hint: Any = None) -> Any:
-        time.sleep(STALL_S)
-        raise redis.ConnectionError("stalled")
+    def open(self, *, refusing: bool = False) -> None:
+        self._refusing = refusing
+        self.opened.set()
 
-
-def _stalled_store() -> RedisSafetyInboxStore:
-    return RedisSafetyInboxStore(_StalledRedis())
+    def add(self, entry: InboxEntry) -> InboxEntry:
+        self.entered.set()
+        if not self.opened.wait(timeout=HELD_S):
+            self.gave_up += 1
+            raise SafetyInboxUnavailable("held_store_gave_up")
+        if self._refusing:
+            raise SafetyInboxUnavailable("held_store_refused")
+        return super().add(entry)
 
 
 #: The unit lane's tokenization key: a non-UUID id is stored as its keyed pseudonym.
@@ -191,15 +208,6 @@ def _written(harness: ApiHarness, store: RedisSafetyInboxStore) -> tuple[InboxEn
     outbox = harness.client.app.state.api.red_outbox  # type: ignore[attr-defined]
     assert outbox.wait_until_empty(timeout=5.0)
     return store.tenant_entries(TENANT)
-
-
-def _pending_eventually(outbox: SafetyInboxOutbox) -> tuple[InboxEntry, ...]:
-    """What the outbox holds once the pump's refused pass has put it back (the
-    pump takes the batch out while it tries the store)."""
-    deadline = time.monotonic() + 5.0
-    while not (pending := outbox.pending()) and time.monotonic() < deadline:
-        time.sleep(0.01)
-    return pending
 
 
 def _kinds(entries: tuple[InboxEntry, ...]) -> list[EntryKind]:
@@ -408,26 +416,93 @@ def test_no_answer_value_reaches_a_log_line(
 def test_the_red_never_waits_on_the_inbox_store(
     tmp_path: Path, caplog: pytest.LogCaptureFixture
 ) -> None:
-    """The store hangs: the RED still comes back long before the store would
-    have answered, and the entry waits in the outbox with the RED's own instant
-    (the pending-age gauge pages at 60 s). At shutdown what is still unwritten
-    is counted, never named. A warm request first (a GREEN: no RED, nothing
-    put), so the measured one carries no first-request cost."""
-    with caplog.at_level(logging.ERROR):
-        for harness in _rig(tmp_path, _stalled_store()):
-            green = {**FIRING, "ziyaret.basvuru_nedeni": "sentetik_degil"}
-            assert _evaluate(harness, green)["kind"] == "triage_level"
-            started = time.perf_counter()
-            body = _evaluate(harness)
-            elapsed_ms = (time.perf_counter() - started) * 1000.0
-            assert body["kind"] == "red_trigger"
-            assert elapsed_ms < STALL_S * 1000.0 / 2
-            outbox = harness.client.app.state.api.red_outbox  # type: ignore[attr-defined]
-            (pending,) = _pending_eventually(outbox)
-            assert pending.kind is EntryKind.RED
-            assert pending.created_at == T0
+    """The store holds every write until the test opens it, so the RED coming
+    back while its write is still held is a fact of ordering, not of a clock:
+    nothing had been written for it to wait on. Meanwhile the entry waits in
+    the outbox with the RED's own instant (the pending-age gauge pages at
+    60 s), and the pump brings it to the store, which holds it there. Opened
+    to refuse, as a down store does, the store never takes it: at shutdown
+    what is still unwritten is counted, never named.
+
+    No wall-clock budget (INT-574): on the shared CI runner one cold request
+    read 350 ms and 620 ms against a 300 ms budget, which measured the
+    runner's load, not the waiting. The 300 ms RED budget itself is measured
+    on the runtime's fake clock (INT-531).
+    """
+    store = _HeldStore()
+    try:
+        with caplog.at_level(logging.ERROR):
+            for harness in _rig(tmp_path, store):
+                body = _evaluate(harness)
+                assert body["kind"] == "red_trigger"
+                # back while the write is still held: no held write was given
+                # up, nothing was written, so there was nothing to wait on
+                assert store.gave_up == 0
+                assert not store.opened.is_set()
+                assert store.tenant_entries(TENANT) == ()
+                outbox = harness.client.app.state.api.red_outbox  # type: ignore[attr-defined]
+                (pending,) = outbox.pending()
+                assert pending.kind is EntryKind.RED
+                assert pending.created_at == T0
+                # the pump did bring it to the store, which is holding it
+                assert store.entered.wait(timeout=LIVENESS_S)
+                assert outbox.pending() == (pending,)
+                store.open(refusing=True)
+    finally:
+        store.open(refusing=True)
     assert "safety inbox entries unwritten at stop" in caplog.text
     assert VISIT not in caplog.text
+    assert store.tenant_entries(TENANT) == ()
+
+
+class _WaitingOutbox:
+    """What invariant 21 forbids: a RED path that writes the store itself, and
+    so is back only when the store has answered."""
+
+    def __init__(self, store: RedisSafetyInboxStore) -> None:
+        self._store = store
+
+    def put(self, entry: InboxEntry) -> None:
+        self._store.add(entry)
+
+
+def _evaluate_on_a_thread(harness: ApiHarness, answers: list[Any]) -> threading.Thread:
+    """The RED sent off the test's thread; its answer is appended once it is back."""
+    thread = threading.Thread(target=lambda: answers.append(_evaluate(harness)))
+    thread.start()
+    return thread
+
+
+def test_near_miss_a_red_that_writes_the_store_itself_is_held_with_the_write(
+    tmp_path: Path,
+) -> None:
+    """The same RED through an outbox that writes the store itself reaches the
+    store and is held there with its write: it is not back while the store is
+    closed, and comes back only once the store answers — the observation the
+    test above makes is impossible for a RED that waits. A GREEN goes first
+    (no RED, nothing put), so the held request carries no first-request cost
+    on its way to the store."""
+    store = _HeldStore()
+    answers: list[Any] = []
+    try:
+        for harness in _rig(tmp_path, store):
+            green = {**FIRING, "ziyaret.basvuru_nedeni": "sentetik_degil"}
+            assert _evaluate(harness, green)["kind"] == "triage_level"
+            harness.client.app.state.api.red_outbox = _WaitingOutbox(store)  # type: ignore[attr-defined]
+            red = _evaluate_on_a_thread(harness, answers)
+            try:
+                assert store.entered.wait(timeout=LIVENESS_S)  # the RED reached the store
+                assert store.gave_up == 0
+                assert answers == []  # and is held there: not back while the store holds
+                store.open()
+                red.join(timeout=LIVENESS_S)
+            finally:
+                store.open()
+            assert [answer["kind"] for answer in answers] == ["red_trigger"]  # back only now
+            (written,) = store.tenant_entries(TENANT)
+            assert written.kind is EntryKind.RED
+    finally:
+        store.open()
 
 
 def test_an_unwired_inbox_never_costs_the_red_and_is_counted(tmp_path: Path) -> None:
