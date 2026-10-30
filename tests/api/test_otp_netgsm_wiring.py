@@ -87,6 +87,8 @@ def _settings(
         # INT-581: on the synthetic host the dedicated SMS proxy is the only
         # route out (ADR-042), so a staging wiring names it
         sms_egress_proxy_url="http://sms-egress:3128" if environment == "staging" else None,
+        # INT-583: and the push notice's own proxy there (ADR-045), as compose names it
+        push_egress_proxy_url="http://push-egress:3128" if environment == "staging" else None,
     )
 
 

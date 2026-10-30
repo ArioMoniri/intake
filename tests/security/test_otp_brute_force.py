@@ -247,6 +247,8 @@ def _settings(environment: str, *, kek_mode: str = "transit") -> ApiSettings:
         environment=environment,
         # INT-581: the synthetic host's only route out is its SMS proxy (ADR-042)
         sms_egress_proxy_url="http://sms-egress:3128" if environment == "staging" else None,
+        # INT-583: and the push notice's own proxy there (ADR-045), as compose names it
+        push_egress_proxy_url="http://push-egress:3128" if environment == "staging" else None,
     )
 
 
