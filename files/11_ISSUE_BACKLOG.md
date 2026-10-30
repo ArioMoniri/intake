@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**378 issues.** By phase: P0 183 · P1 141 · P2 47 · P3 7. By status: awaiting-human 39 · doing 7 · done 257 · todo 74 · withdrawn 1.
+**379 issues.** By phase: P0 183 · P1 142 · P2 47 · P3 7. By status: awaiting-human 39 · doing 7 · done 258 · todo 74 · withdrawn 1.
 
 ## P0
 
@@ -340,6 +340,7 @@
 | INT-537 | The app grants the core consent that visits and notes require | E08-mobile | INT-529, INT-132, INT-232 | area:mobile, risk:legal | done |
 | INT-586 | opentelemetry-api lifted to 1.67.0 in the Keycloak provider, past GHSA-ccrj-gw8r-854m, so the vulnerabilities gate is green without an exception | E13-infra | INT-378 | area:security | done |
 | INT-590 | decode-uri-component lifted to 0.5.1 past CVE-2026-118664, so the vulnerabilities gate is green without an exception | E13-infra | INT-500 | area:security | done |
+| INT-559 | The app's voice lane never writes patient audio to a file — stream from memory (invariant 3), before voice ships in any build | E08-mobile | INT-194, INT-291, INT-446 | area:mobile, risk:security | done |
 
 ## P2
 

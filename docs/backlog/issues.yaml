@@ -7506,3 +7506,29 @@
     - "trivy fs over pnpm-lock.yaml reports only the already-suppressed node-forge row; osv-scanner reports no issue"
   tests: [tests/ci/test_security_gates.py]
   sec_row: "cicd"
+- id: INT-559
+  epic: E08-mobile
+  phase: P1
+  title: "The app's voice lane never writes patient audio to a file — stream from memory (invariant 3), before voice ships in any build"
+  # GitHub #947, from the #946 (INT-536) legal review, 18 Oct 2026: the DEV
+  # voice lane (voiceEligible requires __DEV__) and the VoiceNote pill recorded
+  # a temporary file on the phone through expo-audio's recorder and deleted it
+  # after upload; invariant 3 allows no dev exception. Now both run expo-audio
+  # 57's AudioStream (AVAudioEngine tap / AudioRecord — no file) into a bounded
+  # in-memory buffer (≤ 60 s) handed to the dev ASR daemon as bytes, zeroed on
+  # finish, discard, RED, leave, unmount, a typed answer and app background.
+  # No new dependency, no native module. On iOS the stream's session category
+  # silences playback, so there the barge-in microphone opens on the patient's
+  # turn (the one trade-off, recorded in the evidence). The INT-536 consent
+  # text check re-runs when INT-515 deploys voice-runtime — INT-515's step.
+  depends_on: [INT-194, INT-291, INT-446]
+  labels: [area:mobile, risk:security]
+  status: done
+  evidence: docs/evidence/INT-559.md
+  acceptance:
+    - "Capture into an in-memory buffer (≤ 60 s, zeroed on every trigger) and stream it; no file path is ever created (test that no file API is called; native module behind a lazy import for vitest)."
+    - "Recorder prepare/abort paths leave nothing on disk."
+    - "The tripwire/text check re-runs when INT-515 deploys voice-runtime."
+    - "If a native platform constraint makes a file unavoidable, stop and record it as an owner/ADR decision rather than ship around invariant 3."
+  tests: [apps/mobile/e2e/voiceCapture.spec.ts, apps/mobile/e2e/bargeIn.spec.ts, apps/mobile/src/lib/capture/session.test.ts, apps/mobile/src/lib/capture/turn.test.ts, apps/mobile/src/lib/capture/boundedBuffer.test.ts, apps/mobile/src/lib/capture/asrClient.test.ts, apps/mobile/src/lib/capture/envelope.test.ts, apps/mobile/src/lib/capture/level.test.ts, apps/mobile/src/lib/capture/policy.test.ts]
+  sec_row: "mobile"
