@@ -79,7 +79,7 @@ import re
 import secrets
 import time
 import uuid
-from collections.abc import Callable
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
 from enum import StrEnum
 from functools import partial
@@ -438,7 +438,14 @@ class OtpAuthService:
     """Orchestrates the OTP tier. Store calls hop off the event loop via
     ``asyncio.to_thread`` (sync Redis client, INT-012 precedent)."""
 
-    def __init__(self, wiring: AuthWiring, *, engine: AsyncEngine, audit: AuditWriter) -> None:
+    def __init__(
+        self,
+        wiring: AuthWiring,
+        *,
+        engine: AsyncEngine,
+        audit: AuditWriter,
+        review_reset: Callable[[], Awaitable[int]] | None = None,
+    ) -> None:
         self._wiring = wiring
         self._store = AuthStore(wiring.redis_client, wiring.now_fn)
         self._tokenizer = wiring.tokenizer
@@ -458,10 +465,17 @@ class OtpAuthService:
                 redis_client=wiring.redis_client,
                 audit=audit,
                 engine=engine,
+                reset=review_reset,
             )
             if wiring.review is not None
             else None
         )
+
+    async def expire_review_window(self) -> bool:
+        """INT-488: close a review window whose time ran out (the API's own
+        sweep calls this; every reviewer step does too). False when there is
+        no reviewer account or nothing was due."""
+        return self._review is not None and await self._review.expire_if_due()
 
     def _now(self) -> float:
         return self._wiring.now_fn() if self._wiring.now_fn is not None else time.time()

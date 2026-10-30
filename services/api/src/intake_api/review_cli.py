@@ -4,6 +4,7 @@
 the API container on the synthetic host by ``infra/staging/review_signin.sh``.
 
 - ``on`` refuses unless a reviewer could sign in here (``review_readiness``),
+  closes a window whose 14 days ran out the way ``off`` does,
   empties the reviewer tenant (``intake_api.review_reset``), appends
   ``auth.review.window.opened`` and only then opens: an opening the audit
   store could not record does not happen, and nor does one over an earlier
@@ -11,6 +12,8 @@ the API container on the synthetic host by ``infra/staging/review_signin.sh``.
 - ``off`` closes first (the safer state), then appends
   ``auth.review.window.closed``, then empties the reviewer tenant; a failure
   of either is reported, and the window stays closed.
+- ``status`` prints the window's state and, while it is open, when it closes
+  itself and how long is left.
 - ``rotated`` and ``revealed`` only append the owner script's row for a new
   code and for its one reveal.
 
@@ -24,6 +27,7 @@ import argparse
 import logging
 import os
 import sys
+import time
 from collections.abc import Callable, Sequence
 from datetime import UTC, datetime
 from typing import Final, TextIO
@@ -126,6 +130,16 @@ def _default_reset() -> str | None:
     return None
 
 
+def _stamp(instant: float) -> str:
+    return datetime.fromtimestamp(instant, UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def _left(seconds: float) -> str:
+    """Whole days, hours and minutes, rounded down: never more time than is left."""
+    whole = int(seconds)
+    return f"{whole // 86400}d {whole % 86400 // 3600}h {whole % 3600 // 60}m"
+
+
 def _describe(window: ReviewWindow) -> str:
     try:
         state = window.state()
@@ -133,8 +147,16 @@ def _describe(window: ReviewWindow) -> str:
         return "review window: unreadable (closed: no reviewer can sign in)"
     if state is None:
         return "review window: closed (no reviewer can sign in)"
-    since = datetime.fromtimestamp(state.since, UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
-    return f"review window: open since {since} (the App Review reviewer can sign in)"
+    if window.expired(state):
+        return (
+            f"review window: expired at {_stamp(state.closes_at)} (closed: no reviewer can "
+            "sign in; the API records the close and empties the reviewer tenant within a minute)"
+        )
+    return (
+        f"review window: open since {_stamp(state.since)}; closes itself at "
+        f"{_stamp(state.closes_at)}, in {_left(window.remaining(state))} "
+        "(the App Review reviewer can sign in)"
+    )
 
 
 def _appended(audit: Callable[[str], None], verb: str, out: TextIO, failed: str) -> bool:
@@ -156,10 +178,15 @@ def _open(
     """Readable, empty, recorded, then open: an opening the audit store could
     not record does not happen, and nor does one over a reviewer's data."""
     try:
-        if window.state() is not None:
-            return 0
+        state = window.state()
     except ReviewWindowUnreadable:
         print("review window: unreadable, so it was not opened", file=out)
+        return 1
+    if state is not None and not window.expired(state):
+        return 0
+    if state is not None and _close(window, audit, reset, out) != 0:
+        # an expired window is closed the way --off closes one before a fresh one opens
+        print("review window: the expired window could not be closed cleanly", file=out)
         return 1
     problem = reset()
     if problem is not None:
@@ -212,6 +239,7 @@ def main(
     audit: Callable[[str], None] = _default_audit,
     readiness: Callable[[], str | None] = _default_readiness,
     reset: Callable[[], str | None] = _default_reset,
+    now_fn: Callable[[], float] = time.time,
 ) -> int:
     """``python -m intake_api.review_cli status|on|off|rotated|revealed``,
     run inside the API container on the synthetic host by
@@ -229,7 +257,7 @@ def main(
         return 2
     if verb in ("rotated", "revealed"):
         return 0 if _appended(audit, verb, out, f"review {verb}: not audited") else 1
-    window = ReviewWindow(redis_factory())
+    window = ReviewWindow(redis_factory(), now_fn)
     code = 0
     if verb == "on":
         problem = readiness()

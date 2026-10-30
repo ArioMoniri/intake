@@ -35,6 +35,7 @@ import asyncio
 import logging
 import secrets
 import uuid
+from collections.abc import Awaitable, Callable
 from functools import partial
 
 import redis
@@ -50,7 +51,8 @@ from intake_api.review_signin import (
     ReviewSignIn,
     ensure_review_patient,
 )
-from intake_api.review_window import ReviewWindow, WindowState
+from intake_api.review_window import REVIEW_WINDOW_S, ReviewWindow, WindowState
+from intake_api.sms_spend import DAY_S
 
 __all__ = ["ReviewSignInFlow"]
 
@@ -72,6 +74,7 @@ class ReviewSignInFlow:
         audit: AuditWriter,
         engine: AsyncEngine,
         redis_client: redis.Redis,
+        reset: Callable[[], Awaitable[int]] | None = None,
     ) -> None:
         self._review = review
         self._store = store
@@ -80,6 +83,38 @@ class ReviewSignInFlow:
         self._audit = audit
         self._engine = engine
         self._r = redis_client
+        # the reviewer tenant's erasure (intake_api.review_reset), which the
+        # API runs when a window closes itself; None erases nothing here
+        self._reset = reset
+
+    async def expire_if_due(self) -> bool:
+        """Close a window whose time has run out, as ``--off`` closes one: the
+        document first, then the row, then the reviewer tenant's erasure. The
+        window already reads closed to every reviewer step from the instant it
+        expired; this only records and cleans up. True when this call closed
+        it — of several callers racing, exactly one."""
+        state = await asyncio.to_thread(self._window.due_for_expiry)
+        if state is None:
+            return False
+        if not await asyncio.to_thread(partial(self._window.close, expect_id=state.id)):
+            return False
+        logger.warning("review window closed itself: its %d days ran out", REVIEW_WINDOW_S // DAY_S)
+        await self._audit.record(
+            actor="system:review-expiry",
+            action="auth.review.window.closed",
+            resource_ref="review_signin:window",
+            consent_scope=_SCOPE,
+        )
+        if self._reset is not None:
+            try:
+                await self._reset()
+            except Exception as exc:  # noqa: BLE001 — the window is closed either way
+                logger.warning(
+                    "review window expired, but the reviewer tenant was not emptied (%s); "
+                    "the owner's next --on or --off empties it",
+                    type(exc).__name__,
+                )
+        return True
 
     def matches(self, pseudonym: str) -> bool:
         return self._review.matches(pseudonym)
@@ -135,6 +170,7 @@ class ReviewSignInFlow:
     async def session_live(self, token_hash: str) -> bool:
         """A reviewer token lives only inside the window it was issued in, and
         only while a reviewer could sign in. Closing the window ends it."""
+        await self.expire_if_due()
         refusal, window = await asyncio.to_thread(self._live)
         if refusal is not None or window is None:
             return False
@@ -149,6 +185,7 @@ class ReviewSignInFlow:
     async def request(
         self, *, pseudonym: str, ip_key: str, device_key: str, binding: str, actor: str
     ) -> dict[str, object]:
+        await self.expire_if_due()
         refusal, _ = await asyncio.to_thread(self._live)
         if refusal == "unconfigured":
             await self._record(
@@ -213,6 +250,7 @@ class ReviewSignInFlow:
         ``otp_invalid`` for every wrong, spent, stray or locked code and every
         refused deployment or closed window, the typed 503 for an open window
         with no code."""
+        await self.expire_if_due()
         refusal, window = await asyncio.to_thread(self._live)
         if refusal == "unconfigured":
             await self._record(

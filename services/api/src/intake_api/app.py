@@ -99,6 +99,7 @@ from intake_api.doctor_link.service import (
 from intake_api.documents import DocumentsConfig, DocumentsGateway
 from intake_api.embed import EmbedService, EmbedWiring
 from intake_api.otp import AuthWiring, OtpAuthService, ensure_consumer_tenant
+from intake_api.review_reset import review_expiry_forever, review_reset_for
 from intake_api.review_signin import ensure_review_tenant
 from intake_api.settings import ENV_MINIO_PASSWORD, ENV_MINIO_USER, ApiSettings
 from intake_api.state import ApiState
@@ -572,7 +573,18 @@ def create_app(wiring: ApiWiring | None = None) -> FastAPI:
         audit=audit,
         cipher=w.cipher,
         documents=DocumentsGateway(w.documents, audit) if w.documents is not None else None,
-        auth=(OtpAuthService(w.auth, engine=w.engine, audit=audit) if w.auth is not None else None),
+        auth=(
+            OtpAuthService(
+                w.auth,
+                engine=w.engine,
+                audit=audit,
+                # INT-488: what an expired review window's close erases, with the
+                # role that provisions the reviewer tenant
+                review_reset=review_reset_for(w.bootstrap_engine or w.engine, w.documents, audit),
+            )
+            if w.auth is not None
+            else None
+        ),
         doctor_link=_doctor_link_service(w.auth),
         embed=EmbedService(w.embed, audit) if w.embed is not None else None,
         acibadem=w.acibadem,
@@ -628,9 +640,20 @@ def create_app(wiring: ApiWiring | None = None) -> FastAPI:
         # notification are put in-process and written to the shared store here,
         # as the voice runtime's are (INT-406).
         pump = _RedPump.start(state)
+        # INT-488: an App Review window closes itself when its time runs out,
+        # even if no reviewer step comes to notice
+        expiry = (
+            asyncio.create_task(review_expiry_forever(state.auth.expire_review_window))
+            if state.auth is not None and w.auth is not None and w.auth.review is not None
+            else None
+        )
         try:
             yield
         finally:
+            if expiry is not None:
+                expiry.cancel()
+                with contextlib.suppress(asyncio.CancelledError):
+                    await expiry
             if sweeper is not None:
                 sweeper.cancel()
                 with contextlib.suppress(asyncio.CancelledError):

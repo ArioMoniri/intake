@@ -674,6 +674,7 @@ def cli(
     ready: str | None = None,
     audit: Any = None,
     reset: Any = None,
+    now_fn: Any = None,
 ) -> tuple[int, str, list[str]]:
     audited: list[str] = []
     out = io.StringIO()
@@ -684,6 +685,7 @@ def cli(
         audit=audit if audit is not None else audited.append,
         readiness=lambda: ready,
         reset=reset if reset is not None else lambda: None,
+        **({"now_fn": now_fn} if now_fn is not None else {}),
     )
     return code, out.getvalue(), audited
 

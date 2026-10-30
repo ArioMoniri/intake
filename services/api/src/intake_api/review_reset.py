@@ -20,9 +20,12 @@ window over a tenant that still holds a reviewer's data.
 
 from __future__ import annotations
 
+import asyncio
+import logging
 import uuid
-from collections.abc import Callable
-from datetime import datetime
+from collections.abc import Awaitable, Callable
+from datetime import UTC, datetime
+from typing import Final
 
 from intake_platform.db.models import DsarKind, DsarRequest, DsarStatus, Patient
 from sqlalchemy import select
@@ -30,13 +33,26 @@ from sqlalchemy.ext.asyncio import AsyncEngine
 
 from intake_api.audit import AuditWriter
 from intake_api.db import tenant_session
+from intake_api.documents import DocumentsConfig
 from intake_api.dsar.grants import PrivilegeProbe, missing_privileges
 from intake_api.dsar.shred import execute_due_shreds
 from intake_api.dsar.sla import OPEN_STATUSES
 from intake_api.dsar.store import create_request
 from intake_api.review_window import REVIEW_TENANT_ID
 
-__all__ = ["ReviewResetBlocked", "reset_review_tenant"]
+__all__ = [
+    "REVIEW_EXPIRY_SWEEP_S",
+    "ReviewResetBlocked",
+    "reset_review_tenant",
+    "review_expiry_forever",
+    "review_reset_for",
+]
+
+logger = logging.getLogger("intake_api.review_signin")
+
+#: How often the API looks for a review window whose time ran out. Every
+#: reviewer step looks too; the sweep is for a window nobody touches.
+REVIEW_EXPIRY_SWEEP_S: Final = 60.0
 
 
 class ReviewResetBlocked(Exception):
@@ -109,3 +125,49 @@ async def reset_review_tenant(
         missing = ", ".join(need.target for need in report.blocked.missing)
         raise ReviewResetBlocked(f"the reviewer erasure is refused: missing {missing}")
     return report.shredded_requests
+
+
+def _no_object_store(object_ref: str) -> None:
+    """A deployment with no object store wired cannot remove a document's
+    bytes, so an erasure that needs to fails rather than leaving them."""
+    del object_ref
+    raise RuntimeError("no object store is wired; the reviewer's documents were not removed")
+
+
+def review_reset_for(
+    engine: AsyncEngine, documents: DocumentsConfig | None, audit: AuditWriter
+) -> Callable[[], Awaitable[int]]:
+    """The reviewer tenant's erasure as the API runs it when a window expires:
+    the given engine (the deployment's owner role, the one that provisions the
+    tenant), the document store's destroyer, the API's own chain."""
+    from intake_platform.retention.executors import DocumentObjectDestroyer
+
+    remove: Callable[[str], None] = (
+        DocumentObjectDestroyer(
+            documents.client,
+            bucket_docs=documents.bucket_docs,
+            bucket_audit=documents.bucket_audit,
+        )
+        if documents is not None
+        else _no_object_store
+    )
+
+    async def reset() -> int:
+        return await reset_review_tenant(
+            engine, audit=audit, remove_object=remove, now=datetime.now(UTC)
+        )
+
+    return reset
+
+
+async def review_expiry_forever(
+    expire: Callable[[], Awaitable[bool]], interval_s: float = REVIEW_EXPIRY_SWEEP_S
+) -> None:
+    """The API's sweep: every ``interval_s``, close a review window whose time
+    ran out. A failed pass is logged by type and the next one tries again."""
+    while True:
+        await asyncio.sleep(interval_s)
+        try:
+            await expire()
+        except Exception as exc:  # noqa: BLE001 — the sweep outlives one failed pass
+            logger.warning("review window expiry sweep failed (%s)", type(exc).__name__)

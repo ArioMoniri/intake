@@ -15,7 +15,7 @@
 | what the API holds | `intake_api.review_signin` | the number's pseudonym and the code's HMAC under the OTP pepper, read once at start; never the values |
 | the gate, at start | `review_gate` | `INTAKE_ENV=staging`, the image's baked `INTAKE_DEPLOYMENT_DATA_CLASS=synthetic`, `INTAKE_API_TRIAGE_TENANT_KIND=synthetic` (the tenant's real-patient flag) and `INTAKE_API_TRIAGE_DEPLOYMENT` set. Anything else refuses the reviewer and names the fact that failed |
 | the guards, on every step | `intake_api.review_window.ReviewGuards` | the model-lane control's bound data class is not `real_phi` (ADR-035; unreadable reads `real_phi`), and the reviewer tenant's kill switch is engaged, so no hosted model lane carries what the reviewer types |
-| the review window | Redis `auth:review:window` | default OFF. An unreadable or garbled window reads closed. Each opening has a fresh id: its own reviewer patient, and sessions bound to it |
+| the review window | Redis `auth:review:window` | default OFF. An unreadable or garbled window reads closed. Each opening has a fresh id: its own reviewer patient, and sessions bound to it. It closes itself 14 days after `--on` (below) |
 | the sign-in | `intake_api.review_flow` | INT-578's code record, attempt budget and lockout, with no SMS. Fifteen counted misses on one code close the window by themselves |
 | the reset | `intake_api.review_reset` | `--on` and `--off` erase every reviewer subject left in the reviewer tenant through the DSAR erasure (`intake_api.dsar.shred`): the reviewer is a real person, and nothing they enter outlives their review |
 | `ReviewSignInUsed` (ticket) | `infra/observability/security-rules.yaml` | any use of the reviewer number |
@@ -35,6 +35,24 @@ admin console's **Voice controls**, engage the kill switch for the reviewer tena
 it refuses). The kill switch also keeps that tenant on the typed profile. `--on` refuses while the
 switch is off or unreadable, and so does every reviewer step.
 
+## The window closes itself after 14 days
+
+A review window stays open for **14 days** after `--on`, then closes itself. This is an
+**engineering default**, set fail closed so that a window nobody remembers to close still ends. It
+is long enough for an App Review round and a resubmission. It is not a D39 value and not a
+clinical one. The owner may change it: it is `REVIEW_WINDOW_S` in
+`services/api/src/intake_api/review_window.py`, and changing it is a reviewed diff.
+
+- **From the instant the 14 days are up, the window reads closed** to every reviewer step and
+  session, before anything else happens.
+- **The API then closes it the way `--off` does.** First it removes the window document. Then it
+  appends `auth.review.window.closed` with the actor `system:review-expiry`. Last, it erases the
+  reviewer tenant. This happens on the next reviewer step or within a minute through the API's
+  own sweep, whichever comes first.
+- **Nothing reopens it.** The next review needs a fresh `--on`, ideally after a `--generate`.
+  An `--on` that finds an expired window still stored closes it the way `--off` does first.
+- `--status` shows when the window closes itself and how long is left.
+
 ## The owner's script
 
 `infra/staging/review_signin.sh` runs as root on the synthetic host, through an interactive SSM
@@ -49,7 +67,7 @@ aws ssm start-session --region us-east-1 --target i-0e489e48739f5de98 --document
 | `--generate` | Re-applies the API's OpenBao policy. Appends `auth.review.code.rotated` first, so no code goes live without its row. Keeps one version of the document, so no old code lingers. Keeps a well-formed reviewer number, or draws one. Draws a fresh 6-digit code. Writes all three fields to `bao kv put` on stdin, with a check-and-set against the version it read. Then restarts the API, which reads the document at start, and waits for it. A new code voids the old one, and the reveal is unused again | nothing |
 | `--on` | Opens the review window, inside the API container (`python -m intake_api.review_cli on`). It refuses unless the gate and the guards admit this deployment and OpenBao holds a well-formed number and code. It erases anything a reviewer left in the reviewer tenant, and refuses to open if it cannot. Then it appends `auth.review.window.opened`, and opens only if that row was written | the window's state |
 | `--off` | Closes the window first, because that is the safer state. Then it appends `auth.review.window.closed` and erases the reviewer tenant. Every reviewer session ends. If the row or the erasure fails, it says so and exits 1; the window stays closed | the window's state |
-| `--status` | Reads the window | the window's state |
+| `--status` | Reads the window | the window's state; while it is open, when it closes itself and how long is left (`13d 23h 0m`) |
 | `--reveal-to-owner` | Shows the reviewer number and the code **once**, on the owner's terminal and nowhere else. It refuses unless stdin and stdout are a terminal. Before anything is printed, it records the reveal in OpenBao, with a check-and-set, and appends `auth.review.code.revealed`. If either fails, nothing is printed. A second reveal is refused until `--generate` makes a new code. After you press Enter, it clears the screen and the scrollback | the number and the code, once |
 
 **Before `--reveal-to-owner`, check that Session Manager does not log sessions.** If the account's
@@ -72,7 +90,8 @@ of the SSM session, so find it in CloudTrail's `StartSession` event at the row's
    simulated patients only. Enter the user name as the phone number, ask for a code, and enter the
    password as the code; no SMS arrives. Please enter made-up details, not your own health
    information or real documents." Then press Enter, and the screen clears.
-6. Submit. Each sign-in is a `ReviewSignInUsed` ticket and an `auth.review.signed_in` row.
+6. Submit. Each sign-in is a `ReviewSignInUsed` ticket and an `auth.review.signed_in` row. If
+   the review runs past 14 days, the window closes itself; run `--on` again.
 7. When the review ends, `--off`, then `--generate`. The first erases what the reviewer entered
    and ends their sessions; the second voids the code still sitting in App Store Connect.
 
@@ -98,7 +117,7 @@ users with access to the app can see the demo credentials; keep that role list s
 
 | outcome | meaning | do |
 |---|---|---|
-| `window_closed` | the number was tried with the window off | If no review is due, someone outside App Review holds the number. Run `--generate` to rotate the code and keep the window off. The number itself stays reserved |
+| `window_closed` | the number was tried with the window off, or after its 14 days ran out | If the review is still under way, run `--on` again. If no review is due, someone outside App Review holds the number. Run `--generate` to rotate the code and keep the window off. The number itself stays reserved |
 | `not_synthetic` | the deployment is not the synthetic host's synthetic tenant, or its model-lane control is bound `real_phi` or unreadable | Expected nowhere. The API's start log names the failed fact (`environment`, `data_class`, `tenant_kind`, `deployment`). Never "fix" this by changing a flag on a host that may hold real patients |
 | `hosted_lanes_open` | the reviewer tenant's kill switch is off or unreadable | Engage it in the console (above) |
 | `unconfigured` | the window is open, but the API holds no usable code | Run `--generate`, which restarts the API, then reveal and re-paste |
@@ -110,6 +129,4 @@ users with access to the app can see the demo credentials; keep that role list s
 
 - It does not create the reviewer's demo content. Each window's reviewer patient starts with no
   visits and no consents, like any new account.
-- The window has no end time of its own. `--off` closes it, and `ReviewSignInUsed` tickets keep
-  coming while it is open and in use.
 - Google Play's reviewer access is out of scope, because Play is deferred (INT-496).

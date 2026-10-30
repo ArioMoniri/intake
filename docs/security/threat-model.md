@@ -2063,13 +2063,15 @@ it or whose tests exercise it.
   minted; live guards on every step: the bound data class is not `real_phi` (ADR-035) and the
   reviewer tenant's hosted-lane kill switch is engaged; INT-578's device- and request-bound
   code record, five-attempt budget and lockout, and a miss cap per generated code that closes
-  the window; a review window, default OFF, whose flips are audited (the opening's row first),
+  the window; a review window, default OFF, whose flips are audited (the opening's row first)
+  and which closes itself 14 days after `--on` (an engineering default; the close audited and
+  erased like `--off`),
   each opening with its own synthetic reviewer patient in its own tenant and every session
   bound to it; opening and closing erase every reviewer subject through the DSAR erasure; the
   API adopts an operator's rows only if they chain from its head (`AuditChain.catch_up`); `--reveal-to-owner` prints once, to a
   terminal only, after recording the reveal. Residuals: the number and code live in App Store
   Connect for the review's length; a 6-digit code bounded by the lockout to five guesses an
-  hour; the window has no end time of its own.
+  hour; a forgotten window stays open up to 14 days.
 - **Signals:** attestation failures (§9 onboarding row) and crash-free-session tracking (§6)
   land with INT-145/INT-146. Offline drafts are device-local and have no server signal by
   design (§9); the crash-free rate covers them (INT-145). The review sign-in counts every use
