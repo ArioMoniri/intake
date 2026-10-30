@@ -145,7 +145,9 @@ describe("the tiles — recorded from the shipped composite", () => {
     expect(markup).toContain("Model hatları");
     expect(markup).toContain('lang="tr"');
     expect(markup).toContain('href="/cicd"');
-    expect(markup).toContain('<span aria-current="page">Model hatları</span>');
+    expect(markup).toMatch(
+      /<span aria-current="page" data-page-link="model-lanes">.*?<span class="nav-text">Model hatları<\/span><\/span>/,
+    );
   });
 
   it("no number is grouped (invariant 22)", async () => {
