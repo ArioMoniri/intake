@@ -68,3 +68,4 @@ for the task in hand. For the model stack, `files/03 §4.9.1` is canonical.
 - [ADR-029 Embeddable white-label handshake](adr/ADR-029-embeddable-white-label-handshake.md)
 - [ADR-035 Hosted model lanes for the synthetic deployment until the GPU lanes are healthy](adr/ADR-035-hosted-model-lanes-for-the-synthetic-deployment.md)
 - [ADR-036 The council is a verifier, and the deterministic engine decides](adr/ADR-036-the-council-is-a-verifier-the-engine-decides.md) *(accepted by the owner, 3 Oct 2026)*
+- [ADR-044 A patient passkey is the second factor, used for step-up only](adr/ADR-044-patient-passkey-second-factor-for-step-up.md) *(D36, owner 28 Oct 2026; INT-582)*

@@ -26,9 +26,18 @@
  * reads no store, writes none, logs nothing (invariant 6), and puts neither the
  * token nor the recipient in a URL — both routes are POST and carry their
  * payload in the body, exactly as the server's own contract requires.
+ *
+ * INT-587 puts two things in front of the first POST: a `StepUpProof` (the
+ * typed D36 seam — ./stepUp; today the OTP session tier, a passkey once
+ * INT-582 lands), and two more true sentences for the screen: `consent` when
+ * the server refuses the share scope (the patient withdrew it — a revoked
+ * grant stops the link), and `session` when there is no session to issue on.
  */
 import { authedFetch } from "@/lib/auth/api";
-import { withStepUp } from "@/lib/auth/passkey/stepUp";
+import { defaultPasskeyPorts, withStepUp } from "@/lib/auth/passkey/stepUp";
+
+import { stepUpHeaders } from "./passkeyStepUp";
+import { isStepUpProof, type StepUpProof } from "./stepUp";
 
 /** The one bundle a screen may render, and only while it is mounted. */
 export interface IssuedCredential {
@@ -50,6 +59,8 @@ export type IssueFailure =
   | "limited"
   | "unavailable"
   | "unreachable"
+  | "consent"
+  | "session"
   // INT-582 (D36): the passkey step-up was refused (a person can review it)
   // or the patient closed the passkey sheet themselves
   | "step_up"
@@ -158,7 +169,23 @@ function failureFor(status: number, error: string): IssueFailure {
   if (status === 503 || error === "doctor_link_unconfigured") {
     return "unavailable";
   }
+  if (status === 403 && error === "consent_required") {
+    // the share scope (or core beneath it) does not hold: no link is minted
+    return "consent";
+  }
+  if (status === 401) {
+    return "session";
+  }
   return "unreachable";
+}
+
+/** An auth-layer throw that means "no session here", not "no network". */
+function isSessionError(error: unknown): boolean {
+  if (typeof error !== "object" || error === null) {
+    return false;
+  }
+  const kind = (error as { kind?: unknown }).kind;
+  return kind === "session" || kind === "unconfigured";
 }
 
 async function jsonOrNull(response: Response): Promise<unknown> {
@@ -175,21 +202,36 @@ async function jsonOrNull(response: Response): Promise<unknown> {
  *
  * The two POSTs are sequential on purpose: the code is minted only for a grant
  * that was actually issued, so a failure to issue never mints a stray code.
+ *
+ * `proof` is the step-up for this act (./stepUp). A value that is not a proof
+ * of a known tier is refused before any network.
  */
-export async function issueDoctorLink(visitId: string, rawRecipient: string): Promise<IssueResult> {
+export async function issueDoctorLink(
+  visitId: string,
+  rawRecipient: string,
+  proof: StepUpProof,
+): Promise<IssueResult> {
+  if (!isStepUpProof(proof)) {
+    return { ok: false, reason: "session" };
+  }
   const recipient = validateRecipient(rawRecipient);
   if (recipient === null) {
     return { ok: false, reason: "recipient_invalid" };
   }
   try {
-    // INT-582 (D36): issuing steps up to the patient's passkey when the
-    // server asks for it; a patient without one is answered directly
-    const sent = await withStepUp("doctor_link_issue", (headers) =>
-      authedFetch(linksPath(visitId), {
-        method: "POST",
-        headers: { "Content-Type": "application/json", ...headers },
-        body: JSON.stringify({ recipient }),
-      }),
+    // INT-582 (D36): a passkey proof sends its grant; the server's gate is
+    // still the authority, and asks for a step-up if this patient needs one
+    // the proof did not carry (enrolled meanwhile on another device)
+    const sent = await withStepUp(
+      "doctor_link_issue",
+      (headers) =>
+        authedFetch(linksPath(visitId), {
+          method: "POST",
+          headers: { "Content-Type": "application/json", ...headers },
+          body: JSON.stringify({ recipient }),
+        }),
+      defaultPasskeyPorts,
+      stepUpHeaders(proof),
     );
     if (sent.kind === "refused") {
       return { ok: false, reason: "step_up" };
@@ -224,8 +266,8 @@ export async function issueDoctorLink(visitId: string, rawRecipient: string): Pr
         expiresAt: grant.expiresAt,
       },
     };
-  } catch {
+  } catch (error) {
     // A DPoP/session error or a dropped connection — never a credential.
-    return { ok: false, reason: "unreachable" };
+    return { ok: false, reason: isSessionError(error) ? "session" : "unreachable" };
   }
 }

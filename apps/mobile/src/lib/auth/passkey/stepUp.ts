@@ -1,21 +1,20 @@
 /**
  * INT-582 (D36) — the passkey step-up in front of a sensitive request.
  *
- * `withStepUp(action, send)` sends the request as the patient's tier stands
- * today. The server's gate answers it directly for a patient without a
- * passkey (the OTP-session tier — never a lockout) and refuses it with
- * `step_up_required` for a patient with one; only then does this run the
- * passkey ceremony for THAT action and send the request once more with the
- * single-use grant. So a patient without a passkey costs no extra round trip,
- * and the decision of who must step up stays the server's.
+ * `withStepUp(action, send)` sends the request as the patient's tier stands.
+ * The server's gate answers it directly for a patient without a passkey (the
+ * OTP-session tier — never a lockout) and refuses it with `step_up_required`
+ * for a patient with one; only then does this run the passkey ceremony for
+ * THAT action and send the request once more with the single-use grant. So a
+ * patient without a passkey costs no extra round trip, and the decision of
+ * who must step up stays the server's.
  *
- * `passkeyStepUp(action)` is the same ceremony in the shape of INT-587's
- * `StepUp` seam (`tier` + `prove()`), carrying the grant in its proof so the
- * Doctor Link issue can attach it with `stepUpHeaders(proof)` once that seam
- * is on main (#995).
+ * A caller that already holds a grant (INT-587's seam: a `passkey` proof made
+ * by ../../shares/passkeyStepUp) passes it as `initial`; a grant the server
+ * still refuses is a refusal, never a second ceremony.
  */
 import { passkeyApi } from "./api";
-import { type PasskeyPorts, type StepUpResult, stepUpFor } from "./ceremony";
+import { type PasskeyPorts, stepUpFor } from "./ceremony";
 import { loadPasskeyNative } from "./native";
 import { STEP_UP_GRANT_HEADER, type StepUpAction } from "./rp";
 
@@ -42,6 +41,11 @@ async function errorCodeOf(response: Response): Promise<string> {
   }
 }
 
+/** The step-up refusals of the server's gate (intake_api.passkey.gate). */
+function isStepUpRefusal(error: string): boolean {
+  return error === "step_up_required" || error === "step_up_refused";
+}
+
 /**
  * Send, and step up only when the server asks for it. A 403 is read for its
  * error code (and so consumed); the code is handed back so the caller can
@@ -51,14 +55,20 @@ export async function withStepUp(
   action: StepUpAction,
   send: (headers: Record<string, string>) => Promise<Response>,
   ports: PasskeyPorts = defaultPasskeyPorts,
+  initial: Record<string, string> = {},
 ): Promise<SteppedUp> {
-  const first = await send({});
+  const first = await send(initial);
   if (first.status !== 403) {
     return { kind: "response", response: first, error: null };
   }
   const error = await errorCodeOf(first);
-  if (error !== "step_up_required") {
+  if (!isStepUpRefusal(error)) {
     return { kind: "response", response: first, error };
+  }
+  if (error === "step_up_refused" || STEP_UP_GRANT_HEADER in initial) {
+    // a grant was sent and refused (spent, expired, another session): a
+    // person decides — never a loop of ceremonies
+    return { kind: "refused", manualPath: true };
   }
   const result = await stepUpFor(action, ports);
   if (result.kind === "cancelled") {
@@ -71,57 +81,10 @@ export async function withStepUp(
   const second = await send({ [STEP_UP_GRANT_HEADER]: result.grant });
   if (second.status === 403) {
     const again = await errorCodeOf(second);
-    if (again === "step_up_required" || again === "step_up_refused") {
+    if (isStepUpRefusal(again)) {
       return { kind: "refused", manualPath: true };
     }
     return { kind: "response", response: second, error: again };
   }
   return { kind: "response", response: second, error: null };
-}
-
-// --- INT-587's seam shape -----------------------------------------------------------------
-
-/** Proof that the step-up for one act was passed; the grant rides with it. */
-export interface PasskeyStepUpProof {
-  readonly tier: "passkey" | "otp_session";
-  readonly grant: string | null;
-}
-
-export function proofOf(result: StepUpResult): PasskeyStepUpProof | null {
-  if (result.kind === "passkey") {
-    return { tier: "passkey", grant: result.grant };
-  }
-  if (result.kind === "otp_session") {
-    return { tier: "otp_session", grant: null };
-  }
-  return null;
-}
-
-/** The header a proven passkey step-up adds to its request; none otherwise. */
-export function stepUpHeaders(proof: PasskeyStepUpProof): Record<string, string> {
-  return proof.tier === "passkey" && proof.grant !== null
-    ? { [STEP_UP_GRANT_HEADER]: proof.grant }
-    : {};
-}
-
-export interface PasskeyStepUp {
-  readonly tier: "passkey";
-  prove(): Promise<PasskeyStepUpProof | null>;
-}
-
-/** INT-587's `StepUp`, made by a passkey for one action. */
-export function passkeyStepUp(
-  action: StepUpAction,
-  ports: PasskeyPorts = defaultPasskeyPorts,
-): PasskeyStepUp {
-  return {
-    tier: "passkey",
-    async prove() {
-      try {
-        return proofOf(await stepUpFor(action, ports));
-      } catch {
-        return null;
-      }
-    },
-  };
 }

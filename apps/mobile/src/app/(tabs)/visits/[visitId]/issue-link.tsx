@@ -49,9 +49,13 @@ import {
   useTheme,
 } from "@/components/Themed";
 import { useClinicalScreenPrivacy } from "@/lib/auth/screenPrivacy";
+import { shareStanding } from "@/lib/consent/store";
 import { t, type MessageKey } from "@/lib/i18n";
+import { serverVisitIdOf } from "@/lib/intake/delivery/store";
 import { issueDoctorLink, type IssueFailure, type IssuedCredential } from "@/lib/shares/issue";
 import { formatShareMoment } from "@/lib/shares/links";
+import { issueStepUp } from "@/lib/shares/sessionStepUp";
+import { authorizeIssue } from "@/lib/shares/stepUp";
 import { fonts, radius, scaledSize, spacing } from "@/lib/theme";
 
 /** Pushed screen: the stack header owns the top inset. */
@@ -65,6 +69,8 @@ const ERROR_KEY: Record<IssueFailure, MessageKey> = {
   limited: "shares.issue.error.limited",
   unavailable: "shares.issue.error.unavailable",
   unreachable: "shares.issue.error.unreachable",
+  consent: "shares.issue.error.consent",
+  session: "shares.issue.error.session",
   step_up: "passkey.stepUp.refused",
   step_up_cancelled: "passkey.stepUp.cancelled",
 };
@@ -77,7 +83,9 @@ export default function IssueDoctorLink() {
   const fontScale = useFontScale();
   const tabBarClearance = useTabBarClearance();
   const { visitId } = useLocalSearchParams<{ visitId: string }>();
-  const visit = visitId ?? "";
+  // INT-587: a link hangs off the SERVER visit the note was delivered to; a
+  // local or hospital-feed id is not one, a fixture's id is used as it is.
+  const visit = serverVisitIdOf(visitId ?? "") ?? visitId ?? "";
 
   const [recipient, setRecipient] = useState("");
   const [busy, setBusy] = useState(false);
@@ -88,7 +96,17 @@ export default function IssueDoctorLink() {
   const create = async () => {
     setBusy(true);
     setError(null);
-    const result = await issueDoctorLink(visit, recipient);
+    // INT-587: the typed step-up seam (D36). INT-582 puts the patient's
+    // passkey in front of the OTP session tier (./sessionStepUp). A share
+    // consent withdrawn on this phone refuses here, before any network — a
+    // revoked grant stops the link.
+    const authority = await authorizeIssue(shareStanding(), issueStepUp);
+    if (!authority.ok) {
+      setBusy(false);
+      setError(authority.reason);
+      return;
+    }
+    const result = await issueDoctorLink(visit, recipient, authority.proof);
     setBusy(false);
     if (result.ok) {
       setCredential(result.credential);

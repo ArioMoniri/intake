@@ -5,15 +5,17 @@
  * stands, and only a `step_up_required` answer runs the passkey ceremony and
  * resends with the single-use grant. Near misses: a patient without a
  * passkey (no 403) costs no ceremony; a consent refusal (a different 403) is
- * handed back as itself, not mistaken for a step-up.
+ * handed back as itself, not mistaken for a step-up; a grant already sent and
+ * refused is a refusal, never a second ceremony.
  */
 import { describe, expect, it, vi } from "vitest";
 
 import type { PasskeyPorts, ServerAnswer } from "./ceremony";
 import { STEP_UP_GRANT_HEADER } from "./rp";
-import { passkeyStepUp, proofOf, stepUpHeaders, withStepUp } from "./stepUp";
+import { withStepUp } from "./stepUp";
 
 vi.mock("@/lib/auth/api", () => ({ authedFetch: vi.fn() }));
+vi.mock("./native", () => ({ loadPasskeyNative: async () => null }));
 
 function response(status: number, body: unknown = {}): Response {
   return { ok: status < 300, status, json: async () => body } as unknown as Response;
@@ -72,6 +74,25 @@ describe("withStepUp", () => {
     expect(send).toHaveBeenLastCalledWith({ [STEP_UP_GRANT_HEADER]: "grant-value" });
   });
 
+  it("a grant the caller already holds goes on the first send", async () => {
+    const wired = ports();
+    const send = vi.fn(async () => response(201));
+    await withStepUp("doctor_link_issue", send, wired, { [STEP_UP_GRANT_HEADER]: "held" });
+    expect(send).toHaveBeenCalledWith({ [STEP_UP_GRANT_HEADER]: "held" });
+    expect(wired.stepUpOptions).not.toHaveBeenCalled();
+  });
+
+  it("a held grant the server refuses is a refusal, not a second ceremony", async () => {
+    const wired = ports();
+    const send = vi.fn(async () => response(403, { error: "step_up_refused" }));
+    const sent = await withStepUp("doctor_link_issue", send, wired, {
+      [STEP_UP_GRANT_HEADER]: "spent",
+    });
+    expect(sent).toEqual({ kind: "refused", manualPath: true });
+    expect(send).toHaveBeenCalledTimes(1);
+    expect(wired.stepUpOptions).not.toHaveBeenCalled();
+  });
+
   it("near miss: a consent refusal is handed back as itself", async () => {
     const wired = ports();
     const send = vi.fn(async () => response(403, { error: "consent_required" }));
@@ -114,6 +135,17 @@ describe("withStepUp", () => {
     expect(send).toHaveBeenCalledTimes(2);
   });
 
+  it("another refusal on the resend is handed back with its code", async () => {
+    const send = vi
+      .fn()
+      .mockResolvedValueOnce(response(403, { error: "step_up_required" }))
+      .mockResolvedValueOnce(response(403, { error: "consent_required" }));
+    expect(await withStepUp("doctor_link_issue", send, ports())).toMatchObject({
+      kind: "response",
+      error: "consent_required",
+    });
+  });
+
   it("an OTP-tier answer to the options after a step-up demand is still sent to a person", async () => {
     const wired = ports({
       stepUpOptions: vi.fn(async () => ({
@@ -127,30 +159,5 @@ describe("withStepUp", () => {
       kind: "refused",
       manualPath: true,
     });
-  });
-});
-
-describe("INT-587's seam shape", () => {
-  it("a passkey proof carries its grant into the request headers", async () => {
-    const proof = await passkeyStepUp("doctor_link_issue", ports()).prove();
-    expect(proof).toEqual({ tier: "passkey", grant: "grant-value" });
-    expect(stepUpHeaders(proof!)).toEqual({ [STEP_UP_GRANT_HEADER]: "grant-value" });
-  });
-
-  it("the OTP tier is a proof with no header; a refusal is no proof", () => {
-    const otp = proofOf({ kind: "otp_session", enrolment: "offered" });
-    expect(otp).toEqual({ tier: "otp_session", grant: null });
-    expect(stepUpHeaders(otp!)).toEqual({});
-    expect(proofOf({ kind: "refused", manualPath: true })).toBeNull();
-    expect(proofOf({ kind: "cancelled" })).toBeNull();
-  });
-
-  it("a ceremony that throws proves nothing", async () => {
-    const broken = ports({
-      stepUpOptions: async () => {
-        throw new Error("network");
-      },
-    });
-    expect(await passkeyStepUp("doctor_link_issue", broken).prove()).toBeNull();
   });
 });

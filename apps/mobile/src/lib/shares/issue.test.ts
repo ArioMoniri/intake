@@ -16,6 +16,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { issueDoctorLink, parseCode, parseIssued, validateRecipient } from "./issue";
+import { isStepUpProof, otpSessionStepUp, passkeyProof, type StepUpProof } from "./stepUp";
 
 const mocks = vi.hoisted(() => {
   class AuthApiError extends Error {
@@ -75,6 +76,13 @@ afterEach(() => {
   mocks.authedFetch.mockReset();
 });
 
+/** The OTP session tier: a patient with no passkey, an OTP session present. */
+async function proof(): Promise<StepUpProof> {
+  const proved = await otpSessionStepUp(async () => true).prove();
+  if (!isStepUpProof(proved)) throw new Error("fixture");
+  return proved;
+}
+
 describe("validateRecipient — a label the watermark can carry", () => {
   it("accepts a trimmed, single-line label", () => {
     expect(validateRecipient("  Dr Efe Onganer  ")).toBe("Dr Efe Onganer");
@@ -111,7 +119,7 @@ describe("parsers — a malformed body is null, never a half-built value", () =>
 describe("issueDoctorLink — issue then mint, in one act", () => {
   it("returns the token and the freshly minted code together", async () => {
     serving();
-    const result = await issueDoctorLink(VISIT, "Dr Efe Onganer");
+    const result = await issueDoctorLink(VISIT, "Dr Efe Onganer", await proof());
     expect(result).toEqual({
       ok: true,
       credential: {
@@ -125,7 +133,7 @@ describe("issueDoctorLink — issue then mint, in one act", () => {
 
   it("calls issue first, then the OTP mint over the same session — two POSTs", async () => {
     serving();
-    await issueDoctorLink(VISIT, "Dr Efe Onganer");
+    await issueDoctorLink(VISIT, "Dr Efe Onganer", await proof());
     const calls = mocks.authedFetch.mock.calls;
     expect(calls).toHaveLength(2);
     expect(calls[0][0]).toContain("/note/doctor-links");
@@ -137,7 +145,7 @@ describe("issueDoctorLink — issue then mint, in one act", () => {
 
   it("never puts the token or the recipient in a URL (invariant 6)", async () => {
     serving();
-    await issueDoctorLink(VISIT, "Dr Efe Onganer");
+    await issueDoctorLink(VISIT, "Dr Efe Onganer", await proof());
     for (const [path] of mocks.authedFetch.mock.calls) {
       expect(String(path)).not.toContain(ISSUED.token);
       expect(String(path)).not.toContain("Efe");
@@ -145,21 +153,27 @@ describe("issueDoctorLink — issue then mint, in one act", () => {
   });
 
   it("refuses a bad recipient before it reaches the network", async () => {
-    const result = await issueDoctorLink(VISIT, "   ");
+    const result = await issueDoctorLink(VISIT, "   ", await proof());
     expect(result).toEqual({ ok: false, reason: "recipient_invalid" });
     expect(mocks.authedFetch).not.toHaveBeenCalled();
   });
 
   it("maps a note that was never sent to its own reason", async () => {
     mocks.authedFetch.mockResolvedValue(refused(409, "note_not_shared"));
-    expect(await issueDoctorLink(VISIT, "Dr Efe")).toEqual({ ok: false, reason: "not_shared" });
+    expect(await issueDoctorLink(VISIT, "Dr Efe", await proof())).toEqual({
+      ok: false,
+      reason: "not_shared",
+    });
   });
 
   it("maps a visit with no date, and a rejected recipient, to their reasons", async () => {
     mocks.authedFetch.mockResolvedValue(refused(422, "visit_date_unknown"));
-    expect(await issueDoctorLink(VISIT, "Dr Efe")).toEqual({ ok: false, reason: "date_unknown" });
+    expect(await issueDoctorLink(VISIT, "Dr Efe", await proof())).toEqual({
+      ok: false,
+      reason: "date_unknown",
+    });
     mocks.authedFetch.mockResolvedValue(refused(422, "recipient_invalid"));
-    expect(await issueDoctorLink(VISIT, "Dr Efe")).toEqual({
+    expect(await issueDoctorLink(VISIT, "Dr Efe", await proof())).toEqual({
       ok: false,
       reason: "recipient_invalid",
     });
@@ -167,14 +181,20 @@ describe("issueDoctorLink — issue then mint, in one act", () => {
 
   it("maps the abuse-gate 429 and the 503 unconfigured tier to their reasons", async () => {
     mocks.authedFetch.mockResolvedValue(refused(429, "otp_limited"));
-    expect(await issueDoctorLink(VISIT, "Dr Efe")).toEqual({ ok: false, reason: "limited" });
+    expect(await issueDoctorLink(VISIT, "Dr Efe", await proof())).toEqual({
+      ok: false,
+      reason: "limited",
+    });
     mocks.authedFetch.mockResolvedValue(refused(503, "doctor_link_unconfigured"));
-    expect(await issueDoctorLink(VISIT, "Dr Efe")).toEqual({ ok: false, reason: "unavailable" });
+    expect(await issueDoctorLink(VISIT, "Dr Efe", await proof())).toEqual({
+      ok: false,
+      reason: "unavailable",
+    });
   });
 
   it("does not mint a code when issuing failed", async () => {
     mocks.authedFetch.mockResolvedValue(refused(409, "note_not_shared"));
-    await issueDoctorLink(VISIT, "Dr Efe");
+    await issueDoctorLink(VISIT, "Dr Efe", await proof());
     for (const [path] of mocks.authedFetch.mock.calls) {
       expect(String(path)).not.toContain("/otp");
     }
@@ -182,12 +202,52 @@ describe("issueDoctorLink — issue then mint, in one act", () => {
 
   it("treats an unreachable server, and a malformed body, as unreachable", async () => {
     mocks.authedFetch.mockRejectedValue(new mocks.AuthApiError("network"));
-    expect(await issueDoctorLink(VISIT, "Dr Efe")).toEqual({ ok: false, reason: "unreachable" });
+    expect(await issueDoctorLink(VISIT, "Dr Efe", await proof())).toEqual({
+      ok: false,
+      reason: "unreachable",
+    });
     mocks.authedFetch.mockReset();
     mocks.authedFetch.mockImplementation(async (path: string) =>
       path.endsWith("/otp") ? ok({ code: "" }) : ok(ISSUED),
     );
-    expect(await issueDoctorLink(VISIT, "Dr Efe")).toEqual({ ok: false, reason: "unreachable" });
+    expect(await issueDoctorLink(VISIT, "Dr Efe", await proof())).toEqual({
+      ok: false,
+      reason: "unreachable",
+    });
+  });
+});
+
+describe("INT-587 — the share consent and the step-up seam", () => {
+  it("a revoked share grant stops the link: 403 on the share scope is its own reason", async () => {
+    mocks.authedFetch.mockResolvedValue({
+      ok: false,
+      status: 403,
+      json: async () => ({ error: "consent_required", scope: "share:previsit_note" }),
+    } as unknown as Response);
+    expect(await issueDoctorLink(VISIT, "Dr Efe", await proof())).toEqual({
+      ok: false,
+      reason: "consent",
+    });
+    for (const [path] of mocks.authedFetch.mock.calls) {
+      expect(String(path)).not.toContain("/otp");
+    }
+  });
+
+  it("refuses a proof from no known tier before any network", async () => {
+    const forged = { tier: "sms_link" } as unknown as StepUpProof;
+    expect(await issueDoctorLink(VISIT, "Dr Efe", forged)).toEqual({
+      ok: false,
+      reason: "session",
+    });
+    expect(mocks.authedFetch).not.toHaveBeenCalled();
+  });
+
+  it("a lost session is a session refusal, not an unreachable server", async () => {
+    mocks.authedFetch.mockRejectedValue(new mocks.AuthApiError("session"));
+    expect(await issueDoctorLink(VISIT, "Dr Efe", await proof())).toEqual({
+      ok: false,
+      reason: "session",
+    });
   });
 });
 
@@ -207,21 +267,45 @@ describe("issuing steps up to the passkey when the server asks (INT-582, D36)", 
       }
       return refused(403, "step_up_required");
     });
-    expect(await issueDoctorLink(VISIT, "Dr Efe")).toEqual({ ok: false, reason: "step_up" });
+    expect(await issueDoctorLink(VISIT, "Dr Efe", await proof())).toEqual({
+      ok: false,
+      reason: "step_up",
+    });
     const paths = mocks.authedFetch.mock.calls.map(([path]) => String(path));
     expect(paths.some((path) => path.endsWith("/otp"))).toBe(false);
   });
 
-  it("a consent refusal is still a consent-shaped failure, not a step-up", async () => {
+  it("a passkey proof sends its grant on the issuing POST, once", async () => {
+    serving();
+    const result = await issueDoctorLink(VISIT, "Dr Efe", passkeyProof("grant-value"));
+    expect(result.ok).toBe(true);
+    const [, init] = mocks.authedFetch.mock.calls[0] ?? [];
+    expect((init as RequestInit).headers).toMatchObject({
+      "X-Intake-Step-Up-Grant": "grant-value",
+    });
+    const [, mint] = mocks.authedFetch.mock.calls[1] ?? [];
+    expect(JSON.stringify(mint)).not.toContain("grant-value");
+  });
+
+  it("a passkey grant the server refuses mints nothing and asks the patient nothing more", async () => {
+    mocks.authedFetch.mockResolvedValue(refused(403, "step_up_refused"));
+    expect(await issueDoctorLink(VISIT, "Dr Efe", passkeyProof("spent"))).toEqual({
+      ok: false,
+      reason: "step_up",
+    });
+    expect(mocks.authedFetch).toHaveBeenCalledTimes(1);
+  });
+
+  it("a consent refusal is still the consent sentence, not a step-up", async () => {
     mocks.authedFetch.mockResolvedValue(refused(403, "consent_required"));
-    const result = await issueDoctorLink(VISIT, "Dr Efe");
-    expect(result).toEqual({ ok: false, reason: "unreachable" });
+    const result = await issueDoctorLink(VISIT, "Dr Efe", await proof());
+    expect(result).toEqual({ ok: false, reason: "consent" });
     expect(mocks.authedFetch).toHaveBeenCalledTimes(1);
   });
 
   it("near miss: a patient without a passkey issues exactly as before", async () => {
     serving();
-    const result = await issueDoctorLink(VISIT, "Dr Efe");
+    const result = await issueDoctorLink(VISIT, "Dr Efe", await proof());
     expect(result.ok).toBe(true);
     expect(mocks.authedFetch).toHaveBeenCalledTimes(2);
   });
