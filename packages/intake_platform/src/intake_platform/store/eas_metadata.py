@@ -202,6 +202,10 @@ class AppStoreSubmission:
     advisory_asc_sources: Mapping[str, str] = dataclass_field(default_factory=dict)
     content_rights: str | None = None
     content_rights_source: str | None = None
+    #: INT-502 legal review B5/R1: while set, the review notes go to neither
+    #: store.config.json nor App Store Connect. It names the owners of the facts
+    #: that would make the notes true; removing it is a legal-lane edit.
+    review_notes_hold: str | None = None
 
 
 @dataclass(frozen=True)
@@ -326,6 +330,9 @@ def load_submission(path: Path) -> AppStoreSubmission:
             enum_keys=ADVISORY_ASC_OVERRIDE_KEYS,
         )
     rights, rights_source = _content_rights(body.get("content_rights"), where)
+    hold = body.get("review_notes_hold")
+    if hold is not None and (not isinstance(hold, str) or not hold.strip()):
+        raise StoreConfigError(f"{where}: review_notes_hold must name its owners or be absent")
     return AppStoreSubmission(
         categories=tuple(str(c) for c in categories),
         advisory=advisory,
@@ -338,6 +345,7 @@ def load_submission(path: Path) -> AppStoreSubmission:
         advisory_asc_sources=asc_sources,
         content_rights=rights,
         content_rights_source=rights_source,
+        review_notes_hold=None if hold is None else hold.strip(),
     )
 
 
@@ -443,7 +451,13 @@ def build_store_config(
     else:
         apple["categories"] = list(submission.categories)
         apple["advisory"] = dict(submission.advisory)
-        apple["review"] = {"notes": submission.review_notes}
+        if submission.review_notes_hold is None:
+            apple["review"] = {"notes": submission.review_notes}
+        else:
+            blocked.append(
+                f"review.notes: held until the notes are true of the store build "
+                f"({submission.review_notes_hold}; legal review B5)"
+            )
         if submission.copyright is not None:
             apple["copyright"] = submission.copyright
         if submission.support_url is not None:

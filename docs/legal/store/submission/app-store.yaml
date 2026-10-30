@@ -47,7 +47,7 @@ advisory:
     note: "The legal lane decides whether clinical sexual-health questions count here."
   medicalOrTreatmentInformation:
     answer: INFREQUENT_OR_MILD
-    source: "files/06_COMPLIANCE_TR.md §0.3 and §7 — health questions and the non-diagnosis lines; the app gives no treatment advice"
+    source: "packages/protocols/base/intake.yaml — the intake asks about complaints, medicines and history and gives no treatment advice; a build sent for review runs with device_functions off (files/06_COMPLIANCE_TR.md §0.3 Stage A, INT-117), so it shows no urgency or treatment instruction (re-sourced, legal re-check 29 Oct 2026)"
   profanityOrCrudeHumor:
     answer: NONE
     source: "CLAUDE.md clinical content rules — B1 Turkish, siz register, empathetic copy"
@@ -116,8 +116,12 @@ advisory_asc:
     note: "The legal lane confirms this against Apple's definition."
 content_rights:
   answer: USES_THIRD_PARTY_CONTENT
-  source: "packages/protocols/src/protocols/licences.py — the validated instruments (PHQ-9, GAD-7) are third-party content used under Pfizer's blanket permission (licence GO); apps/mobile/package.json bundles the third-party fonts Inter, Newsreader and Fraunces (@expo-google-fonts, SIL Open Font License 1.1, read from each package's LICENSE_FONT) (re-sourced, legal review INT-502)"
+  source: "apps/mobile/package.json — the app bundles the third-party fonts Inter, Newsreader and Fraunces (@expo-google-fonts, SIL Open Font License 1.1, read from each package's LICENSE_FONT) (re-sourced to the fonts, legal re-check 29 Oct 2026)"
   note: "The legal lane confirms; the alternative answer is DOES_NOT_USE_THIRD_PARTY_CONTENT."
+# INT-502 legal review B5 and re-check R1/R2: while this is set, the notes reach
+# neither store.config.json nor App Store Connect. Removing it is a legal-lane edit,
+# made only when every owner below has made the notes true of the review build.
+review_notes_hold: "INT-117 Stage A (static 112 notice; no patient-facing RED on the review host), INT-488 reviewer sign-in, INT-587 delivery"
 review_notes: |-
   Önvizit is a pre-visit intake app. Before a medical visit, the user describes their complaints by voice or by typing, one question at a time. The app turns the answers into a structured note, shows it to the user, and sends it only to the clinician the user chooses.
 
