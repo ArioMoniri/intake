@@ -1,7 +1,8 @@
 /**
  * Typed boundary for the production voice transport (INT-103): the mobile
  * half of the LiveKit streaming session that supersedes the dev-tier
- * record→upload→transcribe loop in lib/voice.ts.
+ * capture→upload→transcribe loop in lib/voice.ts (itself file-less since
+ * INT-559: lib/capture).
  *
  * INVARIANT 3 IS THE LOAD-BEARING RULE OF THIS WHOLE DIRECTORY. The patient's
  * microphone is published as a live WebRTC track and nothing else. No module

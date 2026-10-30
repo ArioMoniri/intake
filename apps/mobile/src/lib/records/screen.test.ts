@@ -43,6 +43,12 @@ describe("consent gate — documents scope from the existing session consents", 
     expect(gate).toContain("records.consent.title");
     expect(SCREEN).toContain("records.consent.cta");
   });
+
+  it("a server visit refused for core names core, not documents (INT-537)", () => {
+    const errors = slice(SCREEN, "function errorKey", "function DevRecords");
+    expect(errors).toMatch(/case "core_consent":\s*return "records\.err\.coreConsent";/);
+    expect(errors).toMatch(/case "consent":\s*return "records\.err\.consent";/);
+  });
 });
 
 describe("dev-tier honesty — fixture list, no upload, a calm note", () => {
@@ -130,6 +136,7 @@ describe("i18n — the INT-229 keys exist in both catalogs (invariant 5)", () =>
     "records.err.network",
     "records.err.session",
     "records.err.consent",
+    "records.err.coreConsent",
     "records.err.scanUnavailable",
     "records.err.rejected",
     "records.err.generic",

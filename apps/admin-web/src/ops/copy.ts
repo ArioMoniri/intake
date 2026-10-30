@@ -57,16 +57,66 @@ const tr = {
   models: {
     title: "Model sunucuları ve kayıt",
     release: "Sürüm kapısı",
+    // INT-560: the INT-022 gate reads the whole registry for a PHI release
+    releaseScope: "kayıt geneli, hasta verisi taşıyan dağıtım için",
     blocked: "engelli",
     open: "açık",
+    host: "Sunucu",
+    dataClasses: { synthetic: "yalnızca sentetik hasta" } as Record<string, string>,
+    hostReasons: {
+      host_inventory_unconfigured:
+        "Bu dağıtım sunucu envanteri tanımlamıyor; sütunlar kayıt genelini gösterir",
+      host_inventory_missing:
+        "Sunucu envanteri dosyası bulunamadı; sütunlar kayıt genelini gösterir",
+      host_inventory_unreadable: "Sunucu envanteri okunamadı; sütunlar kayıt genelini gösterir",
+      host_inventory_refused:
+        "Sunucu envanteri bu dağıtımın veri sınıfında geçerli değil; sütunlar kayıt genelini gösterir",
+    } as Record<string, string>,
     component: "Bileşen",
     pin: "Sabitleme",
     selfHostable: "Kendi sunucumuzda çalışabilir",
     selfHostedNow: "Şu an kendi sunucumuzda",
+    deployment: {
+      this_host: "evet",
+      elsewhere: "bu sunucuda değil (başka bir sunucumuzda)",
+      not_deployed: "hayır (hiçbir yerde kurulu değil)",
+      undeclared: "bilinmiyor (sunucu envanteri yok)",
+    } as Record<string, string>,
+    notNeeded: "yığın buna gerek duymuyor",
+    notNeededReasons: {
+      fails_closed_without_it: "yoksa ona bağlı çağrılar güvenli biçimde reddedilir",
+      observes_only: "yalnızca izler, yığın onu çağırmaz",
+    } as Record<string, string>,
     probe: "Yoklama",
     probeStatus: "Yoklama durumu",
+    probeStatuses: {
+      healthy: "sağlıklı",
+      unhealthy: "sağlıksız",
+      skipped: "atlandı",
+      no_result: "sonuç yok",
+    } as Record<string, string>,
+    stale: "eski sonuç",
+    ago: "önce",
+    units: { s: "sn", min: "dk", h: "sa" },
     licence: "Lisans doğrulandı",
+    notVerified: "doğrulanmadı",
     severity: "Önem",
+    severities: { ok: "sorun yok", attention: "uyarı", blocking: "engelleyici" } as Record<
+      string,
+      string
+    >,
+    severityReasons: {
+      ok: "",
+      needed_not_healthy: "yığın buna gerek duyuyor ve yoklaması şu an sağlıklı değil",
+      not_on_this_host: "bu sunucuda çalışmıyor",
+      unneeded_not_healthy: "yığın buna gerek duymuyor; yoklaması sağlıklı değil",
+      phi_release_gate:
+        "hasta verisi taşıyan bir dağıtımı sürüm kapısı engellerdi; bu sunucu sentetik",
+      licence_unverified: "lisansı ham LICENSE dosyasından doğrulanmadı",
+      release_blocked: "sürüm kapısı engelliyor",
+      planned_not_running: "planlı, henüz çalışmıyor",
+      probe_not_healthy: "yoklaması sağlıklı değil",
+    } as Record<string, string>,
   },
   gpu: {
     title: "GPU sunucuları",
@@ -177,16 +227,61 @@ const en: Copy = {
   models: {
     title: "Model hosts and registry",
     release: "Release gate",
+    releaseScope: "registry-wide, for a deployment carrying patient data",
     blocked: "blocked",
     open: "open",
+    host: "Host",
+    dataClasses: { synthetic: "synthetic patients only" },
+    hostReasons: {
+      host_inventory_unconfigured:
+        "This deployment declares no host inventory; the columns read registry-wide",
+      host_inventory_missing: "The host inventory file is missing; the columns read registry-wide",
+      host_inventory_unreadable: "The host inventory is unreadable; the columns read registry-wide",
+      host_inventory_refused:
+        "The host inventory is not valid for this deployment's data class; the columns read registry-wide",
+    },
     component: "Component",
     pin: "Pin",
     selfHostable: "Self-hostable",
-    selfHostedNow: "Self-hosted now",
+    selfHostedNow: "On this host now",
+    deployment: {
+      this_host: "yes",
+      elsewhere: "not on this host (on another host of ours)",
+      not_deployed: "no (deployed nowhere)",
+      undeclared: "unknown (no host inventory)",
+    },
+    notNeeded: "the stack does not need it",
+    notNeededReasons: {
+      fails_closed_without_it: "without it, the calls that use it fail closed",
+      observes_only: "it only observes; the stack never calls it",
+    },
     probe: "Probe",
     probeStatus: "Probe status",
+    probeStatuses: {
+      healthy: "healthy",
+      unhealthy: "unhealthy",
+      skipped: "skipped",
+      no_result: "no result",
+    },
+    stale: "stale",
+    ago: "ago",
+    units: { s: "s", min: "min", h: "h" },
     licence: "Licence verified",
+    notVerified: "not verified",
     severity: "Severity",
+    severities: { ok: "ok", attention: "attention", blocking: "blocking" },
+    severityReasons: {
+      ok: "",
+      needed_not_healthy: "the stack needs it and its probe is not healthy now",
+      not_on_this_host: "it does not run on this host",
+      unneeded_not_healthy: "the stack does not need it; its probe is not healthy",
+      phi_release_gate:
+        "the release gate would block a deployment carrying patient data; this host is synthetic",
+      licence_unverified: "its licence has not been read from the raw LICENSE blob",
+      release_blocked: "the release gate blocks on it",
+      planned_not_running: "planned, not running yet",
+      probe_not_healthy: "its probe is not healthy",
+    },
   },
   gpu: {
     title: "GPU hosts",

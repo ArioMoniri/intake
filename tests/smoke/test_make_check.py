@@ -403,7 +403,37 @@ def test_backlog_parses_and_is_complete() -> None:
     # grows only with a stated reason.
     # + INT-564 (Compliance, Models and Experience as console pages,
     # GitHub #953); grows only with a stated reason.
-    assert len(ids) == 373, f"expected 175 blueprint + 198 added issues, got {len(ids)}"
+    # + INT-420 (Önvizit everywhere: the owner's rebrand finished on main, with
+    # a guard against the old name, GitHub #712); grows only with a stated reason.
+    # + INT-560 (the operability registry page tells the truth about the host
+    # it runs on, owner request, GitHub #948); grows only with a stated reason.
+    # + INT-529 (synthetic-scope consent texts, marked sentetik test metni and
+    # loaded only on the synthetic host, GitHub #896); grows only with a stated
+    # reason.
+    # + INT-537 (the app grants the core consent that visits and notes require,
+    # INT-529 finding F2, GitHub #904); grows only with a stated reason.
+    # + INT-586 (opentelemetry-api past GHSA-ccrj-gw8r-854m, GitHub #986).
+    # + INT-590 (decode-uri-component past CVE-2026-118664, GitHub #991).
+    # + INT-559 (the app's voice lane never writes patient audio to a file —
+    # invariant 3 with no dev exception, from the INT-536 legal review,
+    # GitHub #947); grows only with a stated reason.
+    # + INT-536 (consent-screen copy true for the host and matching the consent
+    # texts, GitHub #903); grows only with a stated reason.
+    # + INT-585 (the owner's 28 Oct SMS decisions recorded as D34-D38, owner in
+    # chat, GitHub #984); grows only with a stated reason.
+    # + INT-587 (the note reaches the clinician from a release build: note-sync
+    # client, in-app share consent, Doctor Link from the app, GitHub #988);
+    # grows only with a stated reason.
+    # + INT-588 (patient copy is true in the no-voice release build, GitHub
+    # #989); grows only with a stated reason.
+    # + INT-591 (a release build offers no voice consent it cannot use, GitHub
+    # #993); grows only with a stated reason.
+    # + INT-592 (a truthful NSHealthUpdateUsageDescription so App Store
+    # processing accepts the iOS build, ITMS-90683, GitHub #1000); grows only
+    # with a stated reason.
+    # + INT-584 (the phone-tokenization key moves into OpenBao with the same key
+    # material, owner decision D38, GitHub #983); grows only with a stated reason.
+    assert len(ids) == 387, f"expected 175 blueprint + 212 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 

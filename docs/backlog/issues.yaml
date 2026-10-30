@@ -5169,8 +5169,8 @@
     - "ADR-029 proposes the embed surface (signed launch-ticket handshake vs an embedded UI, with a recommendation and tradeoffs), the constrained tenant-branding model, the auth/consent handshake, and how tenant isolation is preserved within D1-D15 and ADR-001..028"
     - "signed, single-use, short-lived launch ticket: the partner backend mints it server-to-server; the patient device launches it; the tenant is bound INSIDE the signature so a ticket cannot cross tenants; no PHI in the ticket; the nonce is single-use; device_functions stays off (ADR-020)"
     - "tenant embed registry (infra/tenants/embed_registry.yaml): branding is constrained data not partner markup, fail-closed, ships with ZERO prod rows and one dev-tier synthetic tenant; a prod row is refused without recorded DPA + brand-permission facts (human sign-off)"
-    - "/embed/v1 mint+launch under a new partner_embed consent-scan marker; consent renders from Vizite's own docs/legal flow (fail closed until authored); every mint/launch is audited (ids only); the signing key comes from OpenBao only"
-    - "partner-facing @intake/embed-sdk 'Start pre-visit' button (TS strict) calls the partner's own backend and only opens an https Vizite launch url, never holding a Vizite secret"
+    - "/embed/v1 mint+launch under a new partner_embed consent-scan marker; consent renders from Önvizit's own docs/legal flow (fail closed until authored); every mint/launch is audited (ids only); the signing key comes from OpenBao only"
+    - "partner-facing @intake/embed-sdk 'Start pre-visit' button (TS strict) calls the partner's own backend and only opens an https Önvizit launch url, never holding an Önvizit secret"
     - "NO real partner secrets or branding; a partner-supplied patient identifier / note-back correlation is out of scope pending human sign-off (a new personal-data category + recipient), built as the mechanism only, fail-closed, content empty"
   tests: [tests/embed/test_tickets.py, tests/embed/test_registry.py, tests/embed/test_launch.py, tests/embed/test_router.py, tests/embed/test_service.py, tests/legal/test_consent_guard.py]
   legal: "KVKK-8,DPA"
@@ -6353,7 +6353,6 @@
   tests: [tests/legal/test_legal_drafts.py]
   legal: "KVKK-6,KVKK-9,2018-10,2019-10,5378"
   sec_row: "compliance-evidence"
-
 - id: INT-404
   epic: E03-protocols
   phase: P1
@@ -7397,3 +7396,316 @@
     - "Honest empty states (invariant 17): every table says it is empty and what puts a row there; the Models page's quality lane stays disabled with its reason, and its benchmark form sends only a registry id and a lane."
   tests: [tests/admin/test_experience_console.py, apps/admin-web/e2e/pages564.spec.ts]
   sec_row: "admin-console"
+- id: INT-420
+  epic: E08-mobile
+  phase: P0
+  title: "Önvizit everywhere — finish the Vizite→Önvizit rebrand on main"
+  # GitHub #712. Owner request, 27 Sep 2026: the product is Önvizit (ASCII
+  # `onvizit`). Carries the intent of int-demo 0115c60b and 82c1a1e6 (name,
+  # V-logo icon, bundle id, localized CFBundleDisplayName, purpose string)
+  # without merging int-demo; eas.json and the other release config stay with
+  # INT-421. Common-noun uses of the Turkish word and dated records are kept
+  # and listed in the allow-list the guard reads (docs/evidence/INT-420.md).
+  depends_on: [INT-130, INT-320]
+  labels: [area:mobile]
+  status: done
+  evidence: docs/evidence/INT-420.md
+  acceptance:
+    - "every brand use of the old name on main reads Önvizit (ASCII identifier `onvizit`): app and display name, bundle and scheme, embed sample partner, i18n, docs, store and legal artefacts, and tests; carries over the int-demo rebrand (V-logo icon, localized CFBundleDisplayName, iOS purpose strings)"
+    - "the Turkish common noun is kept wherever it is used as a word and not as the brand, and each kept occurrence is listed in the evidence"
+    - "identifier changes (bundle id, URL scheme, Keycloak redirect URIs, deep links) change together and are tested; a guard test fails on any new brand-case use of the old name"
+  tests: [tests/release/test_brand_name.py, tests/release/test_brand_identifiers.py, apps/mobile/e2e/brand.spec.ts]
+  sec_row: "mobile"
+- id: INT-560
+  epic: E12-admin
+  phase: P1
+  title: "The operability registry page tells the truth: real probe results from the synthetic host, honest deployment and severity columns"
+  # GitHub #948, owner 17 Oct 2026 ("solve these"). On the synthetic AWS host
+  # the ops console's registry tile read no_result on every row (no sweep ran
+  # there and the API had no results file), "blocking" on rows the host does
+  # not run (HAPI, the team GPU server's models) and "evet" under "Şu an kendi
+  # sunucumuzda" for anything the registry self-hosts anywhere. The probes
+  # service now runs on the host, sweeping a recorded host inventory; the
+  # columns derive from that inventory and the live sweep. Licence data is
+  # INT-561 (#949).
+  depends_on: [INT-022, INT-183, INT-351, INT-377, INT-345]
+  labels: [area:observability]
+  status: done
+  evidence: docs/evidence/INT-560.md
+  acceptance:
+    - "services/probes runs on the synthetic host (compose service with the monitoring contract: /healthz, /readyz, /metrics, /version; invariant 15; SLO yaml; registry row for itself) and every registry row gets a real probe result; probe targets fixed to what actually runs on the host."
+    - "'Şu an kendi sunucumuzda' reflects reality: GPU-box models are not reachable from AWS, so they show as not deployed / unreachable, never a false 'evet'."
+    - "Severity 'blocking' only for what the deployed synthetic stack actually needs; everything else advisory, with the reason."
+    - "TDD: tests pin the column derivations against a recorded host inventory; near misses (a GPU-box model never shows deployed on the AWS host; a missing probe never shows healthy)."
+    - "No PHI in probe output (invariant 6); every emitted metric catalogued (invariant 13)."
+    - "Licence columns are INT-561."
+  tests: [tests/observability/test_host_inventory.py, tests/observability/test_host_sweep.py, tests/admin/test_registry_truth.py, tests/infra/test_staging_probes.py, tests/admin/test_ops_console.py, apps/admin-web/e2e/ops.spec.ts]
+  sec_row: "monitoring-contract"
+- id: INT-529
+  epic: E14-legal
+  phase: P1
+  title: "Synthetic-scope consent texts, marked sentetik test metni and loaded only on the synthetic host"
+  # GitHub #896, 16 Oct 2026. Owner: "for third do recommended" — yes to the
+  # INT-498 audit's proposal P6. Under D25 (INT-471, GitHub #800) the legal
+  # lane authors texts for synthetic tenants only, into a separate index at
+  # docs/legal/synthetic/. docs/legal/documents.yaml stays empty until a
+  # licensed Turkish lawyer countersigns (HB-L27, G3). Seven açık rıza texts
+  # are built. The five aydınlatma texts and four açık rıza texts are listed
+  # awaiting-human in the synthetic index, each naming the value no file
+  # declares (controller identity, recipients, transfer ground, retention, the
+  # crisis carve-out): docs/evidence/INT-529.md §4, docs/backlog/blockers.md.
+  depends_on: [INT-038, INT-210]
+  labels: [area:legal, risk:legal]
+  status: awaiting-human
+  evidence: docs/evidence/INT-529.md
+  acceptance:
+    - "under D25 the legal lane (legal-author agent, then an independent legal-reviewer) authors the eleven açık rıza and five aydınlatma texts for synthetic tenants only, into a separate index under docs/legal/ with hash binding (invariant 18); every rendered text carries a visible 'sentetik test metni' marker; fixed strings in docs/legal/strings.yaml stay verbatim"
+    - "the synthetic index loads only when INTAKE_DEPLOYMENT_DATA_CLASS=synthetic is baked into the image; a non-synthetic boot refuses it (test); real tenants still refuse every id until counsel signs (G3)"
+    - "a grant on the synthetic host binds the synthetic text's hash (test); claims scan (invariant 20) and PHI scan pass on the texts; patient copy ≤ B1, siz register"
+    - "a licensed Turkish lawyer's countersign is still required before any real patient"
+  tests: [tests/legal/test_synthetic_legal_index.py, tests/legal/test_synthetic_vendor_tripwire.py, tests/api/test_synthetic_consent_grant.py]
+  legal: "KVKK-4/5/6,KVKK-10,AYD-2018"
+  sec_row: "consent"
+- id: INT-537
+  epic: E08-mobile
+  phase: P1
+  title: "The app grants the core consent that visits and notes require"
+  # GitHub #904, from the INT-529 (#896) legal-author finding F2, 16 Oct 2026.
+  # The server registry makes core açık rıza and every visit and note route
+  # declares it, but purposes.ts showed core as information (ui: "info") and
+  # the ledger never made it grantable, so a signed-in account could not
+  # start a visit on the synthetic host. Stacked on INT-529 (#911), whose
+  # synthetic core text is what the app renders there. The grant surface was
+  # already complete; the API tests here pin it end to end. Legal review
+  # round 2 (B1): a core withdrawal now also writes the opt-out of each
+  # default-on learning purpose, as the core text promises; the default-on
+  # legal question itself is INT-556's.
+  depends_on: [INT-529, INT-132, INT-232]
+  labels: [area:mobile, risk:legal]
+  status: done
+  evidence: docs/evidence/INT-537.md
+  acceptance:
+    - "the consent flow offers core exactly like the other açık rıza purposes: rendered only from docs/legal through the API with hash binding (on the synthetic host the synthetic core text with its marker), granted against the version and hash shown, audited server-side, ids only (invariants 4, 6, 18)"
+    - "without core, visit start refuses with a clear B1 Turkish message whose one action opens the core text; with core, a visit starts and its note saves (API end to end on the synthetic stack configuration, app source pins)"
+    - "core is withdrawn from İzinleriniz in one tap, cascading as the server does; a withdrawal stops new visits and notes at once, and a re-grant restores them (tested)"
+    - "new copy is tr first with an en mirror; the i18n, register, B1 and PolicyGuard gates stay green with no new recorded finding; no accuracy claim; no demo content in release paths"
+  tests: [apps/mobile/src/lib/consent/gate.test.ts, apps/mobile/src/lib/consent/ledger.test.ts, apps/mobile/src/lib/consent/store.test.ts, apps/mobile/e2e/consent.spec.ts, apps/mobile/e2e/visits.spec.ts, apps/mobile/src/lib/records/api.test.ts, apps/mobile/src/lib/records/screen.test.ts, tests/api/test_core_consent_visit_start.py]
+  legal: "KVKK-5,KVKK-6"
+- id: INT-536
+  epic: E14-legal
+  phase: P1
+  title: "Consent-screen copy matches the consent texts and the host: affect cues never reach the doctor, and no 'stays in Türkiye' claim on the us-east-1 host"
+  # GitHub #903, from the INT-529 (#896) legal-author findings F1, F3, F5 and
+  # F8, 16 Oct 2026. The issue comment adds the voice and lane:affect texts'
+  # AWS alignment (INT-529 F9), and INT-537 (#940) adds G1 (consent.who.core).
+  # D25 legal lane, synthetic scope. Stacked on INT-537 (#940), which
+  # contains INT-529 (#911).
+  depends_on: [INT-529, INT-537]
+  labels: [area:legal]
+  status: done
+  evidence: docs/evidence/INT-536.md
+  acceptance:
+    - "F1: the consent.who lines shown above the consent texts (tr source, en mirror) state only what the code does on every host: no place is named, lane cues reach no doctor and no note, a RED staff alert carries no health answers; each sentence cited to a code path; PolicyGuard, B1, siz"
+    - "F3: the render-time claims scanner flags everything the CI shell gate flags at its strict tier, the softened Turkish forms beside a figure included; near misses pass both (invariant 20)"
+    - "F5: the satisfaction score's inventory annotations and retention class state the açık rıza ground its routes enforce; schema test (invariant 18)"
+    - "F8: the synthetic legal loader reads ADR-035's bound data class on every lookup; a mismatch or an unreadable record refuses"
+    - "the voice and lane:affect synthetic texts name the hosting processor in their recipients section, re-signed with a new version"
+  tests: [tests/legal/test_consent_who_lines.py, tests/legal/test_claims_ci_parity.py, tests/data/test_satisfaction_basis.py, tests/legal/test_synthetic_bound_class.py, tests/legal/test_synthetic_vendor_tripwire.py]
+  legal: "KVKK-4/5/6,KVKK-10,AYD-2018"
+  sec_row: "consent"
+- id: INT-586
+  epic: E13-infra
+  phase: P1
+  title: "opentelemetry-api lifted to 1.67.0 in the Keycloak provider, past GHSA-ccrj-gw8r-854m, so the vulnerabilities gate is green without an exception"
+  # GitHub #986. On 28 Oct 2026 osv-scanner began reporting GHSA-ccrj-gw8r-854m
+  # (quadratic CPU in W3C tracestate parsing, CVSS 5.3) against the test-classpath
+  # pin opentelemetry-api 1.62.0 in infra/keycloak/providers/webauthn-session-notes.
+  # Main and every PR went red. 1.67.0 fixes it, so the row is a bump only.
+  depends_on: [INT-378]
+  labels: [area:security]
+  status: done
+  evidence: docs/evidence/INT-586.md
+  acceptance:
+    - "opentelemetry-patched.version is 1.67.0; api, context and common 1.67.0 jar and pom sha256 replace the 1.62.0 lines in .mvn/checksums, each verified against Maven Central's sha1 and sha512; no exception row is added"
+    - "osv-scanner 2.5.1 over the repository reports no unfiltered finding, recorded before and after in evidence"
+    - "the provider's tests pass, and the CI keycloak-provider build resolves under --strict-checksums and reproduces the jar pin; the jar embeds its pom, so the pin moves to the rebuilt jar, and main's pom still reproduces the old pin"
+    - "the passkey login is re-recorded with the new pinned jar on a real Keycloak 26.7.4 off the laptop (provider admitted, stock refused), never edited by hand, and the run is torn down"
+  tests: [tests/admin/test_webauthn_session_notes_provider.py, tests/infra/test_staging_keycloak_provider.py]
+  sec_row: "cicd"
+- id: INT-590
+  epic: E13-infra
+  phase: P1
+  title: "decode-uri-component lifted to 0.5.1 past CVE-2026-118664, so the vulnerabilities gate is green without an exception"
+  # GitHub #991. On 30 Oct 2026 trivy began reporting CVE-2026-118664 (HIGH,
+  # quadratic replacement of percent-encoded runs) against decode-uri-component
+  # 0.5.0. Main and every PR went red. 0.5.1 fixes it, so the row is a bump only.
+  depends_on: [INT-500]
+  labels: [area:security]
+  status: done
+  evidence: docs/evidence/INT-590.md
+  acceptance:
+    - "the root pnpm override is decode-uri-component@<0.5.1: ^0.5.1 and pnpm-lock.yaml resolves 0.5.1 only; no exception row"
+    - "FIXED_VERSIONS raises the decode-uri-component floor to 0.5.1 and ADVISORY_IDS names CVE-2026-118664; the floor test is red on main's lockfile and green after"
+    - "trivy fs over pnpm-lock.yaml reports only the already-suppressed node-forge row; osv-scanner reports no issue"
+  tests: [tests/ci/test_security_gates.py]
+  sec_row: "cicd"
+- id: INT-559
+  epic: E08-mobile
+  phase: P1
+  title: "The app's voice lane never writes patient audio to a file — stream from memory (invariant 3), before voice ships in any build"
+  # GitHub #947, from the #946 (INT-536) legal review, 18 Oct 2026: the DEV
+  # voice lane (voiceEligible requires __DEV__) and the VoiceNote pill recorded
+  # a temporary file on the phone through expo-audio's recorder and deleted it
+  # after upload; invariant 3 allows no dev exception. Now both run expo-audio
+  # 57's AudioStream (AVAudioEngine tap / AudioRecord — no file) into a bounded
+  # in-memory buffer (≤ 60 s) handed to the dev ASR daemon as bytes, zeroed on
+  # finish, discard, RED, leave, unmount, a typed answer and app background.
+  # No new dependency, no native module. On iOS the stream's session category
+  # silences playback, so there the barge-in microphone opens on the patient's
+  # turn (the one trade-off, recorded in the evidence). The INT-536 consent
+  # text check re-runs when INT-515 deploys voice-runtime — INT-515's step.
+  depends_on: [INT-194, INT-291, INT-446]
+  labels: [area:mobile, risk:security]
+  status: done
+  evidence: docs/evidence/INT-559.md
+  acceptance:
+    - "Capture into an in-memory buffer (≤ 60 s, zeroed on every trigger) and stream it; no file path is ever created (test that no file API is called; native module behind a lazy import for vitest)."
+    - "Recorder prepare/abort paths leave nothing on disk."
+    - "The tripwire/text check re-runs when INT-515 deploys voice-runtime."
+    - "If a native platform constraint makes a file unavoidable, stop and record it as an owner/ADR decision rather than ship around invariant 3."
+  tests: [apps/mobile/e2e/voiceCapture.spec.ts, apps/mobile/e2e/bargeIn.spec.ts, apps/mobile/src/lib/capture/session.test.ts, apps/mobile/src/lib/capture/turn.test.ts, apps/mobile/src/lib/capture/boundedBuffer.test.ts, apps/mobile/src/lib/capture/asrClient.test.ts, apps/mobile/src/lib/capture/envelope.test.ts, apps/mobile/src/lib/capture/level.test.ts, apps/mobile/src/lib/capture/policy.test.ts]
+  sec_row: "mobile"
+- id: INT-585
+  epic: E01-platform
+  phase: P1
+  title: "Record the owner's 28 Oct SMS decisions as D34-D38 and the live Netgsm OTP confirmation"
+  # GitHub #984, owner in chat 28 Oct 2026 ("1Y 2Y 3Y 4Y 5Y"): the iOS OTP
+  # autofill domain, the push new-device notice, patient passkeys with step-up,
+  # the SMS spend cap and the tokenization key's move into OpenBao. Each row
+  # names the issue that carries it out (INT-580, INT-583, INT-582, INT-577,
+  # INT-584). The live --shape run on f2b0d725 confirmed INT-576's parser.
+  depends_on: [INT-528, INT-576]
+  labels: [area:api]
+  status: done
+  evidence: docs/evidence/INT-585.md
+  acceptance:
+    - "files/00_STATE.md §3 carries D34-D38 exactly once each, with the owner's date and the issue that carries each out."
+    - "docs/evidence/INT-576.md records the live confirmation on f2b0d725 (structure only: content type, keys and their types, body length; no number, code, job id or body)."
+    - "TDD: a test pins the five rows; a near miss proves a row that names no issue is refused."
+  tests: [tests/docs/test_state_decisions.py]
+  sec_row: "onboarding"
+- id: INT-587
+  epic: E08-mobile
+  phase: P1
+  title: "The note reaches the clinician from a release build: note-sync client, in-app share consent, Doctor Link from the app"
+  # GitHub #988, 29 Oct 2026, from the independent legal review of the store
+  # listing (B4). In the TestFlight/App Store build "Gönder" only changed local
+  # state: no client called PUT /v1/visits/{id}/note, the app could not grant
+  # share:previsit_note (purposes.ts has no share row by design), and Review &
+  # send said "gönderildi" on no evidence. No server code changes: the client
+  # speaks the existing notes, consents and doctor-link routes. The issue body
+  # names Sec-Row "sharing", which is no files/10 §9 row; the delivery and the
+  # consent step are the §9 Review & send row, so sec_row is review-send.
+  depends_on: [INT-137, INT-142, INT-150, INT-232, INT-311, INT-529]
+  labels: [area:mobile, area:api]
+  status: done
+  evidence: docs/evidence/INT-587.md
+  acceptance:
+    - "a note-sync client PUTs the built note to /v1/visits/{id}/note with the server's existing NotePut contract (every section with an explicit scope, status sent), from an offline queue sealed through the INT-142 draft backend: it survives an app restart, retries with backoff honouring Retry-After, never drops a queued note, and treats a 4xx as an answer that is surfaced and not retried on its own; server field-level encryption and consent checks are unchanged"
+    - "the share consent is granted in the app at the send, against the docs/legal share text the loader serves (synthetic index row acik_riza.share), hash-bound; the grant is recorded and audited server-side, every send and every link checks the share scope, and the patient can withdraw it from the share centre, which closes every open link"
+    - "Doctor Link issuance and revocation run from the app through the existing API against the server visit the note was delivered to, behind a typed step-up seam whose tier today is the OTP session (D36 passkey step-up is INT-582)"
+    - "only a confirmed delivery says the note was sent; new copy is tr first with an en mirror, siz, within B1, PolicyGuard-clean"
+    - "near misses: no share without the grant; a revoked grant stops the link; an offline send queues and survives a restart; a server 4xx is surfaced and not retried forever; no PHI in logs (invariant 6)"
+  tests: [apps/mobile/src/lib/intake/delivery/payload.test.ts, apps/mobile/src/lib/intake/delivery/outbox.test.ts, apps/mobile/src/lib/intake/delivery/transport.test.ts, apps/mobile/src/lib/intake/delivery/engine.test.ts, apps/mobile/src/lib/intake/delivery/store.test.ts, apps/mobile/src/lib/consent/share.test.ts, apps/mobile/src/lib/consent/api.test.ts, apps/mobile/src/lib/shares/stepUp.test.ts, apps/mobile/src/lib/shares/issue.test.ts, apps/mobile/e2e/noteDelivery.spec.ts, tests/api/test_note_delivery.py]
+  legal: "KVKK-5,KVKK-6"
+  sec_row: "review-send"
+- id: INT-588
+  epic: E08-mobile
+  phase: P1
+  title: "Patient copy is true in the no-voice release build: no voice clause, no 'sent' before delivery, consent rows match the served texts"
+  # GitHub #989, 29 Oct 2026, from the independent legal review of the store
+  # listing (B6 precondition and notes). Stacked on INT-587, which made "sent"
+  # mean delivered. A release build has no voice (intake.tsx gates it on
+  # __DEV__; INT-421 strips the lanes from production), yet the open-answer
+  # hint, the welcome line, the integrity warning, the start-mode chooser and
+  # the companion screen spoke of voice; and the voice and affect consent rows
+  # contradicted voice.tr.md and lane.affect.tr.md (residency; who sees the
+  # cues), a KVKK m.10 defect. App copy only: no legal text is edited.
+  depends_on: [INT-587, INT-253, INT-529]
+  labels: [area:mobile]
+  status: done
+  evidence: docs/evidence/INT-588.md
+  acceptance:
+    - "every patient string a release build shows is true for that build: build-aware copy keys where the dev build has a different truth (the open-answer hint names dictation only where the button is drawn; no voice start mode is offered; the companion's text-only effect is listed only where questions can be spoken), one line true in every build where the voice clause was never needed (welcome, integrity warning, companion footer); tr is the source of truth with an en mirror"
+    - "review.sentInfo shows only after a confirmed delivery (INT-587) and promises only what a release build shows; every delivery claim in the catalogue is pinned to a delivery-gated surface"
+    - "consent.who.voice and consent.who.laneAffect say only what voice.tr.md and lane.affect.tr.md say (no Türkiye residency claim; the affect cues are not sent to the doctor); the legal texts are not edited"
+    - "a test refuses a voice clause in a release-mode render and a delivery claim outside its gated surface, with near misses; siz register, PolicyGuard and the i18n register and B1 gates green, with the welcome line's two records struck because the false clause is gone"
+  tests: [apps/mobile/src/lib/buildCopy.test.ts, apps/mobile/e2e/releaseCopy.spec.ts, apps/mobile/e2e/guardian.spec.ts, tests/release/test_i18n_complete.py]
+  legal: "KVKK-10"
+  sec_row: "mobile"
+- id: INT-591
+  epic: E08-mobile
+  phase: P1
+  title: "Release build hides the grant action for voice and lane:affect consents, keeps standing grants withdrawable"
+  # GitHub #993, 30 Oct 2026, the legal lane's recommendation (D25) from the
+  # INT-588 review. Voice cannot run in a release build, yet İzinleriniz
+  # offered the voice and lane:affect consents there: an illusion of choice
+  # that records special-category consent evidence for nothing (KVKK m.4
+  # proportionality) and misstates the build's features for the store.
+  # Stacked on INT-588. No consent text, data category, retention, closed
+  # purpose list or server snapshot changes.
+  depends_on: [INT-588, INT-132]
+  labels: [area:mobile]
+  status: done
+  evidence: docs/evidence/INT-591.md
+  acceptance:
+    - "in a release build the consent detail offers no grant action for voice and lane:affect, and the voice group carries 'Bu sürümde sesli görüşme yok; bu izinler kullanılmaz.'"
+    - "a grant already standing for either stays visible with its withdraw control (withdrawal is always possible, files/06 §2)"
+    - "the dev build and every other purpose are unchanged; no consent text, data category, retention, purpose list or server snapshot changes"
+    - "tests: cannot grant in release; near miss: a standing grant can still be withdrawn; dev unchanged; tr first with an en mirror, siz, PolicyGuard-clean"
+  tests: [apps/mobile/src/lib/buildCopy.consent.test.ts, apps/mobile/e2e/releaseCopy.spec.ts]
+  legal: "KVKK-4,KVKK-6"
+- id: INT-592
+  epic: E08-mobile
+  phase: P0
+  title: "iOS build carries a truthful NSHealthUpdateUsageDescription so App Store processing accepts it (ITMS-90683)"
+  # GitHub #1000, 30 Oct 2026. TestFlight build 6 (0.1.0 (6), EAS 6113647d,
+  # main f96e5971) was rejected in Apple processing with ITMS-90683: the
+  # HealthKit library links write APIs, so the key is required although the
+  # app requests no write type. INT-420 had set the plugin option to false,
+  # which writes no key; builds 3-5 passed only on the owner's local app.json.
+  # The string now says the app writes nothing to Apple Health. P0: blocks
+  # TestFlight build 7.
+  depends_on: [INT-420, INT-208]
+  labels: [area:mobile]
+  status: done
+  evidence: docs/evidence/INT-592.md
+  acceptance:
+    - "the HealthKit plugin option NSHealthUpdateUsageDescription is a truthful, B1, siz-register Turkish string saying the app does not write to Apple Health; tr is the source and the string is localised through expo.locales (app-tr.json / app-en.json) like the other iOS purpose strings"
+    - "the string never claims a capability the app lacks: the connector requests read types only, and the share and update strings agree with it"
+    - "apps/mobile/e2e/brand.spec.ts requires a non-empty truthful string; near misses: false, an empty string and a string that claims writing all fail"
+    - "PolicyGuard and the claims scan are clean for the new string; the store-label inventory classifies the declared key; legal-reviewer reads the string"
+  tests: [apps/mobile/e2e/brand.spec.ts, tests/legal/test_ios_purpose_strings.py]
+  legal: "STORE"
+  sec_row: "mobile"
+- id: INT-584
+  epic: E01-platform
+  phase: P1
+  title: "The phone-tokenization key moves into OpenBao with the same key material — no pseudonym changes (D38)"
+  # GitHub #983. Owner decision D38, 28 Oct 2026 (in chat, "5Y"; recorded on
+  # int-585-owner-sms-decisions): INT-581 left the key in the synthetic host's
+  # root-only env file as a recorded residual. The API now reads it from
+  # OpenBao secret/api/tokenization only; deploy.sh moves the env copy with the
+  # same material, proves equality without printing it, and removes it only
+  # after. The probe is infra/staging/tokenization_key.sh --probe.
+  depends_on: [INT-013, INT-017, INT-131, INT-345, INT-352]
+  labels: [area:api, risk:security]
+  status: done
+  evidence: docs/evidence/INT-584.md
+  acceptance:
+    - "The API reads the phone-tokenization key only from OpenBao secret/api/tokenization through the existing secrets path, in every environment; no environment variable is read and none is a fallback on the synthetic host. Absent, unreadable or malformed keeps the tiers that need it (the OTP tier, the previsit read-back) at 503 with a typed reason. Dev keeps its OpenBao dev server with a random key, never a literal."
+    - "deploy.sh migrates idempotently: OpenBao lacking the key and the env file holding it, the env value is written to OpenBao on stdin only (never argv, logs or output), equality is verified without printing it (an HMAC of a fixed label under each copy), and the env copy is removed only after verification. OpenBao holding a different value is refused loudly, both kept, exit non-zero."
+    - "A host probe computes the pseudonym of one fixed synthetic number before and after the migration and asserts equality, printing only equal or differ, never the pseudonym or the key."
+    - "The API's OpenBao policy grants read-only access to the path; the migration outcome is observable with ids only and catalogued; files/10 §9 and the threat-model residual are updated; tests first with near misses."
+  tests: [tests/api/test_tokenization_key.py, tests/api/test_tokenization_probe.py, tests/infra/test_staging_tokenization_key.py, tests/infra/test_staging_compose.py, tests/infra/test_staging_netgsm.py, tests/api/test_previsit_output.py, tests/api/test_otp_netgsm_wiring.py]
+  sec_row: "onboarding"

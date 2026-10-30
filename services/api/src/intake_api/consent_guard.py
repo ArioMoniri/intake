@@ -310,13 +310,13 @@ class PartnerEmbedDeclaration:
     """Explicit declaration that a route IS the partner white-label embed
     handshake (INT-320; ADR-028): the caller is a partner backend minting a
     launch ticket, or the patient's device presenting one to start the branded
-    intake — in neither case is there a Vizite data subject at the door whose
+    intake — in neither case is there an Önvizit data subject at the door whose
     consent ledger a scope could be checked against.
 
     Consent does NOT disappear with the scope, it moves to where the subject
     exists: the launch resolves a tenant's theme and the id of the consent
     document set the patient must be shown, and the patient then grants consent
-    through Vizite's own consent flow (``ensure_consent`` against docs/legal,
+    through Önvizit's own consent flow (``ensure_consent`` against docs/legal,
     hash-bound) BEFORE any clinical turn — the handshake reads and writes no
     clinical data at all. A launch ticket is single-use, short-lived and its
     tenant is bound inside the signature, and every mint and launch is audited.
@@ -340,7 +340,7 @@ class DevVoiceScriptedDeclaration:
 
     Why it cannot carry a consent scope. Same shape as ``partner_embed`` and the
     other markers: the caller is the patient's own device asking for the agent's
-    scripted speech, and there is no Vizite data subject whose consent ledger a
+    scripted speech, and there is no Önvizit data subject whose consent ledger a
     scope could be checked against — files/06 §2's purposes are about a subject's
     clinical data, and no clinical datum is read or written here.
 
@@ -755,7 +755,7 @@ def unguarded_data_routes(app: FastAPI) -> list[str]:
     (INT-180, a staff action on the control plane with no data subject at the
     door, discharged under the audit obligation and audited unconditionally)
     and partner_embed under EMBED_PREFIX (INT-320, the white-label handshake
-    that mints and launches a signed ticket before any Vizite subject exists
+    that mints and launches a signed ticket before any Önvizit subject exists
     and reads no clinical data) and dev_voice_scripted under DEV_VOICE_PREFIX
     (ADR-028 on-demand variant, the dev-lane synthesis of a verbatim scripted
     question clip that reads no clinical data and never touches patient audio).
