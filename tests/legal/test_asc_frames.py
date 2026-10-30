@@ -549,8 +549,10 @@ VOICE_SURFACES = (
     "VoiceNote.tsx",
     "DevVoiceBanner.tsx",
 )
-#: Keys whose only renderer is reached only from a voice surface. dialogue.openInvite
-#: is spoken by lib/dialogue/speech.ts, which only DialogueIntake imports (R3).
+#: Keys whose only on-screen renderer is reached only from a voice surface.
+#: dialogue.openInvite is rendered by `questionAsideTr` (lib/dialogue/speech.ts), whose only
+#: screen caller is DialogueIntake.tsx:433. speech.ts itself has other importers, which
+#: speak (questionSpeechTr) or read a constant, so a file-level count misses it (R3).
 VOICE_ONLY_KEYS = frozenset({"dialogue.openInvite"})
 _KEY = re.compile(r'"([a-z][A-Za-z0-9]*(?:\.[A-Za-z0-9]+)+)"')
 
