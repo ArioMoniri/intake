@@ -1,5 +1,16 @@
 # PROGRESS — one entry per LOOP iteration (template in LOOP.md)
 
+### 2026-10-30T13:50:00+03:00 · INT-588 · legal re-check BLOCK fixed (committed locally; push frozen)
+- Goal: the legal re-check of 7f2c0ffa blocked on `consent.who.laneLinguistic`, which named the doctor as the recipient with no served text behind it (HB-C17).
+- Plan: the reviewer's exact wording; the affect row keeps the text's "bir değerlendirme olarak"; a KVKK-10 pin that a "who" row names a recipient only where a served text exists.
+- Tests added (with the near-miss negative for any safety rule): `buildCopy.test.ts` recipient pin over every purpose (near miss: core's row, with a text, names the doctor). Red: 3 failed. Green: mobile 144 files / 3026 tests.
+- Result (`make check` / `make safety` / `make security` summary): typecheck clean; `make check-i18n` and PolicyGuard green; evidence §9.
+- Invariants touched and still passing: 2, 5, 18.
+- Decisions / ADRs / `00_STATE.md` rows: none.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): nothing.
+- Next: INT-591 on top.
+- LOOP_STATUS: CONTINUE
+
 ### 2026-10-30T10:30:00+03:00 · INT-588 · done (rebased onto INT-587's legal-review fix; committed locally; push frozen)
 - Goal: GitHub #989, P1, Sec-Row `mobile`, from the store-listing legal review (B6). Make every patient string true for the build it ships in: a release build has no voice (`__DEV__` gates the lane and dictation; INT-421 strips the lanes), and two consent rows contradicted the served texts (KVKK-10).
 - Plan: one pure module, `apps/mobile/src/lib/buildCopy.ts`, for the lines whose dev truth differs (open-answer hint, start-mode chooser, companion text-only effect); plain catalogue edits for the lines whose voice clause was never needed (welcome, integrity warning, companion footer); the voice and affect rows aligned with voice.tr.md and lane.affect.tr.md; `review.sentInfo`'s second sentence pointed at the access log. Sweep of 15 release-visible strings in docs/evidence/INT-588.md §2.

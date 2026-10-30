@@ -786,9 +786,11 @@ export const tr = {
   "consent.who.voice":
     "Siz konuşurken sesiniz yazıya dökülür ve hiçbir yere kaydedilmez. Nerede işlendiği izin metninde yazar.",
   "consent.who.laneAffect":
-    "Ses tonunuzdan çıkan ipuçları yalnızca görüşmeyi size uyarlar. Hekiminize gönderilmez ve notunuza yazılmaz.",
+    "Ses tonunuzdan çıkan ipuçları yalnızca görüşmeyi size uyarlar. Hekiminize bir değerlendirme olarak gönderilmez ve notunuza yazılmaz.",
+  // INT-588 legal re-check: no text is served for this purpose yet (HB-C17),
+  // so the row names no recipient — the text will.
   "consent.who.laneLinguistic":
-    "Yazıya dökülen metinden çıkan ipuçlarını yalnızca hekiminiz görür.",
+    "Yazıdan çıkan ipuçlarının kimlere gideceği, izin metni hazır olunca orada yazacak.",
   "consent.who.wellbeing":
     "Yanıtlarınızı yalnızca siz görürsünüz; hekiminizle paylaşım her seferinde ayrıca sorulur.",
   "consent.who.documents":

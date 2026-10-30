@@ -15,9 +15,11 @@
  * pinned to a surface that renders only after a confirmed delivery
  * (e2e/noteDelivery.spec.ts holds the gates).
  */
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { join, relative, sep } from "node:path";
 import { describe, expect, it } from "vitest";
+
+import { PURPOSES, purposeParam, type PurposeId } from "./consent/purposes";
 
 import {
   BUILD_MODES,
@@ -172,6 +174,57 @@ describe("the consent rows agree with the docs/legal texts the server serves", (
     for (const text of both("consent.group.voice.hint")) {
       expect(text).not.toMatch(/kayd|recording/i);
     }
+  });
+
+  it("the affect row says no more than the text: not sent 'as an assessment'", () => {
+    expect(tr["consent.who.laneAffect"]).toMatch(/bir değerlendirme olarak gönderilmez/);
+    expect(en["consent.who.laneAffect"]).toMatch(/as an assessment/);
+  });
+});
+
+/**
+ * Who sees what, on İzinleriniz. A row may name a recipient — the doctor, the
+ * clinic, its staff — only when the server serves a text for that purpose that
+ * says so; with no text behind it the row is the only statement there is, and
+ * a recipient named there is a claim nothing backs (KVKK m.10; INT-588 legal
+ * re-check: lane:linguistic, whose text is awaiting-human under HB-C17).
+ */
+const RECIPIENT = /hekim|doktor|klinik|personel|doctor|clinic|staff/i;
+
+function servedTextExists(purposeId: string): boolean {
+  return existsSync(join(LEGAL, `${purposeParam(purposeId as PurposeId)}.tr.md`));
+}
+
+describe("a 'who' row names a recipient only where a served text stands behind it", () => {
+  const withoutText = PURPOSES.filter((p) => !servedTextExists(p.id));
+  const withText = PURPOSES.filter((p) => servedTextExists(p.id));
+
+  it("reads the legal tree it is checking — both groups are non-empty", () => {
+    expect(withoutText.map((p) => p.id)).toContain("lane:linguistic");
+    expect(withText.map((p) => p.id)).toContain("core");
+  });
+
+  it("a purpose with no served text names no recipient, in tr or en", () => {
+    for (const purpose of withoutText) {
+      for (const text of both(purpose.whoKey)) {
+        expect(text, purpose.id).not.toMatch(RECIPIENT);
+      }
+    }
+  });
+
+  it("the linguistic row defers to its text instead", () => {
+    expect(tr["consent.who.laneLinguistic"]).toBe(
+      "Yazıdan çıkan ipuçlarının kimlere gideceği, izin metni hazır olunca orada yazacak.",
+    );
+    expect(en["consent.who.laneLinguistic"]).toBe(
+      "Who receives cues drawn from the text will be stated in the consent text once it is ready.",
+    );
+  });
+
+  it("near miss: where a text IS served, the row may name the doctor — and core's does", () => {
+    const core = PURPOSES.find((p) => p.id === "core");
+    expect(core && servedTextExists(core.id)).toBe(true);
+    expect(tr[core!.whoKey]).toMatch(RECIPIENT);
   });
 });
 

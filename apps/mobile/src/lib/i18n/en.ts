@@ -754,8 +754,9 @@ export const en: Record<MessageKey, string> = {
   "consent.who.voice":
     "While you speak, your voice is turned into text and is not recorded anywhere. Where it is processed is stated in the consent text.",
   "consent.who.laneAffect":
-    "Cues from your tone of voice only adapt the session to you. They are not sent to your doctor or written into your note.",
-  "consent.who.laneLinguistic": "Only your doctor sees cues drawn from the transcribed text.",
+    "Cues from your tone of voice only adapt the session to you. They are not sent to your doctor as an assessment and are not written into your note.",
+  "consent.who.laneLinguistic":
+    "Who receives cues drawn from the text will be stated in the consent text once it is ready.",
   "consent.who.wellbeing":
     "Only you see your answers; sharing with your doctor is asked separately every time.",
   "consent.who.documents":
