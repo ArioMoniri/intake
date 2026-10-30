@@ -260,6 +260,9 @@ def _harness(tmp_path: Path, auth: AuthWiring | None) -> Iterator[TestClient]:
             audit_db_url=f"sqlite+pysqlite:///{audit_db}",
             bootstrap_db_url=f"sqlite+aiosqlite:///{app_db}",
             kek_mode="file-dev",
+            # the deployment the wiring was built for has its key, so a 503
+            # here is the vendor's and names no key reason (INT-584)
+            tokenization_key="k",
         ),
         engine=engine,
         audit_store=SqlAlchemyAuditStore(audit_engine),

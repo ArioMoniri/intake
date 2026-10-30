@@ -15,8 +15,32 @@
  * - queue: ops that could not reach the server yet stay here, in memory, in
  *   order. Nothing is persisted to disk: the server ledger is the source of
  *   truth and reconciliation happens on the next snapshot.
+ *
+ * INT-587 adds the share slot (./shareConsent, re-exported here): the share
+ * text, what this phone did with it, and the per-note grant receipt the note
+ * outbox requires. A core withdrawal takes it down too, as the server cascades.
  */
 import { PURPOSES, purposeDef, type LegalBasis, type PurposeId, type PurposeUi } from "./purposes";
+import {
+  SHARE_SCOPE,
+  freshShare,
+  withdrawnShare,
+  type ShareScope,
+  type ShareState,
+} from "./shareConsent";
+
+export {
+  SHARE_SCOPE,
+  applyShareText,
+  grantShare,
+  shareView,
+  withdrawShare,
+  type ShareGrantReceipt,
+  type ShareScope,
+  type ShareStanding,
+  type ShareState,
+  type ShareView,
+} from "./shareConsent";
 
 export interface LoadedText {
   version: string;
@@ -39,12 +63,19 @@ export interface PurposeRecord {
 }
 
 export type QueuedOp =
-  | { kind: "grant"; scope: PurposeId; version: string; textHash: string; atIso: string }
-  | { kind: "withdraw"; scope: PurposeId; atIso: string };
+  | {
+      kind: "grant";
+      scope: PurposeId | ShareScope;
+      version: string;
+      textHash: string;
+      atIso: string;
+    }
+  | { kind: "withdraw"; scope: PurposeId | ShareScope; atIso: string };
 
 export interface LedgerState {
   records: Record<PurposeId, PurposeRecord>;
   texts: Record<PurposeId, TextEntry>;
+  share: ShareState;
   queue: readonly QueuedOp[];
 }
 
@@ -99,7 +130,7 @@ function emptyTexts(): Record<PurposeId, TextEntry> {
 
 /** A brand-new account: registry defaults, no texts, nothing queued. */
 export function freshLedger(): LedgerState {
-  return { records: emptyRecords(), texts: emptyTexts(), queue: [] };
+  return { records: emptyRecords(), texts: emptyTexts(), share: freshShare(), queue: [] };
 }
 
 /**
@@ -316,10 +347,51 @@ export function withdraw(state: LedgerState, id: PurposeId, atIso: string): Chan
     };
   }
   const op: QueuedOp = { kind: "withdraw", scope: id, atIso };
-  return { state: { ...state, records, queue: [...state.queue, op] }, flipped };
+  // core's server cascade reaches the share family too (registry
+  // dependents_of(core)); mirrored locally with no op of its own
+  const share = id === "core" ? withdrawnShare(state.share, atIso) : state.share;
+  return { state: { ...state, records, share, queue: [...state.queue, op] }, flipped };
 }
 
 /** Drop the first `count` ops after they reached the server. */
 export function shiftQueue(state: LedgerState, count: number): LedgerState {
   return { ...state, queue: state.queue.slice(count) };
+}
+
+/**
+ * The server answered a queued op with a refusal a retry cannot change (a 4xx
+ * such as 409 `consent_text_changed` or 422 `purpose_unknown`). The op is
+ * dropped — held at the head of the queue it would stall every op behind it,
+ * a later withdrawal included (INT-587 legal review N5) — and a refused GRANT
+ * is undone here so the patient is asked again: the phone must not count a
+ * consent the server never recorded. A refused withdrawal changes nothing
+ * locally; the withdrawal already stands on this phone.
+ */
+export function dropRefusedHead(state: LedgerState): LedgerState {
+  const head = state.queue[0];
+  if (head === undefined) {
+    return state;
+  }
+  const queue = state.queue.slice(1);
+  if (head.kind !== "grant") {
+    return { ...state, queue };
+  }
+  if (head.scope === SHARE_SCOPE) {
+    return {
+      ...state,
+      share: { ...state.share, standing: "unknown", boundVersion: null, boundHash: null },
+      queue,
+    };
+  }
+  const records = {
+    ...state.records,
+    [head.scope]: {
+      granted: false,
+      defaultOn: false,
+      boundVersion: null,
+      boundHash: null,
+      serverStale: false,
+    },
+  };
+  return { ...state, records, queue };
 }

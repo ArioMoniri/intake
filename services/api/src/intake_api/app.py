@@ -101,6 +101,7 @@ from intake_api.embed import EmbedService, EmbedWiring
 from intake_api.otp import AuthWiring, OtpAuthService, ensure_consumer_tenant
 from intake_api.settings import ENV_MINIO_PASSWORD, ENV_MINIO_USER, ApiSettings
 from intake_api.state import ApiState
+from intake_api.tokenization_key import with_tokenization_key
 
 if TYPE_CHECKING:
     from intake_connectors.acibadem import AcibademAppointmentsClient
@@ -488,7 +489,9 @@ def _embed_from_settings(settings: ApiSettings) -> EmbedWiring | None:
 
 
 def wiring_from_env() -> ApiWiring:
-    settings = ApiSettings.from_env()
+    # INT-584 (owner decision D38): the phone-tokenization key comes from
+    # OpenBao secret/api/tokenization alone, never the environment
+    settings = with_tokenization_key(ApiSettings.from_env())
     return ApiWiring(
         settings=settings,
         engine=build_engine(settings.app_db_url),

@@ -1,5 +1,126 @@
 # PROGRESS — one entry per LOOP iteration (template in LOOP.md)
 
+### 2026-10-28T16:30:00+03:00 · INT-585 · done (PR open)
+- Goal: GitHub #984, Sec-Row `onboarding`. Record the owner's 28 Oct SMS decisions ("1Y 2Y 3Y 4Y 5Y") as D34-D38 in files/00_STATE.md §3, and the live Netgsm OTP confirmation in docs/evidence/INT-576.md.
+- Plan:
+  - D34 iOS OTP autofill domain (INT-580), D35 push new-device notice (INT-583), D36 patient passkeys and step-up (INT-582), D37 SMS spend cap (INT-577), D38 tokenization key into OpenBao with the same material (INT-584).
+  - No HUMAN_BLOCKERS row matched these questions, so none closes.
+- Tests added (with the near-miss negative for any safety rule):
+  - `tests/docs/test_state_decisions.py`: each row present once, with the owner's date, its fact and its issue; near miss: a row that names no issue is refused.
+- Result (`make check` / `make safety` / `make security` summary):
+  - Red run: 1 failed (D34 missing). Green run: 2 passed. tests/backlog + tests/smoke/test_make_check.py green at 373.
+  - make safety: not affected (no protocol, triage or runtime change).
+- Next: the five decisions are carried out by INT-580, INT-583, INT-582, INT-577 and INT-584.
+### 2026-10-30T19:00:00+03:00 · INT-588 · consent.health.hint made true with INT-587 (legal, for build 7)
+- Goal: the legal reviewer (on #1001) found that `consent.health.hint` says the Health data "hiçbir yere gönderilmez". With INT-587, a line the patient adds travels with a sent note, so the hint is false. This blocks build 7.
+- Plan: replace tr and en with the reviewer's text verbatim, and pin it beside the other release-copy truths.
+- Tests added (with the near-miss negative for any safety rule):
+  - `buildCopy.test.ts`: both strings pinned exactly.
+  - Near miss: the "sent nowhere" pattern catches the old tr and en lines, and matches neither new one.
+  - The hint is not a delivery claim.
+  - Red: 2 failed. Green: mobile 153 files / 3134 tests.
+- Result (`make check` / `make safety` / `make security` summary): typecheck clean; `tests/release` + `tests/legal` 957 passed with no new i18n or PolicyGuard finding; claims scan clean; evidence §11.
+- Invariants touched and still passing: 2, 5, 18.
+- Decisions / ADRs / `00_STATE.md` rows: none.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): nothing.
+- Next: carry into INT-591 (merged there; INT-591's own tests re-run green on the merged tree).
+- LOOP_STATUS: CONTINUE
+### 2026-10-30T14:10:00+03:00 · INT-591 · done (committed locally, stacked on INT-588; push frozen)
+- Goal: GitHub #993, P1, Sec-Row `mobile`, the legal lane's recommendation from the INT-588 review: in a release build İzinleriniz must not offer the voice and lane:affect consents (KVKK m.4), while a standing grant stays withdrawable.
+- Plan: `consentActions` and `voiceGroupNoteKey` in `apps/mobile/src/lib/buildCopy.ts`; the detail screen and the consent list read them; one new line, "Bu sürümde sesli görüşme yok; bu izinler kullanılmaz."
+- Tests added (with the near-miss negative for any safety rule): `buildCopy.consent.test.ts` (no grant in release; near misses: standing grants withdrawable, dev and other purposes unchanged) and source pins in `e2e/releaseCopy.spec.ts`. Red: 2 files, 10 failed. Green: mobile 145 files / 3036 tests. Mutation 2/2 killed.
+- Result (`make check` / `make safety` / `make security` summary): typecheck clean; `make check-i18n` and PolicyGuard green; backlog pins at 377; files/11 regenerated.
+- Invariants touched and still passing: 2, 4, 5, 18.
+- Decisions / ADRs / `00_STATE.md` rows: none.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): nothing.
+- Next: push the stack (INT-587, INT-588, INT-591) when the freeze lifts.
+- LOOP_STATUS: CONTINUE
+
+### 2026-10-30T13:50:00+03:00 · INT-588 · legal re-check BLOCK fixed (committed locally; push frozen)
+- Goal: the legal re-check of 7f2c0ffa blocked on `consent.who.laneLinguistic`, which named the doctor as the recipient with no served text behind it (HB-C17).
+- Plan: the reviewer's exact wording; the affect row keeps the text's "bir değerlendirme olarak"; a KVKK-10 pin that a "who" row names a recipient only where a served text exists.
+- Tests added (with the near-miss negative for any safety rule): `buildCopy.test.ts` recipient pin over every purpose (near miss: core's row, with a text, names the doctor). Red: 3 failed. Green: mobile 144 files / 3026 tests.
+- Result (`make check` / `make safety` / `make security` summary): typecheck clean; `make check-i18n` and PolicyGuard green; evidence §9.
+- Invariants touched and still passing: 2, 5, 18.
+- Decisions / ADRs / `00_STATE.md` rows: none.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): nothing.
+- Next: INT-591 on top.
+- LOOP_STATUS: CONTINUE
+
+### 2026-10-30T10:30:00+03:00 · INT-588 · done (rebased onto INT-587's legal-review fix; committed locally; push frozen)
+- Goal: GitHub #989, P1, Sec-Row `mobile`, from the store-listing legal review (B6). Make every patient string true for the build it ships in: a release build has no voice (`__DEV__` gates the lane and dictation; INT-421 strips the lanes), and two consent rows contradicted the served texts (KVKK-10).
+- Plan: one pure module, `apps/mobile/src/lib/buildCopy.ts`, for the lines whose dev truth differs (open-answer hint, start-mode chooser, companion text-only effect); plain catalogue edits for the lines whose voice clause was never needed (welcome, integrity warning, companion footer); the voice and affect rows aligned with voice.tr.md and lane.affect.tr.md; `review.sentInfo`'s second sentence pointed at the access log. Sweep of 15 release-visible strings in docs/evidence/INT-588.md §2.
+- Tests added (with the near-miss negative for any safety rule): `src/lib/buildCopy.test.ts` (release resolution has no voice clause; near misses: the dev variant does, the typed invitation survives; delivery claims pinned to gated surfaces; consent rows read against the served texts) and `e2e/releaseCopy.spec.ts` (screens use the helper on the facts that draw the button). Red: 2 files, 4 tests failed. 6/6 mutations killed, one after strengthening the spec.
+- Result (`make check` / `make safety` / `make security` summary): mobile 143 files / 2999 tests at first commit, and 144 files / 3021 tests after the rebase onto INT-587 62643b93; typecheck clean; `make check-i18n` and PolicyGuard green with the welcome line's two records struck; backlog pins at 376. Full check-py fan-out left to CI (no Python source change). `make safety` untouched.
+- Invariants touched and still passing: 2, 5, 18, 20.
+- Decisions / ADRs / `00_STATE.md` rows: none.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): nothing. Legal lane: the two consent rows and the companion footer. Owner: the linguistic row (its text is HB-C17), voice purposes in a no-voice build, and the ladder rungs with no data source (evidence §2).
+- Next: push both when the freeze lifts; open INT-587's PR first, then this one on top.
+- LOOP_STATUS: CONTINUE
+
+### 2026-10-30T10:00:00+03:00 · INT-587 · legal review round 1 fixed (committed locally; push frozen)
+- Goal: the independent legal review returned B1 (a share consent given for one note could release another after a withdrawal — KVKK m.4/5/6) and notes N3, N5.
+- Plan: the outbox subscribes to the consent ledger and parks every queued and refused note on any share withdrawal (core included); each note is bound to the receipt given for it, sealed with it, and released only by a receipt for that note; the engine refuses a grant older than the last withdrawal; refused consent ops are dropped and re-asked (N5); "Şimdi değil" beside the grant with equal weight (N3).
+- Tests added (with the near-miss negative for any safety rule): `consentBinding.test.ts` (a)(b)(c) over the real consent store with a restart from disk; near miss: a `documents` withdrawal parks nothing. Red: 6 files, 18 tests failed, including the review's scenario. Green: mobile 142 files / 2996 tests. Mutation 5/5 killed.
+- Result (`make check` / `make safety` / `make security` summary): mobile suite, typecheck, `make check-i18n` and PolicyGuard green; details in docs/evidence/INT-587.md §8.
+- Invariants touched and still passing: 4, 6, 18.
+- Decisions / ADRs / `00_STATE.md` rows: none.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): nothing; the reviewer re-verifies on this head.
+- Next: rebase INT-588 onto this head.
+- LOOP_STATUS: CONTINUE
+
+### 2026-10-29T02:20:00+03:00 · INT-587 · done (committed locally; push frozen for the build-6 wave)
+- Goal: GitHub #988, P1, from the store-listing legal review (B4). In a release build the patient's note never reached a clinician: "Gönder" only changed local state, no client called `PUT /v1/visits/{id}/note`, the app could not grant `share:previsit_note`, and Review & send said "gönderildi" on no evidence. Sec-Row: the issue names `sharing`, which is no files/10 §9 row; the work is the Review & send row, so `review-send`.
+- Plan:
+  - A note-sync client (`apps/mobile/src/lib/intake/delivery/`): payload from `buildNote` within the server's `NotePut` bounds; an outbox state machine (queued with capped backoff and Retry-After, never dropped; awaiting_consent; refused for a 4xx, retried only by the patient; delivered, terminal); a transport that counts only a confirmed `sent` as delivered; an attempt that flushes the consent queue first; sealed persistence through the INT-142 draft backend; a store restored from disk at sign-in; native wiring behind a lazy import.
+  - The share consent: the loader reads the served share text; a ledger slot grants it against that text at every send and returns the receipt the outbox requires; the share centre withdraws it.
+  - Review & send: `frozen` and `sent` split; `NoteDelivery` owns the confirm step and the status; only a delivery opens the "gönderildi" branch.
+  - Doctor Link: the server visit id, and a typed step-up seam (OTP session tier; INT-582's passkey later).
+  - No server code change.
+- Tests added (with the near-miss negative for any safety rule): 11 new or extended files (docs/evidence/INT-587.md §3). Near misses: no share without the grant (receipt-less enqueue refused; 403 on the share scope parks the note; the API refuses and writes nothing); a revoked grant stops the link (local refusal before network; server revokes shares, an earlier code opens nothing); offline send queues and survives a restart (memory killed, restored from sealed bytes, delivered on reconnect); a server 4xx is surfaced and not retried forever; no PHI in logs (console spied through every failure mode). Red: 10 files failed, 13 tests failed. 9/9 mutations killed.
+- Result (`make check` / `make safety` / `make security` summary): `make check-ts` exit 0 (mobile 2974 tests); `make check-i18n` 236 passed; `make check-py-static` clean; the API, backlog, smoke, release, legal and security subsets pass; the full check-py pytest result is in the evidence. No container ran (owner rule of 29 Oct). `make safety` untouched.
+- Invariants touched and still passing: 2, 4, 5, 6, 14, 17, 18.
+- Decisions / ADRs / `00_STATE.md` rows: none. The motion class of Review & send is now `legal`, because it renders the share text.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): nothing. Legal lane: review the confirm-step rendering. Owner: re-sharing after a withdrawal and a sign-out warning for a queued note are not built (evidence §7).
+- Next: push when the freeze lifts, open the PR (`Sec-Row: review-send`, `Closes #988`), legal review.
+### 2026-10-29T00:40:00+03:00 · INT-584 · done (PR open; the merge-queue deploy runs the move, then the owner's probe)
+- Goal: GitHub #983, P1, Sec-Row `onboarding`, owner decision D38 (28 Oct 2026). The phone-tokenization key moves from the synthetic host's env file into OpenBao now, with the same key material, so no pseudonym changes. INT-581 recorded the env-file key as an open residual.
+- Plan:
+  - API: `intake_api.tokenization_key` reads OpenBao `secret/api/tokenization` (field `key`) through `SecretsProvider`, with the API's own token, and nowhere else.
+    - `ApiSettings.from_env` stops reading `INTAKE_TOKENIZATION_KEY`; a stray value is named and ignored.
+    - Absent, unreadable and malformed give the OTP tier and the previsit read-back a `503` with `reason: tokenization_key_<state>`.
+    - The key is the hex text's UTF-8 bytes, exactly as before (never hex-decoded).
+    - Dev: the OpenBao dev server, seeded once with a random key; file-dev alone takes a process-local key.
+    - `tokenization_key_state{state,origin}` is catalogued.
+  - Host: `infra/staging/tokenization_key.sh`, run by `deploy.sh` before the API starts (and by `init.sh --init`):
+    1. write the env value with check-and-set, on stdin;
+    2. read it back with the API's token;
+    3. prove equality by a key check value (HMAC of a fixed label) and by the pseudonym of a fixed synthetic number, fingerprinted before and compared after through `intake_api.tokenization_probe`;
+    4. only then remove the env copy.
+    A different key in OpenBao is a loud `CONFLICT` with both kept. A deploy never mints a key. `--probe` prints `equal` or `differ` only.
+  - compose and the env template drop the variable. The API policy gains `read` on the one document.
+- Tests added (with the near-miss negative for any safety rule):
+  - `tests/api/test_tokenization_key.py` (37). Near misses: a key in the environment with OpenBao empty stays shut; a hex-decoded or one-character-off key forks the pseudonym; file-dev outside dev still reads OpenBao; with a key present, the OTP 503 names no key reason.
+  - `tests/api/test_tokenization_probe.py` (20). Near misses: one character off and another key id say `differ`.
+  - `tests/infra/test_staging_tokenization_key.py` (28): the real script over stand-ins, and the real probe module. Near misses: a one-character conflict is refused with both kept; a stale record keeps the env copy; a denied grant keeps the env copy.
+  - Updated: the staging compose, netgsm, previsit-output and netgsm-wiring tests, and the harness.
+  - Red: collection errors (`intake_api.tokenization_key` missing); 33 failed, 338 passed, 19 errors on the infra and previsit set. Green: 445 passed.
+- Result (`make check` / `make safety` / `make security` summary):
+  - ruff and format clean; mypy --strict clean (597 files); shellcheck -x clean.
+  - Whole Python suite in shards: 13147 passed, 0 failed.
+  - Catalogue gates 39 passed. no_placeholders, phi_scan, claims_scan and vendor-calls OK. gitleaks found no leaks.
+  - Pins moved from 372 to 373, and files/11 regenerated. `make safety` is untouched.
+- Invariants touched and still passing:
+  - 6: no key, pseudonym or number in any output, log or argv, tested;
+  - 13: one new series, catalogued live;
+  - 14: the secret comes only from OpenBao;
+  - 16: Sec-Row `onboarding`, with the files/10 §9 row and the threat-model `identifiers` bound updated;
+  - 17: no placeholders, never a literal key.
+- Decisions / ADRs / `00_STATE.md` rows: D38, recorded on `int-585-owner-sms-decisions`; none minted here. The policy file was edited in place: no CODEOWNERS file and no hook-protected entry cover it. LOOP.md's "never touch OpenBao policies" is flagged to the coordinator, with D38 as the owner's approval.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): nothing. After the merge-queue deploy, the owner or the queue runs `tokenization_key.sh --probe` over SSM and expects `equal`.
+- Next: merge; reconcile with #978 and the INT-577/579/581 stack (union of the policy grants, test sets and the §9 row; strike INT-581's residual sentence once both land).
+- LOOP_STATUS: CONTINUE
+
 ### 2026-10-28T10:30:00+03:00 · INT-576 · done (PR open; deploy and the owner's retry pending)
 - Goal: GitHub #971, P0 on the build-6 path, Sec-Row `onboarding`. The owner's real OTP send on the synthetic host logged `refusal=- reason=malformed_response http_status=200 vendor_code=-`, yet the SMS arrived after both tries. Only `otp_netgsm.py`'s response parsing was wrong; the request, credentials, header, IP allow-list and sms-egress proxy work.
 - Plan:
@@ -4548,4 +4669,19 @@
 - Decisions / ADRs / `00_STATE.md` rows: none.
 - Blocked on: nothing.
 - Next: merge at the front of the queue, because every PR's vulnerabilities job is red until it lands.
+- LOOP_STATUS: CONTINUE
+
+### 2026-10-30T18:00:00+03:00 · INT-592 · done (PR open; legal review of the strings pending)
+- Goal: Apple rejected TestFlight build 6 with ITMS-90683. INT-420 had set the HealthKit plugin's `NSHealthUpdateUsageDescription` to `false`, so the Info.plist had no key. The library links write APIs, so the key is required although the app never writes. P0: blocks build 7.
+- Plan: give the key a truthful Turkish string saying Önvizit writes nothing to Apple Health and asks only to read. tr is the source (plugin option = app-tr.json), with an en mirror in app-en.json. The share string is localised too, so both agree with the connector's three read types. The declared key is classified in the store-label inventory.
+- Tests: brand.spec.ts has a write-denial oracle with near misses (false, empty, the library default, a write claim, a denial plus a claim) and a code-truth check (toRead only; no toShare/save/delete). The new tests/legal/test_ios_purpose_strings.py covers base = tr, tr/en parity, PolicyGuard and B1 over every purpose string, and the inventory row. Red run: 4 vitest + 5 pytest failures. Green run: mobile vitest 2971, `pnpm -r typecheck`, tests/legal + tests/release 964, claims scan, backlog and smoke pins at 382 (after merging main `4bb5ecae`, which brought INT-585's row). 3 of 3 mutations killed.
+- Invariants touched and still passing: 2 and 5 (siz, B1, PolicyGuard-clean, tr first); 13/18 (the declared key has an inventory row, with no new data category); 16 (Sec-Row `mobile`); 17 (no placeholders); 20 (claims scan covers the locales).
+- Decisions / ADRs / `00_STATE.md` rows: none. The pre-existing 19-word share string is recorded as a B1/PolicyGuard-length finding, not rewritten; its wording is the legal lane's call.
+- Blocked on: nothing. The legal-reviewer approved #1001 (30 Oct).
+- Update (legal review applied):
+  - The share string is now the reviewer's variant A, for a build carrying INT-587: an added Health line travels with a sent note. It is the same text in app.json and app-tr/en.json.
+  - The update string loses the semicolon after "Önvizit".
+  - The recorded length finding is cleared, so both findings sets are empty.
+  - Tests first: red 4 vitest + 2 pytest; green brand 19, mobile 2972, legal + release 964.
+- Next: merge #995 (INT-587) before or with #1001, then TestFlight build 7.
 - LOOP_STATUS: CONTINUE

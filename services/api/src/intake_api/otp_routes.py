@@ -68,7 +68,8 @@ class TokenBundleOut(BaseModel):
 def _service(request: Request, state: ApiState) -> OtpAuthService:
     request.state.auth_tier = AUTH_TIER_OTP
     if state.auth is None:
-        raise otp_auth_unconfigured()
+        # INT-584: the key's typed reason when the key is what is missing
+        raise otp_auth_unconfigured(state.settings.tokenization_key_refusal)
     return state.auth
 
 

@@ -61,9 +61,9 @@ from staging_host_kit import (
 
 def test_the_api_policy_reads_the_netgsm_document_and_nothing_else_under_secret() -> None:
     """Read only, on the one document; nothing else under the API's own
-    subtree (the INT-428 model-lane grants live under secret/model-lanes/)
-    but the OTP pepper beside it, read only too (INT-578,
-    tests/infra/test_staging_otp_pepper.py)."""
+    subtree but two reads beside it, each read only: the OTP pepper (INT-578,
+    tests/infra/test_staging_otp_pepper.py) and INT-584's tokenization key
+    (the INT-428 model-lane grants live under secret/model-lanes/)."""
     text = POLICY.read_text(encoding="utf-8")
     paths = re.findall(r'^path "([^"]+)"\s*\{\s*capabilities\s*=\s*(\[[^\]]*\])', text, re.M)
     under_api = {
@@ -71,7 +71,11 @@ def test_the_api_policy_reads_the_netgsm_document_and_nothing_else_under_secret(
         for path, caps in paths
         if path.startswith(("secret/data/api", "secret/metadata/api", "secret/api"))
     }
-    assert under_api == {"secret/data/api/netgsm": '["read"]', "secret/data/api/otp": '["read"]'}
+    assert under_api == {
+        "secret/data/api/netgsm": '["read"]',
+        "secret/data/api/otp": '["read"]',
+        "secret/data/api/tokenization": '["read"]',
+    }
 
 
 def test_init_enables_the_kv_engine_before_it_writes_the_policy() -> None:
