@@ -61,7 +61,19 @@ __all__ = [
 ]
 
 _TCKN_CANDIDATE = re.compile(r"\b[1-9][0-9]{10}\b")
-_TR_MOBILE = re.compile(r"\b0?5[0-9]{9}\b")
+# A Turkish mobile however it is written (INT-581). The OTP tier normalises
+# every number to E.164 (``+90``, then 5 and nine digits), and the INT-013 pattern this
+# replaces (``\b0?5[0-9]{9}\b``) could not see that form at all: the ``+90``
+# prefix glued the digits to a word character. It is now taken with the
+# international (``+90``, ``0090``, ``90``) or national (``0``) prefix or none,
+# written whole or grouped 3-3-2-2 by single spaces or hyphens, and bounded by
+# non-digits so it never eats into a longer run. A grouped run of digits that
+# starts with 5 is masked too: in a log line that is the right side to err on.
+_SEP: Final = "[ \u00a0-]?"
+_TR_MOBILE = re.compile(
+    rf"(?<![0-9])(?:(?:\+|00)?90{_SEP}|0{_SEP})?"
+    rf"5[0-9]{{2}}{_SEP}[0-9]{{3}}{_SEP}[0-9]{{2}}{_SEP}[0-9]{{2}}(?![0-9])"
+)
 _TR_IBAN = re.compile(r"\bTR[0-9]{24}\b")
 
 #: How many digits a TC Kimlik number has.

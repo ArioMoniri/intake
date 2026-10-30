@@ -163,7 +163,8 @@ def test_dryrun_plans_creates_and_updates(tmp_path: Path) -> None:
     # + INT-578 (OTP brute force and replay, the owner's SMS security order, GitHub #973)
     # + INT-577 (SMS pumping and overuse, the owner's SMS security order, GitHub #972)
     # + INT-579 (OTP enumeration, the owner's SMS security order, GitHub #974)
-    assert len(actions) == 389
+    # + INT-581 (SMS data protection, the owner's SMS security order, GitHub #976)
+    assert len(actions) == 390
     assert actions["INT-001"]["action"] == "update"
     assert actions["INT-001"]["number"] == 1
     assert actions["INT-004"]["action"] == "create"

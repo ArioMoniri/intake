@@ -245,6 +245,8 @@ def _settings(environment: str, *, kek_mode: str = "transit") -> ApiSettings:
         kek_mode=kek_mode,  # type: ignore[arg-type]
         tokenization_key="k",
         environment=environment,
+        # INT-581: the synthetic host's only route out is its SMS proxy (ADR-042)
+        sms_egress_proxy_url="http://sms-egress:3128" if environment == "staging" else None,
     )
 
 

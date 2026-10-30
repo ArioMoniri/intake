@@ -749,15 +749,28 @@ class OtpAuthService:
                 charge=not locked,
             )
         )
-        if locked:
-            OTP_VERIFY_TOTAL.labels(outcome="locked").inc()
-            raise otp_invalid()
-        OTP_VERIFY_TOTAL.labels(outcome=verdict).inc()
-        if verdict == "exhausted":
+        outcome = "locked" if locked else verdict
+        OTP_VERIFY_TOTAL.labels(outcome=outcome).inc()
+        if verdict == "exhausted" and not locked:
             # INT-578: the miss that spent the budget locks the number
             await asyncio.to_thread(self._store.engage_lockout, pseudonym)
-        if verdict != "ok":
-            # one generic refusal for wrong/expired/exhausted/unbound (02 §8.2)
+        if outcome != "ok":
+            # INT-581: every verify is on the chain, a refused one too — the
+            # number's 8-character log ref and the closed outcome, nothing more.
+            # INT-579: one row for every kind of refusal, so the work is alike.
+            # Legal review, 30 Oct 2026: a `missing` verify names a number that
+            # has no code, typed by a caller; its row keeps no ref of it.
+            await self._audit.record(
+                actor=(
+                    "system:otp-verify"
+                    if outcome == "missing"
+                    else f"phone:{self._tokenizer.log_ref(phone)}"
+                ),
+                action="auth.otp.verify_refused",
+                resource_ref=f"otp_verify:{outcome}",
+                consent_scope="scope:auth",
+            )
+            # one generic refusal for wrong/expired/exhausted/unbound/locked (02 §8.2)
             raise otp_invalid()
         patient_id = await self._get_or_create_patient(pseudonym)
         await self._audit.record(
