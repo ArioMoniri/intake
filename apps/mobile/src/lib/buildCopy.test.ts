@@ -157,9 +157,13 @@ describe("the consent rows agree with the docs/legal texts the server serves", (
     expect(tr["consent.who.voice"]).toMatch(/izin metninde/);
   });
 
+  // The four "who" rows themselves are INT-536's on main, each pinned to the
+  // code fact it rests on (tests/legal/test_consent_who_lines.py). What INT-588
+  // holds here is narrower: none of them says more than its served text.
+
   it("the voice row repeats only what the text promises: no recording is kept", () => {
     expect(voiceText).toMatch(/Sesiniz hiçbir yere kaydedilmez/);
-    expect(tr["consent.who.voice"]).toMatch(/hiçbir yere kaydedilmez/);
+    expect(tr["consent.who.voice"]).toMatch(/kaydı saklanmaz/);
   });
 
   it("the affect row never says the doctor sees the cues — the text says the opposite", () => {
@@ -167,7 +171,7 @@ describe("the consent rows agree with the docs/legal texts the server serves", (
     expect(affectText).toMatch(/Notunuza da yazılmaz/);
     expect(tr["consent.who.laneAffect"]).not.toMatch(/hekiminiz görür/i);
     expect(en["consent.who.laneAffect"]).not.toMatch(/doctor sees/i);
-    expect(tr["consent.who.laneAffect"]).toMatch(/gönderilmez/);
+    expect(tr["consent.who.laneAffect"]).toMatch(/notunuza yazılmaz/i);
   });
 
   it("the voice group hint speaks of no recording, because none is kept", () => {
@@ -175,21 +179,21 @@ describe("the consent rows agree with the docs/legal texts the server serves", (
       expect(text).not.toMatch(/kayd|recording/i);
     }
   });
-
-  it("the affect row says no more than the text: not sent 'as an assessment'", () => {
-    expect(tr["consent.who.laneAffect"]).toMatch(/bir değerlendirme olarak gönderilmez/);
-    expect(en["consent.who.laneAffect"]).toMatch(/as an assessment/);
-  });
 });
 
 /**
- * Who sees what, on İzinleriniz. A row may name a recipient — the doctor, the
- * clinic, its staff — only when the server serves a text for that purpose that
- * says so; with no text behind it the row is the only statement there is, and
- * a recipient named there is a claim nothing backs (KVKK m.10; INT-588 legal
- * re-check: lane:linguistic, whose text is awaiting-human under HB-C17).
+ * Who sees what, on İzinleriniz. A row may name someone as a RECIPIENT — the
+ * doctor, the clinic, its staff sees it — only when the server serves a text
+ * for that purpose that says so; with no text behind it the row is the only
+ * statement there is, and a recipient named there is a claim nothing backs
+ * (KVKK m.10; INT-588 legal re-check: lane:linguistic, whose text is
+ * awaiting-human under HB-C17). Saying the data does NOT reach the doctor is
+ * not naming a recipient: INT-536 states that for lane:linguistic on a code
+ * fact (the markers never leave the observers), pinned in
+ * tests/legal/test_consent_who_lines.py.
  */
-const RECIPIENT = /hekim|doktor|klinik|personel|doctor|clinic|staff/i;
+const RECIPIENT =
+  /hekiminiz\b[^.]*\bgörür|klinik personeli[^.]*\bgörür|doctor sees|only your doctor|clinic staff see/i;
 
 function servedTextExists(purposeId: string): boolean {
   return existsSync(join(LEGAL, `${purposeParam(purposeId as PurposeId)}.tr.md`));
@@ -212,19 +216,21 @@ describe("a 'who' row names a recipient only where a served text stands behind i
     }
   });
 
-  it("the linguistic row defers to its text instead", () => {
-    expect(tr["consent.who.laneLinguistic"]).toBe(
-      "Yazıdan çıkan ipuçlarının kimlere gideceği, izin metni hazır olunca orada yazacak.",
-    );
-    expect(en["consent.who.laneLinguistic"]).toBe(
-      "Who receives cues drawn from the text will be stated in the consent text once it is ready.",
-    );
+  it("near miss: the line the review blocked WOULD be caught", () => {
+    expect("Yazıya dökülen metinden çıkan ipuçlarını yalnızca hekiminiz görür.").toMatch(RECIPIENT);
+    expect("Only your doctor sees cues drawn from the transcribed text.").toMatch(RECIPIENT);
+  });
+
+  it("near miss: saying the cues do NOT reach the doctor is not naming a recipient", () => {
+    expect(tr["consent.who.laneLinguistic"]).toMatch(/hekiminize gitmez/);
+    expect(tr["consent.who.laneLinguistic"]).not.toMatch(RECIPIENT);
   });
 
   it("near miss: where a text IS served, the row may name the doctor — and core's does", () => {
     const core = PURPOSES.find((p) => p.id === "core");
     expect(core && servedTextExists(core.id)).toBe(true);
     expect(tr[core!.whoKey]).toMatch(RECIPIENT);
+    expect(en[core!.whoKey]).toMatch(RECIPIENT);
   });
 });
 

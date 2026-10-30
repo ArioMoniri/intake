@@ -777,20 +777,17 @@ export const tr = {
   "consent.learning.service": "Hizmeti iyileştirme",
   "consent.satisfaction": "Memnuniyet soruları",
   "consent.research": "Araştırma",
+  // INT-536: each line is true on every host. Where data is processed and who
+  // receives it depends on the host, so these lines defer to the bound text,
+  // which says it (docs/evidence/INT-536.md §2 cites the code for each sentence).
   "consent.who.core":
-    "Notunuzu siz görürsünüz. Hekiminiz, yalnızca siz paylaşırsanız görür. Acil bir işarette klinik personeli, paylaşım beklemeden kısa bir uyarı görür.",
-  // INT-588: these two rows said the data stays in Türkiye and that only the
-  // doctor sees the affect cues; the served texts (docs/legal/synthetic/
-  // consents/voice.tr.md, lane.affect.tr.md) say neither. The rows now say
-  // only what the texts say, and leave "where" to the text.
+    "Yanıtlarınızı siz görürsünüz. Hekiminiz notunuzu yalnızca siz paylaşırsanız görür. Acil bir durum işaretinde klinik personeli, sağlık yanıtlarınızı içermeyen bir uyarı görür. Bilgilerinizin nerede işlendiği izin metninde yazar.",
   "consent.who.voice":
-    "Siz konuşurken sesiniz yazıya dökülür ve hiçbir yere kaydedilmez. Nerede işlendiği izin metninde yazar.",
+    "Sesiniz görüşme sırasında yazıya dökülür; ses kaydı saklanmaz. Sesinizin nerede işlendiği ve kimlere gittiği izin metninde yazar.",
   "consent.who.laneAffect":
-    "Ses tonunuzdan çıkan ipuçları yalnızca görüşmeyi size uyarlar. Hekiminize bir değerlendirme olarak gönderilmez ve notunuza yazılmaz.",
-  // INT-588 legal re-check: no text is served for this purpose yet (HB-C17),
-  // so the row names no recipient — the text will.
+    "Ses tonunuzdan çıkan ipuçları yalnızca görüşmenin hızını ve akışını ayarlar. Hekiminize gitmez, notunuza yazılmaz ve size gösterilmez.",
   "consent.who.laneLinguistic":
-    "Yazıdan çıkan ipuçlarının kimlere gideceği, izin metni hazır olunca orada yazacak.",
+    "Yazıya dökülen metinden çıkan ipuçları hekiminize gitmez ve notunuza yazılmaz.",
   "consent.who.wellbeing":
     "Yanıtlarınızı yalnızca siz görürsünüz; hekiminizle paylaşım her seferinde ayrıca sorulur.",
   "consent.who.documents":

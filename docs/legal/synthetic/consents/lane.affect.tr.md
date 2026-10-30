@@ -1,5 +1,5 @@
 ---
-consent_text_version: 2026-10-28.syn1
+consent_text_version: 2026-10-28.syn2
 ---
 Sentetik test metni: Bu metin yalnızca uydurulmuş (sentetik) hasta bilgileriyle çalışan test ortamı içindir. Gerçek bir hasta için geçerli bir açık rıza metni değildir. Bu ortama kendi gerçek sağlık bilgilerinizi girmeyiniz.
 
@@ -14,7 +14,7 @@ Hangi bilgiler:
 Sesli görüşmede konuştuğunuz ses ve ondan çıkarılan ipuçları.
 
 Ses kimlere gider:
-Bu analiz için sesiniz hiçbir dış şirkete gönderilmez. Ayrıca bir yere de aktarılmaz. Analiz, sesli görüşmenin zaten kullandığı sesle aynı sunucuda yapılır.
+Analiz, sesli görüşmenin zaten kullandığı sesle aynı sunucuda yapılır. Bu sunucuyu, sunucu hizmeti veren Amazon Web Services (AWS) sağlar. Bu analiz için sesiniz bunun dışında hiçbir dış şirkete gönderilmez. Ayrıca bir yere de aktarılmaz.
 
 Nerede:
 Bu test ortamı, ABD'deki bir Amazon Web Services (AWS) sunucusunda çalışır. Bu analiz de Türkiye dışında yapılır.
