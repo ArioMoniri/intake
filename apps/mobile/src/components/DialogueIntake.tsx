@@ -26,8 +26,9 @@
  * - Patient quotes are DISPLAYED as text, never synthesized; the numeral
  *   guard sits before every /synthesize call (invariant 22 mirror).
  * - Agent clips are cache files deleted on unmount and session end;
- *   PATIENT recordings keep lib/voice.ts's delete-after-upload posture
- *   (invariant 3 governs those, and it is untouched here).
+ *   PATIENT audio never touches a file (INT-559): the hook captures through
+ *   lib/capture into a bounded in-memory buffer, zeroed on every trigger —
+ *   a RED here calls `leave`, which closes the microphone before it awaits.
  * - Any hard service failure lands in the existing manual steps via the
  *   outer machine, committed answers intact AND the unconfirmed suggestions
  *   riding as prefill (INT-261 — the same thing a hand-over carries, since

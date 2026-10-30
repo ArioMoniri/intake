@@ -9,8 +9,9 @@
  *   text existed (dev seeds, hash null) is `unbound` and honoured until the
  *   first text lands, at which instant it goes stale (the text IS the bump);
  * - withdraw: instant, cascading in the same pass (voice → lane:affect;
- *   lane:linguistic deliberately survives), one queued op for the root —
- *   the server re-derives the cascade itself;
+ *   lane:linguistic deliberately survives; core → every other purpose,
+ *   the default-on learning ones included),
+ *   one queued op for the root — the server re-derives the cascade itself;
  * - queue: ops that could not reach the server yet stay here, in memory, in
  *   order. Nothing is persisted to disk: the server ledger is the source of
  *   truth and reconciliation happens on the next snapshot.
@@ -47,7 +48,7 @@ export interface LedgerState {
   queue: readonly QueuedOp[];
 }
 
-export type DisplayState = "info" | "on" | "off" | "pending_text" | "stale";
+export type DisplayState = "on" | "off" | "pending_text" | "stale";
 
 export interface PurposeView {
   id: PurposeId;
@@ -149,10 +150,6 @@ function allowedOf(state: LedgerState, id: PurposeId): boolean {
 }
 
 function displayOf(state: LedgerState, id: PurposeId): DisplayState {
-  const def = purposeDef(id);
-  if (def === null || def.ui === "info") {
-    return "info";
-  }
   const record = state.records[id];
   if (isStale(record, state.texts[id])) {
     return "stale";
@@ -169,7 +166,7 @@ function displayOf(state: LedgerState, id: PurposeId): DisplayState {
 export function viewOf(state: LedgerState): PurposeView[] {
   return PURPOSES.map((def) => {
     const display = displayOf(state, def.id);
-    const allowed = def.ui === "info" ? state.records[def.id].granted : allowedOf(state, def.id);
+    const allowed = allowedOf(state, def.id);
     const textLoaded = state.texts[def.id].status === "loaded";
     const affectBlocked = def.id === "lane:affect" && !allowedOf(state, "voice");
     return {
@@ -182,8 +179,8 @@ export function viewOf(state: LedgerState): PurposeView[] {
       basisKey: def.basisKey,
       display,
       allowed,
-      grantable: def.ui !== "info" && textLoaded && !affectBlocked && !allowedOf(state, def.id),
-      withdrawable: def.ui !== "info" && state.records[def.id].granted,
+      grantable: textLoaded && !affectBlocked && !allowedOf(state, def.id),
+      withdrawable: state.records[def.id].granted,
     };
   });
 }
@@ -255,7 +252,7 @@ export function applyServerScopes(state: LedgerState, scopes: readonly ServerSco
 
 /**
  * Grant one purpose against the CURRENTLY loaded text. Refuses — returning
- * the state unchanged — when the purpose is information (core), the text is
+ * the state unchanged — when the purpose is off the closed list, the text is
  * missing (fail closed, invariant 18), or lane:affect is asked for without a
  * standing voice consent (it rides the voice stream).
  */
@@ -264,7 +261,6 @@ export function grant(state: LedgerState, id: PurposeId, atIso: string): ChangeR
   const entry = state.texts[id];
   if (
     def === null ||
-    def.ui === "info" ||
     entry.status !== "loaded" ||
     (id === "lane:affect" && !allowedOf(state, "voice"))
   ) {
@@ -294,10 +290,14 @@ export function grant(state: LedgerState, id: PurposeId, atIso: string): ChangeR
  * Withdraw one purpose, instantly, cascading its children in the same pass.
  * Exactly one op is queued — the root — because the server re-derives the
  * cascade itself (mirroring it here would let the two drift).
+ *
+ * Core's cascade reaches the two default-on learning purposes too: the server
+ * writes each one's opt-out (INT-537, legal review B1), because the core text
+ * tells the patient every other permission closes with it.
  */
 export function withdraw(state: LedgerState, id: PurposeId, atIso: string): ChangeResult {
   const def = purposeDef(id);
-  if (def === null || def.ui === "info") {
+  if (def === null) {
     return { state, flipped: [] };
   }
   const touched: PurposeId[] = [id, ...def.cascadeChildren];

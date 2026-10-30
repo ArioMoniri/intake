@@ -51,9 +51,10 @@ function productionCode(): { name: string; source: string }[] {
 
 // ---------------------------------------------------------------------------
 // Invariant 3 — raw audio is never written anywhere, and the client never
-// persists. The dev-tier lane (src/lib/voice.ts) records to a file and deletes
-// it after upload; this lane has no file at all, and these pins keep it that
-// way as the directory grows.
+// persists. The dev-tier lane (src/lib/voice.ts) captured to a file and
+// deleted it after upload until INT-559 (now e2e/voiceCapture.spec.ts guards
+// its file-less capture); this lane has no file at all, and these pins keep
+// it that way as the directory grows.
 // ---------------------------------------------------------------------------
 
 describe("invariant 3: nothing on the audio path persists", () => {

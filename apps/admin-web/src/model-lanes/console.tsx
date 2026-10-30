@@ -16,6 +16,7 @@
 import type { ReactElement } from "react";
 
 import { ConsoleNav } from "../ops/nav";
+import { RefusedPage } from "../ui/states";
 import type { ResultCode, StagedKey } from "./actions";
 import { ControlForms, PendingTile } from "./controls";
 import { COPY, type Lang, type ModelLanesCopy } from "./copy";
@@ -23,23 +24,6 @@ import type { ModelLanesState } from "./load";
 import { DeploymentTile, LanesTile, OptionsTiles, ProvidersTile, UsageTile } from "./tiles";
 
 type C = ModelLanesCopy;
-
-function Refused({
-  lang,
-  c,
-  children,
-}: {
-  lang: Lang;
-  c: C;
-  children: ReactElement;
-}): ReactElement {
-  return (
-    <main lang={lang} className="ops" data-page="model-lanes">
-      <h1>{c.title}</h1>
-      {children}
-    </main>
-  );
-}
 
 function Result({
   result,
@@ -79,20 +63,20 @@ export function ModelLanesConsole({
   const c = COPY[lang];
   if (state.kind === "not_admitted") {
     return (
-      <Refused lang={lang} c={c}>
+      <RefusedPage page="model-lanes" lang={lang} title={c.title} state={state}>
         <p className="refusal" data-refusal={state.reason}>
           {c.refusals[state.reason]}
         </p>
-      </Refused>
+      </RefusedPage>
     );
   }
   if (state.kind === "unavailable") {
     return (
-      <Refused lang={lang} c={c}>
+      <RefusedPage page="model-lanes" lang={lang} title={c.title} state={state}>
         <p className="refusal" data-unavailable={state.reason}>
           {c.unavailable[state.reason]}
         </p>
-      </Refused>
+      </RefusedPage>
     );
   }
   const view = state.view;

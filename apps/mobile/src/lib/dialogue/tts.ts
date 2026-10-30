@@ -11,8 +11,8 @@
  *
  * Cache contract: one synthesis per clip per session, name-keyed; clear()
  * drops the whole directory. These are AGENT-voice clips (synthesized from
- * catalog strings) — invariant 3 governs PATIENT audio, which keeps the
- * delete-after-upload posture in lib/voice.ts untouched. The expo-bound
+ * catalog strings) — invariant 3 governs PATIENT audio, which never touches
+ * a file at all (lib/capture, INT-559). The expo-bound
  * filesystem and host probing live in clips.ts; everything here is pure and
  * node-testable.
  *

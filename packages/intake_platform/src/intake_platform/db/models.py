@@ -51,8 +51,10 @@ from sqlalchemy.types import BigInteger, Integer, Uuid
 from intake_platform.db.inventory import (
     BASIS_AWAITING_HUMAN_GUARDIAN,
     BASIS_CONTRACT,
+    BASIS_EVENTS_BY_TYPE,
     BASIS_HEALTH_CONSENT,
     BASIS_LEGAL_OBLIGATION,
+    BASIS_SATISFACTION_CONSENT,
     CAT_CONSENT,
     CAT_GUARDIANSHIP,
     CAT_HEALTH,
@@ -180,17 +182,21 @@ class SlotSensitivity(enum.StrEnum):
     SENSITIVE = "sensitive"
 
 
-def _uuid_pk(purpose: str, retention: str) -> Mapped[uuid.UUID]:
+# The three helpers below default to the contract ground. A table whose rows
+# rest on another ground passes it (INT-536: csat_texts and events).
+
+
+def _uuid_pk(purpose: str, retention: str, *, basis: str = BASIS_CONTRACT) -> Mapped[uuid.UUID]:
     return mapped_column(
         Uuid(),
         primary_key=True,
         default=uuid.uuid4,
         server_default=text("gen_random_uuid()"),
-        info=inv(CAT_OPERATIONAL, purpose, BASIS_CONTRACT, retention, REC_INTERNAL),
+        info=inv(CAT_OPERATIONAL, purpose, basis, retention, REC_INTERNAL),
     )
 
 
-def _tenant_fk(retention: str) -> Mapped[uuid.UUID]:
+def _tenant_fk(retention: str, *, basis: str = BASIS_CONTRACT) -> Mapped[uuid.UUID]:
     return mapped_column(
         ForeignKey("tenants.id"),
         nullable=False,
@@ -199,14 +205,14 @@ def _tenant_fk(retention: str) -> Mapped[uuid.UUID]:
             CAT_OPERATIONAL,
             "RLS boundary: the tenant this row belongs to (policies compare it "
             "to the app.tenant_id GUC)",
-            BASIS_CONTRACT,
+            basis,
             retention,
             REC_INTERNAL,
         ),
     )
 
 
-def _created_at(retention: str) -> Mapped[datetime]:
+def _created_at(retention: str, *, basis: str = BASIS_CONTRACT) -> Mapped[datetime]:
     return mapped_column(
         DateTime(timezone=True),
         nullable=False,
@@ -214,7 +220,7 @@ def _created_at(retention: str) -> Mapped[datetime]:
         info=inv(
             CAT_OPERATIONAL,
             "row creation instant (retention clocks start here)",
-            BASIS_CONTRACT,
+            basis,
             retention,
             REC_INTERNAL,
         ),
@@ -1220,19 +1226,19 @@ class Event(Base):
         info=inv(
             CAT_OPERATIONAL,
             "event row key",
-            BASIS_CONTRACT,
+            BASIS_EVENTS_BY_TYPE,
             RET_EVENTS,
             REC_INTERNAL,
         ),
     )
-    tenant_id: Mapped[uuid.UUID] = _tenant_fk(RET_EVENTS)
+    tenant_id: Mapped[uuid.UUID] = _tenant_fk(RET_EVENTS, basis=BASIS_EVENTS_BY_TYPE)
     session_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("sessions.id"),
         nullable=True,
         info=inv(
             CAT_OPERATIONAL,
             "session the event refers to, when session-scoped",
-            BASIS_CONTRACT,
+            BASIS_EVENTS_BY_TYPE,
             RET_EVENTS,
             REC_INTERNAL,
         ),
@@ -1243,7 +1249,7 @@ class Event(Base):
         info=inv(
             CAT_OPERATIONAL,
             "versioned event name (csat.v1, nps.v1, …)",
-            BASIS_CONTRACT,
+            BASIS_EVENTS_BY_TYPE,
             RET_EVENTS,
             REC_INTERNAL,
         ),
@@ -1254,12 +1260,12 @@ class Event(Base):
         info=inv(
             CAT_OPERATIONAL,
             "event body — id-shaped values only, no PHI (invariant 6)",
-            BASIS_CONTRACT,
+            BASIS_EVENTS_BY_TYPE,
             RET_EVENTS,
             REC_INTERNAL,
         ),
     )
-    created_at: Mapped[datetime] = _created_at(RET_EVENTS)
+    created_at: Mapped[datetime] = _created_at(RET_EVENTS, basis=BASIS_EVENTS_BY_TYPE)
 
 
 class NotificationPreference(Base):
@@ -1391,8 +1397,10 @@ class CsatText(Base):
 
     __tablename__ = "csat_texts"
 
-    id: Mapped[uuid.UUID] = _uuid_pk("csat free-text row key", RET_SATISFACTION)
-    tenant_id: Mapped[uuid.UUID] = _tenant_fk(RET_SATISFACTION)
+    id: Mapped[uuid.UUID] = _uuid_pk(
+        "csat free-text row key", RET_SATISFACTION, basis=BASIS_SATISFACTION_CONSENT
+    )
+    tenant_id: Mapped[uuid.UUID] = _tenant_fk(RET_SATISFACTION, basis=BASIS_SATISFACTION_CONSENT)
     session_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("sessions.id", ondelete="CASCADE"),
         nullable=False,
@@ -1401,7 +1409,7 @@ class CsatText(Base):
             CAT_OPERATIONAL,
             "the session the response rates; the FK cascade is what makes a "
             "DSAR erasure reach the text (invariant 4)",
-            BASIS_CONTRACT,
+            BASIS_SATISFACTION_CONSENT,
             RET_SATISFACTION,
             REC_INTERNAL,
         ),
@@ -1414,7 +1422,7 @@ class CsatText(Base):
             CAT_OPERATIONAL,
             "the csat.v1 event row this text belongs to; the FK cascade is "
             "what makes the 06 §3 satisfaction clock reach the text",
-            BASIS_CONTRACT,
+            BASIS_SATISFACTION_CONSENT,
             RET_SATISFACTION,
             REC_INTERNAL,
         ),
@@ -1433,7 +1441,7 @@ class CsatText(Base):
             REC_INTERNAL,
         ),
     )
-    created_at: Mapped[datetime] = _created_at(RET_SATISFACTION)
+    created_at: Mapped[datetime] = _created_at(RET_SATISFACTION, basis=BASIS_SATISFACTION_CONSENT)
 
 
 class PatientOverlayHeader(Base):

@@ -4,8 +4,9 @@
  * the post-onboarding first-run.
  *
  * Rules made visible here:
- * - core renders as INFORMATION (a quiet pill naming the service basis),
- *   never as a switch;
+ * - core is a switch like every açık rıza purpose (INT-537): visits and
+ *   notes require it, so it is granted against its text and withdrawn here
+ *   in one tap; it keeps its own group because everything else rides on it;
  * - both lanes nest under voice as inset sub-rows; lane:linguistic is
  *   independent of the voice cascade and the group footer says so;
  * - the two learning purposes are default-on OPT-OUT switches with their
@@ -41,9 +42,6 @@ interface ConsentListProps {
 
 /** The pill's visible word — also the name of the row's secondary action. */
 function pillLabel(view: PurposeView): string {
-  if (view.display === "info") {
-    return t("consent.state.service");
-  }
   return view.display === "on"
     ? t("consent.on")
     : view.display === "stale"
@@ -55,15 +53,6 @@ function pillLabel(view: PurposeView): string {
 
 function StatePill({ view, onPress }: { view: PurposeView; onPress: () => void }) {
   const theme = useTheme();
-  if (view.display === "info") {
-    return (
-      <View style={[styles.pill, { backgroundColor: theme.primarySoft }]}>
-        <AppText role="caption" style={{ color: theme.primary, fontWeight: "600" }}>
-          {t("consent.state.service")}
-        </AppText>
-      </View>
-    );
-  }
   const label = pillLabel(view);
   const background =
     view.display === "on"
@@ -119,14 +108,10 @@ export function ConsentList({ views, onOpenDetail, onToggle }: ConsentListProps)
         // accessibility element. Without this action a screen-reader user
         // could read a consent but not withdraw it (SC 4.1.2, and withdrawal
         // must be at least as easy as grant).
-        secondaryAction={
-          view.display === "info"
-            ? undefined
-            : {
-                label: withContext(pillLabel(view), t(view.labelKey)),
-                onPress: () => onToggle(id),
-              }
-        }
+        secondaryAction={{
+          label: withContext(pillLabel(view), t(view.labelKey)),
+          onPress: () => onToggle(id),
+        }}
         onPress={() => onOpenDetail(id)}
         trailing={<StatePill view={view} onPress={() => onToggle(id)} />}
       />
