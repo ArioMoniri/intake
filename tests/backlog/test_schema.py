@@ -230,6 +230,10 @@ def test_ids_unique_and_well_formed() -> None:
     # + INT-528 (the Netgsm OTP SMS adapter behind the INT-329 port, after the
     # owner's vendor decision on INT-358; GitHub #895).
     # + INT-573 (next/certifi/filelock lifted past the 27 Oct advisories, GitHub #965)
+    # + INT-450 (admin-web UI upgrade with the owner-listed component libraries,
+    # each licence-checked; owner request, GitHub #763).
+    # + INT-459 (admin-web premium redesign: Apple-native shell, glass on
+    # chrome only, tokens and AA contrast tested; owner request, GitHub #783).
     # + INT-574 (the RED-never-waits test is deterministic under runner load:
     # no wall-clock budget, a store the test holds; GitHub #967).
     # + INT-576 (the Netgsm adapter parses the live success shape and never
@@ -247,7 +251,7 @@ def test_ids_unique_and_well_formed() -> None:
     # + INT-559 (the app's voice lane never writes patient audio to a file —
     # invariant 3 with no dev exception, from the INT-536 legal review;
     # GitHub #947).
-    assert len(ids) == 377
+    assert len(ids) == 379
     import re
 
     for i in ids:

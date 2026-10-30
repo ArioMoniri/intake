@@ -4143,6 +4143,89 @@
 - Decisions / ADRs / `00_STATE.md` rows: none new; the feeding construct left open by CD-10 is closed by CD-100 T9/T48 and CD-103 L75 (both items kept, ungated).
 - Blocked on (human + one sentence + HUMAN_BLOCKERS id): 31 owner questions recorded per item in CD-100..CD-106 (generator fixed slots vs base, self/proxy wording under HB-L20, D3 categories); none blocks the merge.
 - Next: apply the packet decisions through the proposals and the generator once #642 merges.
+### 2026-10-03T04:10:00+03:00 · INT-450 · done (PR open, not merged)
+- Goal: GitHub #763, the owner's request of 3 Oct 2026. Acceptance, verbatim:
+  - "kobra, beautifului, beui, reverseui, astryx, transitions, evilcharts and kinetics are each licence-verified from their raw LICENSE."
+  - "Admin-web dashboards, charts and interactions are upgraded with the adopted ones. Accessibility is tested and before/after captures are recorded."
+- Plan:
+  - Read each licence from its raw LICENSE blob, or its licence/terms page where there is none, and record the URL, sha256 and date.
+  - Port the adopted ones into the console's own server-rendered SVG and bundled CSS. The CSP admits no inline style and no foreign script, so Recharts and Motion cannot be installed as they are.
+  - Chart the dashboards where data exists, and refresh the navigation, cards, tables, forms and motion.
+  - Gate it all with axe, a token contrast check and a reduced-motion check.
+- Licences:
+  - Adopted:
+    - EvilCharts (MIT);
+    - beUI public library (MIT);
+    - Astryx (MIT);
+    - Transitions.dev, two free transitions under its custom licence.
+  - Cleared but not used: Beautiful UI (MIT). It ships chat-agent primitives, and none fits the console.
+  - Rejected:
+    - Kinetics: no LICENSE in its repository; the site's "MIT" is a badge.
+    - Kobra: paid, per seat. Owner purchase.
+    - Reverse UI: paid lifetime licence; the free tier has no licence text. Owner purchase.
+- Tests added (with the near-miss negative for any safety rule):
+  - `apps/admin-web/e2e/accessibility.spec.ts` (33 tests):
+    - axe WCAG 2.1 A/AA + best practice over 8 page states × tr/en, all with 0 violations;
+    - token contrast in both themes;
+    - reduced motion;
+    - one repeating animation only;
+    - no `text-transform`, ellipsis or break-all (files/00_STATE Turkish casing);
+    - CSP and stylesheet origin checks.
+    - Near-misses: a nameless chart image fails axe; a 0.55 gradient fails 3:1; a planted uppercase rule is caught.
+  - `apps/admin-web/src/ui/charts.test.tsx` (15 tests). Near-misses: a grouped figure draws no bar; 0 is not unknown; a stale reading is named stale.
+  - RED runs: 1 + 7 failures, recorded in the evidence. They caught three defects:
+    - a grouped number charted as 1;
+    - a pre-existing `landmark-unique` defect on CI/CD and Voice (tiles are now `article`);
+    - a 2.1:1 bar gradient.
+- Result (`make check` / `make safety` / `make security` summary):
+  - `make check-ts` exit 0 (mobile 2526 passed). admin-web is now 375 passed: 327 existing plus 48 new.
+  - admin-web `build` green.
+  - `check_licenses.py` OK, and `no_placeholders` OK after staging.
+  - `tests/backlog` and `tests/smoke/test_make_check.py` green, with pins 330 → 331.
+  - `make security`: steps 2–5 and 7–12 are green.
+    - Step 1 (gitleaks, full history) reports 7 findings, all in commits already on main; the staged diff is clean.
+    - Step 6 (OSV) reports `braces@3.0.3` and `http-cache-semantics@4.2.0`. The same two are on origin/main's lockfile; none comes from this change's additions.
+  - No Python, protocol or voice change, so `make safety` is not affected.
+- Invariants touched and still passing:
+  - 6: charts carry ids only;
+  - 14: CSP unchanged, verified in Chrome under the production policy with zero violations;
+  - 17: a chart renders only in an `ok` tile, and an unknown figure draws no mark;
+  - 19: licences read from raw blobs;
+  - 20: no target drawn beside a figure;
+  - 22: a chart parses the printed atom and refuses grouping.
+- Decisions / ADRs / `00_STATE.md` rows: none. The port-not-install choice follows from the existing CSP and is recorded in the evidence.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): none for the build. Owner asks, not HB rows: buy Kobra and/or Reverse UI if wanted; ask the Kinetics author for a LICENSE.
+- Next: PR `INT-450: admin-web UI upgrade with owner-listed component libraries (licence-checked)` (Closes #763, Sec-Row admin-console), left unmerged. Cost and Roadmap pages, and Model lanes (#751), take the shared chart primitives when they land.
+- LOOP_STATUS: CONTINUE
+
+### 2026-10-03T18:40:00+03:00 · INT-459 · done (PR #784 open, not merged)
+- Goal (GitHub #783, owner request): make the admin console read as premium and Apple-native rather than AI-generated.
+  - In scope: the dashboard, the shell, tables, Model lanes, settings, and the empty, loading and error states.
+  - Glass on chrome only, with fallbacks.
+  - Tokens for both themes, with AA tested.
+  - Spring motion, none on a control.
+  - No behaviour change.
+- Plan:
+  - Stack on INT-450 (#776), which already licence-checked the owner's libraries.
+  - Add three sheets (tokens, shell, content) and a sidebar `ConsoleNav` with drawn symbols and a language switch.
+  - Make the settings-style four-eyes forms still.
+  - Centre the refused states, inset the empty state, and render not-found per request.
+  - Model lanes (#751) inherits the shell through its shared class names.
+- Tests added: `e2e/native.spec.ts` (31), `e2e/states.spec.ts` (10), `src/ops/nav.test.tsx` (15). `e2e/accessibility.spec.ts` now reads every sheet. Each property has its near-miss: Apple's dark systemBlue fails AA, a 70 % glass fails, a planted glass card is caught, INT-450's tile entrance would move the forms, and React streams a late SVG segment in a style attribute.
+  - RED 1: three suites failed to load.
+  - RED 2: 23 failed against an empty layer. The critical-control test named six INT-450 rules that moved a control.
+  - RED 3: in the production build behind the CSP, a route-level `loading.tsx` streamed `<svg style="display:none">`, which was blocked; and a prerendered 404's scripts had no nonce.
+- Result:
+  - admin-web 431 passed; typecheck, lint, prettier and `next build` clean.
+  - `pnpm -r typecheck` and `pnpm -r lint` exit 0; `make check-ts` exit 0.
+  - Backlog and smoke 74 passed (pins 331 → 332, files/11 regenerated).
+  - `no_placeholders` OK after staging.
+  - Production check: zero CSP violations and no `style=` on any page.
+  - Captures are in `docs/design/admin-premium/`. `docs/design/library-patterns.md` maps the libraries and Mobbin patterns to the mobile chat; it cites #716, #717, #726, #728, #740 and #771 where they already deliver an item.
+- Invariants touched and still passing: 5 (tr first, en mirrored), 6 (ids only), 14 (the CSP is unchanged and tighter in practice: the 404 now carries the nonce), 17 (an unknown tile has no figure; no placeholder), 20 (no claim).
+- Decisions / ADRs / `00_STATE.md` rows: none. The `loading.tsx` withdrawal is recorded in the evidence.
+- Blocked on: the owner and the security reviewer. Should the CSP admit React's `style="display:none"` on streamed segments (`style-src-attr 'unsafe-hashes'` with the hash of that one string), so that the console can have a route-level loading state?
+- Next: merge #776, then #784. The Model lanes nav entry (three lines) goes to whichever of #751 and #784 merges second.
 - LOOP_STATUS: CONTINUE
 
 ### 2026-10-02T20:00:00Z · INT-414 · done (PR open, not merged)
@@ -4404,6 +4487,15 @@
 - Plan: `pnpm install --lockfile-only` with next pinned to 16.4.1 in apps/admin-web; `uv lock --upgrade-package certifi --upgrade-package filelock==4.2.1` (virtualenv followed). No constraint, no suppression.
 - Tests: tests/ci (419) on the new lockfiles; admin-web tsc and vitest (385) on next 16.4.1; a local `trivy fs` run recorded before and after in docs/evidence/INT-573.md.
 - Result: trivy shows none of the four; the only remaining rows are the two already-suppressed, time-boxed ones. The PR goes to the front of the merge queue because nothing else can merge until it lands.
+### 2026-10-28T10:00:00Z · INT-459 (refresh) · done
+- Goal: land the admin console's premium shell (#776 INT-450 + #784 INT-459) on current main and fix, inside it, what the 17 Oct audit named: Unknown as a wall of equal tiles, empty tables, refusals that drop the nav, cells that clip, a flat grid. Acceptance, verbatim from the row: "Translucent glass only on chrome (sidebar, top bar, sheets); content sits on solid fills; prefers-reduced-transparency, prefers-contrast and prefers-reduced-motion each have a fallback." "Light and dark themes come from one token set, and WCAG AA contrast is asserted by tests in both themes." "Motion is subtle and spring-based, and none of it is on a critical control." "Behaviour is unchanged: no API contract, auth, approval-flow or four-eyes change; no IP restriction; no PHI in fixtures." "Before/after captures from the local dev server are recorded."
+- Plan: branch `int-459-admin-premium-refresh` from #784's head; merge `origin/main` (nav.tsx keeps the grouped sidebar and gains Model lanes; backlog union, pins 368; lockfile re-resolved); withdraw D26 and `loading.tsx` (main has no D26); Palette B in one file; the layout layer; designed unknown and empty states; the refused shell; captures with the audit's harness.
+- Tests added (each with its near miss): `e2e/palette.spec.ts` (14: one file, pinned to the app's theme, deepened shades keep the hue, the RED hex caught), `e2e/layout.spec.ts` (12: twelve columns, eight unread SLOs fill two rows, the draft selector that lost to the table rule, cells wrap, sticky headers), `e2e/fills.spec.ts` (31: every reason has its fill line, nineteen empty tables, the unknown note's shape), `e2e/states.spec.ts` (+26: all twelve refused documents keep the shell and pass axe; the old dead end caught). `e2e/model-lanes.spec.ts` follows the sidebar's markup.
+- Result: admin-web vitest 23 files, 604 passed; `typecheck`, `lint`, prettier clean; `uv run pytest tests/backlog tests/smoke` green; `no_placeholders` OK. `pnpm -r lint` outside apps/mobile clean (the mobile workspace is not installed here; CI runs it). Measured contrast ratios are in docs/evidence/INT-459.md §10.3.
+- Invariants touched and still passing: 5 (tr first, en under the type), 6 (ids only in fixtures), 17 (no figure on an unknown tile), 20 (no target line anywhere; the fill lines are nominal), 48 (the CSP is main's: no `unsafe-*`).
+- Decisions / ADRs / `00_STATE.md` rows: none minted. D26 is withdrawn from this branch (allocation is the orchestrator's). Palette B is the owner's 17 Oct decision, recorded in the evidence and the PR.
+- Blocked on: nothing. The pages still missing are INT-562..565 (#951..#954); the synthetic host's Unknowns clear with INT-567 (#956) and INT-566 (#955).
+- Next: INT-562 (Safety queue page), INT-564 (Compliance, Models, Experience pages), INT-565 (Protocols, Clinical quality, Security, Cost), INT-563 (four-eyes approval through a WebAuthn step-up).
 - LOOP_STATUS: CONTINUE
 
 ### 2026-10-29T01:30:00+03:00 · INT-586 · done (PR open)

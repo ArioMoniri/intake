@@ -6622,6 +6622,64 @@
     - "the chosen voice and model are pinned with a profile version bump and the bundled set is re-rendered; intonation continuity between words is measured"
   tests: [tests/voice/test_cast_turkish_voices.py]
   sec_row: "cloud-clipgen"
+- id: INT-450
+  epic: E12-admin
+  phase: P1
+  title: "admin-web UI upgrade with owner-listed component libraries (licence-checked)"
+  # GitHub #763. Owner request, 3 Oct 2026: eight libraries named for the admin
+  # console. Each was licence-checked from its raw LICENSE blob or, where none
+  # exists, its licence/terms page (docs/evidence/INT-450.md). Adopted by
+  # porting into the console's own server-rendered markup and stylesheet (the
+  # CSP admits no inline style and no foreign script): EvilCharts, beUI's public
+  # library and Astryx (MIT) and two free Transitions.dev transitions. Not
+  # adopted: Kinetics (no LICENSE in its repository), Kobra and Reverse UI (paid
+  # licences, an owner purchase), Beautiful UI (MIT, but no component fits an
+  # ops console). Cost and Roadmap have no rendered page on main and Model
+  # lanes is PR #751, so their charts follow those pages.
+  depends_on: [INT-181, INT-182, INT-187, INT-351, INT-366]
+  labels: [area:admin]
+  status: done
+  evidence: docs/evidence/INT-450.md
+  acceptance:
+    - "kobra, beautifului, beui, reverseui, astryx, transitions, evilcharts and kinetics are each licence-verified from their raw LICENSE."
+    - "Admin-web dashboards, charts and interactions are upgraded with the adopted ones. Accessibility is tested and before/after captures are recorded."
+  tests: [apps/admin-web/e2e/accessibility.spec.ts, apps/admin-web/src/ui/charts.test.tsx]
+  sec_row: "admin-console"
+- id: INT-459
+  epic: E12-admin
+  phase: P1
+  title: "admin-web premium redesign"
+  # GitHub #783. Owner request, 3 Oct 2026: the console should read as premium
+  # and Apple-native rather than AI-generated. Builds on INT-450 (PR #776). A
+  # tokenised light/dark layer (WCAG AA asserted from the tokens, text on glass
+  # included); a glass sidebar and top bar, a floating glass tab bar on a narrow
+  # screen, glass on chrome only with solid fallbacks (reduced transparency,
+  # increased contrast, no backdrop-filter); inset tables, inspector lists,
+  # settings-style four-eyes forms; centred refused/unavailable states, an
+  # inset empty state and a per-request not-found page. Spring motion, none on a
+  # control. A route-level loading.tsx was built and withdrawn: the page then
+  # streams SVG segments in style attributes the CSP refuses. No code copied;
+  # licences re-read (docs/evidence/INT-459.md). Model lanes (INT-428, PR
+  # #751) takes the shell through its shared class names.
+  # Refresh, 17-28 Oct 2026 (owner: "ui is not good and so basic"): the shell
+  # landed on current main; D26 and the loading state withdrawn (main has no
+  # D26); Palette B (the app's warm paper and teal, owner 17 Oct) in one
+  # tokens file pinned to apps/mobile's theme; a dense twelve-column grid,
+  # wrapping cells and sticky headers; unknown tiles that say what fills them,
+  # empty tables that say what puts a row there, and refused pages that keep
+  # the shell (INT-569). Supersedes PRs #776 and #784.
+  depends_on: [INT-450]
+  labels: [area:admin]
+  status: done
+  evidence: docs/evidence/INT-459.md
+  acceptance:
+    - "Translucent glass only on chrome (sidebar, top bar, sheets); content sits on solid fills; prefers-reduced-transparency, prefers-contrast and prefers-reduced-motion each have a fallback."
+    - "Light and dark themes come from one token set, and WCAG AA contrast is asserted by tests in both themes."
+    - "Motion is subtle and spring-based, and none of it is on a critical control."
+    - "Behaviour is unchanged: no API contract, auth, approval-flow or four-eyes change; no IP restriction; no PHI in fixtures."
+    - "Before/after captures from the local dev server are recorded."
+  tests: [apps/admin-web/e2e/native.spec.ts, apps/admin-web/e2e/states.spec.ts, apps/admin-web/src/ops/nav.test.tsx, apps/admin-web/e2e/accessibility.spec.ts]
+  sec_row: "admin-console"
 - id: INT-421
   epic: E13-infra
   phase: P0

@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**377 issues.** By phase: P0 183 · P1 140 · P2 47 · P3 7. By status: awaiting-human 39 · doing 7 · done 256 · todo 74 · withdrawn 1.
+**379 issues.** By phase: P0 183 · P1 142 · P2 47 · P3 7. By status: awaiting-human 39 · doing 7 · done 258 · todo 74 · withdrawn 1.
 
 ## P0
 
@@ -318,6 +318,8 @@
 | INT-414 | Conversational question delivery — warm opener, context- and affect-aware lead-ins, questions verbatim | E08-mobile | INT-415 | area:mobile | done |
 | INT-447 | Clinical decisions batch 2 — verify INT-414's 48 delivery lines (PolicyGuard, B1, siz, sourced) | E08-mobile | INT-432 | area:mobile, risk:clinical | done |
 | INT-449 | Turkish voice casting: the best native Turkish ElevenLabs voice and model, natural intonation | E05-voice | INT-415 | area:voice | done |
+| INT-450 | admin-web UI upgrade with owner-listed component libraries (licence-checked) | E12-admin | INT-181, INT-182, INT-187, INT-351, INT-366 | area:admin | done |
+| INT-459 | admin-web premium redesign | E12-admin | INT-450 | area:admin | done |
 | INT-463 | All CI jobs on the AWS self-hosted runner | E13-infra | INT-206, INT-426 | area:ci, approval:human-infra | awaiting-human |
 | INT-467 | A pool of three ephemeral intake-aws-ci runners, each isolated as runner 1 is | E13-infra | INT-463 | area:ci, approval:human-infra | awaiting-human |
 | INT-460 | Second admin approver for synthetic staging: a second Keycloak user, never a second dev bearer | E12-admin | INT-180, INT-325, INT-365 | area:admin, risk:security | done |
