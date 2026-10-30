@@ -332,8 +332,8 @@ def _sign_in_notice_from_settings(
     ``push_channel_unconfigured`` gauge). Never SMS."""
     from intake_api.auth_store import AuthStore
     from intake_api.device_sessions import DeviceSessionStore
-    from intake_api.push_apns import push_gateway_from_settings
     from intake_api.push_port import PushUnconfigured
+    from intake_api.push_wiring import push_gateway_from_settings
     from intake_api.sign_in_notice import NoSignInNoticeChannel, PushSignInNotice, mark_channel
 
     gateway = push_gateway_from_settings(settings, secrets)

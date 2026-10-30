@@ -14,7 +14,6 @@ import base64
 import importlib
 import json
 import logging
-from pathlib import Path
 from types import ModuleType
 from typing import Any
 
@@ -25,7 +24,6 @@ from api_harness import run
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives.asymmetric.utils import encode_dss_signature
-from intake_api.settings import ApiSettings
 from intake_platform.egress import InMemoryTransferLog
 from prometheus_client import REGISTRY
 
@@ -70,6 +68,7 @@ def gateway(
     clock: Clock | None = None,
     policy: Any = None,
     transfer_log: Any = None,
+    proxy: str | None = None,
 ) -> Any:
     module = apns()
     credentials = module.ApnsCredentials.parse(kit.vault_doc(key or kit.signing_key()))
@@ -80,6 +79,7 @@ def gateway(
         inner=vendor.transport(),
         transfer_log=transfer_log,
         now_fn=clock or Clock(),
+        proxy=proxy,
     )
 
 
@@ -338,106 +338,6 @@ def test_a_malformed_field_is_named(field: str, value: str) -> None:
     assert field in str(refused.value)
 
 
-# --- wiring: fail closed with a typed reason ---------------------------------------------------
-
-
-class Vault:
-    """The OpenBao reader, recording which paths were read."""
-
-    def __init__(self, documents: dict[str, dict[str, Any]]) -> None:
-        self.documents = documents
-        self.reads: list[str] = []
-
-    def get_kv(self, path: str) -> dict[str, Any]:
-        self.reads.append(path)
-        return self.documents[path]
-
-
-def _settings(allowlist: Path, environment: str | None = None) -> ApiSettings:
-    return ApiSettings(
-        token_patient=None,
-        token_admin=None,
-        app_db_url="postgresql+psycopg://app_rw@db.internal:5432/intake",
-        audit_db_url="postgresql+psycopg://svc_audit_writer@db.internal:5432/intake",
-        bootstrap_db_url="postgresql+psycopg://intake_owner@db.internal:5432/intake",
-        kek_mode="transit",
-        environment="production",
-        egress_allowlist_path=allowlist,
-        app_attest_environment=environment,
-    )
-
-
-def test_the_shipped_allowlist_refuses_apns_so_no_key_is_read() -> None:
-    vault = Vault({"api/apns": kit.vault_doc(kit.signing_key())})
-    result = apns().push_gateway_from_settings(_settings(kit.SHIPPED_ALLOWLIST), vault)
-    assert result is port().PushUnconfigured.EGRESS_REFUSED
-    assert vault.reads == []
-
-
-def test_with_the_row_the_gate_and_the_key_the_gateway_is_wired(
-    tmp_path: Path, phi_gate: None
-) -> None:
-    vault = Vault({"api/apns": kit.vault_doc(kit.signing_key())})
-    result = apns().push_gateway_from_settings(
-        _settings(kit.allowlist_with_the_row(tmp_path)), vault
-    )
-    assert isinstance(result, apns().ApnsPushGateway)
-    assert result.host == kit.HOST
-    assert vault.reads == ["api/apns"]
-
-
-def test_a_development_build_pushes_to_the_sandbox(tmp_path: Path, phi_gate: None) -> None:
-    """The APNs host follows App Attest's environment (one provisioning
-    profile carries both). Near miss: the production row does not admit it."""
-    vault = Vault({"api/apns": kit.vault_doc(kit.signing_key())})
-    sandbox = _settings(kit.allowlist_with_the_row(tmp_path, kit.SANDBOX_HOST), "development")
-    result = apns().push_gateway_from_settings(sandbox, vault)
-    assert isinstance(result, apns().ApnsPushGateway) and result.host == kit.SANDBOX_HOST
-    production_row_only = _settings(kit.allowlist_with_the_row(tmp_path), "development")
-    assert (
-        apns().push_gateway_from_settings(production_row_only, vault)
-        is port().PushUnconfigured.EGRESS_REFUSED
-    )
-    assert apns().apns_environment("Development") == "production"
-
-
-def test_no_key_in_openbao_is_no_channel(tmp_path: Path, phi_gate: None) -> None:
-    result = apns().push_gateway_from_settings(
-        _settings(kit.allowlist_with_the_row(tmp_path)), Vault({})
-    )
-    assert result is port().PushUnconfigured.NO_CREDENTIALS
-
-
-def test_a_malformed_key_is_no_channel_and_names_no_value(
-    tmp_path: Path, phi_gate: None, caplog: pytest.LogCaptureFixture
-) -> None:
-    caplog.set_level(logging.WARNING)
-    document = kit.vault_doc(kit.signing_key())
-    document["team_id"] = "not-a-team"
-    result = apns().push_gateway_from_settings(
-        _settings(kit.allowlist_with_the_row(tmp_path)), Vault({"api/apns": document})
-    )
-    assert result is port().PushUnconfigured.MALFORMED_CREDENTIALS
-    text = "\n".join(r.getMessage() for r in caplog.records)
-    assert "team_id" in text and "not-a-team" not in text and "PRIVATE KEY" not in text
-
-
-def test_without_http2_there_is_no_channel(
-    tmp_path: Path, phi_gate: None, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    module = apns()
-    real = module.importlib.util.find_spec
-    monkeypatch.setattr(
-        module.importlib.util, "find_spec", lambda name: None if name == "h2" else real(name)
-    )
-    vault = Vault({"api/apns": kit.vault_doc(kit.signing_key())})
-    result = module.push_gateway_from_settings(
-        _settings(kit.allowlist_with_the_row(tmp_path)), vault
-    )
-    assert result is port().PushUnconfigured.HTTP2_UNAVAILABLE
-    assert vault.reads == []
-
-
 def test_http2_support_is_installed() -> None:
     """APNs speaks HTTP/2 only; the shipped API image carries h2."""
     assert importlib.util.find_spec("h2") is not None
@@ -464,3 +364,36 @@ def test_httpx_request_lines_never_carry_the_device_token(
     assert any("/3/device/<redacted>" in line for line in lines)
     logging.getLogger("httpx").info("HTTP Request: %s %s", "GET", "https://example.test/healthz")
     assert caplog.records[-1].getMessage() == "HTTP Request: GET https://example.test/healthz"
+
+
+# --- the synthetic host's route: the dedicated push-egress proxy ---------------------------
+
+
+def test_through_the_push_proxy_the_name_survives_to_the_connect(phi_gate: None) -> None:
+    """Behind push-egress the hostname reaches the CONNECT line (the proxy
+    matches on it and resolves at connect), so this process does not pin an
+    address, and the allow-list, purpose and gate still decide first."""
+    vendor = kit.Vendor(kit.replay("accepted"))
+    log = InMemoryTransferLog()
+    receipt = send(gateway(vendor, proxy="http://push-egress:3128", transfer_log=log))
+    assert receipt.push_id
+    [request] = vendor.requests
+    assert request.url.host == kit.HOST, "no pinned address behind the proxy"
+    [record] = log.entries
+    assert (record.decision, record.host) == ("allow", kit.HOST)
+
+
+def test_through_the_push_proxy_a_refused_host_still_never_leaves(phi_gate: None) -> None:
+    vendor = kit.Vendor(kit.replay("accepted"))
+    with pytest.raises(port().PushDeliveryError) as refused:
+        send(gateway(vendor, proxy="http://push-egress:3128", policy=kit.empty_policy()))
+    assert refused.value.reason is port().PushFailure.EGRESS_DENIED
+    assert vendor.requests == []
+
+
+@pytest.mark.parametrize(
+    "proxy", ["http://sms-egress:3128", "http://egress-proxy:3128", "http://push-egress:3129"]
+)
+def test_no_other_proxy_is_accepted(proxy: str) -> None:
+    with pytest.raises(ValueError, match="push-egress"):
+        gateway(kit.Vendor(kit.replay("accepted")), proxy=proxy)

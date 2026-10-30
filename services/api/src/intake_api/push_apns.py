@@ -36,7 +36,12 @@ derived from those pages; nothing in a test reaches Apple.
 - Credentials from OpenBao only (invariant 14): ``secret/api/apns`` holds
   ``key_p8``, ``key_id`` and ``team_id``; ``infra/staging/apns_secrets.sh``
   writes it from SSM. No environment variable is read. A refusal names the
-  field, never the value; the key never reaches ``repr``.
+  field, never the value; the key never reaches ``repr``. The wiring is
+  ``intake_api.push_wiring``.
+- On the synthetic host every network is internal: the call rides the
+  push-only forward proxy ``push-egress`` (ADR-042's pattern), the one proxy
+  ``intake_platform.egress`` admits for this purpose. TLS and HTTP/2 run end
+  to end through its CONNECT tunnel, so it sees ``host:443`` and nothing else.
 - Logs and metrics carry no token, no key, no vendor text (invariant 6): the
   APNs reason is logged only when it is one of Apple's documented strings, and
   httpx's own request line, whose URL holds the token, is redacted on the
@@ -47,35 +52,29 @@ derived from those pages; nothing in a test reaches Apple.
 from __future__ import annotations
 
 import base64
-import importlib.util
 import json
 import logging
 import re
 import time
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
-from pathlib import Path
 from types import MappingProxyType
-from typing import Any, Final, Literal, Protocol
+from typing import Final, Literal
 
 import httpx
-import yaml
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives.asymmetric.utils import decode_dss_signature
 from intake_platform.egress import (
+    DEDICATED_PERSONAL_PROXIES,
     DataClass,
-    EgressConfigError,
     EgressContext,
     EgressDenied,
     EgressPolicy,
     EgressPurpose,
     TransferLog,
-    assert_dev_only_vendors,
     guarded_async_client,
-    load_allowlist,
 )
-from intake_platform.secrets import SecretsBootError, SecretsProvider
 from prometheus_client import Counter
 
 from intake_api.device_sessions import APNS_TOKEN_SHAPE
@@ -84,9 +83,7 @@ from intake_api.push_port import (
     PushDeliveryError,
     PushFailure,
     PushReceipt,
-    PushUnconfigured,
 )
-from intake_api.settings import ApiSettings
 
 __all__ = [
     "APNS_DOCUMENTED_REASONS",
@@ -101,7 +98,6 @@ __all__ = [
     "ApnsPushGateway",
     "apns_environment",
     "provider_token",
-    "push_gateway_from_settings",
 ]
 
 logger = logging.getLogger("intake_api.push_apns")
@@ -210,12 +206,6 @@ class ApnsConfigError(ValueError):
     message names fields, never values."""
 
 
-class KvSecrets(Protocol):
-    """The slice of :class:`intake_platform.secrets.SecretsProvider` used here."""
-
-    def get_kv(self, path: str) -> dict[str, Any]: ...
-
-
 @dataclass(frozen=True)
 class ApnsCredentials:
     """The ``.p8`` signing key, its Key ID and the Team ID."""
@@ -300,8 +290,15 @@ class ApnsPushGateway:
         transfer_log: TransferLog | None = None,
         timeout: httpx.Timeout = DEFAULT_TIMEOUT,
         now_fn: Callable[[], float] | None = None,
+        proxy: str | None = None,
     ) -> None:
+        # the synthetic host's push-only proxy (push-egress), or None (resolve
+        # and pin in process); intake_platform.egress admits no other proxy,
+        # and neither does this constructor
+        if proxy is not None and proxy != DEDICATED_PERSONAL_PROXIES[PUSH_EGRESS.purpose]:
+            raise ValueError("a push call rides only the dedicated push-egress proxy")
         self._credentials = credentials
+        self._proxy = proxy
         self._topic = topic
         self._policy = egress
         self._host = APNS_HOSTS[environment]
@@ -314,6 +311,11 @@ class ApnsPushGateway:
     @property
     def host(self) -> str:
         return self._host
+
+    @property
+    def proxy(self) -> str | None:
+        """The push-only forward proxy this adapter rides, if any."""
+        return self._proxy
 
     def _now(self) -> float:
         return self._now_fn() if self._now_fn is not None else time.time()
@@ -344,7 +346,11 @@ class ApnsPushGateway:
         if not APNS_TOKEN_SHAPE.fullmatch(device_token):
             raise self._failed(PushFailure.REJECTED, None, None)
         url, headers, body = self._request(device_token, alert)
-        inner = self._inner if self._inner is not None else httpx.AsyncHTTPTransport(http2=True)
+        inner = (
+            self._inner
+            if self._inner is not None
+            else httpx.AsyncHTTPTransport(http2=True, proxy=self._proxy)
+        )
         response: httpx.Response | None = None
         reason: PushFailure | None = None
         async with guarded_async_client(
@@ -352,6 +358,7 @@ class ApnsPushGateway:
             PUSH_EGRESS,
             inner=inner,
             transfer_log=self._transfer_log,
+            proxy=self._proxy,
             timeout=self._timeout,
         ) as client:
             try:
@@ -415,71 +422,3 @@ def _documented_reason(response: httpx.Response) -> str | None:
         return None
     reason = body.get("reason") if isinstance(body, dict) else None
     return reason if isinstance(reason, str) and reason in APNS_DOCUMENTED_REASONS else None
-
-
-# --- wiring -----------------------------------------------------------------------------
-
-
-def _push_egress_policy(path: Path, host: str) -> EgressPolicy | None:
-    """The PHI-tier policy, or None when it does not admit APNs: no row for
-    this purpose and host, or the runtime PHI gate shut."""
-    try:
-        allowlist = load_allowlist(path)
-        assert_dev_only_vendors(allowlist)
-    except (OSError, ValueError, EgressConfigError, yaml.YAMLError) as exc:
-        logger.warning(
-            "push channel unconfigured: the egress allow-list is unusable (%s)", type(exc).__name__
-        )
-        return None
-    policy = EgressPolicy.for_tier(allowlist, "phi_path")
-    decision = policy.check(host, APNS_PORT, PUSH_EGRESS)
-    if not decision.allowed:
-        logger.warning(
-            "push channel unconfigured: the egress policy refuses APNs until the owner "
-            "applies its row (%s)",
-            decision.reason,
-        )
-        return None
-    return policy
-
-
-def _document_from_vault(secrets: KvSecrets | None) -> dict[str, Any] | None:
-    try:
-        vault = secrets if secrets is not None else SecretsProvider.from_env()
-        return vault.get_kv(APNS_KV_PATH)
-    except (SecretsBootError, httpx.HTTPError, KeyError, TypeError, ValueError) as exc:
-        logger.warning(
-            "push channel unconfigured: the APNs key is not readable from OpenBao secret/%s (%s)",
-            APNS_KV_PATH,
-            type(exc).__name__,
-        )
-    return None
-
-
-def push_gateway_from_settings(
-    settings: ApiSettings, secrets: KvSecrets | None = None
-) -> ApnsPushGateway | PushUnconfigured:
-    """The APNs gateway, or the typed reason there is none (the notice then
-    fails closed). The egress check runs before the vault read, so a host the
-    policy refuses never has the key pulled into memory."""
-    if importlib.util.find_spec("h2") is None:
-        logger.warning("push channel unconfigured: HTTP/2 support (h2) is not installed")
-        return PushUnconfigured.HTTP2_UNAVAILABLE
-    environment = apns_environment(settings.app_attest_environment)
-    policy = _push_egress_policy(settings.egress_allowlist_path, APNS_HOSTS[environment])
-    if policy is None:
-        return PushUnconfigured.EGRESS_REFUSED
-    document = _document_from_vault(secrets)
-    if document is None:
-        return PushUnconfigured.NO_CREDENTIALS
-    try:
-        credentials = ApnsCredentials.parse(document)
-    except ApnsConfigError as exc:
-        logger.warning("push channel unconfigured: %s", exc)
-        return PushUnconfigured.MALFORMED_CREDENTIALS
-    return ApnsPushGateway(
-        credentials,
-        topic=settings.app_attest_bundle_id,
-        egress=policy,
-        environment=environment,
-    )

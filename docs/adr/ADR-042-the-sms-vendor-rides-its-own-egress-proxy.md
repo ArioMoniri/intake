@@ -2,6 +2,8 @@
 
 Status: Accepted, 16 Oct 2026 (route decision relayed by the orchestrator for INT-528, GitHub #895; amends ADR-032 for one purpose)
 
+Amended 30 Oct 2026 by ADR-045: a second purpose, the new-device sign-in notice (`push_security_notice`), rides its own proxy, `push-egress`, on this same pattern.
+
 ## Context
 
 The owner chose Netgsm's OTP SMS product as the SMS vendor (INT-358, 16 Oct 2026), and INT-528

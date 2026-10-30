@@ -111,7 +111,12 @@ def test_a_gpu_box_model_is_never_deployed_on_the_aws_host() -> None:
 
 
 def test_what_the_host_runs_is_derived_not_declared_twice() -> None:
-    assert _inventory().deployed() == NEEDED | {"egress-proxy", "sms-egress", "probes"}
+    assert _inventory().deployed() == NEEDED | {
+        "egress-proxy",
+        "sms-egress",
+        "push-egress",
+        "probes",
+    }
 
 
 def test_only_what_the_stack_needs_is_needed() -> None:
@@ -123,6 +128,8 @@ def test_a_component_that_is_not_needed_says_why() -> None:
     assert inventory.not_needed_reason("egress-proxy") is NotNeededReason.FAILS_CLOSED_WITHOUT_IT
     # ADR-042's SMS proxy: the OTP send answers 503 without it, nothing else calls it
     assert inventory.not_needed_reason("sms-egress") is NotNeededReason.FAILS_CLOSED_WITHOUT_IT
+    # ADR-045's push proxy: a push fails as unreachable without it, nothing else calls it
+    assert inventory.not_needed_reason("push-egress") is NotNeededReason.FAILS_CLOSED_WITHOUT_IT
     assert inventory.not_needed_reason("probes") is NotNeededReason.OBSERVES_ONLY
     # near miss: a needed component has no reason not to be needed
     assert inventory.not_needed_reason("postgres") is None
@@ -158,9 +165,10 @@ def test_every_probe_address_is_an_internal_compose_name_without_a_credential() 
                 assert "@" not in placement.probe_at, placement.probe_at
 
 
-#: The two boundary proxies: `outbound`/`vendor` (INT-442) and `sms-out`/`sms-wan`
-#: (ADR-042) are the networks the probes service never joins.
-UNPROBED_PROXIES = ("egress-proxy", "sms-egress")
+#: The three boundary proxies: `outbound`/`vendor` (INT-442), `sms-out`/`sms-wan`
+#: (ADR-042) and `push-out`/`push-wan` (ADR-045) are the networks the probes
+#: service never joins.
+UNPROBED_PROXIES = ("egress-proxy", "sms-egress", "push-egress")
 
 
 @pytest.mark.parametrize("proxy", UNPROBED_PROXIES)

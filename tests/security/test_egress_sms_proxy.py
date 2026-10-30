@@ -66,7 +66,11 @@ def phi_egress(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def test_the_one_dedicated_proxy_is_the_sms_purpose_s() -> None:
-    assert dict(DEDICATED_PERSONAL_PROXIES) == {EgressPurpose.SMS_OTP_DELIVERY: SMS_PROXY}
+    """ADR-042's SMS pair, and (ADR-045, INT-583) the push notice's pair beside it."""
+    assert dict(DEDICATED_PERSONAL_PROXIES) == {
+        EgressPurpose.SMS_OTP_DELIVERY: SMS_PROXY,
+        EgressPurpose.PUSH_SECURITY_NOTICE: "http://push-egress:3128",
+    }
 
 
 def test_the_sms_call_rides_its_dedicated_proxy_with_the_hostname_intact(
@@ -146,11 +150,13 @@ HOSTED = EgressPurpose.HOSTED_MODEL_INFERENCE
 
 
 def test_each_routed_purpose_is_bound_to_its_one_proxy() -> None:
-    """The SMS call rides only sms-egress; a hosted-model call only egress-proxy."""
+    """The SMS call rides only sms-egress; a hosted-model call only egress-proxy;
+    the push notice only push-egress (ADR-045)."""
     from intake_platform import egress
 
     assert dict(egress.PURPOSE_PROXIES) == {
         EgressPurpose.SMS_OTP_DELIVERY: SMS_PROXY,
+        EgressPurpose.PUSH_SECURITY_NOTICE: "http://push-egress:3128",
         HOSTED: SHARED_PROXY,
     }
 

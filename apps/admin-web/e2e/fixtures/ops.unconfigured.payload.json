@@ -500,6 +500,24 @@
           "severity_reason": "planned_not_running"
         },
         {
+          "component": "push-egress",
+          "pin": null,
+          "self_hostable": true,
+          "self_hosted_now": false,
+          "phi_path": true,
+          "probe": "tcp_connect",
+          "deployment": "undeclared",
+          "needed": null,
+          "not_needed_reason": null,
+          "probe_status": "no_result",
+          "probe_checked_at": null,
+          "probe_age_s": null,
+          "probe_stale": true,
+          "licence_verified_at": "2026-08-29",
+          "severity": "attention",
+          "severity_reason": "planned_not_running"
+        },
+        {
           "component": "edge-ingress",
           "pin": null,
           "self_hostable": true,
@@ -656,6 +674,19 @@
       "reason": "prometheus_unconfigured",
       "branch": null,
       "workflows": []
+    },
+    "sms": {
+      "state": "unknown",
+      "reason": "prometheus_unconfigured",
+      "window": "1h",
+      "baseline_window": "1d",
+      "spike_factor": 3,
+      "spike_floor_per_hour": 20,
+      "requests_last_hour": null,
+      "requests_last_day": null,
+      "baseline_per_hour": null,
+      "spike": null,
+      "kill_switch_engaged": null
     }
   }
 }

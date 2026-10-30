@@ -840,20 +840,28 @@ class _GuardedAsyncTransport(httpx.AsyncBaseTransport):
         await self._inner.aclose()
 
 
-#: ADR-042: the one purpose whose personal-data call may ride a forward proxy,
-#: and the one proxy it may ride. ``sms-egress`` is the synthetic host's
+#: ADR-042: the purposes whose personal-data call may ride a forward proxy,
+#: and the one proxy each may ride. ``sms-egress`` is the synthetic host's
 #: SMS-only proxy (infra/staging/compose.yaml): it sits on a network shared
 #: with the API alone, renders the allow-list's SMS row and nothing else
 #: (scripts/security/render_sms_egress_conf.py), closes the rebinding window
-#: itself and refuses the denied ranges at connect. Exact string match: no
-#: other scheme, host or port qualifies, and no other purpose has an entry.
+#: itself and refuses the denied ranges at connect. INT-583 adds the second
+#: pair on the same pattern: ``push-egress``, the push-only proxy for the
+#: new-device sign-in notice (D35), on networks of its own, rendering the
+#: allow-list's APNs rows and nothing else
+#: (scripts/security/render_push_egress_conf.py). Exact string match: no other
+#: scheme, host or port qualifies, and no other purpose has an entry.
 DEDICATED_PERSONAL_PROXIES: Final[Mapping[EgressPurpose, str]] = MappingProxyType(
-    {EgressPurpose.SMS_OTP_DELIVERY: "http://sms-egress:3128"}
+    {
+        EgressPurpose.SMS_OTP_DELIVERY: "http://sms-egress:3128",
+        EgressPurpose.PUSH_SECURITY_NOTICE: "http://push-egress:3128",
+    }
 )
 
-#: INT-442 x ADR-042: the synthetic host has two forward proxies, and a purpose
-#: that rides one rides only its own, whatever the data class. The SMS call
-#: rides ``sms-egress`` (above); a hosted-model call (ADR-035) rides
+#: INT-442 x ADR-042: the synthetic host has three forward proxies, and a
+#: purpose that rides one rides only its own, whatever the data class. The SMS
+#: call rides ``sms-egress`` and the push notice ``push-egress`` (above,
+#: INT-583); a hosted-model call (ADR-035) rides
 #: ``egress-proxy``, the default-deny proxy rendered from the allow-list's
 #: hosted rows. Either may also go direct, where the process resolves and pins
 #: itself. A dedicated proxy carries nothing but its own purpose, so the SMS
@@ -870,7 +878,8 @@ PURPOSE_PROXIES: Final[Mapping[EgressPurpose, str]] = MappingProxyType(
 
 def _refuse_personal_proxy(context: EgressContext, proxy: str | None) -> None:
     """A personal-data transport may not delegate its pin (INT-203), except the
-    one pair ADR-042 admits: the SMS purpose through its dedicated proxy."""
+    pairs ADR-042 admits: the SMS purpose and (INT-583) the push notice, each
+    through its own dedicated proxy."""
     if proxy is not None and DEDICATED_PERSONAL_PROXIES.get(context.purpose) == proxy:
         return
     if context.data_class.is_personal and proxy is not None:

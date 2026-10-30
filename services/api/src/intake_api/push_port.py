@@ -63,6 +63,9 @@ class PushUnconfigured(StrEnum):
     MALFORMED_CREDENTIALS = "malformed_credentials"
     EGRESS_REFUSED = "egress_refused"
     HTTP2_UNAVAILABLE = "http2_unavailable"
+    #: on the synthetic host the dedicated push proxy is the only route out,
+    #: and it is not named, or a proxy other than it is named
+    NO_ROUTE = "no_route"
 
 
 @final

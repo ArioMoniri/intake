@@ -667,6 +667,35 @@ components:
       unmodified behind a generated config file, which is data, not a
       derivative work; we do not distribute it.
 
+  # INT-583 (D35), on ADR-042's pattern — the synthetic host's push-only
+  # forward proxy. It carries personal data: the new-device sign-in notice's
+  # call (a device token addressed to a patient account) passes through it
+  # inside TLS, so it is on the PHI path. The same squid as egress-proxy and
+  # sms-egress, pinned by the same digest in infra/staging/compose.yaml.
+  - component: push-egress
+    self_hostable: true
+    # false until a deploy carrying INT-583 runs on the synthetic host
+    self_hosted_now: false
+    host: "infra/staging/compose.yaml, service `push-egress` — ubuntu/squid:6.6-24.04_edge pinned by digest, on the internal push-out network (shared with the API alone) and push-wan; squid.conf GENERATED from infra/security/egress-allowlist.yaml by scripts/security/render_push_egress_conf.py (push_security_notice rows only). Validated statically by tests/infra/test_staging_push_egress.py"
+    license: "GPL-2.0-or-later (COPYING blob verified @SQUID_6_6 — see egress-proxy's licence_note)"
+    # tcp_connect, as for the other two proxies: a probe that sent traffic
+    # through the boundary would be a push to Apple.
+    probe: tcp_connect
+    budget_ms: 1000
+    # A failed proxy means no notice leaves: the push fails as unreachable,
+    # typed and audited, and the sign-in is unaffected. Nothing to fall back
+    # to without reopening the boundary, and never an SMS (D35).
+    fallback: "none"
+    phi_path: true
+    licence_verified_at: 2026-08-29
+    licence_blob_url: "https://raw.githubusercontent.com/squid-cache/squid/e8118a7381213f5cfcdeb4cec1d2d854bfd261c8/COPYING"
+    licence_blob_sha256: "8177f97513213526df2cf6184d8ff986c675afb514d4e68a404010521b880643"
+    licence_note: >-
+      The same upstream squid 6.6 as egress-proxy, verified there from the raw
+      COPYING blob and a source header at tag SQUID_6_6 (2026-08-29). It runs
+      unmodified behind a generated config file, which is data, not a
+      derivative work; we do not distribute it.
+
   # INT-203 — the edge (files/10 §4 `Edge:`). Two components, one policy:
   # infra/security/edge/edge-policy.yaml renders Traefik's static and dynamic
   # configuration, CrowdSec's scenarios and acquisition, and the cert-manager

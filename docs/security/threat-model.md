@@ -765,8 +765,9 @@ it or whose tests exercise it.
   That is engineering's proposal for the legal lane. **Residuals:** a SIM-swapped intruder can
   sign in again by SMS after being signed out; only the passkey step-up (INT-582) or an
   operator lock ends that. A patient whose only device is lost gets no notice. On the
-  synthetic host the API has no network route to Apple until an ADR-042-style push proxy is
-  deployed. A development-signed build's sandbox token is refused by the production host and
+  synthetic host the call rides its own proxy, `push-egress` (ADR-045, on ADR-042's pattern:
+  an internal network shared with the API alone and a config rendered from the allow-list's
+  APNs rows, which admits nothing until the owner's rows). A development-signed build's sandbox token is refused by the production host and
   dropped.
 - **The SMS delivery bound, stated (INT-329, INT-528):** the vendor is Netgsm's OTP SMS
   product, the owner's decision of 16 Oct 2026 (INT-358), which records it as BTK-licensed and
@@ -906,7 +907,10 @@ it or whose tests exercise it.
   tokens refused, sign-out ending access tokens at once, the 24 h hold one second short and at
   the mark, "not me" recorded under the hold, and the two inventory rows
   (`tests/security/test_device_sessions.py`). The key into OpenBao, never printed
-  (`tests/infra/test_staging_apns.py`).
+  (`tests/infra/test_staging_apns.py`). ADR-045's push proxy: only Apple's hosts on 443 and
+  nothing without the rows, the three proxies on disjoint networks, `push-out` shared with the
+  API alone (`tests/infra/test_staging_push_egress.py`); the wiring's `no_route` without the
+  dedicated proxy or with any other (`tests/api/test_push_wiring.py`).
 
 ## `consent` — layered consent and scope enforcement
 

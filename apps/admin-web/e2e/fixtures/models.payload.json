@@ -917,6 +917,38 @@
       }
     },
     {
+      "component": "push-egress",
+      "self_hostable": true,
+      "self_hosted_now": false,
+      "host": "infra/staging/compose.yaml, service `push-egress` — ubuntu/squid:6.6-24.04_edge pinned by digest, on the internal push-out network (shared with the API alone) and push-wan; squid.conf GENERATED from infra/security/egress-allowlist.yaml by scripts/security/render_push_egress_conf.py (push_security_notice rows only). Validated statically by tests/infra/test_staging_push_egress.py",
+      "license": "GPL-2.0-or-later (COPYING blob verified @SQUID_6_6 — see egress-proxy's licence_note)",
+      "probe": "tcp_connect",
+      "budget_ms": 1000,
+      "fallback": "none",
+      "phi_path": true,
+      "pin": null,
+      "licence_verified_at": "2026-08-29",
+      "severity": "attention",
+      "findings": [
+        {
+          "code": "planned_not_running",
+          "detail": "push-egress: declared on the PHI path and not self-hosted now, so the release gate does not bind to it yet (infra/staging/compose.yaml, service `push-egress` — ubuntu/squid:6.6-24.04_edge pinned by digest, on the internal push-out network (shared with the API alone) and push-wan; squid.conf GENERATED from infra/security/egress-allowlist.yaml by scripts/security/render_push_egress_conf.py (push_security_notice rows only). Validated statically by tests/infra/test_staging_push_egress.py)."
+        }
+      ],
+      "benchmark": {
+        "lanes": {
+          "latency": {
+            "enabled": true,
+            "disabled_reason": null
+          },
+          "quality": {
+            "enabled": false,
+            "disabled_reason": "no named evaluation corpus is declared — a quality figure would have no corpus and no date to attach to (CLAUDE.md invariant 20; HUMAN_BLOCKERS HB-C10 and HB-A13 are open)"
+          }
+        }
+      }
+    },
+    {
       "component": "edge-ingress",
       "self_hostable": true,
       "self_hosted_now": false,

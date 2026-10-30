@@ -2044,8 +2044,10 @@ metrics:
       1 on the reason no push channel is wired for the sign-in notice, 0 on the
       others; all 0 when the APNs channel is up. Reasons: no_credentials (no
       APNs key in OpenBao secret/api/apns), malformed_credentials,
-      egress_refused (no APNs row on the allow-list, or the PHI gate shut) and
-      http2_unavailable. Set once at wiring. Emitted by intake_api.sign_in_notice.
+      egress_refused (no APNs row on the allow-list, or the PHI gate shut),
+      http2_unavailable and no_route (on the synthetic host the push-egress
+      proxy, ADR-045, is not named, or another proxy is). Set once at wiring.
+      Emitted by intake_api.sign_in_notice.
   - name: push_delivery_total
     type: counter
     labels: [vendor, outcome]

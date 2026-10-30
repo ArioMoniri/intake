@@ -280,6 +280,10 @@ class ApiSettings:
     # INT-528 / ADR-042: the synthetic host's SMS-only forward proxy, which the
     # Netgsm client alone rides. Unset → the call resolves and pins in process.
     sms_egress_proxy_url: str | None = None
+    # INT-583, on ADR-042's pattern: the synthetic host's push-only forward
+    # proxy, which the APNs client alone rides. Unset → the call resolves and
+    # pins in process, and on the synthetic host the push channel stays off.
+    push_egress_proxy_url: str | None = None
     # INT-580: the mobile app's own config, whose single webcredentials
     # associated domain (if any) the OTP SMS binds its code to. Never set from
     # the environment: the domain comes from the app's entitlement and nowhere
@@ -407,6 +411,7 @@ class ApiSettings:
                 os.environ.get(ENV_EGRESS_ALLOWLIST) or EGRESS_ALLOWLIST_DEFAULT
             ),
             sms_egress_proxy_url=os.environ.get("INTAKE_SMS_EGRESS_PROXY_URL") or None,
+            push_egress_proxy_url=os.environ.get("INTAKE_PUSH_EGRESS_PROXY_URL") or None,
             clinical_sources_path=Path(
                 os.environ.get("INTAKE_CLINICAL_SOURCES") or "infra/connectors/sources.yaml"
             ),

@@ -402,6 +402,7 @@ describe("the registry tile tells the truth about its host (INT-560)", () => {
         "openbao",
         "postgres",
         "probes",
+        "push-egress",
         "redis",
         "sms-egress",
       ].sort(),
@@ -417,7 +418,7 @@ describe("the registry tile tells the truth about its host (INT-560)", () => {
       expect(row.probeStatus === "healthy" && !row.probeStale).toBe(false);
     }
     // near miss: a deployed component the stack can do without is advisory, with why
-    for (const name of ["egress-proxy", "sms-egress"]) {
+    for (const name of ["egress-proxy", "sms-egress", "push-egress"]) {
       const proxy = view.tiles.models.rows.find((r) => r.component === name)!;
       expect(proxy.severity).toEqual("attention");
       expect(proxy.notNeededReason).toEqual("fails_closed_without_it");

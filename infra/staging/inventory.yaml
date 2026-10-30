@@ -114,3 +114,18 @@ services:
       # the host. The probes service stays off it, and the row says so.
       - component: sms-egress
         unprobed: outside_probe_networks
+  push-egress:
+    # INT-583 (D35): the new-device sign-in notice's only route to Apple's push
+    # service. Down, a push fails as unreachable, typed and audited
+    # (auth.notice.failed), and the sign-in it tells of is unaffected; nothing
+    # else calls it. Until the owner's APNs rows and key exist the push channel
+    # is off anyway (push_channel_unconfigured).
+    needed: false
+    not_needed_reason: fails_closed_without_it
+    components:
+      # it sits on `push-out` and `push-wan` only; `push-out` is kept to the
+      # API and this proxy alone (tests/infra/test_staging_push_egress.py),
+      # because any member of it could CONNECT through to Apple, a route off
+      # the host. The probes service stays off it, and the row says so.
+      - component: push-egress
+        unprobed: outside_probe_networks

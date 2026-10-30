@@ -20,9 +20,10 @@ host can send that data to a vendor. Two routes could make them false:
 What the texts were verified against (28 Oct 2026; ``hosted_reach`` reads
 each from the tree):
 - **Compose.** The services; who sits on each network that leads off the host
-  (``public``: caddy; ``vendor``: egress-proxy; ``sms-wan``: sms-egress); who
-  shares each of the api's networks with it (``outbound``: the hosted-lane
-  proxy alone; ``sms-out``: the SMS-only proxy alone, ADR-042); the api's
+  (``public``: caddy; ``vendor``: egress-proxy; ``sms-wan``: sms-egress;
+  ``push-wan``: push-egress); who shares each of the api's networks with it
+  (``outbound``: the hosted-lane proxy alone; ``sms-out``: the SMS-only proxy
+  alone, ADR-042; ``push-out``: the push-only proxy alone, ADR-045); the api's
   command, which is the image's uvicorn; and every other service that runs
   the api's image, with its command. Today that is ``probes`` (INT-560,
   #950): synthetic infrastructure probes on ``backend`` and ``edge`` only,
@@ -63,6 +64,19 @@ Widened again after the legal re-verification found the backend bypass.
 Re-cut on 28 Oct 2026 for the SMS proxy (sms-egress), after the core text
 named Netgsm. The legal-reviewer verifies it (docs/evidence/INT-529.md §12,
 §13).
+
+Re-cut on 30 Oct 2026 for the push proxy (push-egress, ADR-045, INT-583) at
+the orchestrator's direction, **for the legal lane to verify**. Its only
+purpose is the new-device sign-in notice (D35): a device token and constant
+words to Apple's push service, never audio, answers or documents, so none of
+the four no-vendor sentences is made false by it. It sits on ``push-out``
+(shared with the api alone) and ``push-wan`` (its own way off the host); the
+platform binds the push purpose to it and nothing else
+(``DEDICATED_PERSONAL_PROXIES``), and its rendered config admits only the
+allow-list's APNs rows, of which none ships until the owner's patch. Unlike
+the SMS re-cut, no text names the push processor yet: whether the core text
+and the notice must name Apple's push service is open
+(docs/legal/synthetic/documents.yaml, aydinlatma.app; docs/evidence/INT-583.md).
 """
 
 from __future__ import annotations
@@ -166,6 +180,8 @@ VERIFIED = Reach(
             "admin-web",
             "egress-proxy",
             "sms-egress",
+            # INT-583 / ADR-045: the push notice's own proxy (re-cut 30 Oct 2026)
+            "push-egress",
             # INT-560 (#950): synthetic probes only; see the backend/edge note below
             "probes",
             "caddy",
@@ -175,6 +191,7 @@ VERIFIED = Reach(
         "public": frozenset({"caddy"}),
         "vendor": frozenset({"egress-proxy"}),
         "sms-wan": frozenset({"sms-egress"}),
+        "push-wan": frozenset({"push-egress"}),
     },
     api_peers={
         # probes (INT-560, #950) sits on backend and edge only, both internal, so
@@ -187,6 +204,7 @@ VERIFIED = Reach(
         "edge": frozenset({"keycloak", "oauth2-proxy", "admin-web", "caddy", "probes"}),
         "outbound": frozenset({"egress-proxy"}),
         "sms-out": frozenset({"sms-egress"}),
+        "push-out": frozenset({"push-egress"}),
     },
     api_command=(
         None,
@@ -405,6 +423,35 @@ def test_the_sms_row_is_the_netgsm_host_on_its_own_proxy() -> None:
     assert VERIFIED.external["sms-wan"] == {"sms-egress"}
 
 
+# --- the push proxy (ADR-045): the push purpose alone, on networks of its own -------------
+
+
+def test_the_push_proxy_carries_the_push_purpose_alone_on_its_own_networks() -> None:
+    """INT-583 (re-cut 30 Oct 2026, for the legal lane): the api reaches Apple's
+    push service only through push-egress on ``push-out``; the platform binds the
+    push purpose to that one URL; its config admits the allow-list's APNs rows
+    and nothing else, so no audio, answer or document can take that route."""
+    compose = yaml.safe_load((REPO / "infra/staging/compose.yaml").read_text(encoding="utf-8"))
+    api_env = compose["services"]["api"]["environment"]
+    proxy = DEDICATED_PERSONAL_PROXIES[EgressPurpose.PUSH_SECURITY_NOTICE]
+    assert api_env["INTAKE_PUSH_EGRESS_PROXY_URL"] == proxy == "http://push-egress:3128"
+    assert VERIFIED.api_peers["push-out"] == {"push-egress"}
+    assert VERIFIED.external["push-wan"] == {"push-egress"}
+    conf = (REPO / "infra/staging/push-egress/squid.conf").read_text(encoding="utf-8")
+    allowed = [
+        line.split()[3:]
+        for line in conf.splitlines()
+        if line.startswith("acl push_vendor dstdomain")
+    ]
+    assert all(host.endswith("push.apple.com") for hosts in allowed for host in hosts)
+    tiers = _allowlist()["tiers"]
+    assert isinstance(tiers, dict)
+    push_rows = [
+        row for row in tiers.get("phi_path") or [] if row["purpose_id"] == "push_security_notice"
+    ]
+    assert all(row["host"].endswith("push.apple.com") for row in push_rows)
+
+
 @pytest.mark.parametrize(("document_id", "named"), sorted(SMS_PROCESSOR_TEXTS.items()))
 def test_only_the_text_that_speaks_of_sign_in_names_the_sms_processor(
     document_id: str, named: bool
@@ -620,6 +667,9 @@ def _with_external(network: str, member: str) -> Reach:
         _with_external("vendor", "api"),
         _with_peer("outbound", "sms-egress"),  # the two proxies' networks bridged
         _with_peer("sms-out", "egress-proxy"),
+        _with_peer("push-out", "sms-egress"),  # the push and SMS proxies bridged
+        _with_peer("push-out", "probes"),
+        _with_external("push-wan", "api"),
         _with_peer("backend", "voice-runtime"),
         # the probes service re-pointed at the voice runtime, a second service on
         # the api image, probes gaining a way out, or probes reaching a gateway

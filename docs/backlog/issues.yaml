@@ -7680,7 +7680,8 @@
   # detects the new device. Direct APNs (no relay): the APNs egress rows are the
   # owner's patch (owner-583-apns-egress.patch) and the key goes into OpenBao
   # secret/api/apns (infra/staging/apns_secrets.sh); until both, the notice
-  # fails closed with a typed reason.
+  # fails closed with a typed reason. On the synthetic host the push rides its
+  # own proxy, push-egress (ADR-045, amending ADR-042).
   depends_on: [INT-580]
   labels: [area:api, area:mobile, risk:security]
   status: done
@@ -7692,5 +7693,5 @@
     - "Send rules: every previously signed-in device with a token is told and the new device never is (near miss: the new device with a live session and a token of its own); never SMS; every notice audited with ids only (auth.notice.<outcome>); rate-limited per account; a token Apple calls gone is dropped."
     - "Mobile: push registration behind a lazy import(), permission denial handled, and a Cihazlarınız screen that signs one or all other devices out (ending their refresh and access tokens and push tokens) and takes 'Bu girişi ben yapmadım', which audits auth.session.disowned and pages SignInDisowned: the KVKK 72-hour clock starts (docs/runbooks/sms-abuse.md). A session younger than 24 h cannot sign the others out."
     - "Threat model and files/10 §9 onboarding row updated; every new metric in metrics_catalog.yaml."
-  tests: [tests/security/test_sign_in_notice.py, tests/security/test_device_sessions.py, tests/api/test_push_apns.py, tests/infra/test_staging_apns.py, tests/security/test_sms_hijacking.py, tests/security/test_egress_allowlist.py, tests/legal/test_consent_guard.py]
+  tests: [tests/security/test_sign_in_notice.py, tests/security/test_device_sessions.py, tests/api/test_push_apns.py, tests/api/test_push_wiring.py, tests/infra/test_staging_apns.py, tests/infra/test_staging_push_egress.py, tests/security/test_sms_hijacking.py, tests/security/test_egress_allowlist.py, tests/security/test_egress_sms_proxy.py, tests/legal/test_consent_guard.py, tests/legal/test_synthetic_vendor_tripwire.py]
   sec_row: "onboarding"

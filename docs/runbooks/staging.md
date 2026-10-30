@@ -250,6 +250,15 @@ tokenization key. Nothing else is set by editing a file by hand:
   end. Only the Netgsm client uses it (`INTAKE_SMS_EGRESS_PROXY_URL`). The
   hosted lanes have their own, `egress-proxy` on `outbound` (INT-442); each
   proxy refuses the other's purpose, in process and at the network.
+- **The push route (ADR-045, INT-583).** The new-device sign-in notice rides
+  a third proxy, `push-egress`, on the internal `push-out` network, which only
+  the API shares, and `push-wan`, its way off the host. It admits CONNECT to
+  the allow-list's APNs hosts on 443 and nothing else; until the owner applies
+  the APNs rows (owner-583-apns-egress.patch) it admits nothing. Only the APNs
+  client uses it (`INTAKE_PUSH_EGRESS_PROXY_URL`); without the variable the
+  push channel stays off here (`push_channel_unconfigured{reason="no_route"}`).
+  The key is `infra/staging/apns_secrets.sh`'s, written to OpenBao
+  `secret/api/apns` from the owner's SSM parameters.
 - The scripts print field and key names, never values or numbers. Their SSM
   commands carry only a script path. Run them through `aws ssm start-session`
   with `AWS-StartInteractiveCommand`; nothing secret ever goes into
@@ -377,8 +386,9 @@ The probes service's logins are its own and minimal:
 The probes service joins the `backend` and `edge` networks and no other, so it
 has no route off the host. It cannot reach the egress proxy, which sits on
 `outbound` and `vendor` only, nor the SMS proxy (`sms-egress`), whose
-`sms-out` network ADR-042 keeps to the API and that proxy alone. Those two
-rows therefore read "deployed, not probed" (`outside_probe_networks`). A probe failure never fails a deploy: the service
+`sms-out` network ADR-042 keeps to the API and that proxy alone, nor the push
+proxy (`push-egress`), whose `push-out` network ADR-045 keeps the same way.
+Those three rows therefore read "deployed, not probed" (`outside_probe_networks`). A probe failure never fails a deploy: the service
 stays alive, `/readyz` names an inventory it cannot load, and the page reads
 "sonuç yok".
 

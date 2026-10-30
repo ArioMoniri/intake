@@ -147,7 +147,7 @@ def test_every_registry_row_gets_a_result_and_none_is_silent() -> None:
 
 def test_what_the_host_runs_is_probed_and_healthy_when_it_answers() -> None:
     results = _sweep(_config(_Calls()))
-    probed = _inventory().deployed() - {"egress-proxy", "sms-egress"}
+    probed = _inventory().deployed() - {"egress-proxy", "sms-egress", "push-egress"}
     for component in probed:
         assert results[component].status is ProbeStatus.HEALTHY, (
             component,
@@ -164,7 +164,7 @@ def test_a_gpu_box_model_is_skipped_as_not_on_this_host_never_probed() -> None:
     assert not [url for url in calls.http if "880" in url], "no GPU-box port is dialled"
 
 
-@pytest.mark.parametrize("proxy", ["egress-proxy", "sms-egress"])
+@pytest.mark.parametrize("proxy", ["egress-proxy", "sms-egress", "push-egress"])
 def test_each_boundary_proxy_is_skipped_with_its_reason_never_dialled(proxy: str) -> None:
     calls = _Calls()
     result = _sweep(_config(calls))[proxy]

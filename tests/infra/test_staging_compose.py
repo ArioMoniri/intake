@@ -139,6 +139,9 @@ SERVICES = {
     # INT-528 / ADR-042: the SMS vendor's own forward proxy
     # (tests/infra/test_staging_sms_egress.py)
     "sms-egress",
+    # INT-583 / ADR-045: the push notice's own forward proxy
+    # (tests/infra/test_staging_push_egress.py)
+    "push-egress",
 }
 
 #: INT-560: services that run the api's own image, so the api's SBOM describes them.
