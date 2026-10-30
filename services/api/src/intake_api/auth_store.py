@@ -51,7 +51,7 @@ import json
 import secrets
 import time
 import uuid
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Collection, Sequence
 from dataclasses import dataclass
 from typing import Literal
 
@@ -522,21 +522,39 @@ class AuthStore:
 
     # --- the devices an account has signed in from (INT-580) -------------------------
 
-    def remember_device(self, patient_id: str, device_ref: str) -> bool:
+    def remember_device(
+        self, patient_id: str, device_ref: str, *, signed_in: Collection[str]
+    ) -> bool:
         """Record that this account signed in from this device, and say whether
         that is NEW: the account has signed in from at least one device before,
-        and never from this one. An account with no remembered device (its
-        first sign-in, or none for a session lifetime) has nothing to compare
-        against, so it is not new.
+        and this device is not one of them that is still signed in. An account
+        with no remembered device (its first sign-in, or none for a session
+        lifetime) has nothing to compare against, so it is not new.
+
+        ``signed_in`` is the devices with a live session row (INT-583, review
+        round four: :meth:`DeviceSessionStore.note_sign_in` reads it, dropping
+        the dead rows, just before). A remembered device outside it has no
+        live family that can be named, so it never makes this device known,
+        though it still shows the account signed in before: the decision is
+        never quieter than INT-580's bare set. Those entries then go, so the
+        set holds only signed-in devices and this one. A sign-in racing this
+        one on another such device may lose its entry here, and is then told
+        about at its next sign-in: the race can only add a notice.
 
         ``device_ref`` is a keyed hash (the OTP pepper's ``rate_key``), never a
         key id; the set lives as long as a refresh token, the same class of
         datum as the DPoP thumbprint a session already keeps (INT-344)."""
         key = self._key("otp", "devices", patient_id)
         known = {member for member in (_text(m) for m in self._r.smembers(key)) if member}
-        new = bool(known) and device_ref not in known
-        self._r.sadd(key, device_ref)
-        self._r.expire(key, REFRESH_TTL_S)
+        live = known.intersection(signed_in)
+        new = bool(known) and device_ref not in live
+        stale = known - live - {device_ref}
+        with self._r.pipeline() as pipe:
+            if stale:
+                pipe.srem(key, *sorted(stale))
+            pipe.sadd(key, device_ref)
+            pipe.expire(key, REFRESH_TTL_S)
+            pipe.execute()
         return new
 
     def known_devices_key(self, patient_id: str) -> str:

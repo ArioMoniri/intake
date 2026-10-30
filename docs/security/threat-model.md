@@ -765,11 +765,14 @@ it or whose tests exercise it.
   Apple's push service as processor, outside Türkiye under KVKK m.9), as the legal review of
   30 Oct 2026 settled them. Retention is per record: a token goes 30 days after its own last
   registration, or when its device has no live session, whichever is first. **Review fixes
-  (30 Oct 2026, three rounds):** a device stops being known once its last session ends,
-  whatever the cause (signed out by any device, its own included; its family revoked on reuse;
-  its family expired, dropped at the account's next refresh or read by a compare-and-delete
-  that never drops a row a sign-in just rewrote), so an intruder's phone cannot leave and come
-  back silently; a revoked refresh family is tombstoned, so a refresh in flight during a sign-out is
+  (30-31 Oct 2026, four rounds):** a device stops being known once its last session ends,
+  whatever the cause (signed out by any device, its own included, and the app's own sign-out
+  ends its server session; its family revoked on reuse; its family expired, dropped at the
+  account's next refresh or read by a compare-and-delete that never drops a row a sign-in just
+  rewrote), and whether a sign-in is new is decided against the live sessions, which the
+  sign-in itself reads and prunes first, with a known entry that has no row counted as not
+  known, so an intruder's phone cannot leave and come back silently, even when nothing read the
+  sessions in between; a revoked refresh family is tombstoned, so a refresh in flight during a sign-out is
   undone and refused rather than reviving the family; a refresh renews the device row and the
   known-device set, so a patient who stays signed in keeps both and an intruder's later sign-in
   still counts as new; "Bu girişi ben yapmadım" stays open when no other device is listed, and

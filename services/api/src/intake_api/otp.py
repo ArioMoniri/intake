@@ -847,8 +847,11 @@ class OtpAuthService:
         hash of the proven device (the OTP pepper's ``rate_key``).
 
         INT-583: the notice is told after the response, like an SMS send
-        (INT-579), so a slow push provider never holds a sign-in."""
-        new = await asyncio.to_thread(self._store.remember_device, str(patient_id), device_ref)
+        (INT-579), so a slow push provider never holds a sign-in. Whether the
+        device is new is decided against the account's live sessions, read
+        (and pruned of dead rows) first, never the bare known-device set
+        (review round four, :meth:`DeviceSessionStore.note_sign_in`)."""
+        new = await asyncio.to_thread(self.device_sessions.note_sign_in, patient_id, device_ref)
         if not new:
             return
         SEC_NEW_DEVICE_LOGINS.inc()

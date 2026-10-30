@@ -28,14 +28,18 @@ was last registered, whichever is first, however recently another device of
 the account wrote the hash. Every read prunes what has gone.
 
 ``auth:push:rate:<patient>`` — the rolling window of new-device notices sent for
-the account (:data:`NOTICE_LIMIT_PER_HOUR`), and ``auth:disowned:<patient>``
-the one "not me" report a day that is recorded. Both are admitted atomically
-(WATCH/MULTI), so two racing callers never get past the limit between them.
+the account (:data:`NOTICE_LIMIT_PER_HOUR`), and
+``auth:disowned:<patient>:<device hash, or "unbound">`` the first "not me"
+report a day from each reporting device, which is recorded. Both are admitted
+atomically (WATCH/MULTI), so two racing callers never get past the limit
+between them.
 
-Signing a device out revokes every refresh family it holds (tombstoned, so a
-refresh in flight cannot revive one; its access tokens die with them), drops
-its push token, and removes its row; when another device did it, the device is
-forgotten as well, so its next sign-in is new again and the patient is told.
+Signing a device out, by itself or by another device, revokes every refresh
+family it holds (tombstoned, so a refresh in flight cannot revive one; its
+access tokens die with them), drops its push token, removes its row and
+forgets the device, so its next sign-in is new again and the patient is told.
+Whether a sign-in is new is decided against the live sessions
+(:meth:`DeviceSessionStore.note_sign_in`).
 """
 
 from __future__ import annotations
@@ -81,8 +85,9 @@ SIGN_OUT_OTHERS_HOLD_S: Final = 24 * 3600
 #: a fresh code, and a number gets 3 an hour (files/10 §2), so this is a
 #: backstop against a loop, never the bound a real sign-in meets.
 NOTICE_LIMIT_PER_HOUR: Final = 3
-#: One "not me" report per account in this rolling window is recorded (and
-#: pages); repeats inside it change nothing the incident has not got already.
+#: One "not me" report per account and per reporting device in this rolling
+#: window is recorded (and pages); a repeat from the same device inside it
+#: leaves a trace that does not page.
 DISOWNED_REPORT_WINDOW_S: Final = 24 * 3600
 
 
@@ -220,6 +225,18 @@ class DeviceSessionStore:
                 pipe.execute()
             except redis.WatchError:
                 return
+
+    def note_sign_in(self, patient_id: uuid.UUID, device_ref: str) -> bool:
+        """A sign-in on ``device_ref``: remember the device, and say whether it
+        is NEW for the account (review round four). The decision is taken
+        against the live sessions, never the bare known-device set: the read
+        first drops the rows whose families have all died and forgets those
+        devices, so an intruder whose family expired is new again even when
+        nothing read the sessions since; and a remembered device with no row
+        at all (one known before INT-583) counts as not known
+        (:meth:`AuthStore.remember_device`)."""
+        signed_in = {session.device_ref for session in self.sessions(patient_id)}
+        return self._auth.remember_device(str(patient_id), device_ref, signed_in=signed_in)
 
     def session_of_family(self, patient_id: uuid.UUID, family_id: str) -> DeviceSession | None:
         """The device a session's refresh family belongs to."""

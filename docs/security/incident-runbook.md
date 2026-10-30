@@ -47,8 +47,9 @@ INT-583 (owner decision D35). The app's "Cihazlarınız" screen has a "Bu giriş
 yapmadım" ("that sign-in wasn't me") action. Each reporting device's first report in a day
 writes `auth.session.disowned` to the hash chain under the patient id and pages through
 `SignInDisowned`; read every disowned row for the account, and a row after an incident is
-closed reopens it. **Treat it as SEV1 and start
-the KVKK 72-hour clock at the alert**: that is when we learned of it. The steps are in
+closed reopens it. **Treat it as SEV1 and start the KVKK 72-hour clock at the report**: the
+timestamp of the first `auth.session.disowned` row for the incident is when we learned of it,
+and is the learning time in the incident record. The steps are in
 docs/runbooks/sms-abuse.md, "A patient says a sign-in was not theirs".
 
 ## Severity ladder

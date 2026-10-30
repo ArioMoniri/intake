@@ -15,6 +15,13 @@ Legal B2-r: the account's refresh prunes the dead rows, so the retention text
 true. Legal B6: "not me" is admitted per account AND per reporting device, so
 an intruder's report during the hold never swallows the patient's own report.
 Repeats leave a non-paging trace.
+
+Security, round four: whether a sign-in is from a new device is decided
+against the live sessions, not the bare known-device set. The sign-in prunes
+the dead rows first, so an intruder whose family expired is told about even
+when nothing read the sessions since, and an entry with no row (a device known
+before INT-583) counts as not known. Near misses: a device with a live family
+stays known; an entry with no row still shows the account signed in before.
 """
 
 from __future__ import annotations
@@ -244,3 +251,100 @@ def test_the_report_key_names_the_reporting_device() -> None:
     assert not store.first_disowned_report(patient, "ref-a")
     keys = sorted(k.decode() for k in client.scan_iter("auth:disowned:*"))
     assert keys == [f"auth:disowned:{patient}:ref-a", f"auth:disowned:{patient}:unbound"]
+
+
+# --- review round four: "new" is decided against the live sessions -------------------------
+
+
+def _strip_row(otp: Any, patient_id: uuid.UUID, device_id: str) -> None:
+    """A device the account knew before INT-583: in the known set, no row,
+    so no live family of it can be named."""
+    otp.redis_client.hdel(f"auth:sess:{patient_id}", device_ref(device_id))
+
+
+def _new_device_rows(otp: Any) -> int:
+    return len(_actions(otp, "auth.login.new_device"))
+
+
+def test_an_expired_device_signing_in_before_any_read_is_told(tmp_path: Path) -> None:
+    """Security, round four: A's family expires and nothing reads the
+    account's sessions (no refresh, no sessions screen) before A signs in
+    again. The sign-in itself prunes first, so A is new and B is told."""
+    vendor = kit.Vendor(kit.replay("accepted"))
+    with harness(tmp_path, push_gateway=recorded_gateway(vendor)) as otp:
+        a = sign_in(otp, "device-a")
+        b = sign_in(otp, "device-b")
+        assert b.register(kit.TOKEN_B).status_code == 204
+        _expire_families(otp, a.patient_id, "device-a")
+        assert device_ref("device-a") in _known(otp, a.patient_id), "nothing has read yet"
+        vendor.requests.clear()
+        before = _new_device_rows(otp)
+        sign_in(otp, "device-a")
+        assert _pushed(vendor) == [kit.TOKEN_B]
+        assert _new_device_rows(otp) == before + 1
+
+
+def test_while_as_family_is_alive_a_stays_known_and_b_is_not_told(tmp_path: Path) -> None:
+    """Near miss for the test above."""
+    vendor = kit.Vendor(kit.replay("accepted"))
+    with harness(tmp_path, push_gateway=recorded_gateway(vendor)) as otp:
+        a = sign_in(otp, "device-a")
+        b = sign_in(otp, "device-b")
+        assert b.register(kit.TOKEN_B).status_code == 204
+        vendor.requests.clear()
+        before = _new_device_rows(otp)
+        sign_in(otp, "device-a")
+        assert _pushed(vendor) == []
+        assert _new_device_rows(otp) == before
+        assert device_ref("device-a") in _known(otp, a.patient_id)
+
+
+def test_a_known_device_with_no_row_is_not_known_and_b_is_told(tmp_path: Path) -> None:
+    """The reconcile: an entry with no row (a device known before INT-583),
+    and so no live family that can be named, counts as not known."""
+    vendor = kit.Vendor(kit.replay("accepted"))
+    with harness(tmp_path, push_gateway=recorded_gateway(vendor)) as otp:
+        a = sign_in(otp, "device-a")
+        b = sign_in(otp, "device-b")
+        assert b.register(kit.TOKEN_B).status_code == 204
+        _strip_row(otp, a.patient_id, "device-a")
+        vendor.requests.clear()
+        sign_in(otp, "device-a")
+        assert _pushed(vendor) == [kit.TOKEN_B]
+
+
+def test_after_a_sign_in_the_known_set_holds_only_signed_in_devices(tmp_path: Path) -> None:
+    """The reconcile removes the entry it no longer counts, so the set and
+    the rows agree once the sign-in is done."""
+    with harness(tmp_path) as otp:
+        a = sign_in(otp, "device-a")
+        sign_in(otp, "device-b")
+        _strip_row(otp, a.patient_id, "device-a")
+        sign_in(otp, "device-c")
+        assert _known(otp, a.patient_id) == {device_ref("device-b"), device_ref("device-c")}
+
+
+def test_an_entry_with_no_row_still_says_the_account_signed_in_before(tmp_path: Path) -> None:
+    """Near miss: an entry with no row never makes a device known, but it
+    still shows the account signed in before, so a device it never saw is
+    new, as INT-580 had it. The decision is never quieter than INT-580's."""
+    with harness(tmp_path) as otp:
+        a = sign_in(otp, "device-a")
+        _strip_row(otp, a.patient_id, "device-a")
+        before = _new_device_rows(otp)
+        sign_in(otp, "device-t")
+        assert _new_device_rows(otp) == before + 1
+
+
+def test_the_accounts_only_device_back_after_its_sessions_ended_is_not_new(
+    tmp_path: Path,
+) -> None:
+    """Near miss: the dead row is pruned before the decision, so the account
+    has no device to compare against and this is a first sign-in again, not
+    a new device, as INT-580 had it."""
+    with harness(tmp_path) as otp:
+        a = sign_in(otp, "device-a")
+        _expire_families(otp, a.patient_id, "device-a")
+        before = _new_device_rows(otp)
+        sign_in(otp, "device-a")
+        assert _new_device_rows(otp) == before

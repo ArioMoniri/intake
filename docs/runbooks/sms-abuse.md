@@ -104,15 +104,16 @@ closed reopens it. A repeat from the same device in that day writes
 
 When an account is signed in from a new device, the patient's
 other signed-in devices get a push notice, and the app's "Cihazlarınız" screen has a "Bu
-girişi ben yapmadım" ("that sign-in wasn't me") action. Pressing it writes
-`auth.session.disowned` to the hash chain under the patient id, increments
+girişi ben yapmadım" ("that sign-in wasn't me") action. A device's first report in a day
+writes `auth.session.disowned` to the hash chain under the patient id, increments
 `sec_sign_in_disowned_total`, and pages through the `SignInDisowned` alert
 (`infra/observability/security-rules.yaml`).
 
 1. **Treat it as SEV1.** Someone else holding a patient's session is a presumed personal-data
    breach: the session reads the patient's clinical data.
-2. **The KVKK 72-hour clock starts at the alert.** That is when we learned of it (Kurul
-   Kararı 2019/10). Record the alert time as the learning time in the incident record.
+2. **The KVKK 72-hour clock starts at the report.** That is when we learned of it (Kurul
+   Kararı 2019/10). Record the timestamp of the account's first `auth.session.disowned` row
+   for this incident as the learning time in the incident record; the alert follows it.
 3. **Contain.** Once the hold has passed, the patient's report has already signed the other
    devices out (`auth.session.signed_out_others`, right after the disowned row). A report from
    a session younger than 24 h signs nobody out, because that session may itself be the

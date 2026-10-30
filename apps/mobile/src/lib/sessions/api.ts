@@ -56,6 +56,13 @@ export interface SessionsApi {
   revoke(sessionId: string): Promise<RevokeResult>;
   /** `notMe` is the patient saying the other sign-in was not theirs. */
   signOutOthers(notMe: boolean): Promise<SignOutOthersResult>;
+  /**
+   * The app's own sign-out: find this device in the list and sign it out on
+   * the server, so its session, refresh family and place among the account's
+   * known devices end now rather than at expiry. A list it cannot read, or
+   * one without this device, signs nobody out.
+   */
+  signOutThisDevice(): Promise<RevokeResult>;
 }
 
 const UNREACHABLE: Unreachable = { ok: false, error: "unreachable" };
@@ -142,37 +149,49 @@ function parseCount(raw: unknown): number | null {
 }
 
 export function createSessionsApi(fetcher: AuthedFetch): SessionsApi {
-  return {
-    async list() {
-      try {
-        const response = await fetcher(SESSIONS);
-        if (!response.ok) {
-          return UNREACHABLE;
-        }
-        const list = parseList(await body(response));
-        return list === null ? UNREACHABLE : { ok: true, list };
-      } catch {
+  async function list(): Promise<ListResult> {
+    try {
+      const response = await fetcher(SESSIONS);
+      if (!response.ok) {
         return UNREACHABLE;
       }
-    },
+      const parsed = parseList(await body(response));
+      return parsed === null ? UNREACHABLE : { ok: true, list: parsed };
+    } catch {
+      return UNREACHABLE;
+    }
+  }
 
-    async revoke(sessionId) {
-      if (!SESSION_ID.test(sessionId)) {
+  async function revoke(sessionId: string): Promise<RevokeResult> {
+    if (!SESSION_ID.test(sessionId)) {
+      return { ok: false, error: "not_found" };
+    }
+    try {
+      const response = await fetcher(`/v1/auth/sessions/${sessionId}`, { method: "DELETE" });
+      if (response.ok) {
+        return { ok: true };
+      }
+      const detail = await errorDetail(response);
+      if (response.status === 404 && detail.error === "not_found") {
         return { ok: false, error: "not_found" };
       }
-      try {
-        const response = await fetcher(`/v1/auth/sessions/${sessionId}`, { method: "DELETE" });
-        if (response.ok) {
-          return { ok: true };
-        }
-        const detail = await errorDetail(response);
-        if (response.status === 404 && detail.error === "not_found") {
-          return { ok: false, error: "not_found" };
-        }
-        return (response.status === 403 ? tooNew(detail) : null) ?? UNREACHABLE;
-      } catch {
+      return (response.status === 403 ? tooNew(detail) : null) ?? UNREACHABLE;
+    } catch {
+      return UNREACHABLE;
+    }
+  }
+
+  return {
+    list,
+    revoke,
+
+    async signOutThisDevice() {
+      const listed = await list();
+      if (!listed.ok) {
         return UNREACHABLE;
       }
+      const here = listed.list.sessions.find((session) => session.current);
+      return here === undefined ? { ok: false, error: "not_found" } : revoke(here.sessionId);
     },
 
     async signOutOthers(notMe) {

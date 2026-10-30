@@ -29,6 +29,10 @@
   - legal B2-r: touch() prunes before it renews;
   - the documents.yaml head now follows the inventory; the owner patch carries the approved post-row wording, and a pin ties the "until" clauses to the absence of push rows.
   - Red: 8 failed of 51, plus 3 on mobile.
+- Review round four (31 Oct 2026; legal approves, one security blocker), test-first:
+  - security: whether a sign-in is new is decided against the live sessions (`DeviceSessionStore.note_sign_in`), so an intruder whose family expired is told even when nothing read the sessions since; an entry with no row (a device known before INT-583) counts as not known and goes; the decision is never quieter than INT-580's;
+  - legal notes: the runbooks say "a device's first report in a day" and start the KVKK clock at the first `auth.session.disowned` row; the stale device_sessions docstrings; Profilim "Çıkış yap" now also ends this device's server session (`DELETE /v1/auth/sessions/{own id}`, lazy, after the token's DELETE).
+  - Red: 3 failed of 14 on the server, plus 6 on mobile.
 - Next: the merge queue, after INT-580.
 - LOOP_STATUS: CONTINUE
 

@@ -82,9 +82,10 @@ describe("GET /v1/auth/sessions", () => {
   it.each([["true"], [1], [null]])(
     "notices_on that is not a boolean (%j) is refused (near miss)",
     async (value) => {
-      expect(
-        await api(answer(200, { ...LIST_BODY, notices_on: value })).sessions.list(),
-      ).toEqual({ ok: false, error: "unreachable" });
+      expect(await api(answer(200, { ...LIST_BODY, notices_on: value })).sessions.list()).toEqual({
+        ok: false,
+        error: "unreachable",
+      });
     },
   );
 
@@ -241,6 +242,52 @@ describe("POST /v1/auth/sessions/sign-out-others", () => {
       error: "unreachable",
     });
     expect(await throwing().sessions.signOutOthers(true)).toEqual({
+      ok: false,
+      error: "unreachable",
+    });
+  });
+});
+
+describe("signing this device out (the app's own sign-out, review round four)", () => {
+  function sequence(...responses: Response[]) {
+    const fetcher = vi.fn<AuthedFetch>();
+    for (const response of responses) {
+      fetcher.mockResolvedValueOnce(response);
+    }
+    return { fetcher, sessions: createSessionsApi(fetcher) };
+  }
+
+  it("reads the list, then DELETEs the current row's id and nothing else", async () => {
+    const { fetcher, sessions } = sequence(answer(200, LIST_BODY), answer(204));
+    expect(await sessions.signOutThisDevice()).toEqual({ ok: true });
+    expect(fetcher.mock.calls.map(([path, init]) => [path, init?.method ?? "GET"])).toEqual([
+      ["/v1/auth/sessions", "GET"],
+      [`/v1/auth/sessions/${HERE}`, "DELETE"],
+    ]);
+  });
+
+  it("finds this device wherever it is listed (near miss: another device first)", async () => {
+    const reordered = { ...LIST_BODY, sessions: [...LIST_BODY.sessions].reverse() };
+    const { fetcher, sessions } = sequence(answer(200, reordered), answer(204));
+    expect(await sessions.signOutThisDevice()).toEqual({ ok: true });
+    expect(fetcher.mock.calls[1][0]).toBe(`/v1/auth/sessions/${HERE}`);
+  });
+
+  it("a list with no current row signs nobody out", async () => {
+    const elsewhere = {
+      ...LIST_BODY,
+      sessions: LIST_BODY.sessions.map((row) => ({ ...row, current: false })),
+    };
+    const { fetcher, sessions } = sequence(answer(200, elsewhere));
+    expect(await sessions.signOutThisDevice()).toEqual({ ok: false, error: "not_found" });
+    expect(fetcher).toHaveBeenCalledTimes(1);
+  });
+
+  it("a list it cannot read signs nobody out", async () => {
+    const { fetcher, sessions } = sequence(answer(500));
+    expect(await sessions.signOutThisDevice()).toEqual({ ok: false, error: "unreachable" });
+    expect(fetcher).toHaveBeenCalledTimes(1);
+    expect(await throwing().sessions.signOutThisDevice()).toEqual({
       ok: false,
       error: "unreachable",
     });

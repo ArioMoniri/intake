@@ -243,13 +243,21 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     setApiVisits([]);
     setNotes({});
     // INT-583: this device stops being told about new sign-ins to the
-    // account it just left. Best-effort and lazy, like the shred below: the
-    // native module stays out of node imports, and sign-out never waits on
-    // the network.
+    // account it just left, and then its session ends on the server too
+    // (review round four): its refresh family, its push token and its place
+    // among the account's known devices, so its next sign-in is new and the
+    // other devices are told. The token goes first, while the session still
+    // signs. Best-effort and lazy, like the shred below: the native modules
+    // stay out of node imports, and sign-out never waits on the network.
     void import("./push/native")
       .then((push) => push.forgetPushRegistration())
       .catch(() => {
-        // the registration stays on the server; nothing to show the patient
+        // the registration stays on the server; the session's end drops it
+      })
+      .then(() => import("./sessions/native"))
+      .then((sessions) => sessions.endThisDeviceSession())
+      .catch(() => {
+        // the session ends at its expiry instead; nothing to show the patient
       });
     // INT-142: sign-out crypto-shreds every persisted draft and the DEK, so
     // nothing readable survives the session. Lazy so node import stays clean.

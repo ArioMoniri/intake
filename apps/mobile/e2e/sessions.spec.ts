@@ -141,6 +141,29 @@ describe("signing out drops this device's registration", () => {
     expect(native).toMatch(/deleteToken:\s*\(\)\s*=>\s*deletePushToken\(authedFetch\)/);
   });
 
+  it("sign-out then ends this device's server session, lazily, after the token is dropped", () => {
+    // review round four: the session, its refresh family and the device's
+    // place among the account's known devices end at sign-out, not at expiry
+    const session = file("src/lib/session.tsx");
+    const signOut = session.slice(session.indexOf("const signOut"));
+    const body = signOut.slice(0, signOut.indexOf("}, []);"));
+    expect(body).toMatch(/import\(\s*["']\.\/sessions\/native["']\s*\)/);
+    expect(body).toContain("endThisDeviceSession()");
+    // the push token's DELETE goes while the session still signs
+    expect(body.indexOf("forgetPushRegistration")).toBeLessThan(
+      body.indexOf("endThisDeviceSession"),
+    );
+    expect(session).not.toMatch(/^import .* from ["']\.\/sessions\/native["']/m);
+  });
+
+  it("the server session ends through the sessions seam's own sign-out of this device", () => {
+    const native = file("src/lib/sessions/native.ts");
+    const end = native.slice(native.indexOf("export function endThisDeviceSession"));
+    expect(end.slice(0, end.indexOf("\n}"))).toContain(
+      "createSessionsApi(authedFetch).signOutThisDevice()",
+    );
+  });
+
   it("the screen tells both runs what the list knows about this device", () => {
     const screen = file(SCREEN);
     const silent = screen.slice(screen.indexOf("registerPushSilently("));
