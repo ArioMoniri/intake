@@ -37,6 +37,7 @@ if TYPE_CHECKING:
     from intake_api.documents import DocumentsGateway
     from intake_api.embed.service import EmbedService
     from intake_api.otp import OtpAuthService
+    from intake_api.passkey.service import PasskeyService
 
 __all__ = ["ApiState", "State", "consent_catalog_for", "get_state"]
 
@@ -89,6 +90,9 @@ class ApiState:
     # needs (one shared abuse gate, one code store), so it is wired from the
     # same AuthWiring and is None — every route 503 — without it.
     doctor_link: DoctorLinkService | None = None
+    # INT-582 (D36): the patient passkey tier. None = unconfigured: nobody
+    # enrols, and the step-up gate refuses a patient who has a passkey.
+    passkey: PasskeyService | None = None
     # INT-320: the partner white-label embed handshake. None = unconfigured
     # (no OpenBao signing key, or the registry ships dev-only and none is
     # seeded) → every /embed route answers 503 (fail closed).

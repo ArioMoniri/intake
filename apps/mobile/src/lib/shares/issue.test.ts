@@ -33,6 +33,9 @@ vi.mock("@/lib/auth/api", () => ({
   AuthApiError: mocks.AuthApiError,
 }));
 
+// INT-582: a phone without the native passkey module
+vi.mock("@/lib/auth/passkey/native", () => ({ loadPasskeyNative: async () => null }));
+
 const VISIT = "8c1a0b22-0000-4000-8000-0000000000aa";
 const LINK = "3f1d6f3e-0000-4000-8000-000000000001";
 
@@ -185,5 +188,41 @@ describe("issueDoctorLink — issue then mint, in one act", () => {
       path.endsWith("/otp") ? ok({ code: "" }) : ok(ISSUED),
     );
     expect(await issueDoctorLink(VISIT, "Dr Efe")).toEqual({ ok: false, reason: "unreachable" });
+  });
+});
+
+describe("issuing steps up to the passkey when the server asks (INT-582, D36)", () => {
+  it("a refused step-up mints nothing and names the manual-path sentence", async () => {
+    mocks.authedFetch.mockImplementation(async (path: string) => {
+      if (path.endsWith("/step-up/options")) {
+        return ok({
+          enrolled: true,
+          publicKey: {
+            challenge: "Y2hhbGxlbmdl",
+            rpId: "3-211-2-143.sslip.io",
+            allowCredentials: [{ type: "public-key", id: "Y3JlZA" }],
+            userVerification: "required",
+          },
+        });
+      }
+      return refused(403, "step_up_required");
+    });
+    expect(await issueDoctorLink(VISIT, "Dr Efe")).toEqual({ ok: false, reason: "step_up" });
+    const paths = mocks.authedFetch.mock.calls.map(([path]) => String(path));
+    expect(paths.some((path) => path.endsWith("/otp"))).toBe(false);
+  });
+
+  it("a consent refusal is still a consent-shaped failure, not a step-up", async () => {
+    mocks.authedFetch.mockResolvedValue(refused(403, "consent_required"));
+    const result = await issueDoctorLink(VISIT, "Dr Efe");
+    expect(result).toEqual({ ok: false, reason: "unreachable" });
+    expect(mocks.authedFetch).toHaveBeenCalledTimes(1);
+  });
+
+  it("near miss: a patient without a passkey issues exactly as before", async () => {
+    serving();
+    const result = await issueDoctorLink(VISIT, "Dr Efe");
+    expect(result.ok).toBe(true);
+    expect(mocks.authedFetch).toHaveBeenCalledTimes(2);
   });
 });

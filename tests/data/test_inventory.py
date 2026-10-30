@@ -53,6 +53,10 @@ EXPECTED_TABLES = {
     # INT-123 — the pgvector record index: one CONFIRMED record item's vector
     # and source box per row, in one patient's RLS namespace. No item text.
     "record_embeddings",
+    # INT-582 (D36) — the PUBLIC half of each patient passkey: credential id,
+    # public key, counter, backup flags, an opaque handle. A new category
+    # (authentication_credential) on the legal-obligation (KVKK m.12) basis.
+    "patient_passkeys",
 }
 
 
@@ -96,6 +100,35 @@ def test_clinical_payload_columns_are_marked_special_category() -> None:
         annotation = tables[table_name].columns[column_name].info[INVENTORY_KEY]
         assert annotation["category"] == "special_category_health"
         assert "crypto-shred" in annotation["retention"]
+
+
+def test_passkey_columns_carry_the_d36_annotation_and_hold_no_secret() -> None:
+    """INT-582 (D36): the new personal-data category is annotated on every
+    column that holds passkey material — the authenticator category, the
+    KVKK m.12 security basis, the patient-deletable record clock, and a
+    recipient list with no clinic in it. The near miss: the table has no
+    column a secret, an identifier or a device model could sit in."""
+    table = _tables()["patient_passkeys"]
+    material = (
+        "credential_id",
+        "public_key",
+        "user_handle",
+        "sign_count",
+        "backup_eligible",
+        "backup_state",
+        "last_used_at",
+        "recovery_requested_at",
+    )
+    for name in material:
+        annotation = table.columns[name].info[INVENTORY_KEY]
+        assert annotation["category"] == "authentication_credential", name
+        assert annotation["basis"].startswith("KVKK m.5/2-ç"), name
+        assert "KVKK m.12/1" in annotation["basis"], name
+        assert "patient-deletable" in annotation["retention"], name
+        assert "never shared with a clinic" in annotation["recipients"], name
+    assert not {"private_key", "secret", "phone", "aaguid", "name", "device_name"} & set(
+        table.columns.keys()
+    )
 
 
 def test_inv_refuses_an_empty_field() -> None:

@@ -229,6 +229,28 @@ def _preference_lines(record: SubjectRecord) -> tuple[str, ...]:
     )
 
 
+def _passkey_lines(record: SubjectRecord) -> tuple[str, ...]:
+    """INT-582: the public half of each passkey, as stored — a credential id
+    and a public key are the subject's data and no secret, so the answer to
+    KVKK m.11 carries them whole."""
+    return tuple(
+        _line(
+            [
+                f"passkey:{row.id}",
+                f"credential:{row.credential_id}",
+                f"public_key:{row.public_key}",
+                f"sign_count:{row.sign_count}",
+                f"backup_eligible:{_flag(row.backup_eligible)}",
+                f"backup_state:{_flag(row.backup_state)}",
+                f"created:{_stamp(row.created_at)}",
+                f"last_used:{_stamp(row.last_used_at)}",
+                f"recovery_requested:{_stamp(row.recovery_requested_at)}",
+            ]
+        )
+        for row in record.passkeys
+    )
+
+
 def _guardian_lines(record: SubjectRecord) -> tuple[str, ...]:
     return tuple(
         _line(
@@ -325,4 +347,5 @@ def record_section_lines(
         "feedback": _feedback_lines(record, cipher=cipher, tenant_id=tenant_id),
         "preferences": _preference_lines(record),
         "guardians": _guardian_lines(record),
+        "passkeys": _passkey_lines(record),
     }

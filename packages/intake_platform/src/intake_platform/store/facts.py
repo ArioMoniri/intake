@@ -48,6 +48,7 @@ from intake_platform.db.inventory import (
     REC_HOSPITAL_SYSTEM_AWAITING_HUMAN,
     REC_INTERNAL,
     REC_ON_DEVICE,
+    REC_PASSKEY,
     REC_PATIENT_CLINICIAN,
     RET_RECORD,
     InventoryAnnotation,
@@ -105,6 +106,10 @@ RECIPIENT_SHARING: Final[Mapping[str, Sharing]] = MappingProxyType(
         # shared" to "shared" underneath a published store label.
         REC_HOSPITAL_SYSTEM_AWAITING_HUMAN: Sharing.NONE,
         REC_ON_DEVICE: Sharing.NONE,
+        # INT-582 (D36): a passkey's public half is read by the API's verifier
+        # and by the patient it belongs to; no clinic, clinician, share or
+        # Doctor Link carries it, so nothing outside the PHI boundary holds it.
+        REC_PASSKEY: Sharing.NONE,
         REC_CLINICIAN: Sharing.ON_PATIENT_DIRECTION,
         REC_PATIENT_CLINICIAN: Sharing.ON_PATIENT_DIRECTION,
         REC_AUDITOR: Sharing.ON_LAWFUL_REQUEST,

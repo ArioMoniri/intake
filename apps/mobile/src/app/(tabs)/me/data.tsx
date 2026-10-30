@@ -34,7 +34,14 @@ import { GuidanceBlock } from "@/components/GuidanceBlock";
 import { Kicker } from "@/components/Kicker";
 import { ListGroup, ListRow } from "@/components/ListRow";
 import { AppText, RAIL_EDGES, Screen } from "@/components/Themed";
-import { t } from "@/lib/i18n";
+import {
+  type PasskeyNotice,
+  addPasskey,
+  loadPasskeys,
+  startPasskeyRecovery,
+  usePasskeys,
+} from "@/lib/auth/passkey/store";
+import { type MessageKey, t } from "@/lib/i18n";
 import {
   canWithdrawErasure,
   formatDsarDay,
@@ -55,7 +62,7 @@ import { spacing } from "@/lib/theme";
 
 export default function Data() {
   const { account } = useSession();
-  const { requests, unsent, sharesCancelled } = useDsarRequests();
+  const { requests, unsent, sharesCancelled, stepUpRefused } = useDsarRequests();
   const tabBarClearance = useTabBarClearance();
   // Armed, not filed: the first tap on an erasure only changes the word.
   const [armed, setArmed] = useState(false);
@@ -152,16 +159,88 @@ export default function Data() {
             ))}
           </ListGroup>
         </View>
+        <PasskeySection />
         {unsent ? (
           // SC 3.3.1: the request the patient just made did not leave the
           // phone — announced as an error on both platforms (INT-362).
-          <AnnouncedText tone="error" role="caption" color="inkSoft" message={t("data.unsent")} />
+          // INT-582: when the erasure needed the passkey and the step-up was
+          // refused, the sentence names the manual path instead.
+          <AnnouncedText
+            tone="error"
+            role="caption"
+            color="inkSoft"
+            message={t(stepUpRefused ? "passkey.stepUp.refused" : "data.unsent")}
+          />
         ) : null}
         <AppText role="caption" color="inkFaint">
           {t("data.deviceOnly")}
         </AppText>
       </ScrollView>
     </Screen>
+  );
+}
+
+const NOTICE_KEYS: Record<PasskeyNotice, MessageKey> = {
+  added: "passkey.notice.added",
+  unsupported: "passkey.notice.unsupported",
+  exists: "passkey.notice.exists",
+  cancelled: "passkey.notice.failed",
+  unavailable: "passkey.notice.failed",
+  refused: "passkey.notice.failed",
+  session: "passkey.notice.failed",
+  recovery_started: "passkey.recoveryNote",
+  recovery_failed: "passkey.notice.recoveryFailed",
+};
+
+/**
+ * INT-582 (D36): the passkey that guards this screen's two actions. Offered
+ * to a patient who has none (the server's word, `offered`), shown as on with
+ * the lost-phone path for one who has, and absent where the passkey tier is
+ * not available — nothing here is promised that the server did not confirm.
+ */
+function PasskeySection() {
+  const { enrolment, recoveryEndsAt, notice } = usePasskeys();
+  useEffect(() => {
+    void loadPasskeys();
+  }, []);
+  if (enrolment !== "offered" && enrolment !== "enrolled") {
+    return null;
+  }
+  return (
+    <View style={styles.section}>
+      <Kicker label={t("passkey.title")} />
+      {enrolment === "offered" ? (
+        <ListGroup footer={t("passkey.offer")}>
+          <ListRow
+            icon="key"
+            label={t("passkey.add")}
+            hint={t("a11y.passkey.addHint")}
+            onPress={() => void addPasskey()}
+          />
+        </ListGroup>
+      ) : (
+        <ListGroup footer={recoveryEndsAt === null ? undefined : t("passkey.recoveryNote")}>
+          <ListRow icon="key" label={t("passkey.enrolled")} />
+          {recoveryEndsAt === null ? (
+            <ListRow
+              label={t("passkey.lost")}
+              hint={t("a11y.passkey.lostHint")}
+              onPress={() => void startPasskeyRecovery()}
+            />
+          ) : (
+            <ListRow label={t("passkey.recoveryEnds")} sublabel={formatDsarDay(recoveryEndsAt)} />
+          )}
+        </ListGroup>
+      )}
+      {notice === null || notice === "recovery_started" ? null : (
+        <AnnouncedText
+          tone={notice === "added" ? "status" : "error"}
+          role="caption"
+          color="inkSoft"
+          message={t(NOTICE_KEYS[notice])}
+        />
+      )}
+    </View>
   );
 }
 

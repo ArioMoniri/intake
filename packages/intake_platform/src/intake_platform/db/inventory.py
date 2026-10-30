@@ -76,12 +76,31 @@ CAT_AUDIT = "audit_trail"
 # people, not a consent row and not a health fact — it gets its own category
 # so the VERBİS export never files it under either.
 CAT_GUARDIANSHIP = "guardianship_link"
+# INT-582 (D36, owner 28 Oct 2026): the PUBLIC half of a patient passkey — a
+# credential id, a public key, a signature counter and two backup flags. Not
+# health data, not consent, not the pseudonym: a sign-in factor that proves the
+# patient is present for D36's sensitive actions. The private key never leaves
+# the patient's device or its platform keychain. D36 marks it a new category;
+# the annotation below is engineering's proposal from D36's own wording, for
+# the legal lane to confirm (docs/evidence/INT-582.md, "Inventory annotation").
+CAT_AUTHENTICATOR = "authentication_credential"
 
 # --- lawful bases (KVKK m.5/m.6) ------------------------------------------------------
 
 BASIS_CONTRACT = "KVKK m.5/2-c — processing necessary for the service contract"
 BASIS_HEALTH_CONSENT = "KVKK m.6 — special-category health data under açık rıza per consent scope"
 BASIS_LEGAL_OBLIGATION = "KVKK m.5/2-ç — legal obligation (KVKK m.12 security; KSVY audit duties)"
+# INT-582 (D36): the step-up exists to stop a SIM swap from reaching the
+# patient's record, which is the KVKK m.12/1 duty to take the technical
+# measures that prevent unlawful access — so the passkey rides that obligation
+# rather than consent: a security control the patient could only use by
+# consenting would be withdrawn exactly when it is needed. Proposed for the
+# legal lane to confirm (docs/evidence/INT-582.md).
+BASIS_ACCOUNT_SECURITY = (
+    "KVKK m.5/2-ç — legal obligation: the KVKK m.12/1 duty to take the technical "
+    "measures that prevent unlawful access to the patient's record (D36 step-up "
+    "against SIM swap)"
+)
 # INT-536 (INT-529 F5, COUNSEL_BRIEF §2.9): both satisfaction write routes
 # require the `satisfaction` consent scope (files/06 §2: açık rıza, default
 # off; services/api/src/intake_api/satisfaction.py), so the score rests on
@@ -167,6 +186,16 @@ RET_PREVISIT_OUTPUT = (
     "The receiving hospital's own retention is a DPA clause named per recipient row "
     "(infra/previsit_output/recipients.yaml retention_ref), never a period set here"
 )
+# INT-582 (D36): files/06 §3 has no row for a sign-in factor. It rides the
+# record clock the matrix already defines, as RET_NOTIFICATION_PREFERENCE does,
+# for a stated reason: a passkey cannot outlive the account it signs in to.
+# The patient removes it at will (a removal is itself a step-up), the recovery
+# path removes it after its cool-off, and a DSAR erasure erases it.
+RET_PASSKEY = (
+    "while the patient keeps the passkey, on the 06 §3 record clock: patient-deletable "
+    "at any time, removed by the recovery path after its cool-off, and erased with the "
+    "record by a DSAR erasure — a sign-in factor cannot outlive the account"
+)
 # INT-223: files/06 §3 has no row for guardian linkage, and inventing one
 # would be inventing a retention clock. The gate stays shut instead.
 RET_AWAITING_HUMAN_GUARDIAN = (
@@ -180,6 +209,13 @@ REC_INTERNAL = "internal services only; never leaves the PHI boundary"
 REC_CLINICIAN = "tenant clinicians via a consented share (Doctor Link / clinic console)"
 REC_PATIENT_CLINICIAN = "the patient (own record) and tenant clinicians via consented share"
 REC_AUDITOR = "supervisory authority or auditor on lawful request; WORM export"
+# INT-582 (D36): a passkey's public half is read by the API's verifier and by
+# the patient (the passkey list, the DSAR export). No clinic, clinician, share
+# or Doctor Link ever carries it.
+REC_PASSKEY = (
+    "the patient (own passkey list and DSAR export) and the API's step-up verifier; "
+    "never shared with a clinic or a clinician, never leaves the PHI boundary"
+)
 # INT-224: the health-platform reads (HealthKit / Health Connect) never leave
 # the handset. There is no recipient at all until the patient chooses to add a
 # summary to the note, at which point notes.payload's own row applies.
@@ -214,7 +250,9 @@ REC_GUARDIAN_INTERNAL = (
 #: column in one of them holds the subject's personal data, so the DSAR export
 #: must answer for its table. Operational metadata and the audit trail are the
 #: two categories that describe how the platform runs.
-SUBJECT_DATA_CATEGORIES = frozenset({CAT_PSEUDONYM, CAT_HEALTH, CAT_CONSENT, CAT_GUARDIANSHIP})
+SUBJECT_DATA_CATEGORIES = frozenset(
+    {CAT_PSEUDONYM, CAT_HEALTH, CAT_CONSENT, CAT_GUARDIANSHIP, CAT_AUTHENTICATOR}
+)
 
 #: The retention wording that gives the subject the erasure verb over a row:
 #: the 06 §3 record clock's "patient-deletable" and the satisfaction row's

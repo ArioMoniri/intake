@@ -255,7 +255,9 @@ def test_ids_unique_and_well_formed() -> None:
     # consent texts; from the INT-529 legal-author findings, GitHub #903).
     # + INT-585 (the owner's 28 Oct SMS decisions recorded as D34-D38, and the
     # live Netgsm OTP confirmation; owner in chat, GitHub #984).
-    assert len(ids) == 381
+    # + INT-582 (patient passkeys and the step-up on D36's sensitive actions,
+    # against SIM swap; owner decision D36, GitHub #981).
+    assert len(ids) == 382
     import re
 
     for i in ids:

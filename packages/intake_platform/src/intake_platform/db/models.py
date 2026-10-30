@@ -49,12 +49,14 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 from sqlalchemy.types import BigInteger, Integer, Uuid
 
 from intake_platform.db.inventory import (
+    BASIS_ACCOUNT_SECURITY,
     BASIS_AWAITING_HUMAN_GUARDIAN,
     BASIS_CONTRACT,
     BASIS_EVENTS_BY_TYPE,
     BASIS_HEALTH_CONSENT,
     BASIS_LEGAL_OBLIGATION,
     BASIS_SATISFACTION_CONSENT,
+    CAT_AUTHENTICATOR,
     CAT_CONSENT,
     CAT_GUARDIANSHIP,
     CAT_HEALTH,
@@ -65,12 +67,14 @@ from intake_platform.db.inventory import (
     REC_GUARDIAN_INTERNAL,
     REC_HOSPITAL_SYSTEM_AWAITING_HUMAN,
     REC_INTERNAL,
+    REC_PASSKEY,
     REC_PATIENT_CLINICIAN,
     RET_AWAITING_HUMAN_GUARDIAN,
     RET_CONSENT_AUDIT,
     RET_DSAR,
     RET_EVENTS,
     RET_NOTIFICATION_PREFERENCE,
+    RET_PASSKEY,
     RET_PREVISIT_OUTPUT,
     RET_RECORD,
     RET_SATISFACTION,
@@ -99,6 +103,7 @@ __all__ = [
     "OverlayFact",
     "Patient",
     "PatientOverlayHeader",
+    "PatientPasskey",
     "PreVisitOutputRow",
     "RecordEmbedding",
     "SessionAttribution",
@@ -1364,6 +1369,115 @@ class NotificationPreference(Base):
             BASIS_CONTRACT,
             RET_NOTIFICATION_PREFERENCE,
             REC_INTERNAL,
+        ),
+    )
+
+
+def _passkey_column(purpose: str) -> dict[str, Any]:
+    return inv(CAT_AUTHENTICATOR, purpose, BASIS_ACCOUNT_SECURITY, RET_PASSKEY, REC_PASSKEY)
+
+
+class PatientPasskey(Base):
+    """INT-582 (D36) — the PUBLIC half of one patient passkey.
+
+    D36 steps four patient actions up to a passkey (a Doctor Link, a phone
+    change, a data export, a data delete) so a SIM swap, which hands an
+    attacker the SMS code, does not hand them those actions too. The API
+    verifies each step-up assertion against the public key kept here.
+
+    Shape notes:
+
+    - **Public material only.** A credential id, an X9.62 P-256 public key
+      and its signature counter, all base64url; the private key never leaves
+      the phone or its platform keychain. Nothing here is a secret, and
+      nothing names the patient: the user handle is 32 random bytes chosen
+      at the first registration and reused for the patient's later ones.
+    - **The backup flags are kept, not judged.** A synced passkey (BE and BS
+      set) reports a zero counter forever, so the clone signal WebAuthn
+      §6.1.1 gives is only available for device-bound ones; keeping the
+      flags is what lets the evidence say which a patient holds.
+    - **Recovery is a column, not a deletion.** Losing the phone starts the
+      OTP-tier recovery (``recovery_requested_at``); the passkey keeps
+      guarding the actions through the cool-off — the holder can cancel —
+      and stops counting only after it.
+    - One row per credential; ``credential_id`` is unique per tenant.
+    """
+
+    __tablename__ = "patient_passkeys"
+    __table_args__ = (
+        UniqueConstraint("tenant_id", "credential_id"),
+        CheckConstraint("sign_count >= 0 AND sign_count <= 4294967295", name="sign_count_u32"),
+    )
+
+    id: Mapped[uuid.UUID] = _uuid_pk(
+        "passkey row key (audit refs name passkey:<id>)", RET_PASSKEY, basis=BASIS_ACCOUNT_SECURITY
+    )
+    tenant_id: Mapped[uuid.UUID] = _tenant_fk(RET_PASSKEY, basis=BASIS_ACCOUNT_SECURITY)
+    patient_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("patients.id"),
+        nullable=False,
+        index=True,
+        info=inv(
+            CAT_OPERATIONAL,
+            "the pseudonymised patient this passkey signs in",
+            BASIS_ACCOUNT_SECURITY,
+            RET_PASSKEY,
+            REC_PASSKEY,
+        ),
+    )
+    credential_id: Mapped[str] = mapped_column(
+        String(1366),
+        nullable=False,
+        info=_passkey_column(
+            "WebAuthn credential id (base64url), named in the step-up allowCredentials list"
+        ),
+    )
+    public_key: Mapped[str] = mapped_column(
+        String(88),
+        nullable=False,
+        info=_passkey_column(
+            "the passkey's P-256 public key (X9.62 point, base64url) every step-up "
+            "assertion is verified against"
+        ),
+    )
+    user_handle: Mapped[str] = mapped_column(
+        String(44),
+        nullable=False,
+        info=_passkey_column(
+            "opaque WebAuthn user handle (32 random bytes, base64url), one per patient; "
+            "carries no identifier"
+        ),
+    )
+    sign_count: Mapped[int] = mapped_column(
+        BigInteger,
+        nullable=False,
+        info=_passkey_column(
+            "WebAuthn signature counter; a step-up whose counter does not move forward "
+            "is refused as a cloned authenticator (§6.1.1)"
+        ),
+    )
+    backup_eligible: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        info=_passkey_column("WebAuthn BE flag: the passkey may sync to the patient's keychain"),
+    )
+    backup_state: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        info=_passkey_column("WebAuthn BS flag at the last ceremony: the passkey is synced"),
+    )
+    created_at: Mapped[datetime] = _created_at(RET_PASSKEY, basis=BASIS_ACCOUNT_SECURITY)
+    last_used_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+        info=_passkey_column("instant of the last accepted step-up, shown in the passkey list"),
+    )
+    recovery_requested_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+        info=_passkey_column(
+            "instant the OTP-tier recovery started; the passkey stops counting one "
+            "cool-off later unless its holder cancels"
         ),
     )
 

@@ -58,6 +58,8 @@ export const SYMBOLS = {
   "wifi.slash": { ios: "wifi.slash", android: "wifi_off" },
   "checkmark.shield": { ios: "checkmark.shield", android: "verified_user" },
   "lock.shield": { ios: "lock.shield", android: "shield_lock" },
+  // INT-582: the patient passkey row
+  key: { ios: "key", android: "key" },
   "tray.and.arrow.down": { ios: "tray.and.arrow.down", android: "download" },
   trash: { ios: "trash", android: "delete" },
   bell: { ios: "bell", android: "notifications" },

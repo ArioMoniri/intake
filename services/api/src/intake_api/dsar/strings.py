@@ -31,6 +31,10 @@ __all__ = ["DSAR_EXPORT_SECTION_KEYS", "DSAR_EXPORT_STRING_KEYS", "section_key"]
 #: the guardian link (its own inventory category, never filed as consent).
 #: Each is one more heading for counsel to author; until then the export
 #: refuses exactly as it does for the first nine.
+#:
+#: INT-582 added ``passkeys``: the public half of each patient passkey (D36),
+#: its own inventory category (authentication_credential), filed under no
+#: other heading. One more heading for counsel; the export refuses until then.
 DSAR_EXPORT_SECTIONS: Final[tuple[str, ...]] = (
     "visits",
     "notes",
@@ -43,6 +47,7 @@ DSAR_EXPORT_SECTIONS: Final[tuple[str, ...]] = (
     "feedback",
     "preferences",
     "guardians",
+    "passkeys",
 )
 
 

@@ -65,6 +65,8 @@ const ERROR_KEY: Record<IssueFailure, MessageKey> = {
   limited: "shares.issue.error.limited",
   unavailable: "shares.issue.error.unavailable",
   unreachable: "shares.issue.error.unreachable",
+  step_up: "passkey.stepUp.refused",
+  step_up_cancelled: "passkey.stepUp.cancelled",
 };
 
 export default function IssueDoctorLink() {

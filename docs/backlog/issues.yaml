@@ -7572,3 +7572,24 @@
     - "TDD: a test pins the five rows; a near miss proves a row that names no issue is refused."
   tests: [tests/docs/test_state_decisions.py]
   sec_row: "onboarding"
+- id: INT-582
+  epic: E01-platform
+  phase: P2
+  title: "Patient passkeys and a passkey step-up on sensitive actions, against SIM swap"
+  # GitHub #981, allocated by the orchestrator on 28 Oct 2026, split out of
+  # INT-580 (#975). A SIM swap hands the attacker the SMS, so the OTP alone
+  # cannot protect what follows sign-in; a passkey bound to the patient's own
+  # device can. The owner approved it on 28 Oct 2026 as D36 (files/00_STATE.md,
+  # recorded by INT-585, #984). The server gate asks; the app steps up only
+  # when it is asked, so a patient without a passkey keeps the OTP tier.
+  depends_on: [INT-131, INT-585]
+  labels: [area:api, area:mobile, risk:security]
+  status: done
+  evidence: docs/evidence/INT-582.md
+  acceptance:
+    - "D36 (owner, 28 Oct 2026): patient passkey public keys (credential id, public key, sign count) may be stored, and these patient actions step up to the passkey: issuing a Doctor Link, changing the phone number, data export and data delete. It is a new category of personal data, so its inventory annotation {category, purpose, basis, retention, recipients} comes from the legal lane and the schema test passes."
+    - "A passkey dependency on each side, each licence-verified from the raw LICENSE blob: a WebAuthn verifier for the API and a passkey module for the Expo app."
+    - "Registration after the first OTP sign-in; each sensitive action requires a fresh, single-use passkey assertion bound to a server challenge and recorded on the hash chain; a patient without a passkey is told how to add one, never silently let through; tests first with near misses (a replayed assertion, another account's credential, a stale challenge)."
+  tests: [tests/api/test_passkey_webauthn.py, tests/api/test_passkey_challenges.py, tests/api/test_passkey_step_up.py, tests/api/test_passkey_enrolment.py, tests/api/test_passkey_edges.py, tests/data/test_inventory.py, tests/data/test_session_delete_contract.py, apps/mobile/src/lib/auth/passkey/rp.test.ts, apps/mobile/src/lib/auth/passkey/ceremony.test.ts, apps/mobile/src/lib/auth/passkey/stepUp.test.ts, apps/mobile/src/lib/auth/passkey/api.test.ts, apps/mobile/src/lib/auth/passkey/store.test.ts, apps/mobile/src/lib/dsar/store.test.ts, apps/mobile/src/lib/shares/issue.test.ts]
+  legal: "KVKK-12,KVKK-11/13"
+  sec_row: "onboarding"

@@ -60,6 +60,8 @@ TENANT_SCOPED = (
     # additionally patient-scoped by a RESTRICTIVE policy that
     # tests/records/test_vector_rls.py checks against Table.info.
     "record_embeddings",
+    # INT-582 — the public half of each patient passkey (D36 step-up)
+    "patient_passkeys",
 )
 
 CLINICIAN_READ = ("patients", "sessions", "slots", "notes", "documents")

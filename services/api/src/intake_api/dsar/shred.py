@@ -60,6 +60,10 @@ Order inside a run, and the reason for it:
    nothing to shred — and the row delete is the erasure, audited against
    ``notification_preference:<id>``. The annotation gives the reason it may
    go: a delivery preference cannot outlive the account it configures.
+   INT-582 adds the subject's passkeys on the same terms: ``RET_PASSKEY`` is
+   patient-deletable, a public key is no envelope, and each row's delete is
+   audited against ``passkey:<id>`` — the ref its registration was audited
+   under. A sign-in factor cannot outlive the account it signs in to.
    Every row this step and the ones above remove is read from
    :func:`intake_api.dsar.store.subject_record`, the sweep the export reads,
    so the erasure destroys exactly what the export showed.
@@ -114,6 +118,7 @@ from intake_platform.db.models import (
     NotificationPreference,
     OverlayFact,
     PatientOverlayHeader,
+    PatientPasskey,
     PreVisitOutputRow,
     Share,
     Slot,
@@ -378,6 +383,7 @@ async def _erase_subject(
     share_ids = [row.id for row in record.shares]
     link_ids = [link.id for link in record.doctor_links]
     preference_ids = [row.id for row in record.notification_preferences]
+    passkey_ids = [row.id for row in record.passkeys]
     removed = 0
     # First: the one row a hospital may already have fetched (module docstring,
     # point 4). Its key to sessions is NO ACTION, so skipping this raises.
@@ -440,6 +446,15 @@ async def _erase_subject(
                 NotificationPreference.id.in_(preference_ids),
             ),
         )
+    # INT-582: the subject's passkeys, by the id each is audited under.
+    if passkey_ids:
+        removed += await _delete(
+            session,
+            delete(PatientPasskey).where(
+                PatientPasskey.tenant_id == tenant_id,
+                PatientPasskey.id.in_(passkey_ids),
+            ),
+        )
     # INT-123: the record index is derived from the subject's confirmed record,
     # so it goes with it. A vector is not an envelope — there is no DEK to
     # destroy — and the row delete is the erasure, as for a plain slot. The
@@ -480,5 +495,6 @@ async def _erase_subject(
             ("dsar.delete.notification_preference", f"notification_preference:{row_id}")
             for row_id in preference_ids
         ),
+        *(("dsar.delete.passkey", f"passkey:{row_id}") for row_id in passkey_ids),
     )
     return _Erased(shredded, removed, audited)

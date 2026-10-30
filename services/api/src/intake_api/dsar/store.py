@@ -43,6 +43,7 @@ from intake_platform.db.models import (
     NotificationPreference,
     OverlayFact,
     PatientOverlayHeader,
+    PatientPasskey,
     PreVisitOutputRow,
     RecordEmbedding,
     Share,
@@ -92,6 +93,8 @@ class SubjectRecord:
     #: INT-123: the record index, one row per confirmed item's vector — read
     #: in the patient's RLS namespace, the vector itself never loaded.
     record_index: tuple[RecordEmbedding, ...]
+    #: INT-582: the public half of each of the subject's passkeys (D36).
+    passkeys: tuple[PatientPasskey, ...]
 
     def slots_for(self, session_id: uuid.UUID) -> tuple[Slot, ...]:
         return tuple(slot for slot in self.slots if slot.session_id == session_id)
@@ -278,6 +281,18 @@ async def subject_record(
         ),
         record_index=await subject_record_index(
             session, tenant_id=tenant_id, patient_id=patient_id
+        ),
+        passkeys=tuple(
+            (
+                await session.scalars(
+                    select(PatientPasskey)
+                    .where(
+                        PatientPasskey.tenant_id == tenant_id,
+                        PatientPasskey.patient_id == patient_id,
+                    )
+                    .order_by(PatientPasskey.created_at, PatientPasskey.id)
+                )
+            ).all()
         ),
     )
 

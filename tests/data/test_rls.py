@@ -56,6 +56,8 @@ TENANT_SCOPED = (
     "events",
     # INT-141 — the patient's notification opt-out and quiet window
     "notification_preferences",
+    # INT-582 — the public half of each patient passkey (D36 step-up)
+    "patient_passkeys",
 )
 
 

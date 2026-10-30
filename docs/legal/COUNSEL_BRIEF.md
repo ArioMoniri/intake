@@ -799,6 +799,7 @@ Thirteen keys are unauthored (`dsar/strings.py:34-62`):
 | `dsar_export.section.feedback` | section heading: the patient's satisfaction comment |
 | `dsar_export.section.preferences` | section heading: the notification opt-out and quiet window |
 | `dsar_export.section.guardians` | section heading: the guardian↔minor link (gate shut today) |
+| `dsar_export.section.passkeys` | section heading: the public half of each patient passkey (INT-582, D36) |
 
 *(Updated 27 Sep 2026 by INT-395. The survey found nine keys; INT-395 added the last four,
 because the export now lists every table the inventory annotations put under the

@@ -310,6 +310,23 @@ export const en: Record<MessageKey, string> = {
   "data.empty": "You have no requests yet.",
   "data.unsent": "This request could not be sent.",
   "data.deviceOnly": "Your appearance settings and health readings stay on this phone only.",
+  "passkey.title": "Passkey",
+  "passkey.add": "Add a passkey",
+  "passkey.enrolled": "Your passkey is on",
+  "passkey.offer":
+    "A passkey lets you confirm important actions with your face or fingerprint. A doctor link, a copy of your record and deleting it are such actions. Even if someone takes over your number, only you can do them.",
+  "passkey.lost": "I lost my phone",
+  "passkey.recoveryEnds": "Day the passkey will be removed",
+  "passkey.recoveryNote":
+    "If you still have your old phone, you can cancel this request there. Until that day these actions still need the passkey.",
+  "passkey.notice.added": "Your passkey was added.",
+  "passkey.notice.unsupported": "This phone does not support passkeys.",
+  "passkey.notice.exists": "This passkey is already added.",
+  "passkey.notice.failed": "The passkey could not be added.",
+  "passkey.notice.recoveryFailed": "This request could not be sent.",
+  "passkey.stepUp.cancelled": "Not confirmed, so nothing was done.",
+  "passkey.stepUp.refused":
+    "This action could not be confirmed with your passkey. If you wish, you can apply to the data controller and have a person review it.",
   "me.signOut": "Sign out",
   "me.syntheticBadge": "Synthetic test account",
 
@@ -834,6 +851,8 @@ export const en: Record<MessageKey, string> = {
   // user knows what will happen before they act.
   "a11y.data.exportHint": "Double tapping sends your copy request.",
   "a11y.data.deleteHint": "Double tapping starts your erasure request.",
+  "a11y.passkey.addHint": "Double tapping sets up passkey sign-in on this phone.",
+  "a11y.passkey.lostHint": "Double tapping starts the request to remove the passkey.",
   "a11y.data.withdrawHint": "Double tapping withdraws your erasure request.",
   "a11y.learned.shareHint": "Double tapping changes who this detail is shared with.",
   "a11y.learned.forgetHint": "Double tapping deletes this detail from your record.",

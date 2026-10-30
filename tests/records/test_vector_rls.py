@@ -193,7 +193,13 @@ class TestThePolicyIsTheMetadatas:
         cfg = Config(str(REPO / "alembic.ini"))
         cfg.set_main_option("script_location", str(REPO / "migrations"))
         script = ScriptDirectory.from_config(cfg)
-        assert script.get_heads() == ["0014_int123"]
+        # one head, and the record index sits on the single line to it: INT-582's
+        # 0015_int582 (patient passkeys) descends from it, which is what a linear
+        # history after main looks like; a fork would show two heads here
+        heads = script.get_heads()
+        assert len(heads) == 1
+        lineage = [rev.revision for rev in script.walk_revisions("base", heads[0])]
+        assert "0014_int123" in lineage
         revision = script.get_revision("0014_int123")
         assert revision is not None and revision.down_revision == "0013_previsit_output"
 

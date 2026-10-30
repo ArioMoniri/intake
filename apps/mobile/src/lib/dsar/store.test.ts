@@ -18,7 +18,14 @@
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { fetchDsarRequests, fileErasureRequest, fileExportRequest } from "./api";
+import type { PasskeyPorts } from "@/lib/auth/passkey/ceremony";
+
+import {
+  fetchDsarRequests,
+  fileErasureRequest,
+  fileErasureWithStepUp,
+  fileExportRequest,
+} from "./api";
 import {
   dsarSnapshot,
   fileErasure,
@@ -38,6 +45,10 @@ const mocks = vi.hoisted(() => {
   }
   return { authedFetch: vi.fn(), AuthApiError };
 });
+
+// INT-582: the default passkey ports reach the native module only through a
+// lazy import; this suite stands in a phone that has none
+vi.mock("@/lib/auth/passkey/native", () => ({ loadPasskeyNative: async () => null }));
 
 vi.mock("@/lib/auth/api", () => ({
   authedFetch: mocks.authedFetch,
@@ -119,6 +130,74 @@ describe("the seam", () => {
   });
 });
 
+describe("data delete steps up to the passkey (INT-582, D36)", () => {
+  const STEP_UP = { error: "step_up_required", action: "data_delete", manual_path: "x" };
+
+  it("a patient without a passkey files with no ceremony (the OTP tier stands)", async () => {
+    mocks.authedFetch.mockResolvedValue(ok({ ...ERASURE_ROW, shares_cancelled: 0 }, 201));
+    await fileErasure();
+    expect(mocks.authedFetch).toHaveBeenCalledTimes(1);
+    expect(dsarSnapshot()).toMatchObject({ unsent: false, stepUpRefused: false });
+  });
+
+  it("a passkey the phone cannot reach sends the patient to a person, not 'not sent'", async () => {
+    mocks.authedFetch.mockImplementation(async (path: string) =>
+      path === "/v1/me/dsar/delete"
+        ? { ok: false, status: 403, json: async () => STEP_UP }
+        : ok({
+            enrolled: true,
+            publicKey: {
+              challenge: "Y2hhbGxlbmdl",
+              rpId: "3-211-2-143.sslip.io",
+              allowCredentials: [{ type: "public-key", id: "Y3JlZA" }],
+              userVerification: "required",
+            },
+          }),
+    );
+    await fileErasure();
+    expect(dsarSnapshot()).toMatchObject({ unsent: true, stepUpRefused: true, requests: [] });
+  });
+
+  it("a step-up grant is sent on the erasure and the filing lands", async () => {
+    const ports: PasskeyPorts = {
+      native: async () => ({
+        create: async () => null,
+        get: async () => ({
+          id: "Y3JlZA",
+          rawId: "Y3JlZA",
+          type: "public-key",
+          response: { clientDataJSON: "e30", authenticatorData: "AA", signature: "AA" },
+        }),
+      }),
+      registrationOptions: async () => ({ ok: true, status: 200, body: {} }),
+      register: async () => ({ ok: true, status: 200, body: {} }),
+      stepUpOptions: async () => ({
+        ok: true,
+        status: 200,
+        body: {
+          enrolled: true,
+          publicKey: {
+            challenge: "Y2hhbGxlbmdl",
+            rpId: "3-211-2-143.sslip.io",
+            allowCredentials: [{ type: "public-key", id: "Y3JlZA" }],
+            userVerification: "required",
+          },
+        },
+      }),
+      stepUp: async () => ({ ok: true, status: 200, body: { grant: "grant-value" } }),
+    };
+    mocks.authedFetch
+      .mockResolvedValueOnce({ ok: false, status: 403, json: async () => STEP_UP })
+      .mockResolvedValueOnce(ok({ ...ERASURE_ROW, shares_cancelled: 1 }, 201));
+    const outcome = await fileErasureWithStepUp(ports);
+    expect(outcome.kind).toBe("filed");
+    const [, init] = mocks.authedFetch.mock.calls[1] ?? [];
+    expect((init as RequestInit).headers).toMatchObject({
+      "X-Intake-Step-Up-Grant": "grant-value",
+    });
+  });
+});
+
 describe("the working copy", () => {
   it("starts empty and unloaded — nothing is claimed before the server answers", () => {
     expect(dsarSnapshot()).toEqual({
@@ -126,6 +205,7 @@ describe("the working copy", () => {
       loaded: false,
       unsent: false,
       sharesCancelled: false,
+      stepUpRefused: false,
     });
   });
 
@@ -154,6 +234,7 @@ describe("the working copy", () => {
       loaded: false,
       unsent: false,
       sharesCancelled: false,
+      stepUpRefused: false,
     });
   });
 

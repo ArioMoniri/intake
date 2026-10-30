@@ -317,6 +317,25 @@ export const tr = {
   "data.empty": "Henüz bir isteğiniz yok.",
   "data.unsent": "Bu istek gönderilemedi.",
   "data.deviceOnly": "Görünüm ayarlarınız ve sağlık okumalarınız yalnızca bu telefonda kalır.",
+  // INT-582 (D36): the patient passkey. iOS's own Turkish word for a passkey
+  // is "geçiş anahtarı", so the app says what the system sheet will say.
+  "passkey.title": "Geçiş anahtarı",
+  "passkey.add": "Geçiş anahtarı ekleyin",
+  "passkey.enrolled": "Geçiş anahtarınız açık",
+  "passkey.offer":
+    "Geçiş anahtarı, önemli işlemleri yüzünüz ya da parmak izinizle onaylamanızı sağlar. Doktor bağlantısı, kayıt kopyası ve silme bu işlemlerdendir. Numaranız başkasına geçse bile bu işlemleri yalnızca siz yaparsınız.",
+  "passkey.lost": "Telefonumu kaybettim",
+  "passkey.recoveryEnds": "Geçiş anahtarının kaldırılacağı gün",
+  "passkey.recoveryNote":
+    "Eski telefonunuz sizdeyse bu isteği oradan iptal edebilirsiniz. O güne kadar bu işlemler için geçiş anahtarı gerekir.",
+  "passkey.notice.added": "Geçiş anahtarınız eklendi.",
+  "passkey.notice.unsupported": "Bu telefon geçiş anahtarını desteklemiyor.",
+  "passkey.notice.exists": "Bu geçiş anahtarı zaten ekli.",
+  "passkey.notice.failed": "Geçiş anahtarı eklenemedi.",
+  "passkey.notice.recoveryFailed": "Bu istek gönderilemedi.",
+  "passkey.stepUp.cancelled": "Onay verilmedi, işlem yapılmadı.",
+  "passkey.stepUp.refused":
+    "Bu işlem geçiş anahtarıyla onaylanamadı. İsterseniz veri sorumlusuna başvurup işleminizi bir kişiye inceletebilirsiniz.",
   "me.signOut": "Çıkış yapın",
   "me.syntheticBadge": "Sentetik deneme hesabı",
 
@@ -868,6 +887,8 @@ export const tr = {
   // kullanan hasta, dokunmadan önce ne olacağını bilir.
   "a11y.data.exportHint": "İki kez dokunmak kopya isteğinizi gönderir.",
   "a11y.data.deleteHint": "İki kez dokunmak silme isteğinizi başlatır.",
+  "a11y.passkey.addHint": "İki kez dokunmak bu telefona bir geçiş anahtarı ekler.",
+  "a11y.passkey.lostHint": "İki kez dokunmak geçiş anahtarını kaldırma isteğini başlatır.",
   "a11y.data.withdrawHint": "İki kez dokunmak silme isteğinizi geri çeker.",
   "a11y.learned.shareHint": "İki kez dokunmak bu bilginin paylaşımını değiştirir.",
   "a11y.learned.forgetHint": "İki kez dokunmak bu bilgiyi kaydınızdan siler.",

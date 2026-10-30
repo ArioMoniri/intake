@@ -4562,3 +4562,14 @@
 - Blocked on: nothing.
 - Next: merge at the front of the queue, because every PR's vulnerabilities job is red until it lands.
 - LOOP_STATUS: CONTINUE
+
+### 2026-10-30T20:30:00+03:00 · INT-582 · done (backup branch, no PR)
+- Goal: D36 (owner, 28 Oct 2026) — store patient passkey public keys and step four patient actions up to the passkey (issuing a Doctor Link, changing the phone number, data export, data delete), against a SIM swap; a patient without a passkey is offered enrolment and keeps the OTP tier, never locked out.
+- Plan: a WebAuthn verifier on the already-audited cbor2 + cryptography; single-use challenges and grants bound to tenant, patient, DPoP session and action; `require_step_up(action)` on the served routes; `patient_passkeys` with a proposed inventory annotation; the app's react-native-passkeys behind a lazy import, stepping up only when the server asks; OTP-tier recovery with a cool-off.
+- Tests added (each with its near miss): 152 Python (`tests/api/test_passkey_{webauthn,challenges,step_up,enrolment,edges}.py`) — replayed assertion, challenge and grant for another action or device session, wrong origin / RP ID, counter regression, another account's credential, stale challenge, no passkey → enrolment offered with the OTP tier intact, recovery and its cancellation, unconfigured tier, ids-only audit and logs; data-contract updates (inventory, erasure, RLS, schema shape); 58 vitest under `apps/mobile/src/lib/auth/passkey/` plus erasure and Doctor Link cases.
+- Result: full pytest 13 328 passed with six accounted failures, all green on re-run (evidence); passkey suites 152 + 58 + the touched mobile suites (3031 vitest) green; ruff, mypy --strict, tsc, lint, no_placeholders, phi/claims scans and gitleaks clean. check-integration is CI-only (no services on the Mac).
+- Invariants touched and still passing: 4 (every registration, step-up, refusal, removal and recovery on the hash chain), 6 (ids only; closed metric labels; no key material, challenge, grant or phone in the product's logs), 14 (passkey bytes are data; strict decoders), 17 (no placeholders), 18 (inventory annotation on every column; schema test green), 19 (licences read from the raw LICENSE blobs, licence_verified_at 2026-10-30).
+- Decisions / ADRs / `00_STATE.md` rows: none minted. A new authentication factor is an architecture change — ADR id for the orchestrator to allocate. The inventory annotation is a proposal for the legal lane; the 72 h recovery cool-off is an engineering default for the owner.
+- Blocked on: nothing. Turning the tier on at the synthetic host waits for INT-580's AASA (#999) and a build carrying the native module.
+- Next: rebase onto #995 (INT-587's StepUp seam) and #999 (associated domain) when they merge.
+- LOOP_STATUS: CONTINUE

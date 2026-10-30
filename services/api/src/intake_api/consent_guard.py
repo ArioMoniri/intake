@@ -433,8 +433,34 @@ class NotificationPreferenceDeclaration:
         return
 
 
+class SignInFactorDeclaration:
+    """Explicit declaration that a route manages the patient's own sign-in
+    factor (INT-582: passkeys, D36).
+
+    A passkey is account security, not a consented purpose: it rides the
+    KVKK m.12 security obligation (``inventory.BASIS_ACCOUNT_SECURITY``).
+    Gate it on ``core`` and a patient who withdrew consent could neither
+    remove the passkey nor recover from a lost phone — and the step-up it
+    powers sits in front of the statutory rights routes, which a withdrawal
+    must never lock. So the route cannot enforce a scope; it may not stay
+    silent either, and the scan accepts this marker ONLY under
+    SIGN_IN_FACTOR_PREFIX (as a path segment, not a substring).
+
+    What does not disappear with the scope: the routes are patient-only,
+    act on the requesting subject's own rows, carry no clinical data in
+    either direction, and audit every registration, step-up, refusal,
+    removal and recovery to the hash chain.
+    """
+
+    async def __call__(self) -> None:
+        return
+
+
 #: The only prefix where a data-subject-right declaration is accepted.
 DATA_SUBJECT_RIGHT_PREFIX = "/v1/me/dsar"
+
+#: The only prefix where a sign-in-factor declaration is accepted (INT-582).
+SIGN_IN_FACTOR_PREFIX = "/v1/me/passkeys"
 
 #: The only prefix where a reference-data declaration is accepted.
 REFERENCE_DATA_PREFIX = "/v1/taxonomy"
@@ -460,6 +486,13 @@ def data_subject_right() -> params.Depends:
     """Declare a route as a statutory data-subject right (see
     DataSubjectRightDeclaration)."""
     dependency: params.Depends = Depends(DataSubjectRightDeclaration())
+    return dependency
+
+
+def sign_in_factor() -> params.Depends:
+    """Declare a route as the patient's own sign-in-factor management (see
+    SignInFactorDeclaration)."""
+    dependency: params.Depends = Depends(SignInFactorDeclaration())
     return dependency
 
 
@@ -584,6 +617,13 @@ def _is_notification_preference(route: APIRoute) -> bool:
     )
 
 
+def _is_sign_in_factor(route: APIRoute) -> bool:
+    return any(
+        isinstance(dependency.dependency, SignInFactorDeclaration)
+        for dependency in route.dependencies
+    )
+
+
 def _is_administrative_action(route: APIRoute) -> bool:
     return any(
         isinstance(dependency.dependency, AdministrativeActionDeclaration)
@@ -701,6 +741,18 @@ def notification_preference_routes(app: FastAPI) -> list[str]:
     return sorted(marked)
 
 
+def sign_in_factor_routes(app: FastAPI) -> list[str]:
+    """Every route carrying the sign-in-factor declaration, for the pin test
+    (INT-582) — reported wherever it appears; whether the scan ACCEPTS it is
+    unguarded_data_routes' prefix rule."""
+    marked: list[str] = []
+    for path, route in _iter_api_routes(list(app.routes)):
+        if _is_sign_in_factor(route):
+            for method in sorted(route.methods or ()):
+                marked.append(f"{method} {path}")
+    return sorted(marked)
+
+
 def administrative_action_routes(app: FastAPI) -> list[str]:
     """Every route carrying the administrative-action declaration, for the
     pin test (INT-180) — reported wherever it appears; whether the scan
@@ -749,6 +801,8 @@ def unguarded_data_routes(app: FastAPI) -> list[str]:
     (INT-037, the statutory rights whose basis is legal obligation rather than
     consent) and notification_preference under NOTIFICATION_PREFERENCE_PREFIX
     (INT-141, the message-refusal register a withdrawal must not lock) and
+    sign_in_factor under SIGN_IN_FACTOR_PREFIX (INT-582, the patient's own
+    passkeys, an account-security control on the KVKK m.12 obligation) and
     doctor_link_redemption under DOCTOR_LINK_PREFIX (INT-150, the clinician
     holding a token and no account, whose consent check runs record-level
     inside the endpoint) and administrative_action under ADMIN_PREFIX
@@ -774,6 +828,8 @@ def unguarded_data_routes(app: FastAPI) -> list[str]:
         if _is_data_subject_right(route) and _under_data_subject_right_prefix(path):
             continue
         if _is_notification_preference(route) and _under_notification_preference_prefix(path):
+            continue
+        if _is_sign_in_factor(route) and _under_prefix(path, SIGN_IN_FACTOR_PREFIX):
             continue
         if _is_doctor_link_redemption(route) and _under_prefix(path, DOCTOR_LINK_PREFIX):
             continue

@@ -115,6 +115,7 @@ from intake_platform.db.models import (
     OverlayFact,
     Patient,
     PatientOverlayHeader,
+    PatientPasskey,
     PreVisitOutputRow,
     RecordEmbedding,
     SessionStatus,
@@ -203,6 +204,9 @@ ROWS_ON_ERASURE: Final[Mapping[str, RowFate]] = MappingProxyType(
         # INT-395: RET_NOTIFICATION_PREFERENCE puts it on the record clock.
         "notification_preferences": RowFate.ERASED,
         "record_embeddings": RowFate.ERASED,
+        # INT-582: RET_PASSKEY puts the public half of a passkey on the record
+        # clock, patient-deletable; a sign-in factor goes with the account.
+        "patient_passkeys": RowFate.ERASED,
     }
 )
 
@@ -249,6 +253,7 @@ ON_ERASURE: Final[Mapping[str, OnErasure]] = MappingProxyType(
         "overlay_facts.patient_id": OnErasure.PARENT_KEPT,
         "patient_overlays.patient_id": OnErasure.PARENT_KEPT,
         "record_embeddings.patient_id": OnErasure.PARENT_KEPT,
+        "patient_passkeys.patient_id": OnErasure.PARENT_KEPT,
     }
 )
 
@@ -390,6 +395,8 @@ EXPORTED_IN: Final[Mapping[str, Listed]] = MappingProxyType(
         "guardian_links": Listed("guardians", "guardian_link"),
         # INT-123: each vector beside the document it was read from
         "record_embeddings": Listed("documents", "record_index"),
+        # INT-582: its own heading; the public half is the subject's data
+        "patient_passkeys": Listed("passkeys", "passkey"),
     }
 )
 
@@ -495,6 +502,9 @@ def test_the_clocks_that_grant_erasure_are_exactly_these() -> None:
         "RET_NOTIFICATION_PREFERENCE",
         "RET_PREVISIT_OUTPUT",
         "RET_SATISFACTION",
+        # INT-582 (D36): a passkey is patient-deletable on the record clock —
+        # the decision is D36's new category, proposed for the legal lane
+        "RET_PASSKEY",
     }
 
 
@@ -518,6 +528,7 @@ def test_the_tables_that_hold_the_subjects_data_are_what_the_annotations_say() -
         "patient_overlays",
         "notification_preferences",
         "record_embeddings",
+        "patient_passkeys",
     }
 
 
@@ -822,6 +833,17 @@ def _seed_graph(db: Engine) -> Seeded:
                 shared=False,
             ),
             PatientOverlayHeader(id=uuid.uuid4(), **subject, version=1),
+            PatientPasskey(
+                id=uuid.uuid4(),
+                **subject,
+                credential_id="Y3JlZGVudGlhbC1pZA",
+                public_key="BA" + "A" * 86,
+                user_handle="aGFuZGxl",
+                sign_count=0,
+                backup_eligible=True,
+                backup_state=True,
+                created_at=T0,
+            ),
         ],
         [
             note,
@@ -1005,6 +1027,7 @@ def test_the_dsar_erasure_does_to_every_table_what_the_contract_declares(
             "dsar.delete.notification_preference",
             f"notification_preference:{by_id['notification_preferences']}",
         ),
+        ("dsar.delete.passkey", f"passkey:{by_id['patient_passkeys']}"),
     ]
 
 

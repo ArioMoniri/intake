@@ -91,6 +91,7 @@ ERASURE_PRIVILEGES: Final[frozenset[Privilege]] = (
         "patient_overlays",
         "csat_texts",
         "notification_preferences",
+        "patient_passkeys",
         "guardian_links",
         "events",
         # INT-123: the record index, read in the patient's namespace
@@ -122,6 +123,7 @@ ERASURE_PRIVILEGES: Final[frozenset[Privilege]] = (
         "overlay_facts",
         "patient_overlays",
         "notification_preferences",
+        "patient_passkeys",
         "record_embeddings",
         "slots",
         "sessions",

@@ -510,10 +510,14 @@ it or whose tests exercise it.
 
 ## `onboarding` — patient OTP, attestation, sessions
 
-- **Assets:** phone OTP flow, refresh-token families, attestation verdicts, session state.
-- **Trust boundaries:** unauthenticated caller ↔ account; device ↔ token (DPoP binding).
-- **Threats (STRIDE/LINDDUN):** [S] account takeover through OTP abuse; [D] SMS pumping
-  (cost and lockout); [I/Id] account enumeration through response differences.
+- **Assets:** phone OTP flow, refresh-token families, attestation verdicts, session state,
+  patient passkey public keys and step-up grants (INT-582).
+- **Trust boundaries:** unauthenticated caller ↔ account; device ↔ token (DPoP binding);
+  OTP session ↔ sensitive action (the passkey step-up, INT-582).
+- **Threats (STRIDE/LINDDUN):** [S] account takeover through OTP abuse; [S/E] a SIM swap
+  carrying an OTP session into D36's sensitive actions; [D] SMS pumping (cost and
+  lockout), and a step-up that locks out a patient who has no passkey; [I/Id] account
+  enumeration through response differences.
 - **Controls (files/10):** §2 patients — OTP limits (TTL, attempt and per-phone/IP request
   caps), device attestation on OTP request and session start, rotating
   device-bound refresh tokens with family revocation on reuse, passkeys, biometric gate,
@@ -605,8 +609,50 @@ it or whose tests exercise it.
   API alone, rendered from the allow-list's SMS row only, with the rebinding window closed and
   the denied ranges refused at connect; `intake_platform.egress` admits that one proxy for that
   one purpose and refuses every other personal-data proxy (INT-203 unchanged otherwise).
+- **The passkey step-up, stated (INT-582, D36):** [S/E] a SIM swap hands an attacker the
+  SMS, so the OTP proves possession of the number and nothing more. D36 (owner, 28 Oct
+  2026) steps four patient actions up to a passkey: issuing a Doctor Link, changing the
+  phone number, data export and data delete. `intake_api.passkey.gate.require_step_up`
+  sits in each route's dependencies (`STEP_UP_ROUTES`; data export where the data leaves,
+  `GET /v1/me/dsar/export/{id}`; no phone-change route is served yet, and a test fails the
+  day one is served without the gate). A patient **with** a passkey must present a grant
+  minted by a passkey assertion for **that** action on **that** DPoP device session in the
+  last 120 s, unused; the challenge behind it was single-use too, spent (GETDEL) before
+  any check ran, and bound to tenant, patient, session and action, so a replayed
+  assertion, a challenge or grant for another action, and a grant carried to another
+  device are each refused. The verifier (`intake_api.passkey.webauthn`, built on the
+  already-audited `cbor2` and `cryptography` rather than a library that would add
+  `pyOpenSSL`) checks the ceremony type, the challenge, the exact origin, `crossOrigin`,
+  the RP ID hash (D34's host), user presence **and** verification, the backup flags,
+  `fmt: none`, ES256 only, the credential id, the signature and the counter (WebAuthn
+  §6.1.1: a counter that does not move forward is refused as a clone; a synced passkey's
+  0 against 0 passes). A patient **without** a passkey is **not** locked out: today's
+  OTP-session tier still applies and the response offers enrolment
+  (`X-Intake-Passkey-Enrolment: offered`). With a passkey and no configured verifier the
+  action is refused 503, never downgraded, because the downgrade is what a SIM swap
+  wants. Every refusal on the step-up signal alone names the manual path
+  (`kvkk_m13_application`: a person reviews it, KVKK m.11(1)(g)). Registration happens
+  only from an OTP-verified DPoP session; removing a passkey and cancelling a recovery
+  are step-ups of their own, else an OTP-only attacker would remove the passkey first.
+  The stored datum is the public half only (credential id, public key, counter, BE/BS, an
+  opaque per-patient user handle); its inventory annotation is a new category,
+  `authentication_credential`, proposed on the KVKK m.12/1 security-obligation basis for
+  the legal lane to confirm, erased by a DSAR erasure and listed in the export.
+- **Lost phone — recovery, stated (INT-582):** the OTP tier starts a recovery
+  (`POST /v1/me/passkeys/recovery`); the passkey keeps guarding the four actions through a
+  cool-off (`RECOVERY_COOLOFF_S`, 72 h, an engineering default for the owner to confirm)
+  and its holder can cancel by stepping up (`recovery_cancel`); after the cool-off the
+  passkey stops counting, is deleted (audited `passkey.recovery.complete`) and the patient
+  is back on the OTP tier with enrolment offered. A SIM-swap attacker must therefore hold
+  the number unnoticed for the whole cool-off while D35's push notice reaches the
+  patient's signed-in devices (INT-583 builds that channel; until it lands the
+  cool-off itself is the control). Residual risk, stated: an attacker who also holds an
+  unlocked device that carries the patient's synced passkey (an iCloud Keychain on a
+  second device) is the patient as far as WebAuthn can tell.
 - **Signals:** OTP request/fail rates by ASN, attestation failures, new-device logins (§9)
-  land with INT-131 and the console with INT-192.
+  land with INT-131 and the console with INT-192. INT-582 adds
+  `passkey_events_total{event,reason}` (closed labels: registrations, step-ups passed and
+  refused, the gate's passkey / OTP-tier / refused decisions, removals, recoveries).
 - **Tests:** abuse-path tests land with INT-131; the rolling bound over any span, the
   boundary-crossing refusal on all three dimensions, the true retry-after (including under a
   budget tightened while windows are live) and the bounded counter key set with INT-263
@@ -625,7 +671,16 @@ it or whose tests exercise it.
   (`tests/api/test_otp_twilio.py`, `tests/api/test_otp_twilio_wiring.py`). The async guard
   matches the sync one on a parity table (`tests/security/test_egress_async.py`), and the
   shipped allow-list refuses the SMS purpose on every tier
-  (`tests/security/test_egress_allowlist.py`).
+  (`tests/security/test_egress_allowlist.py`). Passkeys with INT-582: every WebAuthn
+  check refusing on its own beside its near miss (`tests/api/test_passkey_webauthn.py`),
+  single-use and bound challenges and grants (`tests/api/test_passkey_challenges.py`),
+  the gate end to end — replay, another action, another device session, wrong origin or
+  RP ID, a counter regression, another account's credential, a stale challenge, no
+  passkey offered enrolment with the OTP tier intact, the Doctor Link route
+  (`tests/api/test_passkey_step_up.py`), enrolment, removal, recovery and its
+  cancellation, the unconfigured tier, ids-only audit and logs
+  (`tests/api/test_passkey_enrolment.py`, `tests/api/test_passkey_edges.py`), and the app
+  side (`apps/mobile/src/lib/auth/passkey/*.test.ts`).
 
 ## `consent` — layered consent and scope enforcement
 

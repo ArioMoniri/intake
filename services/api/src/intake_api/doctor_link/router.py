@@ -59,6 +59,8 @@ from intake_api.doctor_link.schemas import (
 )
 from intake_api.errors import not_found, note_not_shared, otp_limited, visit_invalid
 from intake_api.notes import SHARE_SCOPE
+from intake_api.passkey.actions import StepUpAction
+from intake_api.passkey.gate import require_step_up
 from intake_api.state import State
 from intake_api.visits import CORE_SCOPE
 
@@ -106,7 +108,13 @@ async def _link_of_patient(
     # optional purpose — that is service conditioning. The share purpose is
     # declared conditional and enforced inside the endpoint, exactly as
     # notes.write_note does, so refusing it costs the share and nothing else.
-    dependencies=[require_scopes(CORE_SCOPE, conditional=(SHARE_SCOPE,))],
+    # INT-582 (D36): issuing a Doctor Link steps up to the patient's passkey,
+    # after the consent check so a consent refusal never spends a grant; a
+    # patient with no passkey keeps the OTP-session tier and is offered one.
+    dependencies=[
+        require_scopes(CORE_SCOPE, conditional=(SHARE_SCOPE,)),
+        require_step_up(StepUpAction.DOCTOR_LINK_ISSUE),
+    ],
 )
 async def issue_link(
     visit_id: uuid.UUID, payload: DoctorLinkCreate, principal: Principal, state: State

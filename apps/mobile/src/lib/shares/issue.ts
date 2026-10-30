@@ -28,6 +28,7 @@
  * payload in the body, exactly as the server's own contract requires.
  */
 import { authedFetch } from "@/lib/auth/api";
+import { withStepUp } from "@/lib/auth/passkey/stepUp";
 
 /** The one bundle a screen may render, and only while it is mounted. */
 export interface IssuedCredential {
@@ -43,7 +44,16 @@ export interface IssuedCredential {
 
 /** Why an attempt did not produce a credential — one reason per true sentence. */
 export type IssueFailure =
-  "not_shared" | "date_unknown" | "recipient_invalid" | "limited" | "unavailable" | "unreachable";
+  | "not_shared"
+  | "date_unknown"
+  | "recipient_invalid"
+  | "limited"
+  | "unavailable"
+  | "unreachable"
+  // INT-582 (D36): the passkey step-up was refused (a person can review it)
+  // or the patient closed the passkey sheet themselves
+  | "step_up"
+  | "step_up_cancelled";
 
 export type IssueResult =
   { ok: true; credential: IssuedCredential } | { ok: false; reason: IssueFailure };
@@ -172,13 +182,25 @@ export async function issueDoctorLink(visitId: string, rawRecipient: string): Pr
     return { ok: false, reason: "recipient_invalid" };
   }
   try {
-    const issued = await authedFetch(linksPath(visitId), {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ recipient }),
-    });
+    // INT-582 (D36): issuing steps up to the patient's passkey when the
+    // server asks for it; a patient without one is answered directly
+    const sent = await withStepUp("doctor_link_issue", (headers) =>
+      authedFetch(linksPath(visitId), {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...headers },
+        body: JSON.stringify({ recipient }),
+      }),
+    );
+    if (sent.kind === "refused") {
+      return { ok: false, reason: "step_up" };
+    }
+    if (sent.kind === "cancelled") {
+      return { ok: false, reason: "step_up_cancelled" };
+    }
+    const issued = sent.response;
     if (!issued.ok) {
-      return { ok: false, reason: failureFor(issued.status, await errorCode(issued)) };
+      const code = sent.error ?? (await errorCode(issued));
+      return { ok: false, reason: failureFor(issued.status, code) };
     }
     const grant = parseIssued(await jsonOrNull(issued));
     if (grant === null) {

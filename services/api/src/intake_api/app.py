@@ -99,6 +99,9 @@ from intake_api.doctor_link.service import (
 from intake_api.documents import DocumentsConfig, DocumentsGateway
 from intake_api.embed import EmbedService, EmbedWiring
 from intake_api.otp import AuthWiring, OtpAuthService, ensure_consumer_tenant
+from intake_api.passkey import routes as passkey_routes
+from intake_api.passkey.service import PasskeyService, PasskeyWiring
+from intake_api.passkey.webauthn import PasskeyConfig, PasskeyConfigError
 from intake_api.settings import ENV_MINIO_PASSWORD, ENV_MINIO_USER, ApiSettings
 from intake_api.state import ApiState
 
@@ -163,6 +166,10 @@ class ApiWiring:
     # raises its entry in (files/02 §2b). None = unwired: those two moves
     # answer 503 rather than happen silently.
     safety_inbox: SafetyInbox | None = None
+    # INT-582 (D36): the patient passkey tier over the OTP tier's Redis. None
+    # = unconfigured: nobody enrols, and a patient who has a passkey is
+    # refused with the manual path rather than downgraded (fail closed).
+    passkey: PasskeyWiring | None = None
 
 
 def _cipher_from_settings(settings: ApiSettings) -> EnvelopeCipher:
@@ -303,6 +310,21 @@ def _auth_from_settings(
         carrier_geo=carrier_geo_from_path(settings.msisdn_allocation_path),
         recipients=recipients,
     )
+
+
+def _passkey_from_settings(settings: ApiSettings, auth: AuthWiring | None) -> PasskeyWiring | None:
+    """INT-582 (D36). The passkey tier needs the OTP tier's Redis (its
+    challenges and grants live beside the OTP state) and BOTH the RP ID and
+    the origins; anything absent or malformed leaves it unconfigured, logged
+    once with no value in the line."""
+    if auth is None or settings.passkey_rp_id is None:
+        return None
+    try:
+        config = PasskeyConfig.parse(settings.passkey_rp_id, settings.passkey_origins)
+    except PasskeyConfigError:
+        logger.warning("passkey configuration refused; the passkey tier stays unconfigured")
+        return None
+    return PasskeyWiring(config=config, redis_client=auth.redis_client, now_fn=auth.now_fn)
 
 
 def _doctor_link_service(auth: AuthWiring | None) -> DoctorLinkService | None:
@@ -476,6 +498,7 @@ def _embed_from_settings(settings: ApiSettings) -> EmbedWiring | None:
 
 def wiring_from_env() -> ApiWiring:
     settings = ApiSettings.from_env()
+    auth = _auth_from_settings(settings)
     return ApiWiring(
         settings=settings,
         engine=build_engine(settings.app_db_url),
@@ -484,7 +507,8 @@ def wiring_from_env() -> ApiWiring:
         bootstrap=True,
         bootstrap_engine=build_engine(settings.bootstrap_db_url),
         documents=_documents_from_env(),
-        auth=_auth_from_settings(settings),
+        auth=auth,
+        passkey=_passkey_from_settings(settings, auth),
         admin=_admin_from_env(),
         embed=_embed_from_settings(settings),
         # INT-443: on the synthetic host the vendor key comes from OpenBao
@@ -539,6 +563,11 @@ def create_app(wiring: ApiWiring | None = None) -> FastAPI:
         documents=DocumentsGateway(w.documents, audit) if w.documents is not None else None,
         auth=(OtpAuthService(w.auth, engine=w.engine, audit=audit) if w.auth is not None else None),
         doctor_link=_doctor_link_service(w.auth),
+        passkey=(
+            PasskeyService(w.passkey, engine=w.engine, audit=audit)
+            if w.passkey is not None
+            else None
+        ),
         embed=EmbedService(w.embed, audit) if w.embed is not None else None,
         acibadem=w.acibadem,
         safety_inbox=w.safety_inbox,
@@ -691,6 +720,7 @@ def create_app(wiring: ApiWiring | None = None) -> FastAPI:
     app.include_router(dsar.router)
     app.include_router(satisfaction.router)
     app.include_router(notification_prefs.router)
+    app.include_router(passkey_routes.router)
     app.include_router(experience.router)
     app.include_router(learned.router)
     app.include_router(admin.router)

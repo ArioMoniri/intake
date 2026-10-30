@@ -19,7 +19,7 @@ import { useSyncExternalStore } from "react";
 
 import {
   fetchDsarRequests,
-  fileErasureRequest,
+  fileErasureWithStepUp,
   fileExportRequest,
   withdrawErasureRequest,
 } from "./api";
@@ -34,9 +34,21 @@ export interface DsarState {
   unsent: boolean;
   /** The most recent erasure filing closed at least one live share. */
   sharesCancelled: boolean;
+  /**
+   * INT-582 (D36): the last erasure needed the patient's passkey and the
+   * step-up was refused — the screen names the manual path (a person reviews
+   * it, KVKK m.11(1)(g)) rather than only "not sent".
+   */
+  stepUpRefused: boolean;
 }
 
-const FRESH: DsarState = { requests: [], loaded: false, unsent: false, sharesCancelled: false };
+const FRESH: DsarState = {
+  requests: [],
+  loaded: false,
+  unsent: false,
+  sharesCancelled: false,
+  stepUpRefused: false,
+};
 
 let state: DsarState = FRESH;
 let seededAccount: string | null = null;
@@ -104,16 +116,22 @@ export async function fileExport(): Promise<void> {
 }
 
 export async function fileErasure(): Promise<void> {
-  const filing = await fileErasureRequest();
-  if (filing === null) {
-    commit({ ...state, unsent: true });
+  const outcome = await fileErasureWithStepUp();
+  if (outcome.kind === "cancelled") {
+    // the patient closed the passkey sheet: nothing was filed, nothing failed
+    commit({ ...state, unsent: false, stepUpRefused: false });
+    return;
+  }
+  if (outcome.kind !== "filed") {
+    commit({ ...state, unsent: true, stepUpRefused: outcome.kind === "step_up_refused" });
     return;
   }
   commit({
     ...state,
-    requests: merged(state.requests, filing.request),
+    requests: merged(state.requests, outcome.filing.request),
     unsent: false,
-    sharesCancelled: filing.sharesCancelled,
+    stepUpRefused: false,
+    sharesCancelled: outcome.filing.sharesCancelled,
   });
 }
 

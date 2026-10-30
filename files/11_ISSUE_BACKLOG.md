@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**381 issues.** By phase: P0 183 · P1 144 · P2 47 · P3 7. By status: awaiting-human 39 · doing 7 · done 260 · todo 74 · withdrawn 1.
+**382 issues.** By phase: P0 183 · P1 144 · P2 48 · P3 7. By status: awaiting-human 39 · doing 7 · done 261 · todo 74 · withdrawn 1.
 
 ## P0
 
@@ -395,6 +395,7 @@
 | INT-338 | Motion: section sheet — measured fade budget, instant privacy and RED closes | E08-mobile | INT-331, INT-334, INT-335 | area:mobile | todo |
 | INT-339 | Motion: typed lane, fallback and completion | E08-mobile | INT-330, INT-335 | area:mobile | done |
 | INT-340 | Haptics: one policy, sticky suppression, server-confirmed success | E08-mobile | INT-332, INT-333 | area:mobile, risk:legal | todo |
+| INT-582 | Patient passkeys and a passkey step-up on sensitive actions, against SIM swap | E01-platform | INT-131, INT-585 | area:api, area:mobile, risk:security | done |
 
 ## P3
 

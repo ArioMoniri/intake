@@ -246,6 +246,9 @@ def build_harness(
     # "synthetic" is synthetic, as ApiSettings.from_env reads it). None is the
     # shipped real-tenant default, in which the synthetic legal tree is refused.
     deployment_data_class: str | None = None,
+    # INT-582: the passkey tier (a PasskeyWiring over the auth tier's Redis).
+    # None is the shipped unconfigured state.
+    passkey: Any = None,
 ) -> Iterator[ApiHarness]:
     app_db = tmp_path / "api.db"
     audit_db = tmp_path / "audit.db"
@@ -344,6 +347,7 @@ def build_harness(
             # default in which every /embed route answers 503.
             embed=embed,
             safety_inbox=safety_inbox,
+            passkey=passkey,
         )
     )
     # INT-180: the console's IP allow-list reads the transport peer, so the

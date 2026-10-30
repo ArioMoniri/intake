@@ -56,6 +56,8 @@ from intake_api.dsar.schemas import (
 from intake_api.dsar.sla import is_overdue
 from intake_api.dsar.strings import DSAR_EXPORT_STRING_KEYS
 from intake_api.errors import not_found
+from intake_api.passkey.actions import StepUpAction
+from intake_api.passkey.gate import require_step_up
 from intake_api.state import ApiState, State
 
 __all__ = ["router"]
@@ -139,7 +141,13 @@ async def request_export(principal: Principal, state: State) -> DsarRequestOut:
     return out
 
 
-@router.get("/export/{request_id}", response_model=DsarExportOut)
+@router.get(
+    "/export/{request_id}",
+    response_model=DsarExportOut,
+    # INT-582 (D36): data export steps up where the data leaves — here, not
+    # at the tracker row POST /export writes, which returns none of it
+    dependencies=[require_step_up(StepUpAction.DATA_EXPORT)],
+)
 async def read_export(request_id: uuid.UUID, principal: Principal, state: State) -> DsarExportOut:
     """The answer itself: FHIR bundle + PDF, bound to the legal strings.
 
@@ -205,7 +213,13 @@ async def read_export(request_id: uuid.UUID, principal: Principal, state: State)
 # --- erasure (KVKK m.11 e/f — delete) -----------------------------------------------
 
 
-@router.post("/delete", response_model=DsarScheduleOut, status_code=201)
+@router.post(
+    "/delete",
+    response_model=DsarScheduleOut,
+    status_code=201,
+    # INT-582 (D36): data delete steps up to the patient's passkey
+    dependencies=[require_step_up(StepUpAction.DATA_DELETE)],
+)
 async def request_delete(principal: Principal, state: State) -> DsarScheduleOut:
     """Schedule the erasure: cancel every live share now (files/06 §2.3 — a
     withdrawal cancels shares rather than orphaning them), start the files/06

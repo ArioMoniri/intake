@@ -74,6 +74,10 @@ EGRESS_ALLOWLIST_DEFAULT = "infra/security/egress-allowlist.yaml"
 ENV_APP_ATTEST_TEAM_ID = "INTAKE_APP_ATTEST_TEAM_ID"
 ENV_APP_ATTEST_BUNDLE_ID = "INTAKE_APP_ATTEST_BUNDLE_ID"
 ENV_APP_ATTEST_ENVIRONMENT = "INTAKE_APP_ATTEST_ENVIRONMENT"
+# INT-582 (D36): the passkey relying party — D34's domain-bound host — and the
+# exact origins its clientDataJSON may name (comma-separated). Both or nothing.
+ENV_PASSKEY_RP_ID = "INTAKE_PASSKEY_RP_ID"
+ENV_PASSKEY_ORIGINS = "INTAKE_PASSKEY_ORIGINS"
 IOS_BUNDLE_ID = "com.ariomoniri.intakemobile"
 EXPLICIT_YES = "explicit-yes"
 # INT-325: every dev gate lives under this prefix; outside dev ANY of them set
@@ -274,6 +278,11 @@ class ApiSettings:
     app_attest_team_id: str | None = None
     app_attest_bundle_id: str = IOS_BUNDLE_ID
     app_attest_environment: str | None = None
+    # INT-582 (D36): the passkey relying party. Either absent → the passkey
+    # tier is unconfigured: nobody enrols (503) and a patient who already has
+    # a passkey is refused with the manual path rather than downgraded.
+    passkey_rp_id: str | None = None
+    passkey_origins: str | None = None
     # INT-329: the egress allow-list (INT-018) the SMS vendor call must clear.
     # Absent or unreadable → the OTP tier stays unconfigured outside dev.
     egress_allowlist_path: Path = field(default_factory=lambda: Path(EGRESS_ALLOWLIST_DEFAULT))
@@ -398,6 +407,8 @@ class ApiSettings:
             app_attest_team_id=os.environ.get(ENV_APP_ATTEST_TEAM_ID) or None,
             app_attest_bundle_id=os.environ.get(ENV_APP_ATTEST_BUNDLE_ID) or IOS_BUNDLE_ID,
             app_attest_environment=os.environ.get(ENV_APP_ATTEST_ENVIRONMENT) or None,
+            passkey_rp_id=os.environ.get(ENV_PASSKEY_RP_ID) or None,
+            passkey_origins=os.environ.get(ENV_PASSKEY_ORIGINS) or None,
             egress_allowlist_path=Path(
                 os.environ.get(ENV_EGRESS_ALLOWLIST) or EGRESS_ALLOWLIST_DEFAULT
             ),

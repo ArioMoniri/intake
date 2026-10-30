@@ -108,6 +108,7 @@ _TENANT_ROWS = (
     "dsar_requests",
     "notification_preferences",
     "record_embeddings",
+    "patient_passkeys",
     "patients",
 )
 
@@ -220,6 +221,13 @@ def visit(migrated: None) -> Iterator[Visit]:
             "INSERT INTO notification_preferences (id, tenant_id, patient_id, opted_out, "
             "quiet_start_minute, quiet_end_minute) VALUES (%s, %s, %s, %s, %s, %s)",
             (preference, tenant, patient, True, 22 * 60, 7 * 60),
+        )
+        # INT-582: the public half of a patient passkey, patient-deletable
+        cur.execute(
+            "INSERT INTO patient_passkeys (id, tenant_id, patient_id, credential_id, public_key, "
+            "user_handle, sign_count, backup_eligible, backup_state) "
+            "VALUES (%s, %s, %s, %s, %s, %s, 0, true, true)",
+            (uuid.uuid4(), tenant, patient, "Y3JlZGVudGlhbC1pZA", "BA" + "A" * 86, "aGFuZGxl"),
         )
         cur.execute(
             "INSERT INTO record_embeddings (id, tenant_id, patient_id, item_ref, document_ref, "
@@ -344,6 +352,7 @@ def test_the_dsar_erasure_deletes_a_session_that_has_a_previsit_output(visit: Vi
     assert _event_session(visit.event_id) is None
     assert _count("notification_preferences", "id = %s", visit.preference_id) == 0
     assert _count("record_embeddings", "id = %s", visit.vector_id) == 0
+    assert _count("patient_passkeys", "patient_id = %s", visit.patient_id) == 0
     assert (
         entries.count(
             (

@@ -2039,6 +2039,22 @@ metrics:
       Scripted clips the George route served (INT-443), by the lane that spoke
       them (elevenlabs, or self_hosted after a vendor failure) and by cache
       (hit or miss). Emitted by intake_api.dev_voice; no text, no principal.
+  # --- INT-582 (D36): patient passkeys and the step-up gate. files/10 §9's
+  # onboarding row names passkeys as a control; this is its signal. Both
+  # labels are closed enumerations (intake_api.passkey.metrics): no tenant,
+  # patient, credential or action label (inv. 6) — when one patient stepped
+  # up is the audit chain's record, not a scrape's.
+  - name: passkey_events_total
+    type: counter
+    labels: [event, reason]
+    owner: api
+    unit: "count"
+    description: >-
+      Patient passkey outcomes by event (registered, registration_refused,
+      step_up_passed, step_up_refused, gate_passkey, gate_otp_tier,
+      gate_refused, removed, recovery_requested, recovery_cancelled,
+      recovery_completed) and reason (a WebAuthn check, a challenge or grant
+      outcome, or none). Emitted by intake_api.passkey.metrics.
   - name: doctor_link_events_total
     type: counter
     labels: [event]

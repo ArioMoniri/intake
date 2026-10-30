@@ -538,6 +538,9 @@ class OtpAuthService:
             raise unauthorized()
         if record.jkt != jkt:
             raise dpop_invalid("dpop_mismatch")
+        # INT-582: the device session a passkey challenge and a step-up grant
+        # are bound to — the proven key's thumbprint, never the token
+        request.state.dpop_jkt = jkt
         return DevAccount(
             account_id=f"patient:{record.patient_id}",
             role="patient",
