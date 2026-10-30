@@ -7572,3 +7572,28 @@
     - "TDD: a test pins the five rows; a near miss proves a row that names no issue is refused."
   tests: [tests/docs/test_state_decisions.py]
   sec_row: "onboarding"
+- id: INT-587
+  epic: E08-mobile
+  phase: P1
+  title: "The note reaches the clinician from a release build: note-sync client, in-app share consent, Doctor Link from the app"
+  # GitHub #988, 29 Oct 2026, from the independent legal review of the store
+  # listing (B4). In the TestFlight/App Store build "Gönder" only changed local
+  # state: no client called PUT /v1/visits/{id}/note, the app could not grant
+  # share:previsit_note (purposes.ts has no share row by design), and Review &
+  # send said "gönderildi" on no evidence. No server code changes: the client
+  # speaks the existing notes, consents and doctor-link routes. The issue body
+  # names Sec-Row "sharing", which is no files/10 §9 row; the delivery and the
+  # consent step are the §9 Review & send row, so sec_row is review-send.
+  depends_on: [INT-137, INT-142, INT-150, INT-232, INT-311, INT-529]
+  labels: [area:mobile, area:api]
+  status: done
+  evidence: docs/evidence/INT-587.md
+  acceptance:
+    - "a note-sync client PUTs the built note to /v1/visits/{id}/note with the server's existing NotePut contract (every section with an explicit scope, status sent), from an offline queue sealed through the INT-142 draft backend: it survives an app restart, retries with backoff honouring Retry-After, never drops a queued note, and treats a 4xx as an answer that is surfaced and not retried on its own; server field-level encryption and consent checks are unchanged"
+    - "the share consent is granted in the app at the send, against the docs/legal share text the loader serves (synthetic index row acik_riza.share), hash-bound; the grant is recorded and audited server-side, every send and every link checks the share scope, and the patient can withdraw it from the share centre, which closes every open link"
+    - "Doctor Link issuance and revocation run from the app through the existing API against the server visit the note was delivered to, behind a typed step-up seam whose tier today is the OTP session (D36 passkey step-up is INT-582)"
+    - "only a confirmed delivery says the note was sent; new copy is tr first with an en mirror, siz, within B1, PolicyGuard-clean"
+    - "near misses: no share without the grant; a revoked grant stops the link; an offline send queues and survives a restart; a server 4xx is surfaced and not retried forever; no PHI in logs (invariant 6)"
+  tests: [apps/mobile/src/lib/intake/delivery/payload.test.ts, apps/mobile/src/lib/intake/delivery/outbox.test.ts, apps/mobile/src/lib/intake/delivery/transport.test.ts, apps/mobile/src/lib/intake/delivery/engine.test.ts, apps/mobile/src/lib/intake/delivery/store.test.ts, apps/mobile/src/lib/consent/share.test.ts, apps/mobile/src/lib/consent/api.test.ts, apps/mobile/src/lib/shares/stepUp.test.ts, apps/mobile/src/lib/shares/issue.test.ts, apps/mobile/e2e/noteDelivery.spec.ts, tests/api/test_note_delivery.py]
+  legal: "KVKK-5,KVKK-6"
+  sec_row: "review-send"
