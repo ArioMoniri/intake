@@ -1,5 +1,16 @@
 # PROGRESS — one entry per LOOP iteration (template in LOOP.md)
 
+### 2026-10-31T03:00:00+03:00 · INT-595 · doing (PR open; the IPA check waits for the owner's OK)
+- Goal: GitHub #1008, Sec-Row `mobile`. The binary declares only the languages the app offers, so the App Store's Languages row agrees with the en-US listing's "available in Turkish only".
+- Plan: find a dated Apple source for how the Languages row is derived (QA1828), and find which `.lproj` folders ship; then drop `en` from `expo.locales` and set the development region to `tr`, tests first.
+- Tests added (with the near-miss negative for any safety rule): `tests/legal/test_ios_purpose_strings.py`. `expo.locales` equals LOCALE_REGISTRY and the development region is offered. Near misses: build 7's tr+en, and a tr-only config with an `en` region. Red: 1 failed / 7 passed. Green: 8 passed; legal + release + backlog + smoke + ci 1460 passed.
+- Result (`make check` / `make safety` / `make security` summary): ruff and prettier clean; no_placeholders, claims and PHI scans OK after staging (docs/evidence/INT-595.md).
+- Invariants touched and still passing: 5, 18.
+- Decisions / ADRs / `00_STATE.md` rows: none.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): the owner must say yes or no to "May I download build 7's IPA from EAS, read-only, to list its .lproj folders and then delete it?" A local Debug build of the same sha already shows en.lproj and tr.lproj.
+- Next: the legal reviewer reads the change; the next store build should carry tr.lproj only.
+- LOOP_STATUS: CONTINUE
+
 ### 2026-10-28T16:30:00+03:00 · INT-585 · done (PR open)
 - Goal: GitHub #984, Sec-Row `onboarding`. Record the owner's 28 Oct SMS decisions ("1Y 2Y 3Y 4Y 5Y") as D34-D38 in files/00_STATE.md §3, and the live Netgsm OTP confirmation in docs/evidence/INT-576.md.
 - Plan:

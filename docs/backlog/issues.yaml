@@ -7687,3 +7687,22 @@
     - "The API's OpenBao policy grants read-only access to the path; the migration outcome is observable with ids only and catalogued; files/10 §9 and the threat-model residual are updated; tests first with near misses."
   tests: [tests/api/test_tokenization_key.py, tests/api/test_tokenization_probe.py, tests/infra/test_staging_tokenization_key.py, tests/infra/test_staging_compose.py, tests/infra/test_staging_netgsm.py, tests/api/test_previsit_output.py, tests/api/test_otp_netgsm_wiring.py]
   sec_row: "onboarding"
+- id: INT-595
+  epic: E08-mobile
+  phase: P2
+  title: "The iOS binary declares only the languages the app offers — drop the English locale while LOCALE_REGISTRY is Turkish-only"
+  # GitHub #1008, 31 Oct 2026, from the legal review of the store listing: the
+  # en-US listing now opens with "Önvizit is available in Turkish only", but
+  # app.json lists tr and en under expo.locales, so the binary ships en.lproj
+  # and the App Store's Languages row would read English too.
+  depends_on: [INT-592]
+  labels: [area:mobile]
+  status: doing
+  evidence: docs/evidence/INT-595.md
+  acceptance:
+    - "verify from build 7's IPA which .lproj folders ship (read-only; the IPA is deleted after), with a dated Apple source on how the App Store's Languages row is derived"
+    - "if en ships, drop en from expo.locales (purpose strings stay Turkish, tr the source of truth) with a test that expo.locales equals LOCALE_REGISTRY, near miss included; en comes back when HB-O5 brings a second language"
+    - "legal-reviewer on the change"
+  tests: [tests/legal/test_ios_purpose_strings.py]
+  legal: "STORE"
+  sec_row: "mobile"

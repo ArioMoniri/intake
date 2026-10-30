@@ -8,13 +8,13 @@
     "scheme": ["onvizit", "intake"],
     "userInterfaceStyle": "automatic",
     "locales": {
-      "tr": "./src/locales/app-tr.json",
-      "en": "./src/locales/app-en.json"
+      "tr": "./src/locales/app-tr.json"
     },
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.ariomoniri.intakemobile",
       "infoPlist": {
+        "CFBundleDevelopmentRegion": "tr",
         "ITSAppUsesNonExemptEncryption": false
       }
     },
