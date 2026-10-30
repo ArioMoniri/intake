@@ -19,3 +19,9 @@ if [ "$free" -lt "$WATCH_FLOOR_CI_GB" ]; then
   echo "intake-aws-ci: CI volume below ${WATCH_FLOOR_CI_GB} GiB; refusing the job"
   exit 1
 fi
+# INT-544: which cache seed this job can restore from, by its manifest's sha256.
+if [ -f "$CI_ROOT/seed/current/SEED" ]; then
+  echo "intake-aws-ci: cache seed $(readlink "$CI_ROOT/seed/current"), manifest $(sed -n 's/^manifest=//p' "$CI_ROOT/seed/current/SEED")"
+else
+  echo "intake-aws-ci: no cache seed on ${RUNNER_NAME}; jobs fetch from the network"
+fi

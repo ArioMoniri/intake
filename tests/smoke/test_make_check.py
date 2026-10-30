@@ -388,7 +388,54 @@ def test_backlog_parses_and_is_complete() -> None:
     # a stated reason.
     # + INT-495 (the App Store Connect draft, GitHub #846) and INT-502 (its asset
     # capture and upload, GitHub #856); grows only with a stated reason.
-    assert len(ids) == 368, f"expected 175 blueprint + 193 added issues, got {len(ids)}"
+    # + INT-544 (a pull request clears CI in under 20 minutes on the
+    # intake-aws-ci pool, owner order, GitHub #919); grows only with a stated
+    # reason.
+    # + INT-550 (a new staff user enrols a passkey after the password step,
+    # found on the synthetic host, GitHub #930); grows only with a stated reason.
+    # + INT-528 (the Netgsm OTP SMS adapter behind the INT-329 port, after the
+    # owner's vendor decision on INT-358, GitHub #895); grows only with a
+    # stated reason.
+    # + INT-573 (next/certifi/filelock lifted past the 27 Oct advisories, GitHub #965)
+    # + INT-450 (admin-web UI upgrade with the owner-listed component libraries,
+    # licence-checked, owner request, GitHub #763); grows only with a stated
+    # reason.
+    # + INT-459 (admin-web premium redesign: Apple-native shell, glass on
+    # chrome only; owner request, GitHub #783); grows only with a stated reason.
+    # + INT-574 (the RED-never-waits test is deterministic under runner load,
+    # GitHub #967); grows only with a stated reason.
+    # + INT-576 (the Netgsm adapter parses the live success shape and never
+    # retries an unreadable 200, from the owner's real send, GitHub #971);
+    # grows only with a stated reason.
+    # + INT-420 (Önvizit everywhere: the owner's rebrand finished on main, with
+    # a guard against the old name, GitHub #712); grows only with a stated reason.
+    # + INT-560 (the operability registry page tells the truth about the host
+    # it runs on, owner request, GitHub #948); grows only with a stated reason.
+    # + INT-529 (synthetic-scope consent texts, marked sentetik test metni and
+    # loaded only on the synthetic host, GitHub #896); grows only with a stated
+    # reason.
+    # + INT-537 (the app grants the core consent that visits and notes require,
+    # INT-529 finding F2, GitHub #904); grows only with a stated reason.
+    # + INT-586 (opentelemetry-api past GHSA-ccrj-gw8r-854m, GitHub #986).
+    # + INT-590 (decode-uri-component past CVE-2026-118664, GitHub #991).
+    # + INT-559 (the app's voice lane never writes patient audio to a file —
+    # invariant 3 with no dev exception, from the INT-536 legal review,
+    # GitHub #947); grows only with a stated reason.
+    # + INT-536 (consent-screen copy true for the host and matching the consent
+    # texts, GitHub #903); grows only with a stated reason.
+    # + INT-585 (the owner's 28 Oct SMS decisions recorded as D34-D38, owner in
+    # chat, GitHub #984); grows only with a stated reason.
+    # + INT-587 (the note reaches the clinician from a release build: note-sync
+    # client, in-app share consent, Doctor Link from the app, GitHub #988);
+    # grows only with a stated reason.
+    # + INT-588 (patient copy is true in the no-voice release build, GitHub
+    # #989); grows only with a stated reason.
+    # + INT-591 (a release build offers no voice consent it cannot use, GitHub
+    # #993); grows only with a stated reason.
+    # + INT-592 (a truthful NSHealthUpdateUsageDescription so App Store
+    # processing accepts the iOS build, ITMS-90683, GitHub #1000); grows only
+    # with a stated reason.
+    assert len(ids) == 389, f"expected 175 blueprint + 214 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 

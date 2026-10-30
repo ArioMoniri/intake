@@ -50,6 +50,14 @@ class WebAuthnSessionNotesAuthenticatorFactoryTest {
   }
 
   @Test
+  void userSetupIsAllowedSoARequiredStepCanSendANewUserToRegistration() {
+    // INT-550: Keycloak marks a REQUIRED execution SETUP_REQUIRED for a user without the
+    // credential only if its factory allows user setup; held here outright, not only as the
+    // stock factory's value, so a refactor away from the stock factory cannot drop it
+    assertTrue(factory.isUserSetupAllowed());
+  }
+
+  @Test
   void theServiceFileRegistersTheFactory() throws IOException {
     String path = "META-INF/services/" + AuthenticatorFactory.class.getName();
     try (InputStream in = getClass().getClassLoader().getResourceAsStream(path)) {

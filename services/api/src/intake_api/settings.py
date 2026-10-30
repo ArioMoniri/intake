@@ -20,7 +20,15 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Literal
 
+from intake_platform.legal.synthetic import (
+    DATA_CLASS_ENV,
+    SYNTHETIC_CONSENTS_ROOT,
+    DeploymentDataClass,
+    deployment_data_class,
+    refuse_legal_paths_for,
+)
 from intake_platform.model_lanes.guard import egress_proxy_url
+from intake_platform.model_lanes.store import ENV_MODEL_LANES_REDIS_URL
 from intake_platform.red_tenant import TenantKind
 
 __all__ = [
@@ -30,10 +38,12 @@ __all__ = [
     "SYNTHETIC_TENANT_ENVIRONMENTS",
     "ApiSettings",
     "DevConfigRefusedError",
+    "SyntheticDataClassRefusedError",
     "TriageTenantRefusedError",
     "environment_name",
     "is_dev_env",
     "refuse_dev_config_outside_dev",
+    "refuse_synthetic_data_class_outside_synthetic_host",
     "refuse_synthetic_tenant_outside_synthetic_host",
 ]
 
@@ -100,6 +110,12 @@ SYNTHETIC_TENANT_ENVIRONMENTS = frozenset({"dev", "staging"})
 class TriageTenantRefusedError(RuntimeError):
     """Raised at boot when an environment that may hold a real patient declares a
     synthetic triage tenant, the only kind that trusts the test key (INT-465)."""
+
+
+class SyntheticDataClassRefusedError(RuntimeError):
+    """Raised at boot when an environment that may hold a real patient declares
+    the synthetic deployment data class, which loads the synthetic legal texts
+    (INT-529)."""
 
 
 class DevConfigRefusedError(RuntimeError):
@@ -178,6 +194,22 @@ def refuse_synthetic_tenant_outside_synthetic_host(environ: Mapping[str, str]) -
         )
 
 
+def refuse_synthetic_data_class_outside_synthetic_host(environ: Mapping[str, str]) -> None:
+    """INT-529: ``INTAKE_DEPLOYMENT_DATA_CLASS=synthetic`` loads the synthetic
+    legal texts. Like a synthetic triage tenant (INT-465), it is honoured only
+    in an explicit dev or on the synthetic staging host; anywhere else the API
+    refuses to boot rather than serve test copy to a real patient."""
+    if deployment_data_class(environ) is not DeploymentDataClass.SYNTHETIC:
+        return
+    environment = environ.get("INTAKE_ENV", "").strip().lower()
+    if environment not in SYNTHETIC_TENANT_ENVIRONMENTS:
+        named = environment or "(unset)"
+        raise SyntheticDataClassRefusedError(
+            f"{DATA_CLASS_ENV}=synthetic is refused in INTAKE_ENV={named}: only an explicit "
+            "dev or the synthetic staging host may load the synthetic legal texts (INT-529)"
+        )
+
+
 def _dev_db_url(user: str, password: str) -> str:
     host = os.environ.get("PGHOST", "127.0.0.1")
     port = os.environ.get("PGPORT", "5432")
@@ -206,7 +238,9 @@ class ApiSettings:
     # Where the consent texts live (INT-038; invariant 18: texts render only
     # from docs/legal with hash binding). The default points at the repo's
     # legal tree; until INT-210 authors the texts the directory is absent and
-    # the consent service fails closed on every new grant.
+    # the consent service fails closed on every new grant. INT-529: on a
+    # synthetic deployment from_env points it at docs/legal/synthetic/consents,
+    # and __post_init__ refuses any other pairing of class and tree.
     legal_root: Path = field(default_factory=lambda: Path("docs/legal/consents"))
     # Where the files/06 §7 fixed strings live (INT-037 renders the DSAR
     # export document from them, hash-bound). Absent until INT-210 authors
@@ -243,6 +277,9 @@ class ApiSettings:
     # INT-329: the egress allow-list (INT-018) the SMS vendor call must clear.
     # Absent or unreadable → the OTP tier stays unconfigured outside dev.
     egress_allowlist_path: Path = field(default_factory=lambda: Path(EGRESS_ALLOWLIST_DEFAULT))
+    # INT-528 / ADR-042: the synthetic host's SMS-only forward proxy, which the
+    # Netgsm client alone rides. Unset → the call resolves and pins in process.
+    sms_egress_proxy_url: str | None = None
     # INT-318: the clinical READ-source registry (intake_connectors.sources).
     # It ships with zero rows, so /v1/visits/sync answers "unavailable"; a row
     # is registered there by a human (HB-A15, HB-A5, HB-L27) and never built
@@ -278,6 +315,23 @@ class ApiSettings:
     # for `dev_tier_expected`, which gates every dev-only collaborator (the
     # dev-bearer readiness check, the OTP dev delivery logger).
     environment: str = DEV_ENVIRONMENT
+    # INT-529: what this deployment holds. Real PHI unless the image bakes
+    # INTAKE_DEPLOYMENT_DATA_CLASS=synthetic (infra/staging/Dockerfile.api).
+    deployment_data_class: DeploymentDataClass = DeploymentDataClass.REAL_PHI
+    # INT-536: where ADR-035's model-lane control record lives. Its bound data
+    # class is what the synthetic legal loader obeys, read fresh per lookup;
+    # unset means no store, so nothing is bound and the declaration governs.
+    model_lanes_redis_url: str | None = None
+
+    def __post_init__(self) -> None:
+        # INT-529: a real deployment never reads the synthetic legal tree, and
+        # a synthetic one reads its consent texts from nowhere else. Checked on
+        # the object, so no entry point can build settings around it.
+        refuse_legal_paths_for(
+            self.deployment_data_class,
+            legal_root=self.legal_root,
+            other_paths=(self.legal_strings_path,),
+        )
 
     @property
     def dev_tier_expected(self) -> bool:
@@ -304,6 +358,14 @@ class ApiSettings:
         # INT-442: a forward proxy is the synthetic deployment's alone; one named
         # anywhere else refuses the boot (never in the PHI deployment)
         egress_proxy_url(os.environ)
+        # INT-529: only dev and the synthetic host may load the synthetic texts
+        refuse_synthetic_data_class_outside_synthetic_host(os.environ)
+        data_class = deployment_data_class(os.environ)
+        default_legal_root = (
+            str(SYNTHETIC_CONSENTS_ROOT)
+            if data_class is DeploymentDataClass.SYNTHETIC
+            else "docs/legal/consents"
+        )
         kek_mode: KekMode = "file-dev" if os.environ.get(ENV_KEK_MODE) == "file-dev" else "transit"
         return cls(
             token_patient=os.environ.get(ENV_TOKEN_PATIENT) or None,
@@ -322,7 +384,7 @@ class ApiSettings:
             tokenization_key_id=os.environ.get(ENV_TOKENIZATION_KEY_ID) or "v1",
             dev_otp_peek=os.environ.get(ENV_DEV_OTP_PEEK) == EXPLICIT_YES,
             dev_allow_unattested=os.environ.get(ENV_DEV_ALLOW_UNATTESTED) == EXPLICIT_YES,
-            legal_root=Path(os.environ.get("INTAKE_LEGAL_ROOT") or "docs/legal/consents"),
+            legal_root=Path(os.environ.get("INTAKE_LEGAL_ROOT") or default_legal_root),
             legal_strings_path=Path(
                 os.environ.get("INTAKE_LEGAL_STRINGS") or "docs/legal/strings.yaml"
             ),
@@ -339,6 +401,7 @@ class ApiSettings:
             egress_allowlist_path=Path(
                 os.environ.get(ENV_EGRESS_ALLOWLIST) or EGRESS_ALLOWLIST_DEFAULT
             ),
+            sms_egress_proxy_url=os.environ.get("INTAKE_SMS_EGRESS_PROXY_URL") or None,
             clinical_sources_path=Path(
                 os.environ.get("INTAKE_CLINICAL_SOURCES") or "infra/connectors/sources.yaml"
             ),
@@ -363,4 +426,6 @@ class ApiSettings:
             triage_tenant_kind=_triage_tenant_kind(os.environ),
             triage_deployment=os.environ.get(ENV_TRIAGE_DEPLOYMENT, "").strip() or None,
             environment=environment_name(os.environ),
+            deployment_data_class=data_class,
+            model_lanes_redis_url=os.environ.get(ENV_MODEL_LANES_REDIS_URL, "").strip() or None,
         )

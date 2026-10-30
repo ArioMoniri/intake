@@ -37,6 +37,14 @@
  * reference the clinician redeems under their own auth with the scope checked
  * AT REDEMPTION — and nothing in files/ specifies that flow yet. So no link
  * format is invented here; §6 of the spec fails the build if one appears.
+ * (Since INT-311 the link is issued on its own screen, from the share centre.)
+ *
+ * **INT-587: "sent" means delivered.** Gönder freezes the note (`frozen`) and
+ * hands it to `NoteDelivery`, which asks the share consent against the
+ * docs/legal text and queues the note for the server. The sent branch — "Notunuz
+ * gönderildi", the status ladder, the CSAT question — opens only once the note
+ * outbox has the server's confirmation (`sent`). The send CTA itself is
+ * unchanged: one dispatch, no condition, no network on this screen.
  */
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
@@ -48,6 +56,7 @@ import { CarriedFactReview } from "@/components/CarriedFacts";
 import { CsatPrompt } from "@/components/CsatPrompt";
 import { GlassBar, useGlassBarClearance } from "@/components/GlassBar";
 import { Kicker } from "@/components/Kicker";
+import { NoteDelivery } from "@/components/NoteDelivery";
 import { StatusLadder } from "@/components/StatusLadder";
 import {
   AppText,
@@ -65,6 +74,7 @@ import { asDeliveryKey } from "@/lib/dialogue/deliveryDeck";
 import { closingDelivery } from "@/lib/dialogue/deliveryPlan";
 import { t } from "@/lib/i18n";
 import type { CarriedFactKind } from "@/lib/intake/carriedFacts";
+import { useDelivery } from "@/lib/intake/delivery/store";
 import { buildNote, effectiveStatus } from "@/lib/intake/note";
 import { missingQuestions, packForVisit } from "@/lib/intake/questions";
 import { shareSummary } from "@/lib/intake/share";
@@ -105,14 +115,19 @@ function ReviewAndSend() {
   const [barHeight, setBarHeight] = useState<number | null>(null);
   const barClearance = useGlassBarClearance(barHeight);
   const { visitId } = useLocalSearchParams<{ visitId: string }>();
-  const { account, notes, updateNote, visits } = useSession();
+  const { account, consents, notes, updateNote, visits } = useSession();
   // Who is answering the carried-fact question — INT-133's derived
   // attribution, the same value the note's own provenance uses.
   const companion = useCompanionOutcome();
   const note = notes[visitId ?? ""];
-  // INT-397 (SC 4.1.3): "your note was sent" is announced when the patient
-  // sends it here, and shown without a word when they come back to it.
-  const sentNews = useNews(note?.status === "sent");
+  // INT-587: the note outbox's verdict for this visit — the only evidence the
+  // note reached the server.
+  const delivery = useDelivery(visitId ?? "");
+  const delivered = delivery?.stage === "delivered";
+  // INT-397 (SC 4.1.3): "your note was sent" is announced when the server
+  // confirms it while the patient is here, and shown without a word when they
+  // come back to it.
+  const sentNews = useNews(note?.status === "sent" && delivered);
 
   const hasHealthBlock = (note?.healthLines?.length ?? 0) > 0;
   // A checkpointed session (02 §34) or a recorded deferral (02 §33) is a
@@ -142,7 +157,10 @@ function ReviewAndSend() {
     note.deferred,
     note.factReview,
   );
-  const sent = note.status === "sent";
+  // `frozen`: the patient pressed Gönder, so the note no longer changes here.
+  // `sent`: the server confirmed it — the only state that may say "gönderildi".
+  const frozen = note.status === "sent";
+  const sent = frozen && delivery?.stage === "delivered";
   // Eksik list for the checkpointed partial (02 §34): applicable and
   // unanswered only — a gate-skipped question is skipped, not missing.
   const visit = visits.find((v) => v.id === visitId);
@@ -164,14 +182,14 @@ function ReviewAndSend() {
   );
   // The ladder rung the note actually stands on (02 §5.1): a fixture already
   // viewed or filed keeps its rung rather than dropping back to "sent".
-  const ladderStatus = effectiveStatus(visit?.noteStatus ?? null, note) ?? "sent";
+  const ladderStatus = effectiveStatus(visit?.noteStatus ?? null, note, delivered) ?? "sent";
   // INT-414: the closing — "that is all our questions, thank you" — for an
   // intake that really is finished: every applicable question answered, not
   // a clinic checkpoint, not yet sent. Display only; the dialogue's audio is
   // already torn down when this screen opens (INT-233 audio hygiene).
   const complete =
     !checkpointed &&
-    !sent &&
+    !frozen &&
     missingQuestions(
       packForVisit(visit?.department, { mode: note.mode, deferred: note.deferred }),
       note.answers,
@@ -188,7 +206,7 @@ function ReviewAndSend() {
           glass bar owns the physical bottom edge, home indicator included. */}
       <View style={styles.body}>
         <ScrollView
-          contentContainerStyle={[styles.content, sent ? null : { paddingBottom: barClearance }]}
+          contentContainerStyle={[styles.content, frozen ? null : { paddingBottom: barClearance }]}
         >
           {/* The top bar is deliberately untitled (design pass 6), so this
               serif line is the screen's only title — and therefore the one
@@ -207,7 +225,7 @@ function ReviewAndSend() {
           <AppText role="body" color="inkSoft">
             {t("review.intro")}
           </AppText>
-          {checkpointed && !sent ? (
+          {checkpointed && !frozen ? (
             // v2-partial (02 §34): the note as it stands, with an explicit
             // eksik list naming what was not asked, and resume offered —
             // the session ended by the clinic's clock, not the patient's.
@@ -261,7 +279,7 @@ function ReviewAndSend() {
                 <View style={styles.sectionHeader}>
                   <Kicker label={t(section.titleKey)} />
                   <View style={styles.actionRow}>
-                    {!sent && editTarget ? (
+                    {!frozen && editTarget ? (
                       <Pressable
                         accessibilityRole="button"
                         // Visible word first (SC 2.5.3): a voice-control
@@ -292,9 +310,9 @@ function ReviewAndSend() {
                         t(section.titleKey),
                       )}
                       accessibilityHint={t("a11y.shareHint")}
-                      accessibilityState={{ checked: shared, disabled: sent }}
+                      accessibilityState={{ checked: shared, disabled: frozen }}
                       hitSlop={verticalSlop(26)}
-                      disabled={sent}
+                      disabled={frozen}
                       onPress={() =>
                         visitId &&
                         updateNote(visitId, {
@@ -326,7 +344,7 @@ function ReviewAndSend() {
                     {line}
                   </AppText>
                 ))}
-                {section.id === "hpi" && !sent ? (
+                {section.id === "hpi" && !frozen ? (
                   <Pressable
                     accessibilityRole="button"
                     accessibilityLabel={withContext(t("review.edit"), t("review.hpi.patientNote"))}
@@ -357,7 +375,7 @@ function ReviewAndSend() {
                     )}
                     review={note.factReview}
                     asserter={{ role: "patient", attribution: companion.attribution }}
-                    disabled={sent}
+                    disabled={frozen}
                     onDecide={(factId, decision) =>
                       visitId && updateNote(visitId, { type: "fact", factId, decision })
                     }
@@ -374,7 +392,7 @@ function ReviewAndSend() {
           <AppText role="caption" color="inkFaint">
             {t("review.provenance")}
           </AppText>
-          {sent ? null : (
+          {frozen ? null : (
             /* 02 §5.4's consent summary, immediately above the CTA it
                describes: what leaves, who receives it, and what the expiry
                hangs off. It states the anchor and not a countdown — the device
@@ -411,6 +429,19 @@ function ReviewAndSend() {
               <AppText role="body">{t("review.consent.untilValue")}</AppText>
             </Card>
           )}
+          {/* INT-587: frozen but not yet confirmed — the share consent step
+              and where the note stands. It owns the consent and the outbox,
+              so this screen still reads neither. */}
+          {frozen && !delivered && visitId ? (
+            <NoteDelivery
+              visitId={visitId}
+              note={note}
+              account={account}
+              consents={consents}
+              visit={visit}
+              onReopen={() => updateNote(visitId, { type: "reopen" })}
+            />
+          ) : null}
           {sent ? (
             <>
               <AnnouncedText
@@ -437,7 +468,7 @@ function ReviewAndSend() {
             </>
           ) : null}
         </ScrollView>
-        {sent ? null : (
+        {frozen ? null : (
           <GlassBar onHeight={setBarHeight}>
             <PrimaryButton
               label={t("review.send")}

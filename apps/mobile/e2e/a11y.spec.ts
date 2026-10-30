@@ -1556,6 +1556,8 @@ const NOT_A_TIME_LIMIT: Record<string, string> = {
   "src/app/(auth)/otp.tsx":
     "the resend cooldown: a server rate limit that OFFERS a resend when it runs out and takes nothing away",
   "src/lib/auth/expoApiBase.ts": "a deadline on the dev API health probe",
+  "src/lib/capture/asrClient.ts":
+    "a request deadline on one segment's transcription (INT-559): a hung daemon is given up on, and the patient's turn has already moved on",
   "src/lib/dev/hosts.ts": "a deadline on the dev host probe",
   "src/lib/dialogue/georgeClip.ts": "a request deadline on a scripted clip fetch",
   "src/lib/dialogue/tts.ts":
@@ -1564,6 +1566,8 @@ const NOT_A_TIME_LIMIT: Record<string, string> = {
   "src/lib/dialogue/useDialogueSession.ts":
     "the barge-in level meter's sampling interval: it listens, it limits nothing",
   "src/lib/extract.ts": "a request deadline and the one retry delay of the extraction call",
+  "src/lib/intake/delivery/native.ts":
+    "the note outbox's retry backoff (INT-587): it delays the next delivery attempt, and the sent note stays frozen and on screen whatever the timer does",
   "src/lib/livekit/session.ts": "the reconnect backoff's sleep",
   "src/lib/red/locationReport.ts":
     "the retry backoff and request deadline of the location answer's delivery to the server (INT-475): they delay or abandon a request, and the patient's answer and screen are already final",

@@ -350,8 +350,15 @@ answers:
   - when the intake finished (SLO + retention inputs)
   - when the voice/typed intake actually began
   bases:
+  - KVKK m.5/1 — açık rıza per consent scope satisfaction (files/06 §2); both satisfaction
+    write routes require the scope
   - KVKK m.5/2-c — processing necessary for the service contract
   - KVKK m.6 — special-category health data under açık rıza per consent scope
+  - 'per event_type, enforced on each type''s write path: csat.v1 — KVKK m.5/1 — açık rıza
+    per consent scope satisfaction (files/06 §2); both satisfaction write routes require the
+    scope; nps.v1 — KVKK m.5/1 — açık rıza per consent scope satisfaction (files/06 §2); both
+    satisfaction write routes require the scope; wait.v1 — KVKK m.5/2-c — processing necessary
+    for the service contract'
   retentions:
   - 10 years for hospital tenants; WORM copy; audit is append-only (06 §3)
   - 'life of the patient record, on the 06 §3 record clock: patient-deletable, 30-day grace,

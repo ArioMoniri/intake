@@ -1,0 +1,22 @@
+# source: Netgsm's official Python SDK, netgsm-sms 1.1.2 (PyPI wheel netgsm_sms-1.1.2-py3-none-any.whl)
+# artefact_sha256: 9e7dba40bca09f6f47c0686d28249dc2bb091c882e932f24f4af436e1a02fb25
+# url: https://pypi.org/project/netgsm-sms/1.1.2/ ; https://github.com/netgsm/netgsm-sms-python/tree/1405f885fdf87fd2f132343c7cd1f836040ef452
+# licence: MIT (verified from the raw LICENSE blob by INT-528, docs/evidence/INT-528.md)
+# retrieved_on: 2026-10-28
+# retrieval: pip download netgsm-sms==1.1.2 --no-deps into an empty directory, unzipped; read as data, never installed or run
+# scope: every endpoint the SDK names (its only service module), verbatim, each prefixed with its line number; the SDK has no OTP method
+---
+== netgsm/sms/sms_service.py lines 60-60 (file sha256 bbf0d4f64a24b078ed9397f4ef046d63c03e55a088f886e8316ef99ea189aeaf)
+  60|         url = f"{self.client.api_url}/sms/rest/v2/send"
+[...]
+== netgsm/sms/sms_service.py lines 99-99 (file sha256 bbf0d4f64a24b078ed9397f4ef046d63c03e55a088f886e8316ef99ea189aeaf)
+  99|         url = f"{self.client.api_url}/sms/rest/v2/cancel"
+[...]
+== netgsm/sms/sms_service.py lines 132-132 (file sha256 bbf0d4f64a24b078ed9397f4ef046d63c03e55a088f886e8316ef99ea189aeaf)
+ 132|         url = f"{self.client.api_url}/sms/rest/v2/report"
+[...]
+== netgsm/sms/sms_service.py lines 164-164 (file sha256 bbf0d4f64a24b078ed9397f4ef046d63c03e55a088f886e8316ef99ea189aeaf)
+ 164|         url = f"{self.client.api_url}/sms/rest/v2/msgheader"
+[...]
+== netgsm/sms/sms_service.py lines 191-191 (file sha256 bbf0d4f64a24b078ed9397f4ef046d63c03e55a088f886e8316ef99ea189aeaf)
+ 191|         url = f"{self.client.api_url}/sms/rest/v2/inbox"

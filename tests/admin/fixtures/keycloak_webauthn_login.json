@@ -6,7 +6,7 @@
   "logins": {
     "intake-webauthn-session-notes": {
       "access_token_claims": {
-        "aaguid": "978c5bc4-615d-4d93-a906-87e8350ba014",
+        "aaguid": "369f3488-0dbf-4041-aac0-6ea5a73786fd",
         "acr": "1",
         "allowed-origins": [
           "http://127.0.0.1:3000",
@@ -20,17 +20,17 @@
           "api",
           "account"
         ],
-        "auth_time": 1791048355,
+        "auth_time": 1793230461,
         "azp": "admin-web",
-        "credential_id": "XbjHagu_Nwn5xgS9kKHfwK30GnJtwSUvn3M1WuA2ZKk",
+        "credential_id": "lcWBeehC12Su5QihdJzJpRuCQiTSlzgDmBboQ___OM4",
         "email": "int378-staff@intake.invalid",
         "email_verified": true,
-        "exp": 1791048655,
+        "exp": 1793230761,
         "family_name": "Staff",
         "given_name": "Synthetic",
-        "iat": 1791048355,
+        "iat": 1793230461,
         "iss": "http://127.0.0.1:18085/realms/intake-dev",
-        "jti": "onrtac:e29e3f4d-2cff-4a37-786c-15eccf5504e2",
+        "jti": "onrtac:74d02d13-eff9-e5c7-8ee3-6e5469afae6d",
         "name": "Synthetic Staff",
         "org": "org-int378",
         "preferred_username": "int378-staff",
@@ -52,19 +52,19 @@
           }
         },
         "scope": "openid profile email",
-        "sid": "H1IJtVIbMqgwEFQQGq9z8wuX",
-        "sub": "cb3b6a44-f791-4902-aa30-8bf6433e4627",
-        "tenant": "c177e10d-a047-48d7-82f0-167c3256bdb5",
+        "sid": "GyQFVmgyYOcYueADvHyVoEXL",
+        "sub": "29d101f7-54ee-4620-8762-4b7547691037",
+        "tenant": "05d910f1-7695-4a7d-8196-1a99148b7028",
         "typ": "Bearer"
       },
       "console": {
-        "aaguid": "978c5bc4-615d-4d93-a906-87e8350ba014",
+        "aaguid": "369f3488-0dbf-4041-aac0-6ea5a73786fd",
         "admitted": true,
-        "credential_id": "XbjHagu_Nwn5xgS9kKHfwK30GnJtwSUvn3M1WuA2ZKk",
+        "credential_id": "lcWBeehC12Su5QihdJzJpRuCQiTSlzgDmBboQ___OM4",
         "roles": [
           "tenant_clinical_responsible"
         ],
-        "tenant": "c177e10d-a047-48d7-82f0-167c3256bdb5"
+        "tenant": "05d910f1-7695-4a7d-8196-1a99148b7028"
       },
       "realm": "intake-dev"
     },
@@ -83,16 +83,16 @@
           "api",
           "account"
         ],
-        "auth_time": 1791048358,
+        "auth_time": 1793230462,
         "azp": "admin-web",
         "email": "int378-staff@intake.invalid",
         "email_verified": true,
-        "exp": 1791048659,
+        "exp": 1793230762,
         "family_name": "Staff",
         "given_name": "Synthetic",
-        "iat": 1791048359,
+        "iat": 1793230462,
         "iss": "http://127.0.0.1:18085/realms/intake-dev-stock",
-        "jti": "onrtac:88cf35b2-c24e-eb38-7fdd-21b8722f5188",
+        "jti": "onrtac:54ead3ce-b7ea-15b2-b557-ac050c98aaab",
         "name": "Synthetic Staff",
         "org": "org-int378",
         "preferred_username": "int378-staff",
@@ -113,10 +113,10 @@
             ]
           }
         },
-        "scope": "openid email profile",
-        "sid": "OB7rsSQ91YxZuXjBpCULrgWD",
-        "sub": "86711591-af89-4cb1-a5af-b9bb959143ab",
-        "tenant": "c177e10d-a047-48d7-82f0-167c3256bdb5",
+        "scope": "openid profile email",
+        "sid": "m7VhyC9q-K2Ae8JmHbohAzOC",
+        "sub": "703b935d-b179-495c-b4fc-904786062c3e",
+        "tenant": "05d910f1-7695-4a7d-8196-1a99148b7028",
         "typ": "Bearer"
       },
       "console": {
@@ -127,11 +127,11 @@
       "realm": "intake-dev-stock"
     }
   },
-  "provider_jar_sha256": "91da12328b158bdf7195bd62e510b7aaf47b35b2deb200ff4ec5ffb1b201b694",
-  "realm_file_sha256": "d0bf613d09cdd8f79e9070a1984ab5c12807eb4c24e66c7af70f6409a4872f3e",
+  "provider_jar_sha256": "3ca703b66c79734521cfa2a2ff56909cccebf793488256b979f10898887cd323",
+  "realm_file_sha256": "e49001fcff761db49a69f845b93b8f3949cde7933c8f20b045402c3db546a836",
   "recorded_by": "scripts/keycloak/record_webauthn_login.py (INT-378)",
   "software_authenticator": {
-    "aaguid": "978c5bc4-615d-4d93-a906-87e8350ba014",
-    "credential_id": "XbjHagu_Nwn5xgS9kKHfwK30GnJtwSUvn3M1WuA2ZKk"
+    "aaguid": "369f3488-0dbf-4041-aac0-6ea5a73786fd",
+    "credential_id": "lcWBeehC12Su5QihdJzJpRuCQiTSlzgDmBboQ___OM4"
   }
 }

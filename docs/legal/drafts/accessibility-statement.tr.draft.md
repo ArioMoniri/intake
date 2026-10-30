@@ -16,11 +16,11 @@ Hazırlayanın notu (yayımlanacak metnin parçası değildir).
   okunamamıştır; Genelge'ye ilişkin cümle, Bakanlığın kendi duyurusuna dayanır.
 -->
 
-# Vizite mobil uygulaması — Erişilebilirlik Beyanı
+# Önvizit mobil uygulaması — Erişilebilirlik Beyanı
 
 ## 1. Bu beyan neyi kapsar
 
-Bu beyan, Vizite mobil uygulamasının iPhone (iOS) ve Android sürümleri içindir.
+Bu beyan, Önvizit mobil uygulamasının iPhone (iOS) ve Android sürümleri içindir.
 
 Şunlar bu beyanın kapsamında değildir, çünkü henüz değerlendirilmemiştir:
 
@@ -30,7 +30,7 @@ Bu beyan, Vizite mobil uygulamasının iPhone (iOS) ve Android sürümleri için
 
 ## 2. Uyum durumu
 
-Vizite mobil uygulaması, Web İçeriği Erişilebilirlik Kılavuzu (WCAG) 2.2'nin A ve AA
+Önvizit mobil uygulaması, Web İçeriği Erişilebilirlik Kılavuzu (WCAG) 2.2'nin A ve AA
 düzeylerine **kısmen uyumludur**.
 
 Bu şu anlama gelir: uygulamanın bazı bölümleri bu kurallara henüz uymamaktadır. Bazı

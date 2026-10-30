@@ -11,8 +11,10 @@ the INT-378 provider writes them. Three things must therefore hold on the host:
 - **The live realm runs it.** Keycloak imports a realm once, and the host's realm predates the
   provider. So deploy.sh runs ``keycloak/staff_flow.py`` after Keycloak starts and before the
   key set is mirrored. The script makes the live ``staff second factor`` subflow match the
-  committed realm, leaves the OTP alternative alone (INT-389 is the owner's), and fails unless
-  the flow ends in the committed state. smoke.sh re-checks it read-only.
+  committed realm and fails unless the flow ends in the committed state. smoke.sh re-checks it
+  read-only. INT-550: the committed state is the provider REQUIRED, so a new staff user is sent
+  to webauthn-register after the password, and OTP DISABLED until the owner decides INT-389;
+  the script refuses, before any change, a realm whose webauthn-register action is not enabled.
 - **The secret stays out of argv.** The bootstrap admin password reaches the script on stdin.
 
 The script's decision function is tested here step by step, with near-misses. It was also
@@ -167,110 +169,250 @@ class TestDeploy:
 
 
 # --- the script's decision, step by step -------------------------------------------------------
+#
+# INT-550: the target is the WebAuthn provider REQUIRED, so Keycloak sends a user who holds no
+# passkey to webauthn-register after the password, and OTP DISABLED until INT-389. INT-378's
+# target was both ALTERNATIVE, which refuses every new user (tests/admin/
+# test_staff_passkey_enrolment.py has the Keycloak 26.7.4 source lines).
 
-STOCK = sf.Execution("stock", sf.STOCK, "ALTERNATIVE", sf.HWK_ALIAS, 0)
-OTP = sf.Execution("otp", sf.OTP, "ALTERNATIVE", "amr otp", 1)
+STOCK = sf.Execution("stock", sf.STOCK, "ALTERNATIVE", sf.HWK_ALIAS, 0, 10)
+OTP_ON = sf.Execution("otp", sf.OTP, "ALTERNATIVE", "amr otp", 1, 20)
+OTP_OFF = sf.Execution("otp", sf.OTP, "DISABLED", "amr otp", 1, 20)
+REGISTER_ON = {"alias": sf.REGISTER, "providerId": sf.REGISTER, "enabled": True}
 
 
-def provider(requirement: str = "ALTERNATIVE", alias: str | None = sf.HWK_ALIAS, index: int = 0):
-    return sf.Execution("prov", sf.PROVIDER, requirement, alias, index)
+def provider(
+    requirement: str = "REQUIRED",
+    alias: str | None = sf.HWK_ALIAS,
+    index: int = 0,
+    priority: int = 0,
+):
+    return sf.Execution("prov", sf.PROVIDER, requirement, alias, index, priority)
 
 
 class TestNextStep:
-    def test_the_hosts_state_today_adds_the_provider(self) -> None:
-        assert sf.next_step([STOCK, OTP]) == sf.Step("add_provider")
+    def test_a_host_before_int_378_adds_the_provider(self) -> None:
+        assert sf.next_step([STOCK, OTP_ON]) == sf.Step("add_provider")
 
-    @pytest.mark.parametrize("requirement", ["DISABLED", "REQUIRED", "CONDITIONAL"])
-    def test_a_new_provider_is_made_an_alternative(self, requirement: str) -> None:
-        executions = [STOCK, OTP, provider(requirement, None, 2)]
-        assert sf.next_step(executions) == sf.Step("set_alternative", "prov")
+    def test_the_hosts_state_on_17_oct_makes_webauthn_required(self) -> None:
+        # INT-378's sync left the provider ALTERNATIVE at priority 0 (docs/evidence/INT-421.md)
+        assert sf.next_step([provider("ALTERNATIVE"), OTP_ON]) == sf.Step("set_required", "prov", 0)
+
+    @pytest.mark.parametrize("requirement", ["DISABLED", "ALTERNATIVE", "CONDITIONAL"])
+    def test_a_provider_in_any_other_requirement_is_made_required(self, requirement: str) -> None:
+        executions = [STOCK, OTP_ON, provider(requirement, None, 2, 30)]
+        assert sf.next_step(executions) == sf.Step("set_required", "prov", 30)
+
+    def test_then_otp_is_disabled_at_its_own_priority(self) -> None:
+        assert sf.next_step([provider(), OTP_ON]) == sf.Step("disable_otp", "otp", 20)
+
+    @pytest.mark.parametrize("requirement", ["ALTERNATIVE", "REQUIRED", "CONDITIONAL"])
+    def test_otp_in_any_requirement_that_runs_is_disabled(self, requirement: str) -> None:
+        otp = sf.Execution("otp", sf.OTP, requirement, "amr otp", 1, 20)
+        assert sf.next_step([provider(), otp]) == sf.Step("disable_otp", "otp", 20)
 
     def test_the_stock_authenticator_is_removed_once_the_provider_stands(self) -> None:
-        assert sf.next_step([STOCK, OTP, provider(alias=None, index=2)]) == sf.Step(
+        assert sf.next_step([STOCK, OTP_ON, provider(alias=None, index=2)]) == sf.Step(
             "remove_stock", "stock"
         )
 
     def test_the_provider_gets_the_hwk_reference(self) -> None:
-        assert sf.next_step([OTP, provider(alias=None, index=0)]) == sf.Step(
+        assert sf.next_step([provider(alias=None, index=0), OTP_ON]) == sf.Step(
             "add_hwk_reference", "prov"
         )
 
     def test_webauthn_is_raised_above_otp(self) -> None:
-        assert sf.next_step([OTP, provider(index=2)]) == sf.Step("raise_provider", "prov")
+        assert sf.next_step([OTP_OFF, provider(index=2, priority=30)]) == sf.Step(
+            "raise_provider", "prov"
+        )
 
     def test_the_committed_shape_is_done(self) -> None:
-        assert sf.next_step([provider(index=0), OTP]) == sf.Step("done")
+        assert sf.next_step([provider(index=0), OTP_OFF]) == sf.Step("done")
+
+    def test_a_subflow_without_otp_is_done(self) -> None:
+        assert sf.next_step([provider()]) == sf.Step("done")
 
     def test_near_miss_a_foreign_reference_is_refused_not_overwritten(self) -> None:
         with pytest.raises(sf.FlowRefused):
-            sf.next_step([provider(alias="amr otp"), OTP])
+            sf.next_step([provider(alias="amr otp"), OTP_OFF])
 
     def test_near_miss_two_providers_are_refused(self) -> None:
         with pytest.raises(sf.FlowRefused):
-            sf.next_step([provider(), sf.Execution("p2", sf.PROVIDER, "ALTERNATIVE", None, 1)])
+            sf.next_step([provider(), sf.Execution("p2", sf.PROVIDER, "REQUIRED", None, 1, 30)])
 
     def test_the_committed_realm_is_already_done(self) -> None:
         realm = json.loads(REALM.read_text(encoding="utf-8"))
         (flow,) = [f for f in realm["authenticationFlows"] if f["alias"] == sf.SUBFLOW]
         executions = [
             sf.Execution(
-                str(n), e["authenticator"], e["requirement"], e.get("authenticatorConfig"), n
+                str(n),
+                e["authenticator"],
+                e["requirement"],
+                e.get("authenticatorConfig"),
+                n,
+                e["priority"],
             )
-            for n, e in enumerate(flow["authenticationExecutions"])
+            for n, e in enumerate(
+                sorted(flow["authenticationExecutions"], key=lambda x: x["priority"])
+            )
         ]
         assert sf.next_step(executions) == sf.Step("done")
-        assert {e.provider for e in executions} == {sf.PROVIDER, sf.OTP}
+        assert [(e.provider, e.requirement) for e in executions] == [
+            (sf.PROVIDER, "REQUIRED"),
+            (sf.OTP, "DISABLED"),
+        ]
+
+
+class TestRegisterAction:
+    def test_an_enabled_action_lets_a_new_user_enrol(self) -> None:
+        assert sf.register_problem(REGISTER_ON) is None
+
+    def test_near_miss_a_disabled_action_is_named(self) -> None:
+        problem = sf.register_problem({**REGISTER_ON, "enabled": False})
+        assert problem is not None and "disabled" in problem
+
+    def test_near_miss_an_absent_action_is_named(self) -> None:
+        problem = sf.register_problem(None)
+        assert problem is not None and sf.REGISTER in problem
+
+
+class RecordingAdmin(sf.Admin):
+    """The real Admin, with the HTTP call recorded instead of sent."""
+
+    def __init__(self) -> None:
+        super().__init__("http://keycloak:8080", "intake", "not-a-real-bearer")
+        self.calls: list[tuple[str, str, object]] = []
+
+    def _call(self, method: str, path: str, body: object = None) -> object:
+        self.calls.append((method, path, body))
+        return None
+
+
+class TestAdminCalls:
+    @pytest.mark.parametrize(
+        ("step", "requirement"),
+        [
+            (sf.Step("set_required", "prov", 0), "REQUIRED"),
+            (sf.Step("disable_otp", "otp", 20), "DISABLED"),
+        ],
+    )
+    def test_a_requirement_change_keeps_the_executions_priority(
+        self, step: sf.Step, requirement: str
+    ) -> None:
+        # Keycloak 26.7.4's updateExecutions copies the body's priority whenever it differs
+        # (AuthenticationManagementResource.java:804-806): a body without one resets it to 0
+        admin = RecordingAdmin()
+        admin.apply(step)
+        assert admin.calls == [
+            (
+                "PUT",
+                "/authentication/flows/staff%20second%20factor/executions",
+                {"id": step.target, "requirement": requirement, "priority": step.priority},
+            )
+        ]
+
+    def test_near_miss_a_requirement_step_without_a_priority_is_refused(self) -> None:
+        admin = RecordingAdmin()
+        with pytest.raises(sf.FlowRefused):
+            admin.apply(sf.Step("set_required", "prov"))
+        assert admin.calls == []
 
 
 class FakeAdmin:
     """The admin API as an in-memory subflow; each step is applied the way Keycloak does it."""
 
-    def __init__(self, executions: list) -> None:
+    def __init__(self, executions: list, register: dict | None = REGISTER_ON) -> None:
         self.flow = list(executions)
+        self.register = register
         self.applied: list = []
 
     def executions(self) -> list:
         return [
-            sf.Execution(e.id, e.provider, e.requirement, e.config_alias, n)
+            sf.Execution(e.id, e.provider, e.requirement, e.config_alias, n, e.priority)
             for n, e in enumerate(self.flow)
         ]
+
+    def register_action(self) -> dict | None:
+        return self.register
 
     def apply(self, step) -> None:
         self.applied.append(step)
         if step.action == "add_provider":
-            self.flow.append(sf.Execution("prov", sf.PROVIDER, "DISABLED", None, len(self.flow)))
+            last = max((e.priority for e in self.flow), default=0)
+            self.flow.append(
+                sf.Execution("prov", sf.PROVIDER, "DISABLED", None, len(self.flow), last + 10)
+            )
             return
         (i,) = [n for n, e in enumerate(self.flow) if e.id == step.target]
         e = self.flow[i]
-        if step.action == "set_alternative":
-            self.flow[i] = sf.Execution(e.id, e.provider, "ALTERNATIVE", e.config_alias, i)
+        if step.action in {"set_required", "disable_otp"}:
+            requirement = "REQUIRED" if step.action == "set_required" else "DISABLED"
+            self.flow[i] = sf.Execution(
+                e.id, e.provider, requirement, e.config_alias, i, step.priority
+            )
         elif step.action == "remove_stock":
             del self.flow[i]
         elif step.action == "add_hwk_reference":
-            self.flow[i] = sf.Execution(e.id, e.provider, e.requirement, sf.HWK_ALIAS, i)
+            self.flow[i] = sf.Execution(
+                e.id, e.provider, e.requirement, sf.HWK_ALIAS, i, e.priority
+            )
         elif step.action == "raise_provider":
-            self.flow[i - 1], self.flow[i] = self.flow[i], self.flow[i - 1]
+            above = self.flow[i - 1]
+            self.flow[i - 1] = sf.Execution(
+                e.id, e.provider, e.requirement, e.config_alias, i - 1, above.priority
+            )
+            self.flow[i] = sf.Execution(
+                above.id, above.provider, above.requirement, above.config_alias, i, e.priority
+            )
 
 
 class TestRun:
-    def test_from_the_hosts_state_it_settles_without_touching_otp(self) -> None:
-        admin = FakeAdmin([STOCK, OTP])
+    def test_from_the_hosts_state_it_takes_two_steps(self) -> None:
+        admin = FakeAdmin([provider("ALTERNATIVE"), OTP_ON])
+        taken = sf.run(admin, check_only=False)
+        assert taken == [sf.Step("set_required", "prov", 0), sf.Step("disable_otp", "otp", 20)]
+        assert [(e.provider, e.requirement, e.config_alias, e.priority) for e in admin.flow] == [
+            (sf.PROVIDER, "REQUIRED", sf.HWK_ALIAS, 0),
+            (sf.OTP, "DISABLED", "amr otp", 20),
+        ]
+
+    def test_from_a_host_before_int_378_it_settles(self) -> None:
+        admin = FakeAdmin([STOCK, OTP_ON])
         sf.run(admin, check_only=False)
         assert [(e.provider, e.requirement, e.config_alias) for e in admin.flow] == [
-            (sf.PROVIDER, "ALTERNATIVE", sf.HWK_ALIAS),
-            (sf.OTP, "ALTERNATIVE", "amr otp"),
+            (sf.PROVIDER, "REQUIRED", sf.HWK_ALIAS),
+            (sf.OTP, "DISABLED", "amr otp"),
         ]
-        assert all(step.target != "otp" for step in admin.applied)
+        assert [step.action for step in admin.applied] == [
+            "add_provider",
+            "set_required",
+            "remove_stock",
+            "add_hwk_reference",
+            "disable_otp",
+            "raise_provider",
+        ]
 
     def test_a_second_run_changes_nothing(self) -> None:
-        admin = FakeAdmin([provider(), OTP])
+        admin = FakeAdmin([provider(), OTP_OFF])
         assert sf.run(admin, check_only=False) == []
 
     def test_check_refuses_the_hosts_state_and_changes_nothing(self) -> None:
-        admin = FakeAdmin([STOCK, OTP])
+        admin = FakeAdmin([provider("ALTERNATIVE"), OTP_ON])
         with pytest.raises(sf.FlowRefused):
             sf.run(admin, check_only=True)
         assert admin.applied == []
+
+    @pytest.mark.parametrize("register", [None, {**REGISTER_ON, "enabled": False}])
+    def test_near_miss_no_enabled_register_action_refuses_before_any_change(
+        self, register: dict | None
+    ) -> None:
+        admin = FakeAdmin([provider("ALTERNATIVE"), OTP_ON], register=register)
+        with pytest.raises(sf.FlowRefused):
+            sf.run(admin, check_only=False)
+        assert admin.applied == []
+
+    def test_check_passes_the_committed_state(self) -> None:
+        assert sf.run(FakeAdmin([provider(), OTP_OFF]), check_only=True) == []
 
     @pytest.mark.parametrize("url", ["file:///etc/passwd", "keycloak:8080", "ftp://keycloak"])
     def test_near_miss_only_an_http_base_is_admitted(self, url: str) -> None:

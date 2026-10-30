@@ -3,10 +3,10 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Örnek Sağlık Portalı — Vizite embed örneği</title>
+    <title>Örnek Sağlık Portalı — Önvizit embed örneği</title>
     <link rel="stylesheet" href="/styles.css" />
     <!-- The browser resolves the SDK's bare specifier to the vendored ESM file
-         served by this app. No bundler, no CDN, no Vizite secret in the page. -->
+         served by this app. No bundler, no CDN, no Önvizit secret in the page. -->
     <script type="importmap">
       { "imports": { "@intake/embed-sdk": "/web/vendor/index.js" } }
     </script>
@@ -15,7 +15,7 @@
     <p class="banner" role="note">
       Synthetic sample. “Örnek Sağlık Portalı” is not a real organisation and
       carries no real branding — it stands in for any partner app embedding
-      Vizite at the dev tier.
+      Önvizit at the dev tier.
     </p>
 
     <main>
@@ -33,7 +33,7 @@
         </dl>
         <p class="lede">
           Randevunuzdan önce birkaç dakikanızı ayırıp ön muayeneyi
-          tamamlayabilirsiniz. Bu adım Vizite tarafından yürütülür.
+          tamamlayabilirsiniz. Bu adım Önvizit tarafından yürütülür.
         </p>
 
         <!-- @intake/embed-sdk renders the button here. -->
@@ -43,9 +43,9 @@
 
       <footer class="foot">
         <p>
-          The button calls this app's own backend (<code>POST /vizite/ticket</code>),
+          The button calls this app's own backend (<code>POST /onvizit/ticket</code>),
           which mints a launch ticket server-to-server and then hands off to the
-          branded Vizite intake. See <code>README.md</code> for the full path.
+          branded Önvizit intake. See <code>README.md</code> for the full path.
         </p>
       </footer>
     </main>

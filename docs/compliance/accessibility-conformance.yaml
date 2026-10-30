@@ -29,8 +29,8 @@
 # AAA, because the alternative would be a Supports this report cannot back.
 
 report:
-  product_short: Vizite mobile (`apps/mobile`)
-  product: Vizite — patient pre-visit intake, mobile application (`apps/mobile`)
+  product_short: Önvizit mobile (`apps/mobile`)
+  product: Önvizit — patient pre-visit intake, mobile application (`apps/mobile`)
   platforms: >-
     iOS and Android from one Expo / React Native code base, phone form factor
     (`supportsTablet: false`)
@@ -135,7 +135,7 @@ report:
   en_clause_11_note: >-
     EN 301 549 V3.2.1 clauses 11.1 to 11.4 apply WCAG 2.1 Level A and AA to
     non-web software under the same numbers with an `11.` prefix, so each row
-    below carries the status of the WCAG row it restates. Vizite is open
+    below carries the status of the WCAG row it restates. Önvizit is open
     functionality (it works through the platform screen readers), so the
     "closed functionality" variants of those clauses do not apply. The standard
     declares some of these clauses void for non-web software. They are not
@@ -379,7 +379,7 @@ wcag:
       No screen repeats a block of content that another screen carries. The tab
       rail is the navigation itself and is rendered once, by the tabs layout.
       WCAG2ICT reads this criterion, for non-web software, as applying to a set
-      of software programs. Vizite is one program.
+      of software programs. Önvizit is one program.
 
   - sc: "2.4.2"
     name: Page Titled
@@ -743,7 +743,7 @@ wcag:
     manual: [MC-10]
     remarks: >-
       WCAG2ICT reads this criterion, for non-web software, as applying to a set
-      of software programs. Vizite is one program. Read instead as a set of web
+      of software programs. Önvizit is one program. Read instead as a set of web
       pages, a visit is reachable two ways (Bugün and Vizitlerim), but each
       Profilim sub-screen only one way. INT-144's third route, through
       Kayıtlarım, does not navigate to a visit.

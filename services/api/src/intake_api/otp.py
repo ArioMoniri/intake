@@ -16,9 +16,9 @@ Honest tiering:
   never the code, never the phone) and claims nothing more; the code is
   reachable solely through the peek endpoint behind
   ``INTAKE_DEV_OTP_PEEK=explicit-yes``. Outside dev the only adapter is
-  ``intake_api.otp_twilio``, wired only when its credentials are in OpenBao
-  and the egress policy admits the vendor (the owner's DPA and cross-border
-  decision), otherwise the tier stays 503. A failed delivery is a typed
+  ``intake_api.otp_netgsm`` (INT-528; the owner's vendor decision, INT-358),
+  wired only when its credentials are in OpenBao and the egress policy admits
+  the vendor (the owner's patch), otherwise the tier stays 503. A failed delivery is a typed
   :class:`OtpDeliveryError` and a generic 503, never a claimed "sent".
 - Attestation (INT-344): iOS registers an App Attest key once
   (``/attest/key``) and signs every OTP call with an assertion from it; the
@@ -39,7 +39,7 @@ import uuid
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from enum import StrEnum
-from typing import Protocol
+from typing import Final, Protocol
 
 import redis
 from fastapi import Request
@@ -85,10 +85,12 @@ from intake_api.errors import (
     refresh_reused,
     unauthorized,
 )
+from intake_api.sms_recipients import ADMIT_ALL, RecipientGate
 
 __all__ = [
     "ATTESTATION_HEADER",
     "CONSUMER_TENANT_ID",
+    "DELIVERY_MAY_HAVE_SENT",
     "AuthWiring",
     "DeliveryReceipt",
     "DevLogDeliveryAdapter",
@@ -144,6 +146,20 @@ class OtpDeliveryFailure(StrEnum):
     MALFORMED_RESPONSE = "malformed_response"
 
 
+#: INT-576: the failures after which the vendor may already have sent the
+#: code: an answer the adapter could not read (Netgsm had sent it, on 28 Oct
+#: 2026), no answer before the timeout, or a vendor-side failure that does not
+#: say whether the message left. Sending again could put a second code in
+#: flight, so none of these is ever sent again automatically.
+DELIVERY_MAY_HAVE_SENT: Final = frozenset(
+    {
+        OtpDeliveryFailure.MALFORMED_RESPONSE,
+        OtpDeliveryFailure.TIMEOUT,
+        OtpDeliveryFailure.VENDOR_UNAVAILABLE,
+    }
+)
+
+
 class OtpDeliveryError(Exception):
     """The SMS vendor could not deliver the code (INT-329). The tier fails
     closed: it never claims a code was sent. Carries a reason, the HTTP status
@@ -161,6 +177,15 @@ class OtpDeliveryError(Exception):
         self.status_code = status_code
         self.vendor_code = vendor_code
         super().__init__(f"otp delivery failed: {reason} (status {status_code or '-'})")
+
+    @property
+    def retryable(self) -> bool:
+        """Whether a second send could not double-deliver: False wherever the
+        vendor may already have sent the code (:data:`DELIVERY_MAY_HAVE_SENT`).
+        Nothing sends twice today, and the patient's resend after the
+        cooldown is the only second attempt; this is what any caller that
+        ever does must honour (INT-576)."""
+        return self.reason not in DELIVERY_MAY_HAVE_SENT
 
 
 class OtpDeliveryAdapter(Protocol):
@@ -208,6 +233,9 @@ class AuthWiring:
             AttestationReason.APP_ATTEST_NOT_CONFIGURED
         )
     )
+    # INT-528: on the synthetic host, the owner's SMS test allow-list; a
+    # number off it starts no login. Elsewhere there is no list.
+    recipients: RecipientGate = field(default_factory=lambda: ADMIT_ALL)
 
 
 async def ensure_consumer_tenant(engine: AsyncEngine) -> None:
@@ -367,6 +395,13 @@ class OtpAuthService:
         # row 1, generic errors). It fails OPEN — see carrier_geo — so today,
         # with an empty authority, this branch is unreachable in production.
         if self._wiring.carrier_geo.evaluate(phone).refuses:
+            raise phone_invalid()
+        # INT-528 — on the synthetic host SMS is real, so a number off the
+        # owner's test allow-list starts no login: no code is minted and no SMS
+        # leaves. Same place and same answer as the carrier check above, for the
+        # same reasons; the line logged names no number.
+        if not self._wiring.recipients.admits(phone):
+            logger.info("otp request refused: the number is not on the SMS test allow-list")
             raise phone_invalid()
         code = f"{secrets.randbelow(10**OTP_CODE_DIGITS):0{OTP_CODE_DIGITS}d}"
         await asyncio.to_thread(
