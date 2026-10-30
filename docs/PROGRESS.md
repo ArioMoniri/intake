@@ -9,7 +9,7 @@
   - A review window, default OFF, with audited flips. Each window has its own synthetic reviewer patient and sessions bound to it, and the reviewer tenant is erased through the DSAR path on `on` and `off`.
   - Every use is audited and alerted; the typed 503 answers when no code is configured.
 - Tests added (with the near-miss negative for any safety rule): `tests/security/test_review_signin.py`, `tests/security/test_review_signin_reset.py`, `tests/infra/test_staging_review_signin.py`. Each D39 clause has a near miss (an ordinary number still sent; every fact synthetic admits; four misses then the right code; a well-formed window; a consumer patient untouched by the window and the erasure). Red 87 failed before any code; green 120 passed; 22/22 mutants killed.
-- Result (`make check` / `make safety` / `make security` summary): ruff, format, mypy --strict (353 files), no_placeholders, phi_scan, claims_scan and shellcheck are clean; the whole-suite coverage run is recorded in docs/evidence/INT-488.md. check-integration is CI-only (no container runtime here). `make safety` is not affected.
+- Result (`make check` / `make safety` / `make security` summary): ruff, format, mypy --strict (353 files), no_placeholders, phi_scan, claims_scan and shellcheck are clean; the whole suite with coverage: 13369 passed, 4 failed (test_deid_ner: the model cache a fresh worktree lacks), coverage 94.65 %. check-integration is CI-only (no container runtime here). `make safety` is not affected.
 - Invariants touched and still passing:
   - 4: every step, flip, rotation, reveal and reset is on the hash chain. Operator rows are adopted by the API's chain (`AuditChain.catch_up`) only if they chain.
   - 6: canary scan, no code or number anywhere.
