@@ -1,41 +1,35 @@
 /**
  * Bugün (02 §5.1): one thing at a time — the next visit and its single most
- * useful action. No feed, no engagement surface. Design pass 5: the screen
- * leads with the Oura-register focal point — a centred prep gauge (big serif
- * numeral under a thin ink arc) for the next visit's preparation — and the
- * hero card's serif department line plays the reference's headline. The
- * accent appears exactly once: the CTA.
+ * useful action. No feed, no engagement surface. The hero card's serif
+ * department line is the focal point, and the accent appears exactly once:
+ * the CTA.
+ *
+ * INT-594: the focus comes from `todayFocus`, i.e. from the note's real state
+ * (the draft on this phone and the server's confirmed delivery, INT-587).
+ * The feed's `noteStatus` alone is always null for a hospital-feed visit.
+ * The design-pass-5 prep gauge is gone. It printed answered ÷ the pack's
+ * questions as a bare percentage, and the flow asks conditionally, so that
+ * denominator counts questions the patient may never be asked. The CTA
+ * carries no duration either: nobody measured one (invariant 20).
  */
 import { useRouter } from "expo-router";
 import { ScrollView, StyleSheet, View } from "react-native";
 
 import { useTabBarClearance } from "@/components/FloatingTabBar";
 import { Kicker } from "@/components/Kicker";
-import { PrepGauge } from "@/components/PrepGauge";
 import { AppText, Card, PrimaryButton, RAIL_EDGES, Screen } from "@/components/Themed";
 import { VisitCard } from "@/components/VisitCard";
 import { t } from "@/lib/i18n";
-import { packForVisit } from "@/lib/intake/questions";
+import { useDeliveries } from "@/lib/intake/delivery/store";
 import { useSession } from "@/lib/session";
+import { todayFocus } from "@/lib/today";
 import { spacing } from "@/lib/theme";
 
 export default function Today() {
   const router = useRouter();
   const { visits, notes } = useSession();
-
-  const next = visits.find((v) => v.noteStatus === "draft" || v.noteStatus === null) ?? null;
-  // The same pack the flow runs (INT-256), so the ring's denominator counts
-  // the universal history the patient will actually be asked, in their mode.
-  const pack = next
-    ? packForVisit(next.department, {
-        mode: notes[next.id]?.mode ?? "hizli",
-        deferred: notes[next.id]?.deferred,
-      })
-    : [];
-  const answered = next
-    ? (notes[next.id]?.answers.filter((a) => a.values.some((v) => v.trim().length > 0)).length ?? 0)
-    : 0;
-  const fraction = pack.length > 0 ? answered / pack.length : 0;
+  const deliveries = useDeliveries();
+  const focus = todayFocus(visits, notes, (id) => deliveries[id]?.stage === "delivered");
 
   return (
     <Screen edges={RAIL_EDGES}>
@@ -43,13 +37,13 @@ export default function Today() {
         <AppText role="hero" heading style={styles.heroLine}>
           {t("tabs.today")}
         </AppText>
-        {next ? (
+        {focus.kind !== "none" ? (
           <View style={styles.section}>
-            <PrepGauge fraction={fraction} label={t("today.prep")} />
-            <VisitCard visit={next} hero />
+            <Kicker label={t("today.nextVisit")} />
+            <VisitCard visit={focus.visit} statusOverride={focus.status} hero />
             <PrimaryButton
-              label={next.noteStatus === "draft" ? t("today.continueCta") : t("today.prepareCta")}
-              onPress={() => router.push(`/(tabs)/visits/${next.id}`)}
+              label={t(focus.cta)}
+              onPress={() => router.push(`/(tabs)/visits/${focus.visit.id}`)}
             />
           </View>
         ) : (

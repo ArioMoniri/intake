@@ -65,9 +65,8 @@ export const en: Record<MessageKey, string> = {
     "A security change was detected on this device. The interview continues in writing.",
 
   "today.nextVisit": "Next visit",
-  "today.prep": "Visit preparation",
-  "today.prepareCta": "Prepare for the visit (≈3 min)",
   "today.continueCta": "Continue",
+  "today.openCta": "Open the visit",
   "today.noVisit": "No visit scheduled.",
   "today.addVisit": "Add a visit",
 

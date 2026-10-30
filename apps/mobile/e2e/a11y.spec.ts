@@ -1441,11 +1441,6 @@ describe("BK8 / SC 1.4.1 — nothing is carried by colour alone", () => {
     expect(ladder).toContain('t("a11y.ladder.reached")');
     expect(ladder).toContain('t("a11y.ladder.pending")');
   });
-
-  it("the prep gauge reports a value, not only a rendered arc", () => {
-    const gauge = readFileSync(join(COMPONENTS, "PrepGauge.tsx"), "utf8");
-    expect(gauge).toContain("accessibilityValue");
-  });
 });
 
 /* ------------------------------------------------------------------ */
@@ -2241,7 +2236,8 @@ describe("SC 1.3.4 — every screen lays out in landscape at the largest text si
       "percentage height",
     ]);
     expect(whys('const { height } = Dimensions.get("window");')).toEqual(["one-time window read"]);
-    // PrepGauge as it stood before INT-360, and as it stands now.
+    // The prep gauge's sizing before INT-360, and after (the gauge itself left
+    // Bugün in INT-594).
     expect(whys("const { width } = useWindowDimensions();\nconst size = width - 40;")).toEqual([
       "size from the long side",
     ]);

@@ -387,6 +387,18 @@ export function useDelivery(visitId: string): DeliveryItem | null {
   );
 }
 
+/** Every item by visit id. Each change replaces the map, so one value is a
+ * stable snapshot until the next change. */
+export function allDeliveries(): Readonly<Record<string, DeliveryItem>> {
+  return items;
+}
+
+/** React binding: every visit's item at once. Bugün reads several visits
+ * (INT-594), and hooks cannot be called in a loop. */
+export function useDeliveries(): Readonly<Record<string, DeliveryItem>> {
+  return useSyncExternalStore(subscribeToDeliveries, allDeliveries, allDeliveries);
+}
+
 /** React binding: false until this account's outbox has been read from disk. */
 export function useDeliveryHydrated(): boolean {
   return useSyncExternalStore(subscribeToDeliveries, deliveryHydrated, deliveryHydrated);

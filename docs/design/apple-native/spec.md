@@ -111,7 +111,7 @@ These are the motion spec's §6 events, nothing more. They wait for its haptics 
 
 ### 2.2 Bugün (`today.tsx`)
 
-- **Now:** the hero `VisitCard` on a solid surface with a static glow, `PrepGauge`, one `PrimaryButton`.
+- **Now:** a "Sıradaki vizit" kicker, the hero `VisitCard` on a solid surface with a static glow, one `PrimaryButton`. The `PrepGauge` was removed in INT-594, because its percentage counted questions the flow may never ask.
 - **Native mapping:** content layer, so **no glass**. The focal CTA is the `.prominent`-style single action (HIG toolbars: one primary action per screen), and it keeps the pass-6 neutral pill.
 - **Symbols:** `chevron.right` inside `VisitCard`.
 - **Must not change:** one hero and one glow per screen; the focal CTA register (pass 6).
