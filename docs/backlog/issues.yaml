@@ -7489,3 +7489,20 @@
     - "the passkey login is re-recorded with the new pinned jar on a real Keycloak 26.7.4 off the laptop (provider admitted, stock refused), never edited by hand, and the run is torn down"
   tests: [tests/admin/test_webauthn_session_notes_provider.py, tests/infra/test_staging_keycloak_provider.py]
   sec_row: "cicd"
+- id: INT-590
+  epic: E13-infra
+  phase: P1
+  title: "decode-uri-component lifted to 0.5.1 past CVE-2026-118664, so the vulnerabilities gate is green without an exception"
+  # GitHub #991. On 30 Oct 2026 trivy began reporting CVE-2026-118664 (HIGH,
+  # quadratic replacement of percent-encoded runs) against decode-uri-component
+  # 0.5.0. Main and every PR went red. 0.5.1 fixes it, so the row is a bump only.
+  depends_on: [INT-500]
+  labels: [area:security]
+  status: done
+  evidence: docs/evidence/INT-590.md
+  acceptance:
+    - "the root pnpm override is decode-uri-component@<0.5.1: ^0.5.1 and pnpm-lock.yaml resolves 0.5.1 only; no exception row"
+    - "FIXED_VERSIONS raises the decode-uri-component floor to 0.5.1 and ADVISORY_IDS names CVE-2026-118664; the floor test is red on main's lockfile and green after"
+    - "trivy fs over pnpm-lock.yaml reports only the already-suppressed node-forge row; osv-scanner reports no issue"
+  tests: [tests/ci/test_security_gates.py]
+  sec_row: "cicd"

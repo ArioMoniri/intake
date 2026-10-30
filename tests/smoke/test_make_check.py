@@ -411,7 +411,8 @@ def test_backlog_parses_and_is_complete() -> None:
     # + INT-537 (the app grants the core consent that visits and notes require,
     # INT-529 finding F2, GitHub #904); grows only with a stated reason.
     # + INT-586 (opentelemetry-api past GHSA-ccrj-gw8r-854m, GitHub #986).
-    assert len(ids) == 377, f"expected 175 blueprint + 202 added issues, got {len(ids)}"
+    # + INT-590 (decode-uri-component past CVE-2026-118664, GitHub #991).
+    assert len(ids) == 378, f"expected 175 blueprint + 203 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 

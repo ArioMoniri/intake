@@ -4490,3 +4490,13 @@
   - Cause: the jar embeds its pom, so the bump changed its bytes. main's pom still reproduces `91da1232…`, and the bumped one gives `3ca703b6…`, now the pin (pin file and runbook).
   - Re-recorded, not edited: the passkey login ran with that jar on Keycloak 26.7.4 (dist sha256 checked) on the AWS synthetic host over SSM. It was loopback only, in a throwaway NVMe dir, with no container and the staging stack untouched. Provider admitted, stock refused. Then torn down.
 - LOOP_STATUS: CONTINUE
+
+### 2026-10-30T13:30:00+03:00 · INT-590 · done (PR open)
+- Goal: trivy began reporting CVE-2026-118664 (HIGH) against decode-uri-component 0.5.0, turning the vulnerabilities gate red on main and on every open PR. 0.5.1 fixes it, so the fix is a bump, never an exception row (invariant 14).
+- Plan: raise the root pnpm override floor to ^0.5.1, regenerate the lockfile, and raise the FIXED_VERSIONS floor and ADVISORY_IDS in tests/ci/test_security_gates.py.
+- Tests: the floor test is red on main's lockfile and green after; tests/ci 421; local trivy and osv-scanner before and after; backlog and smoke pins at 376. The `make check` fan-out runs on the PR's AWS runner.
+- Invariants touched and still passing: 14 (no suppression added); 16 (Sec-Row `cicd`); 17 (no placeholders).
+- Decisions / ADRs / `00_STATE.md` rows: none.
+- Blocked on: nothing.
+- Next: merge at the front of the queue, because every PR's vulnerabilities job is red until it lands.
+- LOOP_STATUS: CONTINUE
