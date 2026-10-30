@@ -767,6 +767,8 @@ export const tr = {
   "consent.group.voice": "Sesli görüşme",
   "consent.group.voice.hint":
     "Ses analizi seçenekleri yalnızca sesli görüşmeyle birlikte çalışır. Yazı analizi sese değil, yazıya bakar; ayrı bir izindir.",
+  // INT-591: a release build has no voice, so it offers no voice consent.
+  "consent.group.voice.release": "Bu sürümde sesli görüşme yok; bu izinler kullanılmaz.",
   "consent.group.purposes": "Diğer amaçlar",
   "consent.group.learning": "Öğrenme",
   "consent.group.learning.hint":

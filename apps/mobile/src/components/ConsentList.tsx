@@ -27,6 +27,7 @@ import { ListGroup, ListRow } from "@/components/ListRow";
 import { AppText, useTheme } from "@/components/Themed";
 import { withContext } from "@/lib/a11y/labels";
 import { MIN_TAP } from "@/lib/a11y/target";
+import { currentBuildMode, voiceGroupNoteKey } from "@/lib/buildCopy";
 import type { PurposeView } from "@/lib/consent/ledger";
 import type { PurposeId } from "@/lib/consent/purposes";
 import { t } from "@/lib/i18n";
@@ -91,6 +92,7 @@ function StatePill({ view, onPress }: { view: PurposeView; onPress: () => void }
 
 export function ConsentList({ views, onOpenDetail, onToggle }: ConsentListProps) {
   const byId = new Map(views.map((view) => [view.id, view]));
+  const voiceNote = voiceGroupNoteKey(currentBuildMode());
   const row = (id: PurposeId, options?: { inset?: boolean; sublabel?: string }) => {
     const view = byId.get(id);
     if (view === undefined) {
@@ -125,6 +127,13 @@ export function ConsentList({ views, onOpenDetail, onToggle }: ConsentListProps)
       </View>
       <View style={styles.section}>
         <Kicker label={t("consent.group.voice")} />
+        {/* INT-591: where voice does not ship, the group says so — its rows
+            offer no grant there, and a standing grant can still be withdrawn */}
+        {voiceNote !== null ? (
+          <AppText role="caption" color="inkSoft">
+            {t(voiceNote)}
+          </AppText>
+        ) : null}
         <ListGroup footer={t("consent.group.voice.hint")}>
           {row("voice")}
           {row("lane:affect", { inset: true })}

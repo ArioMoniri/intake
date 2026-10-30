@@ -87,3 +87,28 @@ describe("the companion effects", () => {
     expect(code(file(BUILD_COPY))).toContain('"companion.effect.textOnly"');
   });
 });
+
+/* INT-591 — İzinleriniz offers no consent a release build cannot use. */
+describe("the consent detail and list", () => {
+  const DETAIL = "src/app/(tabs)/me/consents/[purpose].tsx";
+  const LIST = "src/components/ConsentList.tsx";
+
+  it("the detail draws its grant and withdraw controls from the build-aware actions", () => {
+    const detail = code(file(DETAIL));
+    expect(detail).toContain("consentActions(view, currentBuildMode())");
+    expect(detail).toMatch(
+      /actions\.grant \? \(\s*<PrimaryButton label=\{t\("consent\.detail\.grant"\)\}/,
+    );
+    expect(detail).toMatch(/actions\.withdraw \? \(/);
+    // the raw ledger flag no longer decides on its own whether a grant is offered
+    expect(detail).not.toMatch(/\{view\.grantable \? \(/);
+  });
+
+  it("the withdraw control is never gated on the build", () => {
+    expect(code(file(BUILD_COPY))).toMatch(/withdraw: view\.withdrawable/);
+  });
+
+  it("the voice group carries the release line through the helper", () => {
+    expect(code(file(LIST))).toContain("voiceGroupNoteKey(currentBuildMode())");
+  });
+});

@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**383 issues.** By phase: P0 183 · P1 146 · P2 47 · P3 7. By status: awaiting-human 39 · doing 7 · done 262 · todo 74 · withdrawn 1.
+**384 issues.** By phase: P0 183 · P1 147 · P2 47 · P3 7. By status: awaiting-human 39 · doing 7 · done 263 · todo 74 · withdrawn 1.
 
 ## P0
 
@@ -345,6 +345,7 @@
 | INT-585 | Record the owner's 28 Oct SMS decisions as D34-D38 and the live Netgsm OTP confirmation | E01-platform | INT-528, INT-576 | area:api | done |
 | INT-587 | The note reaches the clinician from a release build: note-sync client, in-app share consent, Doctor Link from the app | E08-mobile | INT-137, INT-142, INT-150, INT-232, INT-311, INT-529 | area:mobile, area:api | done |
 | INT-588 | Patient copy is true in the no-voice release build: no voice clause, no 'sent' before delivery, consent rows match the served texts | E08-mobile | INT-587, INT-253, INT-529 | area:mobile | done |
+| INT-591 | Release build hides the grant action for voice and lane:affect consents, keeps standing grants withdrawable | E08-mobile | INT-588, INT-132 | area:mobile | done |
 
 ## P2
 
