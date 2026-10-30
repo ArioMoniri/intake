@@ -190,15 +190,19 @@ def sqlalchemy_destroyers(
     *,
     remove_object: Callable[[str], None],
     record_passkey_recovery: Callable[[str], None] | None = None,
+    passkey_cooloff: timedelta | None = None,
+    clock: Callable[[], datetime] | None = None,
 ) -> dict[DestroyableClass, Destroyer]:
     """Destroyers for the classes whose stores are the INT-030 tables.
     ``remove_object`` receives each document's ``object_ref`` — wire a
     :class:`DocumentObjectDestroyer` there in anything beyond the unit lane.
 
     ``record_passkey_recovery`` (INT-582) audits each destroyed recovered
-    passkey as ``passkey.recovery.complete`` by its id. Without it the class is
-    not routed, so a due passkey refuses loudly (NoExecutorRegisteredError)
-    rather than disappearing unaudited."""
+    passkey as ``passkey.recovery.complete`` by its id, and ``passkey_cooloff``
+    (with ``clock``, default now) is named in the DELETE itself, so a row whose
+    cool-off has not ended survives even if a stale inventory hands its ref in.
+    Without both the class is not routed, so a due passkey refuses loudly
+    (NoExecutorRegisteredError) rather than disappearing unaudited."""
 
     def destroy_events(refs: Sequence[str]) -> int:
         ids = _as_ints("event", refs)
@@ -264,17 +268,20 @@ def sqlalchemy_destroyers(
             return int(result.rowcount)
 
     def destroy_recovered_passkeys(refs: Sequence[str]) -> int:
-        if record_passkey_recovery is None:  # pragma: no cover — never routed without it
+        if record_passkey_recovery is None or passkey_cooloff is None:  # pragma: no cover
             raise ValueError("a recovered passkey is destroyed only where it can be audited")
         ids = _as_uuids("passkey", refs)
+        ended_by = (clock() if clock is not None else datetime.now(UTC)) - passkey_cooloff
         with Session(engine) as session, session.begin():
             gone = session.scalars(
                 delete(PatientPasskey)
                 .where(
                     PatientPasskey.id.in_(ids),
-                    # only a passkey whose recovery is still running is this
-                    # class's: a cancelled one survives even if listed earlier
+                    # only a passkey whose recovery has run its cool-off is this
+                    # class's: a cancelled or still-cooling one survives even if
+                    # a stale inventory listed it
                     PatientPasskey.recovery_requested_at.is_not(None),
+                    PatientPasskey.recovery_requested_at <= ended_by,
                 )
                 .returning(PatientPasskey.id)
             ).all()
@@ -288,6 +295,6 @@ def sqlalchemy_destroyers(
         DestroyableClass.CONSENT_RECORDS_HOSPITAL_TENANT: destroy_consents,
         DestroyableClass.CLINICAL_RECORD: destroy_clinical,
     }
-    if record_passkey_recovery is not None:
+    if record_passkey_recovery is not None and passkey_cooloff is not None:
         routes[DestroyableClass.RECOVERED_PASSKEYS] = destroy_recovered_passkeys
     return routes

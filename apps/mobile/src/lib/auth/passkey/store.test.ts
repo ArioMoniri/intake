@@ -241,4 +241,38 @@ describe("INT-582 review: cancelling a recovery, removing a passkey, the rows sh
       ),
     ).toEqual(["enrolled", "remove", "lostConfirm"]);
   });
+
+  it("removes every passkey this patient holds, one step-up each, and stops at a refusal", async () => {
+    mocks.authedFetch.mockImplementation(async (_path: string, init?: RequestInit) => {
+      if (init?.method === "DELETE") {
+        return response(204, null);
+      }
+      return response(200, {
+        enrolment: "enrolled",
+        passkeys: [{ passkey_id: "p1" }, { passkey_id: "p2" }],
+      });
+    });
+    await loadPasskeys();
+    const stepUp = vi.fn(async () => ok({ grant: "grant-value" }));
+    await removePasskey({ ...holder, stepUp });
+    const removed = mocks.authedFetch.mock.calls
+      .filter(([, init]) => init?.method === "DELETE")
+      .map(([path]) => path);
+    expect(removed).toEqual(["/v1/me/passkeys/p1", "/v1/me/passkeys/p2"]);
+    expect(stepUp).toHaveBeenCalledTimes(2);
+    expect(passkeySnapshot().notice).toBe("removed");
+
+    mocks.authedFetch.mockClear();
+    const refusing = vi.fn(async () => ({
+      ok: false as const,
+      status: 403,
+      error: "step_up_refused",
+      manualPath: true,
+    }));
+    await removePasskey({ ...holder, stepUp: refusing });
+    expect(mocks.authedFetch.mock.calls.filter(([, init]) => init?.method === "DELETE")).toEqual(
+      [],
+    );
+    expect(passkeySnapshot().notice).toBe("remove_failed");
+  });
 });

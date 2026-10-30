@@ -4607,5 +4607,5 @@
 - Invariants touched and still passing: 4 (every new refusal and each periodic destruction audited), 6 (closed metric labels; ids only), 14 (tag-free CBOR), 17, 18 (annotation and retention class), 19.
 - Decisions / ADRs / `00_STATE.md` rows: ADR-044 §2 and its Android sentence corrected; the basis is the legal lane's decision (m.5/2-c), recorded in the evidence, the ADR and COUNSEL_BRIEF.
 - Blocked on: nothing; the PR still waits for #999.
-- Next: both reviewers re-verify.
+- Next: both reviewers re-verify. Re-review: security approved; the legal lane's second m.6 condition and the five notes landed (evidence, "Re-review").
 - LOOP_STATUS: CONTINUE

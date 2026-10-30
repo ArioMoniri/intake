@@ -175,22 +175,31 @@ export async function cancelPasskeyRecovery(
   await loadPasskeys();
 }
 
-/** Remove the first listed passkey: a passkey_remove step-up, then the DELETE. */
+/**
+ * Remove every passkey this patient holds — the row says "the passkey", and a
+ * second one left behind would keep guarding. Each removal is its own
+ * passkey_remove step-up (a grant is single-use); the first refusal or
+ * cancel stops the run, and the list is re-read either way.
+ */
 export async function removePasskey(ports: PasskeyPorts = defaultPasskeyPorts): Promise<void> {
-  const passkeyId = state.passkeyIds[0];
-  if (passkeyId === undefined) {
+  const passkeyIds = [...state.passkeyIds];
+  if (passkeyIds.length === 0) {
     commit({ ...state, notice: "remove_failed" });
     return;
   }
-  const stepped = await stepUpFor("passkey_remove", ports);
-  if (stepped.kind !== "passkey") {
-    commit({ ...state, notice: stepped.kind === "cancelled" ? "cancelled" : "remove_failed" });
-    return;
-  }
-  const answer = await passkeyApi.remove(passkeyId, stepped.grant);
-  if (!answer.ok) {
-    commit({ ...state, notice: "remove_failed" });
-    return;
+  for (const passkeyId of passkeyIds) {
+    const stepped = await stepUpFor("passkey_remove", ports);
+    if (stepped.kind !== "passkey") {
+      commit({ ...state, notice: stepped.kind === "cancelled" ? "cancelled" : "remove_failed" });
+      await loadPasskeys();
+      return;
+    }
+    const answer = await passkeyApi.remove(passkeyId, stepped.grant);
+    if (!answer.ok) {
+      commit({ ...state, notice: "remove_failed" });
+      await loadPasskeys();
+      return;
+    }
   }
   commit({ ...state, notice: "removed" });
   await loadPasskeys();

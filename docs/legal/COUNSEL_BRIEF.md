@@ -782,7 +782,7 @@ project forbids, and it would be indistinguishable from counsel's own once merge
 ```
 — `services/api/src/intake_api/dsar/strings.py:1-9`
 
-Thirteen keys are unauthored (`dsar/strings.py:34-62`):
+Fourteen keys are unauthored (`dsar/strings.py:34-62`):
 
 | key | what it labels |
 |---|---|
@@ -815,7 +815,7 @@ step-up the patient enrolled in. **The m.6 condition:** the face or fingerprint 
 on the patient's phone and no biometric data reaches the controller — the stored public
 key is not biometric data — so the m.6 special-category condition (açık rıza for
 biometrics) is not triggered. If biometric data ever reached the controller, m.6 would
-apply and this basis would not hold. Retention: until the patient removes it; after a
+apply and this basis would not hold. Second condition: if counsel rules the sign-in data is KVKK m.6 health data (INT-535, GitHub #902; docs/legal/drafts/sms-vendor-transfer-memo.draft.md §4), this basis is re-decided with it. The workable ground would then be m.6(3)(a) açık rıza: a separate enrolment text in docs/legal, hash-bound, with removal at least as easy as enrolment. Retention: until the patient removes it; after a
 recovery's cool-off at the first gate or list call and at the latest at the next periodic
 destruction (≤ 6 months); with the record on DSAR erasure. Recipients: none; processed by
 the controller only; stored by the hosting processor with the database. Counsel's

@@ -862,7 +862,8 @@ export const en: Record<MessageKey, string> = {
   // the line above ends in "passkey … phone." and the next key would read as
   // its value to gitleaks' generic-api-key rule; this comment keeps them apart
   "a11y.passkey.lostHint": "Double tapping asks to remove the passkey after a waiting period.",
-  "a11y.passkey.removeHint": "Double tapping removes your passkey sign-in from this account.",
+  "a11y.passkey.removeHint": "Double tapping removes your passkey.",
+  // as above: keeps the next key from reading as this line's value to gitleaks
   "a11y.passkey.cancelHint": "Double tapping cancels the removal request.",
   "a11y.data.withdrawHint": "Double tapping withdraws your erasure request.",
   "a11y.learned.shareHint": "Double tapping changes who this detail is shared with.",

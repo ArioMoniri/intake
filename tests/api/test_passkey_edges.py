@@ -247,3 +247,27 @@ def test_unwired_step_up_options_keep_a_patient_without_a_passkey_on_the_otp_tie
         ("POST", "/v1/me/passkeys/registration/options"),
     ):
         assert unwired.call(session, method, path).status_code == 503, path
+
+
+def test_a_registration_challenge_without_its_handle_is_a_refusal_not_a_500(
+    kit: PasskeyKit, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A spend that admits but carries no offered handle (a registration
+    challenge registration_options did not issue) has its own branch: a
+    typed challenge_missing refusal, never MetricReason("challenge_ok")."""
+    from intake_api.passkey.challenges import Spent
+
+    session = kit.sign_in()
+    options = kit.call(session, "POST", "/v1/me/passkeys/registration/options").json()
+    credential = Authenticator().register(options)
+    service = kit.client.app.state.api.passkey  # type: ignore[attr-defined]
+    monkeypatch.setattr(service._challenges, "consume_noted", lambda *_args: (Spent.OK, None))
+    refused = kit.call(
+        session, "POST", "/v1/me/passkeys/registration", json_body={"credential": credential}
+    )
+    assert refused.status_code == 400
+    assert refused.json() == {
+        "error": "passkey_registration_refused",
+        "reason": "challenge_missing",
+    }
+    assert kit.passkey_rows() == []

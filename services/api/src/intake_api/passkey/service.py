@@ -292,8 +292,12 @@ class PasskeyService:
         spent, note = await asyncio.to_thread(
             self._challenges.consume_noted, challenge, caller.binding(Ceremony.REGISTER, None)
         )
-        if spent is not Spent.OK or note is None:
+        if spent is not Spent.OK:
             await self._refuse_registration(caller, f"challenge_{spent.value}")
+        if note is None:
+            # a registration challenge always carries the handle it offered; one
+            # without it was not issued by registration_options, and is no pass
+            await self._refuse_registration(caller, "challenge_missing")
         try:
             registered = verify_registration(
                 config=self._config,

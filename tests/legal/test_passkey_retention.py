@@ -119,7 +119,11 @@ def test_a_recovered_passkey_with_no_later_sign_in_is_destroyed_by_the_periodic_
         )
 
     routes = sqlalchemy_destroyers(
-        db, remove_object=lambda _ref: None, record_passkey_recovery=record
+        db,
+        remove_object=lambda _ref: None,
+        record_passkey_recovery=record,
+        passkey_cooloff=COOLOFF,
+        clock=lambda: NOW,
     )
     engine = DestructionEngine(
         policy=load_default_policy(),
@@ -161,3 +165,25 @@ def test_near_miss_without_an_audit_sink_a_due_passkey_refuses_loudly(
         engine.run_periodic(recovered_passkey_inventory(db, cooloff=COOLOFF))
     with Session(db) as session:
         assert len(session.scalars(select(PatientPasskey.id)).all()) == 3
+
+
+def test_the_destroyer_itself_spares_a_passkey_whose_cool_off_has_not_ended(
+    seeded: tuple[Engine, dict[str, uuid.UUID]],
+) -> None:
+    """Belt and braces under the planner: even handed the ref of a passkey
+    still cooling off (a stale inventory, a restarted recovery), the DELETE
+    names the cool-off itself, so the row survives and nothing is audited."""
+    db, ids = seeded
+    audited: list[str] = []
+    routes = sqlalchemy_destroyers(
+        db,
+        remove_object=lambda _ref: None,
+        record_passkey_recovery=audited.append,
+        passkey_cooloff=COOLOFF,
+        clock=lambda: NOW,
+    )
+    destroy = routes[DestroyableClass.RECOVERED_PASSKEYS]
+    assert destroy([str(ids["cooling"]), str(ids["cancelled"])]) == 0
+    assert audited == []
+    assert destroy([str(ids["recovered"])]) == 1
+    assert audited == [str(ids["recovered"])]

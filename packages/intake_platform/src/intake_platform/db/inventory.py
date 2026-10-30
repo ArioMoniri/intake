@@ -102,6 +102,12 @@ BASIS_LEGAL_OBLIGATION = "KVKK m.5/2-ç — legal obligation (KVKK m.12 security
 # biometrics) is not triggered. Were biometric data ever to reach the
 # controller, m.6's condition would apply and this basis would no longer hold
 # (docs/legal/COUNSEL_BRIEF.md).
+# Second condition: if counsel rules the sign-in data is KVKK m.6 health data
+# (INT-535, GitHub #902; the SMS-vendor transfer memo, §4 — named, not pathed:
+# code may not point at that tree or file, tests/legal/test_legal_drafts.py),
+# this basis is re-decided with it. The workable ground would then be m.6(3)(a)
+# açık rıza: a separate enrolment text in docs/legal, hash-bound, with removal at
+# least as easy as enrolment.
 BASIS_ACCOUNT_SECURITY = (
     "KVKK m.5/2-c — necessary for performing the service contract: the optional "
     "account-security step-up the patient enrolled in (D36, against SIM swap)"
