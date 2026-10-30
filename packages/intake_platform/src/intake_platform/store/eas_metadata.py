@@ -34,6 +34,7 @@ import json
 import re
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
+from dataclasses import field as dataclass_field
 from pathlib import Path
 from typing import Any, Final
 
@@ -44,11 +45,15 @@ from intake_platform.legal.document_index import LegalDocumentSet
 from intake_platform.store import listing as listing_mod
 
 __all__ = [
+    "ADVISORY_ASC_FLAG_KEYS",
+    "ADVISORY_ASC_LEVEL_KEYS",
+    "ADVISORY_ASC_OVERRIDE_KEYS",
     "ADVISORY_FLAG_KEYS",
     "ADVISORY_LEVELS",
     "ADVISORY_LEVEL_KEYS",
     "APP_STORE",
     "CATEGORIES",
+    "CONTENT_RIGHTS",
     "EAS_REFERENCE",
     "INFO_COPY_FIELDS",
     "INFO_LIMITS",
@@ -123,6 +128,45 @@ ADVISORY_LEVEL_KEYS: Final[tuple[str, ...]] = (
 )
 ADVISORY_FLAG_KEYS: Final[tuple[str, ...]] = ("gambling", "unrestrictedWebAccess", "seventeenPlus")
 
+#: INT-495: the age-rating attributes the live App Store Connect API asks for
+#: beyond the EAS schema above (ageRatingDeclaration attributes, read from
+#: Apple's API reference on 2026-10-16). EAS cannot push them; the ASC writer
+#: (scripts/store/asc_plan.py) does. Override, regional-rating and kids-band
+#: attributes are left to App Store Connect's own derivation.
+ADVISORY_ASC_LEVEL_KEYS: Final[tuple[str, ...]] = ("gunsOrOtherWeapons",)
+ADVISORY_ASC_FLAG_KEYS: Final[tuple[str, ...]] = (
+    "advertising",
+    "ageAssurance",
+    "healthOrWellnessTopics",
+    "lootBox",
+    "messagingAndChat",
+    "parentalControls",
+    "socialMedia",
+    "socialMediaAgeRestricted",
+    "userGeneratedContent",
+)
+
+#: INT-502 (legal review B8): the live override that sets the top age band.
+#: Apple's AgeRatingDeclaration attributes, read 2026-10-29: ``ageRatingOverrideV2``
+#: takes one of these values and replaces the deprecated ``ageRatingOverride``,
+#: which was the only key with ``SEVENTEEN_PLUS``.
+ADVISORY_ASC_OVERRIDE_KEYS: Final[Mapping[str, tuple[str, ...]]] = {
+    "ageRatingOverrideV2": (
+        "NONE",
+        "NINE_PLUS",
+        "THIRTEEN_PLUS",
+        "SIXTEEN_PLUS",
+        "EIGHTEEN_PLUS",
+        "UNRATED",
+    ),
+}
+
+#: The two answers of the app's ``contentRightsDeclaration`` (Apple's API reference).
+CONTENT_RIGHTS: Final[tuple[str, ...]] = (
+    "DOES_NOT_USE_THIRD_PARTY_CONTENT",
+    "USES_THIRD_PARTY_CONTENT",
+)
+
 #: ``apple.info`` link field → the INT-210 document it must point at.
 LEGAL_LINK_FIELDS: Final[Mapping[str, str]] = {"privacyPolicyUrl": "gizlilik"}
 
@@ -153,6 +197,15 @@ class AppStoreSubmission:
     legal_links: Mapping[str, _LinkRequest]
     support_url: str | None
     copyright: str | None
+    #: INT-495: answers only the App Store Connect API takes; empty when absent.
+    advisory_asc: Mapping[str, str | bool] = dataclass_field(default_factory=dict)
+    advisory_asc_sources: Mapping[str, str] = dataclass_field(default_factory=dict)
+    content_rights: str | None = None
+    content_rights_source: str | None = None
+    #: INT-502 legal review B5/R1: while set, the review notes go to neither
+    #: store.config.json nor App Store Connect. It names the owners of the facts
+    #: that would make the notes true; removing it is a legal-lane edit.
+    review_notes_hold: str | None = None
 
 
 @dataclass(frozen=True)
@@ -195,28 +248,39 @@ def _gate_text(text: str, *, where: str) -> None:
 # --- the submission file ----------------------------------------------------------------
 
 
-def _advisory(raw: object, where: str) -> tuple[dict[str, str | bool], dict[str, str]]:
+def _advisory(
+    raw: object,
+    where: str,
+    *,
+    section: str = "advisory",
+    level_keys: tuple[str, ...] = ADVISORY_LEVEL_KEYS,
+    flag_keys: tuple[str, ...] = ADVISORY_FLAG_KEYS,
+    enum_keys: Mapping[str, tuple[str, ...]] | None = None,
+) -> tuple[dict[str, str | bool], dict[str, str]]:
     if not isinstance(raw, Mapping):
-        raise StoreConfigError(f"{where}: advisory must be a mapping")
-    expected = set(ADVISORY_LEVEL_KEYS) | set(ADVISORY_FLAG_KEYS)
+        raise StoreConfigError(f"{where}: {section} must be a mapping")
+    enums = dict(enum_keys or {})
+    expected = set(level_keys) | set(flag_keys) | set(enums)
     if set(raw) != expected:
         raise StoreConfigError(
-            f"{where}: advisory keys differ from the EAS schema: missing "
+            f"{where}: {section} keys differ from the schema: missing "
             f"{sorted(expected - set(raw))}, unknown {sorted(set(raw) - expected)}"
         )
     answers: dict[str, str | bool] = {}
     sources: dict[str, str] = {}
-    for key in (*ADVISORY_LEVEL_KEYS, *ADVISORY_FLAG_KEYS):
+    for key in (*level_keys, *flag_keys, *enums):
         entry = raw[key]
         if not isinstance(entry, Mapping) or not str(entry.get("source", "")).strip():
-            raise StoreConfigError(f"{where}: advisory.{key} needs an answer and a source")
+            raise StoreConfigError(f"{where}: {section}.{key} needs an answer and a source")
         answer = entry.get("answer")
-        if key in ADVISORY_LEVEL_KEYS and isinstance(answer, str) and answer in ADVISORY_LEVELS:
+        if key in level_keys and isinstance(answer, str) and answer in ADVISORY_LEVELS:
             answers[key] = answer
-        elif key in ADVISORY_FLAG_KEYS and isinstance(answer, bool):
+        elif key in flag_keys and isinstance(answer, bool):
+            answers[key] = answer
+        elif key in enums and isinstance(answer, str) and answer in enums[key]:
             answers[key] = answer
         else:
-            raise StoreConfigError(f"{where}: advisory.{key} has no valid answer")
+            raise StoreConfigError(f"{where}: {section}.{key} has no valid answer")
         sources[key] = str(entry["source"])
     return answers, sources
 
@@ -254,6 +318,21 @@ def load_submission(path: Path) -> AppStoreSubmission:
     copyright_line = body.get("copyright")
     if copyright_line is not None and not isinstance(copyright_line, str):
         raise StoreConfigError(f"{where}: copyright must be text or null")
+    asc_answers: dict[str, str | bool] = {}
+    asc_sources: dict[str, str] = {}
+    if body.get("advisory_asc") is not None:
+        asc_answers, asc_sources = _advisory(
+            body["advisory_asc"],
+            where,
+            section="advisory_asc",
+            level_keys=ADVISORY_ASC_LEVEL_KEYS,
+            flag_keys=ADVISORY_ASC_FLAG_KEYS,
+            enum_keys=ADVISORY_ASC_OVERRIDE_KEYS,
+        )
+    rights, rights_source = _content_rights(body.get("content_rights"), where)
+    hold = body.get("review_notes_hold")
+    if hold is not None and (not isinstance(hold, str) or not hold.strip()):
+        raise StoreConfigError(f"{where}: review_notes_hold must name its owners or be absent")
     return AppStoreSubmission(
         categories=tuple(str(c) for c in categories),
         advisory=advisory,
@@ -262,7 +341,24 @@ def load_submission(path: Path) -> AppStoreSubmission:
         legal_links=links,
         support_url=_optional_https(body.get("support_url"), f"{where}:support_url"),
         copyright=copyright_line,
+        advisory_asc=asc_answers,
+        advisory_asc_sources=asc_sources,
+        content_rights=rights,
+        content_rights_source=rights_source,
+        review_notes_hold=None if hold is None else hold.strip(),
     )
+
+
+def _content_rights(raw: object, where: str) -> tuple[str | None, str | None]:
+    if raw is None:
+        return None, None
+    if (
+        not isinstance(raw, Mapping)
+        or raw.get("answer") not in CONTENT_RIGHTS
+        or not str(raw.get("source", "")).strip()
+    ):
+        raise StoreConfigError(f"{where}: content_rights needs an answer and a source")
+    return str(raw["answer"]), str(raw["source"])
 
 
 # --- legal links --------------------------------------------------------------------------
@@ -355,7 +451,13 @@ def build_store_config(
     else:
         apple["categories"] = list(submission.categories)
         apple["advisory"] = dict(submission.advisory)
-        apple["review"] = {"notes": submission.review_notes}
+        if submission.review_notes_hold is None:
+            apple["review"] = {"notes": submission.review_notes}
+        else:
+            blocked.append(
+                f"review.notes: held until the notes are true of the store build "
+                f"({submission.review_notes_hold}; legal review B5)"
+            )
         if submission.copyright is not None:
             apple["copyright"] = submission.copyright
         if submission.support_url is not None:

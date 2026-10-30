@@ -49,9 +49,10 @@ from store_drafts_harness import (
     STRICT,
     body,
     cited_path,
-    draft,
     lines,
+    listing_source,
     promote,
+    store_texts,
 )
 
 #: files/06 §7, the static safety line, verbatim. The one sentence in the
@@ -59,6 +60,12 @@ from store_drafts_harness import (
 #: inside RED, "where the bare imperative plural (… Arayın …) is correct
 #: because ambiguity is the harm".
 SAFETY_LINE_TR = "Acil bir durum yaşıyorsanız 112'yi arayın veya en yakın acil servise başvurun."
+
+#: Legal re-check of INT-495, 31 Oct 2026, verbatim: the English description's first line.
+TURKISH_ONLY_EN = (
+    "Önvizit is available in Turkish only: the app's screens and questions are all in Turkish."
+)
+LOCALE_TS = REPO / "apps" / "mobile" / "src" / "lib" / "i18n" / "locale.ts"
 
 
 def _load_i18n_gate() -> ModuleType:
@@ -90,9 +97,21 @@ def listings(tmp_path_factory: pytest.TempPathFactory) -> tuple[listing_mod.Stor
 
 def test_every_store_draft_starts_with_the_counsel_banner() -> None:
     files = sorted(p for p in DRAFTS.iterdir() if p.is_file())
-    assert len(files) >= 8
+    assert files
     for path in files:
         assert path.read_text(encoding="utf-8").splitlines()[0].lstrip("#> ").strip() == BANNER
+
+
+def test_no_served_store_file_carries_the_draft_banner_or_status() -> None:
+    """INT-495 promoted the App Store artefacts; a served file that still read as a
+    draft, or a draft still sitting beside its served copy, would be two answers."""
+    for path in store_texts():
+        if DRAFTS in path.parents:
+            continue
+        text = path.read_text(encoding="utf-8")
+        assert BANNER not in text, path.name
+        assert body(path)["provenance"]["status"].startswith("served"), path.name
+        assert not (DRAFTS / path.name.replace(".yaml", ".draft.yaml")).exists()
 
 
 def test_the_drafts_readme_indexes_every_store_draft() -> None:
@@ -140,8 +159,8 @@ def test_the_store_name_is_onvizit_on_every_listing(
 
 def test_the_play_listing_is_the_app_store_listing_from_the_same_source() -> None:
     for locale in LOCALES:
-        apple = body(draft("app-store", locale))["fields"]
-        play = body(draft("google-play", locale))["fields"]
+        apple = body(listing_source("app-store", locale))["fields"]
+        play = body(listing_source("google-play", locale))["fields"]
         assert play["title"] == apple["title"]
         assert play["full_description"] == apple["description"]
 
@@ -152,7 +171,7 @@ def test_the_play_listing_is_the_app_store_listing_from_the_same_source() -> Non
 def test_every_line_of_copy_cites_an_existing_repo_file() -> None:
     for store in STORES:
         for locale in LOCALES:
-            loaded = body(draft(store, locale))
+            loaded = body(listing_source(store, locale))
             sources = loaded["sources"]
             for name, value in loaded["fields"].items():
                 if isinstance(sources[name], str):
@@ -170,7 +189,7 @@ def test_every_line_of_copy_cites_an_existing_repo_file() -> None:
 def _turkish_fields() -> list[tuple[str, str]]:
     out: list[tuple[str, str]] = []
     for store in STORES:
-        for name, value in body(draft(store, "tr"))["fields"].items():
+        for name, value in body(listing_source(store, "tr"))["fields"].items():
             if name != "keywords":
                 out.append((f"{store}.{name}", value))
     return out
@@ -222,7 +241,7 @@ def test_the_only_imperative_in_the_turkish_copy_is_the_static_safety_line() -> 
 def test_the_app_store_fields_hold_the_eas_reference_limits() -> None:
     assert (REPO / eas.EAS_REFERENCE).exists()
     for locale in LOCALES:
-        fields = body(draft("app-store", locale))["fields"]
+        fields = body(listing_source("app-store", locale))["fields"]
         assert set(fields) <= set(eas.INFO_COPY_FIELDS)
         for name, limit in eas.INFO_LIMITS.items():
             if name in fields:
@@ -244,3 +263,28 @@ def test_no_link_is_authored_in_listing_copy(
     planted.write_text(yaml.safe_dump(loaded, allow_unicode=True), encoding="utf-8")
     with pytest.raises(eas.StoreConfigError, match="link"):
         eas.render_for_repo(root)
+
+
+# --- the English listing names the app's one language ----------------------------------------
+
+
+def _offered_locales(source: str) -> set[str]:
+    """The locales LOCALE_REGISTRY registers, read from locale.ts."""
+    block = source.split("export const LOCALE_REGISTRY", 1)[1].split("});", 1)[0]
+    return set(re.findall(r"^  ([A-Za-z-]+): \{", block, flags=re.MULTILINE))
+
+
+def test_the_english_listing_opens_with_turkish_only_while_the_app_offers_only_turkish() -> None:
+    """Legal re-check, 31 Oct 2026: an English reader learns first that the app is in
+    Turkish only. That is true while LOCALE_REGISTRY offers `tr` alone, so a second locale
+    turns this red until the line is revisited (near miss: a registry with `en`)."""
+    offered = _offered_locales(LOCALE_TS.read_text(encoding="utf-8"))
+    assert offered == {"tr"}
+    for store, field in (("app-store", "description"), ("google-play", "full_description")):
+        loaded = body(listing_source(store, "en-US"))
+        assert lines(loaded["fields"][field])[0] == TURKISH_ONLY_EN, store
+        cited = {row["text"]: row["source"] for row in loaded["sources"][field]}
+        assert "LOCALE_REGISTRY" in cited[TURKISH_ONLY_EN], store
+        assert TURKISH_ONLY_EN not in body(listing_source(store, "tr"))["fields"][field]
+    near_miss = "export const LOCALE_REGISTRY = Object.freeze({\n  tr: {\n  },\n  en: {\n  },\n});"
+    assert _offered_locales(near_miss) == {"tr", "en"} != offered

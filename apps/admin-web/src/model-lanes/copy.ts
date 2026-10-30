@@ -9,11 +9,14 @@ import type { Lang } from "../ops/copy";
 import { RESULT_COPY } from "./results";
 
 export type { Lang } from "../ops/copy";
+import { EMPTIES, FILLS } from "../ui/fills";
 
 const tr = {
   title: "Model hatları",
   generatedAt: "Oluşturulma",
   unknown: "Bilinmiyor",
+  fills: FILLS.tr,
+  empties: EMPTIES.tr,
   yes: "evet",
   no: "hayır",
   none: "yok",
@@ -215,6 +218,8 @@ const en: ModelLanesCopy = {
   title: "Model lanes",
   generatedAt: "Generated",
   unknown: "Unknown",
+  fills: FILLS.en,
+  empties: EMPTIES.en,
   yes: "yes",
   no: "no",
   none: "none",

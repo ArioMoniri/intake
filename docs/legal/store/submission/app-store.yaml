@@ -1,0 +1,143 @@
+# The served App Store answers that are not listing copy: the category, the
+# age-rating questionnaire, the content-rights answer and the App Review notes.
+# eas_metadata.load_submission reads it; `make store-config` puts the EAS part into
+# apps/mobile/store.config.json, and scripts/store/asc_listing.py writes the rest
+# (advisory_asc, content_rights) to the App Store Connect draft.
+#
+# Promoted on 2026-10-16 by INT-495 (GitHub #846) from the draft of #828, which the
+# legal lane approved. Under the owner's rule of 3 Oct 2026, legal sign-offs go to a
+# sourced legal agent and a verifier, in synthetic scope; a licensed Turkish lawyer
+# countersigns before any real patient.
+#
+# Submitting for review still waits on HB-L21 (a) and (e) and on every condition in
+# docs/legal/drafts/store/app-review-notes.draft.md §1.
+#
+# `advisory` uses the EAS schema's keys; `advisory_asc` answers the keys the live
+# App Store Connect API asks beyond them (read 2026-10-16; ageRatingOverrideV2 read
+# 2026-10-29 for the INT-502 legal review, B8: the top age band while no guardian
+# flow exists). Every answer cites its
+# source. Answers that carry a `note` are judgements for the legal lane. The
+# reviewer contact and sign-in are never written here; the owner enters them in App
+# Store Connect. The privacy-policy link, support URL and copyright stay null until
+# HB-L27 and HB-L21(e) answer them.
+provenance:
+  issue: INT-482
+  store: app-store
+  status: served — legal lane approved (#828), promoted by INT-495
+  prepared_on: "2026-10-04"
+categories:
+  - MEDICAL
+categories_source: "files/02_PRODUCT_SPEC.md — a patient app for the visit to a clinician; the legal lane confirms the category"
+advisory:
+  alcoholTobaccoOrDrugUseOrReferences:
+    answer: INFREQUENT_OR_MILD
+    source: "packages/protocols/base/intake.yaml — the base intake asks \"Sigara kullanıyor musunuz?\" and \"Alkol kullanıyor musunuz?\"; packages/protocols/review/cluster/mental_health.yaml asks about other substances. The app asks; it depicts and promotes nothing (re-sourced, legal review INT-502)"
+  contests:
+    answer: NONE
+    source: "files/02_PRODUCT_SPEC.md — the app's screens are intake, visits, records, wellbeing and profile; none holds a contest"
+  gamblingSimulated:
+    answer: NONE
+    source: "files/02_PRODUCT_SPEC.md — no game or simulated gambling exists"
+  horrorOrFearThemes:
+    answer: NONE
+    source: "CLAUDE.md clinical content rules — patient copy is never alarming beyond the safety action"
+  matureOrSuggestiveThemes:
+    answer: NONE
+    source: "docs/legal/data-categories.yaml — the sexual-health category is clinical symptom questions in one specialty intake, not served until counsel completes its row"
+    note: "The legal lane decides whether clinical sexual-health questions count here."
+  medicalOrTreatmentInformation:
+    answer: INFREQUENT_OR_MILD
+    source: "packages/protocols/base/intake.yaml — the intake asks about complaints, medicines and history and gives no treatment advice; a build sent for review must run with device_functions off (files/06_COMPLIANCE_TR.md §0.3 Stage A, INT-117; app-review-notes §1 item 11), so that it shows no urgency or treatment instruction (re-sourced, legal re-check 29 Oct 2026)"
+  profanityOrCrudeHumor:
+    answer: NONE
+    source: "CLAUDE.md clinical content rules — B1 Turkish, siz register, empathetic copy"
+  sexualContentGraphicAndNudity:
+    answer: NONE
+    source: "apps/mobile/src/app/(tabs)/records.tsx — the only images are the patient's own uploaded reports"
+  sexualContentOrNudity:
+    answer: NONE
+    source: "apps/mobile/src/app/(tabs)/records.tsx — the only images are the patient's own uploaded reports"
+  violenceCartoonOrFantasy:
+    answer: NONE
+    source: "files/02_PRODUCT_SPEC.md — no cartoon, fantasy or game content exists"
+  violenceRealistic:
+    answer: NONE
+    source: "docs/legal/data-categories.yaml — personal-safety questions in one specialty intake ask about the patient's situation and depict nothing; not served until counsel completes the row"
+    note: "The legal lane decides whether personal-safety questions count here."
+  violenceRealisticProlongedGraphicOrSadistic:
+    answer: NONE
+    source: "files/02_PRODUCT_SPEC.md — no such content exists"
+  gambling:
+    answer: false
+    source: "apps/mobile/package.json — no purchase, payment or betting library"
+  unrestrictedWebAccess:
+    answer: false
+    source: "apps/mobile/src/app/(tabs)/records.tsx — the in-app browser opens only the patient's own uploaded document"
+  seventeenPlus:
+    answer: true
+    source: "packages/intake_platform/src/intake_platform/legal/documents.py — REQUIRED_DOCUMENTS declares no guardian consent text, and apps/mobile/e2e/guardian.spec.ts pins \"under-18 only via guardian account with guardian consent\". Until that flow exists, the listing takes the top age band (legal review INT-502 B8, 29 Oct 2026)"
+advisory_asc:
+  ageRatingOverrideV2:
+    answer: EIGHTEEN_PLUS
+    source: "packages/intake_platform/src/intake_platform/legal/documents.py — no guardian consent text, the same reason as seventeenPlus. Apple's AgeRatingDeclaration attributes (developer.apple.com/documentation/appstoreconnectapi/ageratingdeclaration/attributes, read 2026-10-29): ageRatingOverrideV2 takes NONE, NINE_PLUS, THIRTEEN_PLUS, SIXTEEN_PLUS, EIGHTEEN_PLUS or UNRATED, and replaces the deprecated ageRatingOverride (legal review INT-502 B8)"
+  advertising:
+    answer: false
+    source: "packages/intake_platform/src/intake_platform/store/answers.py — the privacy sheet's product answer: no inventory purpose is advertising, and apps/mobile/package.json links no ad library"
+  ageAssurance:
+    answer: false
+    source: "services/api/src/intake_api/age_context.py — no date of birth is recorded or verified today"
+    note: "The legal lane confirms this against Apple's definition."
+  gunsOrOtherWeapons:
+    answer: NONE
+    source: "docs/legal/data-categories.yaml — the personal-safety questions of one specialty intake ask about the patient's situation and depict nothing; not served until counsel completes the row"
+    note: "The legal lane decides whether forensic intake questions count here."
+  healthOrWellnessTopics:
+    answer: true
+    source: "files/02_PRODUCT_SPEC.md — a pre-visit health intake for the patient's own visit"
+  lootBox:
+    answer: false
+    source: "apps/mobile/package.json — no purchase library; nothing is sold in the app"
+  messagingAndChat:
+    answer: false
+    source: "apps/mobile/src/app/(tabs)/visits/[visitId]/review.tsx — users never message each other; the intake conversation is with the app, and the note goes only to the clinician the patient chooses"
+    note: "The legal lane confirms that a conversation with the app is not messaging in Apple's sense."
+  parentalControls:
+    answer: false
+    source: "files/02_PRODUCT_SPEC.md — the app has no parental-control feature"
+  socialMedia:
+    answer: false
+    source: "files/02_PRODUCT_SPEC.md — no feed, profile or follower feature; nothing is published to other users"
+  socialMediaAgeRestricted:
+    answer: false
+    source: "files/02_PRODUCT_SPEC.md — not a social media app (socialMedia is false)"
+  userGeneratedContent:
+    answer: false
+    source: "apps/mobile/src/app/(tabs)/visits/[visitId]/review.tsx — what a patient writes or uploads reaches only the clinician they share it with; nothing is shown to other users"
+    note: "The legal lane confirms this against Apple's definition."
+content_rights:
+  answer: USES_THIRD_PARTY_CONTENT
+  source: "apps/mobile/package.json — the app bundles the third-party fonts Inter, Newsreader and Fraunces (@expo-google-fonts, SIL Open Font License 1.1, read from each package's LICENSE_FONT) (re-sourced to the fonts, legal re-check 29 Oct 2026)"
+  note: "The legal lane confirms; the alternative answer is DOES_NOT_USE_THIRD_PARTY_CONTENT."
+# INT-502 legal review B5 and re-check R1/R2: while this is set, the notes reach
+# neither store.config.json nor App Store Connect. Removing it is a legal-lane edit,
+# made only when every owner below has made the notes true of the review build.
+review_notes_hold: "INT-117 Stage A (static 112 notice; no patient-facing RED on the review host), INT-488 reviewer sign-in, INT-587 delivery, INT-440/INT-454 release voice (voice intake, Microphone), a malware scanner on the review host (Camera: upload fails closed, docs/runbooks/staging.md)"
+review_notes: |-
+  Önvizit is a pre-visit intake app. Before a medical visit, the user describes their complaints by voice or by typing, one question at a time. The app turns the answers into a structured note, shows it to the user, and sends it only to the clinician the user chooses.
+
+  What the app does not do: it does not diagnose, it does not recommend treatment, and it does not tell the user how urgent a complaint is. It makes no claim about how well it measures anything.
+
+  Emergencies: Önvizit is not an emergency service. The app shows a fixed notice telling the user to call 112, the emergency number in Türkiye, or to go to the nearest emergency department.
+
+  Apple Health: with the user's permission, the app reads step count, resting heart rate and sleep. It only reads and never writes to Apple Health. The data stays on the device unless the user adds a summary to their note, and it is never used for advertising.
+
+  Microphone: used only during a voice intake, to turn the answer into text. Audio is never written to disk, to a database or to logs.
+
+  Camera: used only to photograph the user's own medical report so that it can be uploaded.
+
+  Account deletion: Profile > Your data lets the user request deletion of their account and data.
+
+  Test environment and sign-in: this build connects to a test environment that holds simulated patients only. No real patient data is present. The reviewer account is a simulated patient, and its sign-in details are in the App Review Information section of this submission.
+legal_links: {}
+support_url: null
+copyright: null

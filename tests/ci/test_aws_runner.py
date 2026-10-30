@@ -115,7 +115,7 @@ def _code(text: str) -> str:
 def test_the_workflows_have_jobs() -> None:
     jobs = _jobs()
     assert {path for path, _, _ in jobs} == {"ci.yml", "security.yml"}
-    assert len(jobs) == 13, "a new job must be added to this count and to the AWS runner"
+    assert len(jobs) == 14, "a new job must be added to this count and to the AWS runner"
 
 
 @pytest.mark.parametrize(("path", "job", "runs_on"), _jobs())

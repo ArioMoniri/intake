@@ -1,0 +1,35 @@
+{
+  "source_url": "https://www.netgsm.com.tr/dokuman/",
+  "retrieved_on": "2026-10-16",
+  "provenance": "built-from-documentation",
+  "note": "INT-528. The read-only credential check the go-live runbook runs first: Netgsm's sender-name listing (section 'Gönderici Adı Sorgulama', REST v2) answers with the account's approved sender names, or code 30 when the usercode or password is wrong, the sub-user has no API permission, or the request comes from an address outside the account's IP restriction. Every shape is copied from the public documentation; nothing was captured from a live call. The error sample's code is the literal 'XX' in the documentation; the documented codes are 30, 70 and 100-101.",
+  "endpoint": {
+    "method": "GET",
+    "url": "https://api.netgsm.com.tr/sms/rest/v2/msgheader",
+    "auth": "http-basic: usercode (the subscriber number) and the API sub-user's password"
+  },
+  "documented_error_codes": {
+    "30": "credentials, API permission or IP restriction",
+    "70": "query parameters",
+    "100": "system error",
+    "101": "system error"
+  },
+  "responses": {
+    "listed": {
+      "status": 200,
+      "body": {
+        "code": "00",
+        "msgheaders": ["BASLIK", "BASLIK2"],
+        "description": "success"
+      }
+    },
+    "error": {
+      "status": 406,
+      "body": {
+        "code": "XX",
+        "msgheaders": null,
+        "description": "error message desc."
+      }
+    }
+  }
+}

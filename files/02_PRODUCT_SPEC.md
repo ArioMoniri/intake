@@ -1,4 +1,4 @@
-# 02 · Product Spec — INTAKE (working brand candidate: **Vizite**) — v1.4
+# 02 · Product Spec — INTAKE (brand: **Önvizit**) — v1.4
 
 ## 1. Personas
 
@@ -285,7 +285,7 @@ Note what is **not** in it: no 112, no ambulance, no *"en yakın acil"* map, no 
 **The resolution is temporal unbundling, not fewer purposes.** Every purpose is still asked, separately and explicitly — but **at first use, where it is self-evident what it is for** — with full granularity permanently one tap away in an **"İzinlerim"** screen. This is **more defensible under KVKK, not less**, because informedness becomes *demonstrable*: consent for document processing granted at the moment of uploading a document is evidently informed in a way that switch number nine on a cold onboarding screen never is.
 
 **Onboarding is two screens and one switch.**
-1. **Aydınlatma metni** — plain language at **B1**, with a **"tam metni oku"** expander holding the full notice. **Versioned and hashed**; the version and hash are recorded against the account. It covers four things and no more: what Vizite does, **that it is not a doctor**, that the data is the patient's, and **112 for emergencies**.
+1. **Aydınlatma metni** — plain language at **B1**, with a **"tam metni oku"** expander holding the full notice. **Versioned and hashed**; the version and hash are recorded against the account. It covers four things and no more: what Önvizit does, **that it is not a doctor**, that the data is the patient's, and **112 for emergencies**.
 2. **Voice consent** — the **only** switch at onboarding. The text **names the active voice profile and vendor(s)** (**`residency_tr` — every model self-hosted and processed only in Türkiye; there is no EU vendor and no third-party processor to name**) ⚠️ *(the EU-vendor wording deleted here — Soniox/ElevenLabs/Inworld/OpenAI/Google — described profiles that no longer exist; `00 §0b`)*, and **offers the typed alternative in the same breath** — not as a consolation after a refusal. **Declining lands the patient in typed mode**, which is a working product, not a dead end (`00 §1`, `typed` is always available).
 
 **Everything else is asked in context:**

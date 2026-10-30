@@ -59,6 +59,7 @@ import { joinParts } from "@/lib/a11y/labels";
 import { useReducedMotion } from "@/lib/a11y/prefs";
 import { MIN_TAP } from "@/lib/a11y/target";
 import { useClinicalScreenPrivacy } from "@/lib/auth/screenPrivacy";
+import { currentBuildMode, openAnswerHintKey } from "@/lib/buildCopy";
 import type { ReachabilityReport } from "@/lib/dev/hosts";
 import { t } from "@/lib/i18n";
 import { measurementLine } from "@/lib/intake/baseLayer";
@@ -649,8 +650,9 @@ function StepFlow({ visitId, requestedQ, intakeQuestions, prefill, voiceFailed }
             with the control it describes (the same rule INT-261 applied to
             the spoken turn). */}
               {instrumentStep ? null : openAsk ? (
+                // INT-588: names dictation only where VoiceNote is drawn below
                 <AppText role="body" color="inkSoft">
-                  {t("intake.open.hint")}
+                  {t(openAnswerHintKey(currentBuildMode(), consents?.voice === true))}
                 </AppText>
               ) : question.hintKey ? (
                 <AppText role="body" color="inkSoft">
@@ -682,7 +684,9 @@ function StepFlow({ visitId, requestedQ, intakeQuestions, prefill, voiceFailed }
                 <>
                   <TextInput
                     accessibilityLabel={t(question.titleKey)}
-                    accessibilityHint={t("intake.open.hint")}
+                    accessibilityHint={t(
+                      openAnswerHintKey(currentBuildMode(), consents?.voice === true),
+                    )}
                     allowFontScaling={false}
                     value={text}
                     onChangeText={setText}

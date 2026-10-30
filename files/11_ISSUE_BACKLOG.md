@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**366 issues.** By phase: P0 180 · P1 131 · P2 48 · P3 7. By status: awaiting-human 38 · doing 7 · done 246 · todo 74 · withdrawn 1.
+**389 issues.** By phase: P0 184 · P1 150 · P2 48 · P3 7. By status: awaiting-human 39 · doing 7 · done 267 · todo 75 · withdrawn 1.
 
 ## P0
 
@@ -182,6 +182,7 @@
 | INT-453 | voice-runtime RED path picks its script from rule_ids[0] — must use the firing rule's own script | E05-voice | INT-080, INT-093 | area:voice, risk:clinical | done |
 | INT-446 | RED end-to-end in the app — rules-engine hop on the dialogue lane, pre-positioned RED screen mounted | E08-mobile | INT-080, INT-103, INT-333 | area:mobile, risk:clinical | done |
 | INT-465 | generic RED active from CD-24, and the red rule set signed with a synthetic-only test key | E03-protocols | INT-432, INT-446, INT-453 | area:protocols, risk:clinical, risk:security | done |
+| INT-544 | A pull request clears CI in under 20 minutes on the intake-aws-ci pool: cache seed, sharded check-py, path-scoped lanes, queued main runs collapse | E13-infra | INT-467, INT-524 | area:ci, approval:human-infra | done |
 | INT-430 | Agent council for dynamic questioning: a post-bind verifier that only appends scripted re-asks and confirm-backs; the deterministic engine adjudicates; on-prem or API models | E05-voice | INT-081, INT-083, INT-092, INT-095, INT-101 | area:voice, risk:clinical | doing |
 | INT-428 | Hosted model lanes (OpenAI or similar) switchable from the admin panel, with a GPU switch-over | E05-voice | INT-182, INT-187, INT-018 | area:api, area:voice, risk:security | awaiting-human |
 | INT-485 | Admin oauth2-proxy logs no staff email or client IP (invariant 6) | E13-infra | INT-421 | area:infra | done |
@@ -191,6 +192,9 @@
 | INT-522 | chest_pain.onset_at binds from its closed-choice answer, so the K2 rule's tense anchor is known live | E03-protocols | INT-518, INT-521 | area:protocols | done |
 | INT-540 | The onset anchor always resolves, so K2 cannot stay silent | E05-voice | INT-522 | area:voice | done |
 | INT-531 | A RED evaluated between turns reaches the patient within the 300 ms budget without waiting for the next turn | E05-voice | INT-521 | area:voice | done |
+| INT-550 | A new staff user enrols a passkey after the password step | E12-admin | INT-378, INT-421, INT-538 | area:security | done |
+| INT-420 | Önvizit everywhere — finish the Vizite→Önvizit rebrand on main | E08-mobile | INT-130, INT-320 | area:mobile | done |
+| INT-592 | iOS build carries a truthful NSHealthUpdateUsageDescription so App Store processing accepts it (ITMS-90683) | E08-mobile | INT-420, INT-208 | area:mobile | done |
 
 ## P1
 
@@ -315,6 +319,8 @@
 | INT-414 | Conversational question delivery — warm opener, context- and affect-aware lead-ins, questions verbatim | E08-mobile | INT-415 | area:mobile | done |
 | INT-447 | Clinical decisions batch 2 — verify INT-414's 48 delivery lines (PolicyGuard, B1, siz, sourced) | E08-mobile | INT-432 | area:mobile, risk:clinical | done |
 | INT-449 | Turkish voice casting: the best native Turkish ElevenLabs voice and model, natural intonation | E05-voice | INT-415 | area:voice | done |
+| INT-450 | admin-web UI upgrade with owner-listed component libraries (licence-checked) | E12-admin | INT-181, INT-182, INT-187, INT-351, INT-366 | area:admin | done |
+| INT-459 | admin-web premium redesign | E12-admin | INT-450 | area:admin | done |
 | INT-463 | All CI jobs on the AWS self-hosted runner | E13-infra | INT-206, INT-426 | area:ci, approval:human-infra | awaiting-human |
 | INT-467 | A pool of three ephemeral intake-aws-ci runners, each isolated as runner 1 is | E13-infra | INT-463 | area:ci, approval:human-infra | awaiting-human |
 | INT-460 | Second admin approver for synthetic staging: a second Keycloak user, never a second dev bearer | E12-admin | INT-180, INT-325, INT-365 | area:admin, risk:security | done |
@@ -327,6 +333,23 @@
 | INT-442 | Egress forward proxy for the synthetic AWS host (hosted lanes reach only allow-listed vendors) | E05-voice | INT-428, INT-018 | area:infra, risk:security | awaiting-human |
 | INT-443 | ElevenLabs as the hosted TTS provider, default on the synthetic AWS host (v2 delivery profiles) | E05-voice | INT-442, INT-428, INT-424, INT-326 | area:voice, risk:security | awaiting-human |
 | INT-482 | Store listing readiness: EAS metadata, privacy labels / data safety answers, review notes, as Önvizit | E08-mobile | INT-224, INT-421 | area:mobile | done |
+| INT-495 | App Store listing for Önvizit, filled in App Store Connect as an editable draft | E08-mobile | INT-482 | area:mobile | done |
+| INT-502 | Capture the App Store header and screenshots from the merged design stack and upload them to App Store Connect | E08-mobile | INT-495 | area:mobile | todo |
+| INT-528 | Netgsm OTP SMS adapter behind the INT-329 SMS port, recorded fixtures only, fail-closed until the owner's credentials land | E01-platform | INT-329, INT-358 | area:api, risk:security, risk:legal | done |
+| INT-573 | next, certifi and filelock lifted past the 27 Oct 2026 advisories, so the vulnerabilities gate is green without an exception | E13-infra | INT-501 | area:security | done |
+| INT-574 | test_the_red_never_waits_on_the_inbox_store is deterministic — no wall-clock budget under shared-runner load | E13-infra | INT-475 | area:api | done |
+| INT-576 | Netgsm OTP adapter parses the live success shape; an HTTP 200 the parser cannot read is never retried | E01-platform | INT-528 | area:api | done |
+| INT-560 | The operability registry page tells the truth: real probe results from the synthetic host, honest deployment and severity columns | E12-admin | INT-022, INT-183, INT-351, INT-377, INT-345 | area:observability | done |
+| INT-529 | Synthetic-scope consent texts, marked sentetik test metni and loaded only on the synthetic host | E14-legal | INT-038, INT-210 | area:legal, risk:legal | awaiting-human |
+| INT-537 | The app grants the core consent that visits and notes require | E08-mobile | INT-529, INT-132, INT-232 | area:mobile, risk:legal | done |
+| INT-536 | Consent-screen copy matches the consent texts and the host: affect cues never reach the doctor, and no 'stays in Türkiye' claim on the us-east-1 host | E14-legal | INT-529, INT-537 | area:legal | done |
+| INT-586 | opentelemetry-api lifted to 1.67.0 in the Keycloak provider, past GHSA-ccrj-gw8r-854m, so the vulnerabilities gate is green without an exception | E13-infra | INT-378 | area:security | done |
+| INT-590 | decode-uri-component lifted to 0.5.1 past CVE-2026-118664, so the vulnerabilities gate is green without an exception | E13-infra | INT-500 | area:security | done |
+| INT-559 | The app's voice lane never writes patient audio to a file — stream from memory (invariant 3), before voice ships in any build | E08-mobile | INT-194, INT-291, INT-446 | area:mobile, risk:security | done |
+| INT-585 | Record the owner's 28 Oct SMS decisions as D34-D38 and the live Netgsm OTP confirmation | E01-platform | INT-528, INT-576 | area:api | done |
+| INT-587 | The note reaches the clinician from a release build: note-sync client, in-app share consent, Doctor Link from the app | E08-mobile | INT-137, INT-142, INT-150, INT-232, INT-311, INT-529 | area:mobile, area:api | done |
+| INT-588 | Patient copy is true in the no-voice release build: no voice clause, no 'sent' before delivery, consent rows match the served texts | E08-mobile | INT-587, INT-253, INT-529 | area:mobile | done |
+| INT-591 | Release build hides the grant action for voice and lane:affect consents, keeps standing grants withdrawable | E08-mobile | INT-588, INT-132 | area:mobile | done |
 
 ## P2
 

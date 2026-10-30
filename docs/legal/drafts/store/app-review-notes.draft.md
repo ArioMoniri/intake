@@ -4,7 +4,8 @@
 
 Prepared on 2026-10-04 by a drafting agent for the legal lane (GitHub #825). It is pending
 legal-lane review. This file is for the owner and the reviewer of this PR. The text the store
-reviewers read is in `app-store.submission.draft.yaml` (`review_notes`) and in
+reviewers read is in the served `docs/legal/store/submission/app-store.yaml` (`review_notes`;
+promoted by INT-495) and in
 `google-play.submission.draft.yaml` (`app_access_instructions`). Nothing here is submitted.
 
 ## 1 · Do not submit until each of these holds
@@ -21,8 +22,12 @@ missing item is a reason to wait. It is not something to describe around.
 | 5 | The app is called Önvizit in the binary, not only on the store. | INT-420 (PR #729) |
 | 6 | Phone sign-in works on the production host: an SMS vendor with a signed DPA, and the App Attest team id. | owner (docs/release/production-checklist.md §6) |
 | 7 | A way for a reviewer to sign in (§2). | INT-488 (#829), then the owner creates the account |
-| 8 | Voice intake can be reached in a release build. It must go through the streaming path (`apps/mobile/src/lib/livekit`), which writes no file. Today `voiceEligible` requires `__DEV__` (`apps/mobile/src/app/(tabs)/visits/[visitId]/intake.tsx`), and `createLiveVoiceSession` has no caller. The listing and the notes describe voice, so they wait for it. | INT-440 (#768), INT-454 (#769) |
+| 8 | Voice intake can be reached in a release build. It must go through the streaming path (`apps/mobile/src/lib/livekit`), which writes no file. Today `voiceEligible` requires `__DEV__` (`apps/mobile/src/app/(tabs)/visits/[visitId]/intake.tsx`), and `createLiveVoiceSession` has no caller. The notes describe voice, so they wait for it. The listing no longer does (INT-502 legal review B1). | INT-440 (#768), INT-454 (#769) |
 | 9 | Release stays manual, and the public release waits. The production host receives simulated patients only until an in-country host or counsel's cross-border decision exists. Use TestFlight internal testing and the Play internal track until then. `store.config.json` pins `automaticRelease: false`. | HB-I5, HB-L11 |
+| 10 | The note the patient sends reaches the clinician they choose. The notes say the app "sends it only to the clinician the user chooses". The listing promo, the store frames and the review notes may promise delivery only once it works. Until then, the review notes stay out of App Store Connect (INT-502 legal review, B4 and B5). | INT-587 (#988) |
+| 11 | No patient-facing RED or urgency screen in the build sent for review, on the host it uses. The notes say the app 'does not tell the user how urgent a complaint is'. | INT-117 (`tests/legal/test_device_functions_gate.py`) |
+| 12 | Document upload completes on the host the review build uses. The notes say a photographed report 'can be uploaded'; today the host has no malware scanner and upload fails closed. | the host's scanner (docs/runbooks/staging.md) |
+| 13 | The submitted build ships only `tr.lproj`, verified on the uploaded build's own localizations. The App Store's Languages row is read from them (Apple QA1828), and the en-US listing says the app is in Turkish only. Build 7 predates INT-595: a local build of its sha carries `en.lproj` beside `tr.lproj`, so it is not the build to submit. | INT-595 (#1008) |
 
 ## 2 · The reviewer account
 
@@ -40,24 +45,20 @@ has its own issue, INT-488 (#829), and goes to the security reviewer. This draft
 2. Enter the sign-in details in App Store Connect, under App Review Information, with "Sign-in
    required" ticked. For Play, enter them in the Play Console, under App content, then App access.
    They are never written into this repository, `store.config.json`, an issue, a PR or a chat.
-   `store.config.json` carries the review notes and nothing else from the `review` block.
+   `store.config.json` carries no review notes while they are held (INT-502 legal review B5).
 3. When the review is finished, retire the account the way the dev fixture was retired: audited,
    by id (docs/release/production-checklist.md §3).
 
 ## 3 · Emergencies: what the app does about 112
 
-- **Builds sent to the stores run with `device_functions` off** (files/06 §0.3, Stage A). In that
-  mode the app gives no automated urgency advice and no automated severity label. Answers that
-  match a red-flag rule reach the clinician as the patient's own report, and triage runs only in
-  shadow. INT-117 is the issue that makes this a tested property.
+- **Builds sent for review must run with `device_functions` off** (files/06 §0.3, Stage A). Today they do not: the synthetic host serves the signed `base.life_threat` set (infra/staging/compose.yaml) and the RED layer mounts at the app root (apps/mobile/src/app/_layout.tsx), so a store build pointed at it can show a patient-facing RED with 112. INT-117 makes Stage A a tested property.
 - **A fixed notice** at static points tells the user to call 112 or go to the nearest emergency
   department. It is the files/06 §7 static safety line, verbatim. It is a legal fixed string, so
   it renders only from `docs/legal/strings.yaml` with its hash. That file does not exist yet:
   counsel writes and signs it (HB-L27). Today no screen shows the line (§1 item 1).
 - **The RED screen** (a pre-positioned script, triggered over the data channel; the 112 control
   never mounts on site; invariant 21) belongs to `device_functions` on. That needs a CE certificate
-  or an approved clinical investigation. It is not part of a store build, and the notes do not
-  describe it.
+  or an approved clinical investigation. It must not be reachable in a build sent for review; today it is (§1 item 11).
 
 ## 4 · How the notes answer the guideline sections #825 names
 
@@ -74,13 +75,20 @@ verbatim quotation the repo holds is App Review 1.4.1, in ADR-022 under `docs/ad
 
 ## 5 · Age rating
 
-Apple: `advisory` in `app-store.submission.draft.yaml`. It has one sourced answer per key of the EAS
-schema, and two answers carry a note for the legal lane. Google Play (IARC): the facts in
-`google-play.submission.draft.yaml`. Counsel gives the answers (HB-L21(c)).
+Apple: `advisory` and `advisory_asc` in `docs/legal/store/submission/app-store.yaml`. That file has
+one sourced answer for each key of the EAS schema, and one for each live App Store Connect key beyond
+it. The answers that carry a note are judgements for the legal lane.
+
+Google Play (IARC): the facts are in `google-play.submission.draft.yaml`. Counsel gives the answers
+(HB-L21(c)).
 
 ## 6 · Screenshots
 
-INT-425 builds them (PR #738, still open), and this draft does not copy them. Once #738 merges,
-`docs/store/screenshots/app-store-screenshots.json` exists. Then the INT-482 tests run its captions
-through the same claims and device-claim gates as the listing. The Play frames are iPhone captures.
-#738 says to replace them with Android captures before submitting to Play.
+The App Store header and screenshots for the new design are INT-502 (#856). INT-502 captures them
+from a release build, once the design stack has merged. The slots and sizes are in
+`docs/store/asc/assets.yaml`, and the checks are in `scripts/store/asc_assets.py`.
+
+INT-425 (PR #738, still open) captured the earlier design, and this draft does not copy it. Once #738
+merges, `docs/store/screenshots/app-store-screenshots.json` exists. Then the INT-482 tests run its
+captions through the same claims and device-claim gates as the listing. The Play frames are iPhone
+captures, and #738 says to replace them with Android captures before submitting to Play.

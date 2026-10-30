@@ -15,8 +15,8 @@
 #   1. Creates the root-only state dir and env file, and generates every
 #      secret in it here, once: the database and Redis passwords, the
 #      object store's root pair, the API's OpenBao token and the OTP tier's
-#      tokenization key. It writes the operator's App Attest and SMS keys
-#      empty, for the operator to fill (INT-352).
+#      tokenization key. It writes the operator's App Attest keys empty,
+#      for app_attest_env.sh to fill (INT-352, INT-528).
 #   2. Builds the API image and has syft write its SBOM into the release
 #      directory, as deploy.sh does (INT-352). compose needs the SBOM's
 #      digest for every call, so this comes before anything starts.

@@ -141,18 +141,24 @@ def openbao_seal_status(client: httpx.Client, base_url: str) -> Outcome:
 # --- certificates ---------------------------------------------------------------------
 
 
-def fetch_tls_not_after(host: str, port: int, timeout_s: float = 5.0) -> datetime:
+def fetch_tls_not_after(
+    host: str, port: int, timeout_s: float = 5.0, *, server_name: str | None = None
+) -> datetime:
     """Read the peer certificate's notAfter over a real TLS handshake.
 
     Verification is off on purpose: an expiry probe must read even an
     untrusted or already-expired certificate — refusing the handshake would
     blind the probe exactly when it matters.
+
+    ``server_name`` is the SNI sent when it differs from the address dialled
+    (INT-560: the host dials Caddy by its compose name and asks for the
+    certificate it serves the public hostname with).
     """
     context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
     context.check_hostname = False
     context.verify_mode = ssl.CERT_NONE
     with socket.create_connection((host, port), timeout=timeout_s) as raw:
-        with context.wrap_socket(raw, server_hostname=host) as tls:
+        with context.wrap_socket(raw, server_hostname=server_name or host) as tls:
             der = tls.getpeercert(binary_form=True)
     if der is None:
         raise ssl.SSLError("peer presented no certificate")

@@ -181,6 +181,8 @@ class TestUnconfigured:
         assert components == [row.component for row in load_models_module().rows]
         assert {"qwen3.5-9b", "whisper-tr-medical", "freya-tts"} <= set(components)
         row = next(r for r in models["rows"] if r["component"] == "whisper-tr-medical")
+        # INT-560 added the host columns; tests/admin/test_registry_truth.py
+        # pins how each is derived
         assert set(row) == {
             "component",
             "pin",
@@ -188,12 +190,24 @@ class TestUnconfigured:
             "self_hosted_now",
             "phi_path",
             "probe",
+            "deployment",
+            "needed",
+            "not_needed_reason",
             "probe_status",
+            "probe_checked_at",
+            "probe_age_s",
+            "probe_stale",
             "licence_verified_at",
             "severity",
+            "severity_reason",
         }
         # no sweep ran here, so no probe result — said, not assumed healthy
         assert row["probe_status"] == "no_result"
+        assert row["probe_age_s"] is None and row["probe_stale"] is True
+        # and no inventory was named, so the host column says so
+        assert models["host"] is None
+        assert models["host_reason"] == "host_inventory_unconfigured"
+        assert row["deployment"] == "undeclared"
 
 
 class TestConfigured:

@@ -60,7 +60,7 @@ class EmbedConsentDocument:
     kind: str
     #: The files/06 §2 scope a grant records against, or ``None`` for a
     #: disclosure. This is what ties the shown ``core`` text to the scope the
-    #: patient later grants through Vizite's own consent flow.
+    #: patient later grants through Önvizit's own consent flow.
     grant_scope: str | None
     version: str
     text_hash: str

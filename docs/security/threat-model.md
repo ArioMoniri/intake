@@ -100,7 +100,7 @@ it or whose tests exercise it.
 | `apps/mobile` | `mobile`, `onboarding`, `intake-voice`, `records`, `share-centre`, `kiosk`, `notifications` | the patient app |
 | `packages/clinical-schemas` | `clinical-core` | the clinical data model and mappers |
 | `packages/connectors` | `connectors` | hospital-system adapters |
-| `packages/embed-sdk` | `embed` | the partner launcher, holding no Vizite secret |
+| `packages/embed-sdk` | `embed` | the partner launcher, holding no Önvizit secret |
 | `packages/hosted-lanes` | `llm-boundary`, `cloud-boundary` | the hosted model-lane adapters, shipped in the synthetic deployment's image only (ADR-035) |
 | `packages/intake_platform` | `observability-pipeline`, `monitoring-contract`, `api`, `audit`, `secrets`, `identifiers`, `data-at-rest`, `cloud-boundary`, `consent`, `retention`, `admin-console` | the shared platform library: redaction and OTel, health contract, security middleware, audit chain, envelope and tokenization, egress, consent and retention engines, admin primitives |
 | `packages/protocols` | `clinical-content`, `protocol-registry`, `triage` | the DSL, compiler and deterministic triage |
@@ -123,7 +123,10 @@ it or whose tests exercise it.
   [I] secret committed to the repo; [E] pre-commit/gate bypass normalising unreviewed change;
   [I] **an operator script putting a secret where others read it** (INT-538's staff-user
   command: a temporary password or the Keycloak bootstrap password in an argv, the SSM command
-  history, a log or the terminal); [E] **a staff account created with the wrong role or org**.
+  history, a log or the terminal); [E] **a staff account created with the wrong role or org**;
+  [D] **a staff account that can never complete sign-in** (INT-550: the realm's ALTERNATIVE
+  WebAuthn step refused every user without a passkey, so no new staff user could enrol);
+  [E] **a weaker factor standing in for the passkey** (an OTP ALTERNATIVE beside WebAuthn).
 - **Controls (files/10):** §8 pre-commit set (gitleaks, Semgrep+Bandit, dependency review,
   Renovate with lockfiles); CLAUDE.md invariant 14 (gates never skipped); Makefile as the only
   entry point so gates cannot be sidestepped by ad-hoc commands. **INT-538**
@@ -135,12 +138,22 @@ it or whose tests exercise it.
   a new user joins the platform_owner's org and a differing org is refused; only the very first
   user, who must be the platform_owner, types it once as a slug. It is never invented. An instance
   role that may not read the staff_tmp parameters is named with the IAM statement to add. A failed
-  step rolls the user back.
+  step rolls the user back. **INT-550** (both committed realms and
+  `infra/staging/keycloak/staff_flow.py`): the `intake-webauthn-session-notes` step is REQUIRED, so Keycloak sends a user without a
+  passkey to `webauthn-register` after the password. A user with a passkey is challenged for it
+  and offered nothing else. The OTP step is DISABLED until INT-389, so it is neither offered nor
+  accepted. The deploy switches the live realm. It refuses, before any change, a realm whose
+  `webauthn-register` action is absent or disabled. It keeps each execution's priority. The
+  enrolment login asserts no passkey, so the console still refuses that one session, and the
+  next fresh sign-in asserts the key.
 - **Signals:** vulnerability counts by severity and age (files/10 §7) land with INT-192 on the
-  console and INT-205 in the SIEM.
+  console and INT-205 in the SIEM. `smoke.sh` check 7 re-reads the live staff flow (INT-550
+  shape) after every deploy.
 - **Tests:** tests/smoke/test_make_check.py; tests/ci/test_no_placeholders.py;
   tests/ci/test_coverage_floors.py; tests/infra/test_staff_user.py;
-  tests/infra/test_staff_user_host.py.
+  tests/infra/test_staff_user_host.py; tests/admin/test_staff_passkey_enrolment.py;
+  tests/infra/test_staging_keycloak_provider.py; `StaffSecondFactorFlowTest` (Keycloak
+  26.7.4's own flow engine, in `infra/keycloak/providers/webauthn-session-notes`).
 
 ## `cicd` — pipeline, artefacts and gate integrity
 
@@ -348,6 +361,23 @@ it or whose tests exercise it.
 - **Tests:** tests/platform/test_health_contract.py; tests/observability/test_metrics_catalog.py
   (INT-025); tests/observability/test_slo_generator.py, test_alert_rules.py and
   test_slo_coverage.py (INT-021).
+- **Controls added by INT-560 (17 Oct 2026):** the synthetic AWS host is probed. The probes
+  service runs there as its own compose service and sweeps a recorded host inventory
+  (`infra/staging/inventory.yaml`). The loader refuses an inventory whose services are not
+  exactly compose's, or that sits in a process whose data class is not synthetic. The API
+  reads the sweep read-only. A blind spot on that host is now a `no_result` or a stale age on
+  the console, never an "evet", and a missing result never reads healthy.
+  - The probes service holds the least it can: a Postgres role with LOGIN and CONNECT only,
+    a Redis user that may PING only, no network with a route off the host, and no published
+    port.
+  - Its failure texts are scrubbed before they are written ([I]), and its two series carry
+    registry ids only.
+  - "Blocking" on the console's registry tile means the host's stack needs the row and its
+    probe is not healthy now. The INT-022 PHI release gate is unchanged and is shown as
+    registry-wide.
+  - Tests: tests/observability/test_host_inventory.py, test_host_sweep.py,
+    test_probes_host_service.py; tests/admin/test_registry_truth.py;
+    tests/infra/test_staging_probes.py.
 
 ## `observability-pipeline` — logs, traces, errors are not a side channel
 
@@ -536,20 +566,45 @@ it or whose tests exercise it.
   no decoder can exist until the Play Console organisation account does (HB-A3). The
   stored record is a public key, a counter and an environment — the same class of datum as
   the DPoP thumbprint — kept 30 days rolling.
-- **The SMS delivery bound, stated (INT-329):** outside dev the OTP tier is wired only when
-  the egress policy admits `EgressPurpose.SMS_OTP_DELIVERY` to `api.twilio.com` **and** OpenBao
-  holds `secret/api/twilio` (`account_sid`, `auth_token`, `from`). The `TWILIO_*` environment
-  variables are never read. Anything missing leaves every `/v1/auth` route at 503, and the dev
-  event logger is never the fallback (INT-325). The send is async, over the INT-018 guard's
-  async twin, which runs the same admission step and pins and records exactly as the sync one
-  does. The call is declared `DataClass.PHI`, so it can only reach a `phi_allowed` row that
-  carries a recorded approval. **No such row ships.** Personal data to a processor abroad is
-  the owner's DPA and cross-border decision (docs/evidence/INT-329.md), so today the tier
-  stays at 503 outside dev, and the guard would refuse the call before a byte left anyway. A
-  failed delivery is one generic `503 otp_delivery_unavailable`, never a claimed "sent". The
-  log line carries the vendor message id, the HTTP status, a closed-vocabulary reason and
-  Twilio's numeric error code, never the phone, the code, the token or a vendor body (its
-  errors echo the number). No retry: a retried SMS would put a second code in flight.
+- **The SMS delivery bound, stated (INT-329, INT-528):** the vendor is Netgsm's OTP SMS
+  product, the owner's decision of 16 Oct 2026 (INT-358), which records it as BTK-licensed and
+  processing the data in Türkiye; the signed DPA is what confirms both. On the synthetic host
+  (AWS us-east-1) the number passes through that host first. Outside dev the OTP tier is wired only when the egress policy admits
+  `EgressPurpose.SMS_OTP_DELIVERY` to `api.netgsm.com.tr` **and** OpenBao holds
+  `secret/api/netgsm` (`usercode`, `password`, `msgheader`). No environment variable is read,
+  and the staging env file holds no vendor key at all. Anything missing leaves every
+  `/v1/auth` route at 503, and the dev event logger is never the fallback (INT-325). Twilio,
+  the INT-329 adapter, is no longer wired. The send is async, over the INT-018 guard's async
+  twin, which runs the same admission step and pins and records exactly as the sync one does.
+  The call is declared `DataClass.PHI`, so it can only reach a `phi_allowed` row that carries
+  a recorded approval, with `INTAKE_ALLOW_PHI_EGRESS=explicit-yes` at runtime. **No such row
+  ships:** it is the owner's patch (owner-528-netgsm-egress.patch), so today the tier stays at
+  503 outside dev, and the guard would refuse the call before a byte left anyway. The wire
+  body is enumerated by hand (`msgheader`, `msg`, `no`), and a number Netgsm cannot reach (not
+  a Turkish mobile) or a code that is not plain digits is refused before the wire. Every
+  documented vendor code maps to a typed refusal. A failed delivery is one generic
+  `503 otp_delivery_unavailable`, never a claimed "sent". The log line carries the job id, the
+  HTTP status, the refusal and the numeric code; the one counter,
+  `otp_sms_delivery_total{vendor,outcome}`, has closed labels. Never the phone, the code, the
+  password or the vendor's description. No retry: a retried SMS would put a second code in
+  flight. INT-576: a 2xx the adapter cannot read as the documented success (code `00` with
+  the job id as `jobid`, the documentation's sample, or `jobId`, Netgsm's JS SDK) is a typed
+  refusal (`unparseable_response`, `accepted_without_job_id`, `unknown_vendor_code`) whose
+  port reason, `malformed_response`, is not retryable (`OtpDeliveryError.retryable`), with a
+  timeout and a vendor-side failure, because Netgsm may already have sent the code; the
+  cooldown the request started holds a resend. On the synthetic host the owner keeps the values as SSM SecureString parameters;
+  `infra/staging/netgsm_secrets.sh` (run by hand and by every `deploy.sh`) reads them with the
+  instance role and writes them to OpenBao on stdin, never argv, printing field names only, and
+  `deploy.sh` refuses an Apple team id the API's own token cannot pair with them. Its `--check`
+  mode asks Netgsm's read-only sender-name listing whether the credentials work from the host's
+  Elastic IP; it sends no SMS and no personal data. **SMS is real on the synthetic host**, so
+  there the API starts a login, and sends a code, only for a number on the owner's SMS test
+  allow-list (SSM `/intake/staging/sms_test_allowlist`, synced into the same OpenBao document);
+  an empty, unreadable or malformed list admits nobody, and the numbers are never printed. The
+  route out is ADR-042's: a dedicated `sms-egress` forward proxy on a network shared with the
+  API alone, rendered from the allow-list's SMS row only, with the rebinding window closed and
+  the denied ranges refused at connect; `intake_platform.egress` admits that one proxy for that
+  one purpose and refuses every other personal-data proxy (INT-203 unchanged otherwise).
 - **Signals:** OTP request/fail rates by ASN, attestation failures, new-device logins (§9)
   land with INT-131 and the console with INT-192.
 - **Tests:** abuse-path tests land with INT-131; the rolling bound over any span, the
@@ -1414,8 +1469,45 @@ it or whose tests exercise it.
   a section contains; [T] client-side scope tampering.
 - **Controls (files/10):** §9 review row — section-level scope, consent summary, explicit
   confirm step; scopes enforced server-side per §4 consent checks.
-- **Signals:** share scope distribution (§9) lands with INT-137.
-- **Tests:** UI flow tests land with INT-137.
+- **Threats added by INT-587 (delivery):** [R/U] the app telling the patient a note was sent
+  that never left the phone; [I] a note shared without — or after the withdrawal of — the share
+  consent; [D] a queued note silently dropped by a failure or a restart; [I] note text reaching a
+  log through a delivery error; [D] a client hammering a server that has already refused; [I] a
+  share consent given for one note releasing another after a withdrawal (legal review B1); [D] a
+  refused consent op stalling a later withdrawal in the queue (N5).
+- **Controls added by INT-587:** the explicit confirm step is the share consent itself, asked at
+  the send against the docs/legal share text the loader serves (body, version and binding
+  rendered; no text, no grant action; "Şimdi değil" as easy as agreeing), hash-bound and recorded
+  server-side (`consent.grant`, audited). A note enters the outbox, and a parked note is released,
+  only with the receipt given for THAT note; the binding is sealed with the note. Every share
+  withdrawal on the phone — direct or through core, from any screen — reaches the outbox through
+  the ledger subscription and parks every queued and refused note at once, unbinding its grant;
+  the engine also refuses a note whose grant predates the last withdrawal. Each attempt flushes
+  the consent queue first, so neither a grant nor a withdrawal is overtaken by the note, and a
+  consent op the server refuses is dropped (a refused grant re-asked) instead of stalling the
+  queue. The server's own share-scope check (`write_note`, `issue_link`, the OTP mint,
+  redemption) stays the authority.
+  The outbox is sealed through the INT-142 draft backend (AES-256-GCM, DEK in the
+  Keychain/Keystore, memory only in kiosk mode), restored from disk after a restart, retried
+  with capped exponential backoff and Retry-After, and never drops an item; a 4xx is an answer —
+  the item is parked with its reason and only the patient's retry re-queues it. Only a 2xx whose
+  body confirms `status: "sent"` is a delivery, and only a delivery opens the screen's "gönderildi"
+  branch. The PUT is the server's existing replace (one transaction, rolled back on refusal), so
+  a retry after a lost answer leaves one live share. Errors carry codes only; no delivery module
+  calls the console or telemetry. The patient withdraws the share consent from the share centre
+  (two-step, shown done only once the server has it), which revokes every live share and link.
+  Doctor Link issuance takes a typed `StepUpProof` (OTP session tier until INT-582's passkey) and
+  addresses the server visit the note was delivered to.
+- **Signals:** share scope distribution (§9) lands with INT-137. INT-587 adds no client metric:
+  delivery is a phone-side state, and the server already counts what it receives
+  (`api.note.share` and `api.doctor_link.issued` in the audit log, `doctor_link_events_total`).
+- **Tests:** UI flow tests land with INT-137. INT-587: `apps/mobile/src/lib/intake/delivery/*.test.ts`
+  (payload bounds, the state machine, classification, the attempt order, restart survival, never
+  dropped, 4xx not retried, no console output), `apps/mobile/src/lib/consent/share.test.ts`,
+  `apps/mobile/src/lib/shares/stepUp.test.ts`, `apps/mobile/e2e/noteDelivery.spec.ts` (the client
+  pinned to notes.py and schemas.py) and `tests/api/test_note_delivery.py` (the server contract
+  the client classifies: no share without the grant, a retried send leaves one share, a withdrawn
+  grant stops the link).
 
 ## `doctor-link` — tokenized clinician access
 
@@ -1689,7 +1781,7 @@ it or whose tests exercise it.
   load — hex colours, bounded display name, id-shaped refs, partner markup/URLs/schemes
   refused — so there is no injection surface; `device_functions` may not be enabled for an
   embed tenant (ADR-020); a `prod` tenant is refused without `dpa_ref` + `brand_permission_ref`
-  (fail closed, zero prod rows, the ADR-026 shape); consent is collected by Vizite's own
+  (fail closed, zero prod rows, the ADR-026 shape); consent is collected by Önvizit's own
   docs/legal-bound flow (inv. 4, inv. 18), never by the partner; the note flows back only
   through the existing connector path (ADR-026), so the embed adds no new outbound PHI path;
   refusals are id-shaped codes only (inv. 6). A partner-supplied patient identifier is **out
@@ -1769,6 +1861,12 @@ it or whose tests exercise it.
   **Store artefacts (INT-224, INT-482):** [R/I] a published listing that claims a
   performance figure or a device function, or a privacy declaration that disagrees with the
   data inventory; [I] a reviewer sign-in committed to the repo or to `store.config.json`.
+  **Voice capture (§9 mobile row, INT-559):** [I] patient audio written to a temporary file
+  on the phone by the DEV voice lane or the VoiceNote pill — reachable through a backup, a
+  crash report or another process's read of the cache between the write and the delete;
+  [Dd] a capture buffer outliving the turn, a RED, a leave, an unmount or the app's time in
+  the background; [I] a native input stream still capturing after the dialogue closed
+  because the close landed while the input was being opened.
 - **Controls (files/10):** §4 mobile — SecureStore with biometrics, FLAG_SECURE, EAS Update
   code signing, MobSF on every build, jailbreak/root as a soft signal degrading to typed
   mode, native ATS/`network_security_config` pinning with a documented rotation recovery
@@ -1785,14 +1883,61 @@ it or whose tests exercise it.
   the privacy answers are derived from the inventory and drift-checked; links bind to a signed
   docs/legal document by sha256; `automaticRelease` is pinned false; reviewer sign-in lives
   only in the store consoles.
+  **App Store Connect writer (INT-495):** [S/I] the owner's API key leaving the laptop or
+  reaching a log; [T] a draft writer that submits, releases or edits pricing. Controls: the key
+  file, key id, issuer id and app id are read from the owner's eas.json at run time and never
+  printed; ES256 tokens live 15 minutes; dry run by default; an allow-list of reads and draft
+  edits with per-endpoint attribute sets refuses submissions, releases, pricing, availability,
+  deletes, version creation and the App Review contact and sign-in fields before sending; the
+  log carries field names and HTTP statuses only. Tests: `tests/legal/test_asc_listing.py`.
+  **Voice capture (§9, INT-559):** the DEV voice lane and the VoiceNote pill capture through
+  expo-audio 57's `AudioStream` (AVAudioEngine input tap / AudioRecord — no file, no URI) into
+  a bounded in-memory buffer (≤ 60 s, CLAUDE.md invariant 3, `apps/mobile/src/lib/capture`),
+  handed to the dev ASR daemon as bytes with no path anywhere; `fill(0)` over the whole
+  buffer on finish, discard, RED (`leave`), unmount, a typed answer and app background; the
+  dialogue's close flag is read after every await and on every chunk (INT-551's pattern), so a
+  RED landing while the input opens leaves no microphone behind it; the lane stays
+  `__DEV__`-only and synthetic-content only; on iOS the stream's `.record` session category
+  silences playback, so the clip plays tap-interruptible and the microphone opens on the
+  patient's turn (`lib/capture/policy.ts`).
 - **Signals:** attestation failures (§9 onboarding row) and crash-free-session tracking (§6)
   land with INT-145/INT-146. Offline drafts are device-local and have no server signal by
-  design (§9); the crash-free rate covers them (INT-145).
+  design (§9); the crash-free rate covers them (INT-145). Voice capture is device-local and
+  has no server signal by design (INT-559); `apps/mobile/e2e/voiceCapture.spec.ts` is the
+  repository gate that keeps the path file-less.
 - **Tests:** MobSF gate lands with INT-146; telemetry scrubbing tests with INT-145. Offline
   drafts landed with INT-142: `apps/mobile/e2e/offline.spec.ts` and
   `apps/mobile/src/lib/intake/offline/{envelope,reconcile,draftStore}.test.ts`. Store
   artefacts: `tests/legal/test_store_labels.py`, `tests/legal/test_store_listing_drafts.py`,
   `tests/legal/test_store_submission_drafts.py`, `tests/legal/test_store_privacy_answers.py`.
+  `apps/mobile/src/lib/intake/offline/{envelope,reconcile,draftStore}.test.ts`. Voice
+  capture landed with INT-559: `apps/mobile/e2e/voiceCapture.spec.ts` (source slice over the
+  whole patient-audio path plus a node-driven turn under a storage trap),
+  `apps/mobile/e2e/bargeIn.spec.ts` and
+  `apps/mobile/src/lib/capture/{boundedBuffer,level,envelope,session,turn,policy,asrClient}.test.ts`.
+- **INT-588 — copy true for the build it ships in.** Threat: [U/R] the release build telling
+  the patient something false about itself — a voice or dictation option it does not have, a
+  "sent" before delivery, or consent chrome that contradicts the docs/legal text the server
+  serves (KVKK m.10: an aydınlatma that misstates where data is processed or who sees it).
+  Controls: build-aware copy chosen in one pure module (`apps/mobile/src/lib/buildCopy.ts`)
+  — the open-answer hint names dictation only where the button is drawn, the voice start
+  mode is not offered in a release build, the companion's text-only effect is listed only
+  where questions can be spoken; voice clauses that never had to exist are gone from the
+  welcome line, the integrity warning and the companion footer; the consent "who" rows are
+  INT-536's on main (tests/legal/test_consent_who_lines.py), and INT-588 holds them to naming
+  no affirmative recipient without a served text; every "sent" line renders only behind a
+  confirmed delivery (INT-587). Tests: `apps/mobile/src/lib/buildCopy.test.ts` (release-mode
+  resolution with near misses; claims pinned to their surfaces; the rows read against the
+  served texts) and `apps/mobile/e2e/releaseCopy.spec.ts` (the screens use the helper on the
+  same facts that draw the button). No signal: copy truth is a build property.
+- **INT-591 — no consent a release build cannot use.** Threat: [L] special-category consent
+  evidence recorded for a feature the build does not have (KVKK m.4 proportionality), and a
+  choice offered that changes nothing. Control: in a release build İzinleriniz offers no grant
+  action for `voice` and `lane:affect` and says why on the group and the detail
+  (`consentActions`, `voiceGroupNoteKey` in `apps/mobile/src/lib/buildCopy.ts`); a standing grant
+  keeps its withdraw control. Tests: `apps/mobile/src/lib/buildCopy.consent.test.ts` (no grant in
+  release; near misses: a standing grant is withdrawable, dev and other purposes unchanged) and
+  `apps/mobile/e2e/releaseCopy.spec.ts`.
 
 ## `experience` — satisfaction and wait-time measurement
 

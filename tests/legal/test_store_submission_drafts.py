@@ -32,7 +32,18 @@ from intake_platform.legal.document_index import LegalDocumentSet
 from intake_platform.legal.documents import LegalDocumentError, required_document
 from intake_platform.store import eas_metadata as eas
 from intake_platform.store import listing as listing_mod
-from store_drafts_harness import APP_NAME, DRAFTS, LOCALES, REPO, STRICT, body, cited_path, promote
+from store_drafts_harness import (
+    APP_NAME,
+    DRAFTS,
+    LOCALES,
+    REPO,
+    STRICT,
+    body,
+    cited_path,
+    promote,
+    store_texts,
+    submission_source,
+)
 
 CHECKLIST = REPO / "docs" / "release" / "production-checklist.md"
 SCREENSHOTS = REPO / "docs" / "store" / "screenshots" / "app-store-screenshots.json"
@@ -111,7 +122,8 @@ def test_a_bound_link_and_the_seller_fields_reach_every_locale(tmp_path: Path) -
         assert info["privacyPolicyUrl"] == url
         assert info["supportUrl"].startswith("https://")
     assert result.config["apple"]["copyright"] == "2026 Sentetik Test"
-    assert result.blocked == ()
+    # INT-502 legal review B5/R1: only the held review notes stay blocked.
+    assert [r for r in result.blocked if not r.startswith("review.notes")] == []
 
 
 # --- 2. the render: store.config.json from served copy only ----------------------------------
@@ -126,14 +138,18 @@ def test_the_render_assembles_store_config_from_the_promoted_drafts(tmp_path: Pa
     assert {apple["info"][x]["title"] for x in LOCALES} == {APP_NAME}
     assert isinstance(apple["info"]["tr"]["keywords"], list)
     assert apple["release"] == {"automaticRelease": False}
-    assert apple["categories"] and apple["advisory"] and apple["review"]["notes"]
-    assert set(apple["review"]) == {"notes"}, "no reviewer contact or sign-in in the repo"
+    assert apple["categories"] and apple["advisory"]
+    # INT-502 legal review B5/R1: the held notes, and so any review block, are absent;
+    # no reviewer contact or sign-in is ever in the repo either.
+    assert "review" not in apple
+    assert any(reason.startswith("review.notes") for reason in result.blocked)
     assert all("privacyPolicyUrl" not in info for info in apple["info"].values())
     assert any("HB-L27" in reason for reason in result.blocked)
     assert any("HB-L21(e)" in reason for reason in result.blocked)
     text = eas.serialise(config)
     assert claims.scan_text(text, groups=STRICT) == ()
-    assert listing_mod.device_claim_hits(apple["review"]["notes"]) == ()
+    notes = eas.load_submission(eas.submission_path(promote(tmp_path / "again"))).review_notes
+    assert listing_mod.device_claim_hits(notes) == ()
     assert json.loads(text) == config
     assert set(result.sources) >= {
         "docs/legal/store/listing/app-store.tr.yaml",
@@ -252,7 +268,7 @@ def test_an_unreadable_submission_is_refused(tmp_path: Path, text: str, match: s
 
 
 def test_the_age_rating_answers_cover_the_eas_schema_and_cite_their_source() -> None:
-    submission = eas.load_submission(DRAFTS / "app-store.submission.draft.yaml")
+    submission = eas.load_submission(submission_source())
     assert set(submission.advisory) == set(eas.ADVISORY_LEVEL_KEYS) | set(eas.ADVISORY_FLAG_KEYS)
     for key in eas.ADVISORY_LEVEL_KEYS:
         assert submission.advisory[key] in eas.ADVISORY_LEVELS
@@ -277,10 +293,17 @@ def test_the_age_rating_answers_cover_the_eas_schema_and_cite_their_source() -> 
         (lambda b: b.update(review_notes=" "), "review_notes"),
         (lambda b: b.update(legal_links={"privacyPolicyUrl": "gizlilik"}), "legal_links"),
         (lambda b: b.update(copyright=2026), "copyright"),
+        (lambda b: b["advisory_asc"].pop("lootBox"), "lootBox"),
+        (lambda b: b["advisory_asc"]["advertising"].update(answer="NONE"), "advertising"),
+        (lambda b: b.update(content_rights={"answer": "MAYBE", "source": "x"}), "content_rights"),
+        (
+            lambda b: b.update(content_rights={"answer": "USES_THIRD_PARTY_CONTENT"}),
+            "content_rights",
+        ),
     ],
 )
 def test_a_broken_submission_is_refused(tmp_path: Path, edit: object, match: str) -> None:
-    loaded = body(DRAFTS / "app-store.submission.draft.yaml")
+    loaded = body(submission_source())
     assert callable(edit)
     edit(loaded)
     path = tmp_path / "app-store.yaml"
@@ -290,7 +313,7 @@ def test_a_broken_submission_is_refused(tmp_path: Path, edit: object, match: str
 
 
 def _review_texts() -> dict[str, str]:
-    apple = eas.load_submission(DRAFTS / "app-store.submission.draft.yaml").review_notes
+    apple = eas.load_submission(submission_source()).review_notes
     play = body(DRAFTS / "google-play.submission.draft.yaml")["app_access_instructions"]
     return {"apple": apple, "play": play}
 
@@ -317,7 +340,7 @@ def test_no_credential_is_committed_in_any_store_draft() -> None:
     assert not credential.search("prepared_on: 2026-10-04")
     found = [
         (path.name, match.group(0))
-        for path in sorted(DRAFTS.iterdir())
+        for path in store_texts()
         for match in credential.finditer(path.read_text(encoding="utf-8"))
     ]
     assert found == []
@@ -347,7 +370,7 @@ def test_the_screenshot_captions_pass_the_gates_or_the_checklist_waits_for_738()
 
 def test_the_checklist_links_every_artefact_and_names_the_owner_asks() -> None:
     section = _checklist_section_5()
-    for path in sorted(DRAFTS.iterdir()):
+    for path in store_texts():
         assert path.name in section, path.name
     for needle in (
         "eas login",
@@ -380,3 +403,14 @@ def test_the_review_guide_gates_submission_on_release_voice_and_reviewer_sign_in
     gated = re.search(r"voiceEligible =\s*__DEV__", intake.read_text(encoding="utf-8"))
     # Both ways: the guide says voice is dev-only exactly while the code says so.
     assert bool(gated) == ("Today `voiceEligible` requires" in first)
+
+
+def test_the_review_guide_gates_submission_on_a_turkish_only_binary() -> None:
+    """INT-595 and the legal re-check of 31 Oct 2026: the App Store's Languages row is
+    read from the uploaded build's .lproj folders, so the build sent for review must
+    carry tr.lproj only. Build 7 predates INT-595 and is not that build."""
+    guide = (DRAFTS / "app-review-notes.draft.md").read_text(encoding="utf-8")
+    first = guide.split("## 1", 1)[1].split("\n## ", 1)[0]
+    row = next(line for line in first.splitlines() if "INT-595 (#1008)" in line)
+    assert row.startswith("| 13 |")
+    assert "`tr.lproj`" in row and "uploaded build" in row and "Build 7" in row

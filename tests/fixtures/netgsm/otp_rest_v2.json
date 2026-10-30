@@ -1,0 +1,132 @@
+{
+  "source_url": "https://www.netgsm.com.tr/dokuman/#otp-sms",
+  "retrieved_on": "2026-10-28",
+  "provenance": "derived-from-documentation-and-sdk",
+  "note": "INT-576 re-record of INT-528's fixture (16 Oct 2026, built from the documentation alone). Nothing here was captured from a live call, and no test or CI job may call the vendor. On 28 Oct 2026 the owner's real send on the synthetic host came back HTTP 200 and the INT-528 parser refused it as malformed_response with no vendor code, yet the SMS arrived: the live answer is not the documentation's sample. Netgsm's own sources name the success body's job id three ways: jobid in the documentation's REST v2 sample, jobId in the official JS SDK's OtpSmsResponse type and in its integration test against this endpoint, and jobID in the XML OTP endpoint's documented answer and Netgsm's PHP OTP package. The two REST v2 spellings are recorded as the success shapes of this endpoint; the XML endpoint's answer is recorded under documented_elsewhere, for near-miss tests only. documented_error_codes is the union of the OTP product's codes across the three sources that list any, each code naming its sources. The documentation gives one error sample whose code is the literal 'XX'; the errors are that sample with each documented code substituted, recorded at 406 (the JS SDK's integration test expects 406 for codes 20 and 50). The adapter decides on the body's code wherever one is present, and the tests replay every error at 200 as well. The response content type is not documented and the adapter does not decide on it.",
+  "sources": [
+    {
+      "name": "netgsm-dokuman",
+      "what": "Netgsm API documentation: the OTP SMS (REST v2) and XML POST OTP SMS sections, and the job-id announcement of 11.03.2025",
+      "url": "https://www.netgsm.com.tr/dokuman/#otp-sms",
+      "artefact": "https://www.netgsm.com.tr/dokuman/bundle.js",
+      "artefact_sha256": "4cf47bd5d1d3c295d12fcd1a64b5498266d6574313cf59fa41d2e54eca5614a3",
+      "snapshot": "tests/fixtures/netgsm/sources/netgsm-dokuman-otp-sms.tr.txt",
+      "snapshot_sha256": "137b5efe99447d19c0970cee6178bddb41b65d1d8283e22ccfbebb28b4ed92a1"
+    },
+    {
+      "name": "netgsm-sms-js",
+      "what": "Netgsm's official JavaScript SDK @netgsm/sms 1.1.11 (MIT): sendOtpSms, OtpSmsResponse, SendOtpSmsErrorCode and the OTP integration tests",
+      "url": "https://github.com/netgsm/netgsm-sms-js/tree/33ca38622067e3730479aded9e56f6b1151bfeb5",
+      "artefact": "src/netgsm.ts at commit 33ca38622067e3730479aded9e56f6b1151bfeb5 (npm @netgsm/sms 1.1.11 gitHead); the snapshot names every excerpted file's sha256",
+      "artefact_sha256": "6c9f071a8b13ea39fcff56a482162775b1b47715dc32c3fc0b228851d1053edc",
+      "snapshot": "tests/fixtures/netgsm/sources/netgsm-sms-js-otp.txt",
+      "snapshot_sha256": "8963fd6c6d83646044a1c94e383f59db6fd6c035fdff573aa7506ea4d343c7c3"
+    },
+    {
+      "name": "netgsm1-otp",
+      "what": "Netgsm's OTP composer package, linked from the OTP SMS section: the XML endpoint, its codes and its parse",
+      "url": "https://github.com/netgsm1/otp/blob/03ee70525bc9426b55b8df72f8f34355e09aa2e1/src/otp.php",
+      "artefact": "src/otp.php at commit 03ee70525bc9426b55b8df72f8f34355e09aa2e1",
+      "artefact_sha256": "e5309a6cd354e2c76a8e92f1dbfb9a9d0e8d7558b28a2bff9fd4428fe2122f0e",
+      "snapshot": "tests/fixtures/netgsm/sources/netgsm1-otp-php.txt",
+      "snapshot_sha256": "704eca6314da2f0cd726aca6956c64166ccde32d620cc2e528152df7271dc16d"
+    },
+    {
+      "name": "netgsm-sms-python",
+      "what": "Netgsm's official Python SDK netgsm-sms 1.1.2 (MIT): no OTP method; every endpoint it names is a REST v2 non-OTP one",
+      "url": "https://pypi.org/project/netgsm-sms/1.1.2/",
+      "artefact": "netgsm_sms-1.1.2-py3-none-any.whl",
+      "artefact_sha256": "9e7dba40bca09f6f47c0686d28249dc2bb091c882e932f24f4af436e1a02fb25",
+      "snapshot": "tests/fixtures/netgsm/sources/netgsm-sms-python-1.1.2.txt",
+      "snapshot_sha256": "2da4391d5facf9f113b85728c3512a05d6249f9378074764ad4ee7d7af05792f"
+    }
+  ],
+  "endpoint": {
+    "method": "POST",
+    "url": "https://api.netgsm.com.tr/sms/rest/v2/otp",
+    "request_content_type": "application/json",
+    "auth": "http-basic: usercode (the subscriber number) and the API sub-user's password"
+  },
+  "documented_request": {
+    "msgheader": "BASLIK",
+    "msg": "code: 1234",
+    "no": "510XXXXXXX"
+  },
+  "documented_error_codes": {
+    "20": {
+      "meaning": "message text or length",
+      "sources": ["netgsm-dokuman", "netgsm-sms-js", "netgsm1-otp"]
+    },
+    "30": {
+      "meaning": "credentials, API permission or IP restriction",
+      "sources": ["netgsm-dokuman", "netgsm-sms-js", "netgsm1-otp"]
+    },
+    "40": {
+      "meaning": "sender name not defined",
+      "sources": ["netgsm-dokuman", "netgsm-sms-js", "netgsm1-otp"]
+    },
+    "41": {
+      "meaning": "sender name not valid",
+      "sources": ["netgsm-dokuman", "netgsm-sms-js", "netgsm1-otp"]
+    },
+    "50": {
+      "meaning": "recipient number",
+      "sources": ["netgsm-dokuman", "netgsm-sms-js", "netgsm1-otp"]
+    },
+    "51": { "meaning": "recipient number", "sources": ["netgsm-dokuman", "netgsm-sms-js"] },
+    "52": { "meaning": "recipient number", "sources": ["netgsm-dokuman", "netgsm-sms-js"] },
+    "60": {
+      "meaning": "no OTP SMS package on the account",
+      "sources": ["netgsm-dokuman", "netgsm-sms-js", "netgsm1-otp"]
+    },
+    "70": {
+      "meaning": "input parameters",
+      "sources": ["netgsm-dokuman", "netgsm-sms-js", "netgsm1-otp"]
+    },
+    "80": { "meaning": "send limit exceeded (100 per minute)", "sources": ["netgsm1-otp"] },
+    "100": {
+      "meaning": "system error",
+      "sources": ["netgsm-dokuman", "netgsm-sms-js", "netgsm1-otp"]
+    },
+    "101": { "meaning": "system error", "sources": ["netgsm-sms-js"] }
+  },
+  "job_id_keys": {
+    "jobid": ["netgsm-dokuman"],
+    "jobId": ["netgsm-sms-js"]
+  },
+  "responses": {
+    "accepted": {
+      "status": 200,
+      "source": "netgsm-dokuman",
+      "body": {
+        "jobid": "17377215342605050417149344",
+        "code": "00",
+        "description": "success"
+      }
+    },
+    "accepted_sdk": {
+      "status": 200,
+      "source": "netgsm-sms-js",
+      "body": {
+        "code": "00",
+        "description": "success",
+        "jobId": "17377215342605050417149344"
+      }
+    },
+    "error": {
+      "status": 406,
+      "source": "netgsm-dokuman",
+      "body": {
+        "code": "XX",
+        "description": "error message desc."
+      }
+    }
+  },
+  "documented_elsewhere": {
+    "xml_otp_accepted": {
+      "endpoint": "POST https://api.netgsm.com.tr/sms/send/otp",
+      "source": "netgsm-dokuman",
+      "body": "<?xml version=\"1.0\"?>\n<xml>\n    <main>\n        <code>0</code>\n        <jobID>172551745916519453710565585</jobID>\n    </main>\n</xml>"
+    }
+  }
+}

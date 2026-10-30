@@ -58,6 +58,8 @@ export interface ServerVisit {
 
 export type RecordsErrorKind =
   | "consent"
+  /** INT-537: the server visit itself needs `core` — a different switch. */
+  | "core_consent"
   | "session"
   | "network"
   | "not_found"
@@ -69,10 +71,14 @@ export type RecordsErrorKind =
 
 export class RecordsApiError extends Error {
   readonly kind: RecordsErrorKind;
+  /** The HTTP status behind a `generic` refusal, when there was one — so a
+   * caller that retries (INT-587's note outbox) can tell a 5xx from a 4xx. */
+  readonly status: number | null;
 
-  constructor(kind: RecordsErrorKind) {
+  constructor(kind: RecordsErrorKind, status: number | null = null) {
     super(kind); // the kind IS the message — codes, never narrative
     this.kind = kind;
+    this.status = status;
   }
 }
 
@@ -152,7 +158,9 @@ async function parseBody(response: Response): Promise<Record<string, unknown>> {
 function mapError(status: number, body: Record<string, unknown>): RecordsApiError {
   const code = typeof body.error === "string" ? body.error : "";
   if (status === 403 && code === "consent_required") {
-    return new RecordsApiError("consent");
+    // the refusal names its scope id (and nothing else); a visit route
+    // refuses on core, which the patient grants on another switch
+    return new RecordsApiError(body.scope === "core" ? "core_consent" : "consent");
   }
   if (status === 404) {
     return new RecordsApiError("not_found");
@@ -178,7 +186,7 @@ function mapError(status: number, body: Record<string, unknown>): RecordsApiErro
   if (status === 401 || code === "session") {
     return new RecordsApiError("session");
   }
-  return new RecordsApiError("generic");
+  return new RecordsApiError("generic", status);
 }
 
 /** authedFetch with its transport errors re-typed into this module's kinds. */

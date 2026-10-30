@@ -8,12 +8,15 @@
 import type { Lang } from "../ops/copy";
 
 export type { Lang } from "../ops/copy";
+import { EMPTIES, FILLS } from "../ui/fills";
 
 const tr = {
   title: "Genel bakış",
   generatedAt: "Oluşturulma",
   sources: "Kaynaklar",
   unknown: "Bilinmiyor",
+  fills: FILLS.tr,
+  empties: EMPTIES.tr,
   yes: "evet",
   no: "hayır",
   units: { s: "sn", min: "dk", h: "sa" },
@@ -60,6 +63,8 @@ const tr = {
     lane: "Hat",
     severity: "Önem",
     factor: "Eşik",
+    burnChart: "Yakma oranı ve eşiği",
+    thresholdWord: "eşik",
     long: "Uzun pencere",
     short: "Kısa pencere",
     condition: "Uyarı koşulu",
@@ -102,6 +107,7 @@ const tr = {
     breakers: { closed: "kapalı", half_open: "yarı açık", open: "açık" } as Record<string, string>,
     apiReadiness: "API hazırlık kontrolleri",
     check: "Kontrol",
+    strip: "Bileşen durumu",
   },
   health: {
     healthy: "sağlıklı",
@@ -120,6 +126,8 @@ const en: OverviewCopy = {
   generatedAt: "Generated",
   sources: "Sources",
   unknown: "Unknown",
+  fills: FILLS.en,
+  empties: EMPTIES.en,
   yes: "yes",
   no: "no",
   units: { s: "s", min: "min", h: "h" },
@@ -166,6 +174,8 @@ const en: OverviewCopy = {
     lane: "Lane",
     severity: "Severity",
     factor: "Factor",
+    burnChart: "Burn rate and its threshold",
+    thresholdWord: "threshold",
     long: "Long window",
     short: "Short window",
     condition: "Alert condition",
@@ -207,6 +217,7 @@ const en: OverviewCopy = {
     breakers: { closed: "closed", half_open: "half open", open: "open" },
     apiReadiness: "API readiness checks",
     check: "Check",
+    strip: "Component status",
   },
   health: {
     healthy: "healthy",

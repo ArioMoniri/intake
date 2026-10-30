@@ -108,7 +108,7 @@ if TYPE_CHECKING:
 
     from intake_api.app_attest import AppAttestVerifier
     from intake_api.attestation import FailClosedAttestationVerifier
-    from intake_api.otp_twilio import KvSecrets
+    from intake_api.otp_netgsm import KvSecrets
 
 __all__ = ["ApiWiring", "create_app", "wiring_from_env"]
 
@@ -251,15 +251,21 @@ def _auth_from_settings(
     routes by mode (INT-344): App Attest when the Apple team id is configured,
     Play Integrity never until HB-A3 supplies a decoder, the dev tier only
     under the dev phrase — every unconfigured piece fails closed with a typed
-    reason. Delivery (INT-329): the dev logger in dev; outside dev Twilio or
-    nothing, never the dev logger (INT-325) — see otp_twilio. ``secrets`` is
+    reason. Delivery (INT-329, INT-528): the dev logger in dev; outside dev
+    Netgsm or nothing, never the dev logger (INT-325) — see otp_netgsm. ``secrets`` is
     the OpenBao reader, injectable for tests."""
     if not settings.otp_auth_configured or settings.tokenization_key is None:
         return None
-    from intake_api.otp_twilio import otp_delivery_from_settings
+    from intake_api.otp_netgsm import NetgsmSmsDeliveryAdapter, otp_delivery_from_settings
+    from intake_api.sms_recipients import ADMIT_ALL
 
     if (delivery := otp_delivery_from_settings(settings, secrets)) is None:
         return None
+    # INT-528: the synthetic host's test allow-list gates the login as well as
+    # the send, so a number off it never has a code minted
+    recipients = (
+        delivery.recipients if isinstance(delivery, NetgsmSmsDeliveryAdapter) else ADMIT_ALL
+    )
     from intake_platform.tokenization import Tokenizer
     from redis import Redis
 
@@ -295,6 +301,7 @@ def _auth_from_settings(
         # declares no prefixes, so this admits every request and says so in
         # one log line at wiring time.
         carrier_geo=carrier_geo_from_path(settings.msisdn_allocation_path),
+        recipients=recipients,
     )
 
 
@@ -439,10 +446,10 @@ def _embed_from_settings(settings: ApiSettings) -> EmbedWiring | None:
     """
     if not settings.embed_launch_base_url:
         return None
-    from intake_platform.consent.texts import ConsentTextCatalog
     from intake_platform.embed import InMemoryNonceStore, TenantEmbedRegistry
 
     from intake_api.embed import OpenBaoSigningKeys
+    from intake_api.state import consent_catalog_for
 
     try:
         registry = TenantEmbedRegistry.from_yaml(settings.embed_registry_path)
@@ -462,7 +469,7 @@ def _embed_from_settings(settings: ApiSettings) -> EmbedWiring | None:
         # tenant's partner-processor disclosure from its own ``legal_root``
         # under the legal base (the parent of the global consents dir — in dev
         # the ~/.config/intake/dev-legal tree, in prod docs/legal).
-        consent_catalog=ConsentTextCatalog(settings.legal_root),
+        consent_catalog=consent_catalog_for(settings),
         legal_base=settings.legal_root.parent,
     )
 

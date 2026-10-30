@@ -69,7 +69,8 @@ When it stops, the previous release keeps serving. Section 1 of docs/evidence/IN
    3. Grant the role from the realm's role list.
    4. Set the required action `webauthn-register`, so each person enrols their own security key or passkey. The staff browser flow refuses a login without a second factor.
       - The console admits only a WebAuthn login: that token carries `aaguid` and `credential_id` (INT-378).
-      - It refuses a TOTP login until the owner decides INT-389 (#644).
+      - It refuses a TOTP login until the owner decides INT-389 (#644). The realm's OTP step is DISABLED until then (INT-550).
+      - The WebAuthn step is REQUIRED (INT-550), so after the password a new user registers a key through `webauthn-register` instead of being refused. The console refuses that first session, because no key was asserted yet. The user signs out of Keycloak and of the console, then signs in again with the key (`docs/runbooks/keycloak-realm.md` §3).
       - The deploy has already switched the live realm to the provider that writes the two ids (`ensure_staff_webauthn_notes`), and `smoke.sh` check 7 confirms it.
 3. **Network access to the console is open by decision.** The owner decided D19 on 2 Oct 2026: *"dont make admin access ip restricted"*. The API's `/admin` allow-list is the committed `0.0.0.0/0,::/0`. What gates the console is the Keycloak login (password plus a second factor) and the role matrix. Do not narrow the list without a new owner decision.
 
@@ -97,34 +98,41 @@ These run from `apps/mobile`, using `eas.json`'s `production` profile.
 5. **Submit:**
    - command: `eas submit --profile production --platform ios`, then `--platform android`, with Android going to the internal track first;
    - the App Store Connect API key and the Play service-account key are supplied at submit time, from the owner's machine or EAS. They are never committed.
-6. **Store listing (INT-482):** the copy and the answers are drafted and wait for the legal lane. Nothing is served yet. `docs/legal/store/listing/` is empty, so `make store-config` stops with exit 3 and writes no `store.config.json`. The table below lists every artefact. All of them are drafts in `docs/legal/drafts/store/` and are pending legal-lane review.
+6. **Store listing (INT-482, INT-495):** the App Store copy and its answers are now served. The legal lane approved them on #828, and INT-495 promoted them on 16 Oct 2026. The Google Play copy stays a draft, because the owner deferred Play (INT-496, `docs/store/google-play-later.md`).
 
-   | artefact | draft | where it goes after review |
+   | artefact | file | state |
    |---|---|---|
-   | App Store listing for Önvizit, Turkish | `app-store.tr.draft.yaml` | `docs/legal/store/listing/app-store.tr.yaml` |
-   | App Store listing for Önvizit, English | `app-store.en-US.draft.yaml` | `docs/legal/store/listing/app-store.en-US.yaml` |
-   | Google Play listing, Turkish (same text as the App Store) | `google-play.tr.draft.yaml` | `docs/legal/store/listing/google-play.tr.yaml`, pasted into the Google Play Console |
-   | Google Play listing, English | `google-play.en-US.draft.yaml` | `docs/legal/store/listing/google-play.en-US.yaml`, pasted into the Google Play Console |
-   | App Store category, age rating (`advisory`) and App Review notes | `app-store.submission.draft.yaml` | `docs/legal/store/submission/app-store.yaml` |
-   | Play App access text, IARC facts, Health apps facts | `google-play.submission.draft.yaml` | pasted into the Google Play Console |
-   | App Privacy and Data safety answers, one row per inventory fact | `privacy-answers.draft.yaml` | entered by hand in App Store Connect and the Google Play Console |
-   | what must hold before submission, the reviewer account, the 112 behaviour | `app-review-notes.draft.md` | stays as the owner's guide |
+   | App Store listing for Önvizit, Turkish | `docs/legal/store/listing/app-store.tr.yaml` | served |
+   | App Store listing for Önvizit, English | `docs/legal/store/listing/app-store.en-US.yaml` | served |
+   | App Store category, age rating (`advisory`, `advisory_asc`), content rights and App Review notes | `docs/legal/store/submission/app-store.yaml` | served |
+   | Google Play listing, Turkish (same text as the App Store) | `docs/legal/drafts/store/google-play.tr.draft.yaml` | draft; Play deferred |
+   | Google Play listing, English | `docs/legal/drafts/store/google-play.en-US.draft.yaml` | draft; Play deferred |
+   | Play App access text, IARC facts, Health apps facts | `docs/legal/drafts/store/google-play.submission.draft.yaml` | draft; Play deferred |
+   | App Privacy and Data safety answers, one row per inventory fact | `docs/legal/drafts/store/privacy-answers.draft.yaml` | entered by hand: App Privacy has no App Store Connect API resource |
+   | what must hold before submission, the reviewer account, the 112 behaviour | `docs/legal/drafts/store/app-review-notes.draft.md` | the owner's guide |
+   | the App Store creative-asset slots (header, iPhone screenshots) | `docs/store/asc/assets.yaml` | no captures yet; INT-502 (#856) |
 
-   - **Render.** After promotion, `make store-config` runs `scripts/release/render_store_config.py`. It writes `apps/mobile/store.config.json` from the served files only, and prints each field it had to leave out together with the blocker that owes it. `make store-config-check` fails on drift. The file pins `automaticRelease: false`, so an approval never publishes the app by itself. It never carries a reviewer contact or a reviewer sign-in.
-   - **Then:** `eas metadata:push`, run from `apps/mobile` and only after `eas submit` has uploaded a binary.
+   - **Render.** `make store-config` runs `scripts/release/render_store_config.py`, which wrote `apps/mobile/store.config.json` from the served files only. It prints each field it had to leave out together with the blocker that owes it. `make store-config-check` fails on drift. The file pins `automaticRelease: false`, so an approval never publishes the app by itself, and it never carries a reviewer contact or sign-in.
+   - **App Store Connect draft (INT-495).**
+     - `make asc-plan` prints the dry-run plan: resources and field names, never a value, and every blocked field. It needs no credentials.
+     - The owner writes the draft with one command, after their own yes: `make asc-draft EAS_JSON=<your eas.json that holds ascApiKeyPath>`. It reads the key file, key id, issuer id and app id from that file at run time. It writes only the draft fields on the next editable version, and logs field names and HTTP statuses only. It never submits for review, releases, or touches pricing, availability, agreements or the App Review sign-in.
+     - Upload the header and the screenshots with INT-502 (#856), once the design stack has merged and they are captured. Until then the plan lists those slots as blocked.
+     - `eas metadata:push` (run from `apps/mobile`, after `eas submit` has uploaded a binary) is the other route for the EAS-schema fields. `make asc-draft` covers everything it covers, plus the live age-rating keys and the content-rights answer. While the review notes are held (`review_notes_hold` in the submission), `store.config.json` carries no `review` block, so neither route sends them (INT-502 legal review B5).
    - **Before you submit for review,** each item in `app-review-notes.draft.md` §1 must hold. Three of them matter most:
      - INT-117 must render the static 112 notice from the signed fixed strings (HB-L27). The notes say the app shows it, and today it does not.
      - A reviewer must be able to sign in. Phone sign-in cannot reach a reviewer, and INT-488 (#829) builds the reviewer path.
-     - Voice intake must be reachable in a release build through the streaming path (`lib/livekit`), which writes no file. Today `voiceEligible` requires `__DEV__` (`intake.tsx`). Owed by INT-440 (#768) and INT-454 (#769). The listing describes voice, so it waits for this.
-   - **Still open:** HB-L21 (a) audio as collected, (b) the Play Health apps policy, (c) the IARC answers, (e) the seller's identity. Also HB-L27 (the signed `gizlilik` and fixed strings) and HB-A12 (the vendor snapshots).
-   - **Synthetic scope.** The host receives simulated patients only (HB-I5, HB-L11). Builds go to TestFlight internal testing and the Play internal track. No public release goes live while that scope holds.
-   - **Screenshots** come from INT-425 (PR #738, open) and are not copied here. Once #738 merges, the INT-482 tests run its captions through the same gates as the listing.
+     - Voice intake must be reachable in a release build through the streaming path (`lib/livekit`), which writes no file. Today `voiceEligible` requires `__DEV__` (`intake.tsx`). Owed by INT-440 (#768) and INT-454 (#769). The review notes describe voice, so they wait for this. The listing no longer does (INT-502 legal review B1).
+   - **Still open:** HB-L21 (a) audio as collected, (b) the Play Health apps policy, (c) the IARC answers, (e) the seller's identity, which leaves the support URL, the privacy-policy URL and the copyright line empty. Also HB-L27 (the signed `gizlilik` and fixed strings) and HB-A12 (the vendor snapshots).
+   - **Synthetic scope.** The host receives simulated patients only (HB-I5, HB-L11). Builds go to TestFlight internal testing. No public release goes live while that scope holds.
+   - **Screenshots** for the new design are INT-502 (#856). INT-425 (PR #738, open) captured the earlier design and is not copied here. Once #738 merges, the INT-482 tests run its captions through the same gates as the listing.
 
 7. **Owner asks for the stores, one line each:**
    1. Expo: run `eas login` on the build machine, or set `EXPO_TOKEN` to an Expo access token for project `307d4cf2-c447-4855-8110-da59fb5ed170`.
    2. Apple: give App Store Connect access (App Manager or Admin) for app `6814005465` under an Apple Developer Program membership (HB-A3).
    3. Google: give Google Play Console access to the app `com.ariomoniri.intakemobile` (HB-A3).
    4. Rename: after INT-420 (PR #729) merges, set the name to Önvizit in App Store Connect (App Information, both `tr` and `en-US`) and in the Google Play Console (Main store listing, App name).
+   5. App Store Connect draft: after your own yes, run `make asc-draft EAS_JSON=<your eas.json that holds ascApiKeyPath>`; it writes the editable draft only.
+   6. App Privacy: enter the answers by hand in App Store Connect from `docs/legal/drafts/store/privacy-answers.draft.yaml`, because the API has no resource for it.
 
 ## 6. Owner-only steps
 

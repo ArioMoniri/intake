@@ -45,7 +45,7 @@ def registry_of(*rows: InboundSource) -> InboundSourceRegistry:
 #: from the message rather than assumed. Two OBX results: a glucose (numeric)
 #: and a text observation, so a test can exercise both value types.
 SAMPLE_ORU = (
-    "MSH|^~\\&|LIS|ACIBADEM|INTAKE|VIZITE|20260901101500||ORU^R01|MSG00001|P|2.5.1\r"
+    "MSH|^~\\&|LIS|ACIBADEM|INTAKE|ONVIZIT|20260901101500||ORU^R01|MSG00001|P|2.5.1\r"
     "PID|1||PT0F3A^^^ACIBADEM^MR||DENEME^HASTA||19800101|M\r"
     "OBR|1||ORD-42|1552^Glukoz^L|||20260901090000\r"
     "OBX|1|NM|14749-6^Glucose^LN||95|mg/dL|70-110|N|||F|||20260901093000\r"

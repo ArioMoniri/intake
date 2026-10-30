@@ -1,40 +1,38 @@
-# TASLAK — hukuk danışmanı onayı gerektirir / DRAFT — requires counsel sign-off; not in force
+# The served App Store listing for Önvizit, Turkish. The Turkish text governs
+# (805 s. Kanun). intake_platform.store.listing loads it hash-bound to its bytes, and
+# `make store-config` renders apps/mobile/store.config.json from it.
 #
-# INT-482 (GitHub #825) — App Store listing copy for Önvizit, Turkish; the Turkish text governs (805 s. Kanun).
-# Prepared 2026-10-04 by a drafting agent for the legal lane. Not published and
-# not served: no loader reads this directory (tests/legal/test_legal_drafts.py).
+# Promoted on 2026-10-16 by INT-495 (GitHub #846) from the draft of #828, which the
+# legal lane approved. Under the owner's rule of 3 Oct 2026, legal sign-offs go to a
+# sourced legal agent and a verifier, in synthetic scope; a licensed Turkish lawyer
+# countersigns before any real patient.
 #
-# Promotion (docs/legal/drafts/README.md §5): after the legal-lane review, and once
-# HB-L21 (a) and (e) are answered, the owner moves this file in a separate PR to
-# docs/legal/store/listing/app-store.tr.yaml, deletes this draft and runs `make store-config`.
+# Submitting for review still waits on HB-L21 (a) and (e) and on every condition in
+# docs/legal/drafts/store/app-review-notes.draft.md §1.
 #
-# Every line of `fields` cites its source under `sources`; a line with no source, or
-# a source path that does not exist, fails tests/legal/test_store_listing_drafts.py.
+# Every line of `fields` cites its source under `sources`.
 provenance:
   issue: INT-482
   store: app-store
   locale: tr
-  status: pending legal-lane review
+  status: served — legal lane approved (#828), promoted by INT-495
   prepared_on: "2026-10-04"
 fields:
   title: Önvizit
   subtitle: "Muayeneden önce ön notunuz"
-  promoText: "Muayeneden önce, anlattıklarınız hekiminize ulaşsın."
-  keywords: "muayene,hekim,doktor,hastane,poliklinik,şikâyet,sağlık,ön not,rapor,tahlil,sesli not"
+  promoText: "Muayeneden önce şikâyetlerinizi kendi sözlerinizle yazabilir, notunuzu kendiniz gözden geçirebilirsiniz."
+  keywords: "muayene,hekim,doktor,hastane,poliklinik,şikâyet,sağlık,ön not,ön görüşme,vizit,hazırlık"
   description: |-
     Önvizit, muayeneden önce şikâyetlerinizi anlatmanız için hazırlandı.
     Anlattıklarınızdan hekiminiz için düzenli bir ön not hazırlanır.
-    Not, yapay zekâ desteğiyle düzenlenir ve gönderilmeden önce size gösterilir.
+    Not, gönderilmeden önce size gösterilir.
 
-    • Şikâyetinizi sesli ya da yazılı olarak anlatabilirsiniz.
+    • Soruları yazarak ya da size uyan seçeneği işaretleyerek yanıtlayabilirsiniz.
     • Her seferinde yalnızca bir soru sorulur.
     • Notunuzu göndermeden önce okuyabilir ve düzenleyebilirsiniz.
     • Neyin paylaşılacağına siz karar verirsiniz.
     • Bir paylaşımı dilediğiniz an durdurabilirsiniz.
-    • Raporlarınızı ve tahlil sonuçlarınızı yükleyebilirsiniz.
     • İsterseniz telefonunuzdaki adım, uyku ve dinlenme nabzı özetlerini de ekleyebilirsiniz.
-
-    Sesiniz yazıya dökülür; ses kaydı telefonunuza ya da sunucularımıza yazılmaz.
 
     Önvizit tanı koymaz ve tedavi önermez.
     Anlattıklarınız hekim değerlendirmesinin yerine geçmez.
@@ -43,17 +41,17 @@ fields:
 sources:
   title: "docs/backlog/issues.yaml — INT-421 acceptance names the Önvizit identity; the store name is GitHub #825"
   subtitle: "apps/mobile/src/lib/i18n/tr.ts welcome.body (\"ön not\")"
-  promoText: "apps/mobile/src/lib/i18n/tr.ts app.tagline, verbatim"
-  keywords: "apps/mobile/src/lib/i18n/tr.ts — each keyword names what the app is used for (welcome.body, review.title, records.title)"
+  promoText: "apps/mobile/src/lib/i18n/tr.ts intake.open.hint (\"Kendi sözlerinizle yazabilir\"), review.title and review.edit (the note checked before sending); legal review INT-502 B4, 29 Oct 2026"
+  keywords: "apps/mobile/src/lib/i18n/tr.ts — each keyword names what the app is used for (welcome.body, review.title, today.prep, visits.new.title); no voice or upload term (legal review INT-502 B1, B2)"
   description:
     - text: "Önvizit, muayeneden önce şikâyetlerinizi anlatmanız için hazırlandı."
       source: "apps/mobile/src/lib/i18n/tr.ts welcome.body (\"muayeneden önce şikâyetlerinizi … toplar\")"
     - text: "Anlattıklarınızdan hekiminiz için düzenli bir ön not hazırlanır."
       source: "apps/mobile/src/lib/i18n/tr.ts welcome.body (\"hekiminize düzenli bir ön not iletir\")"
-    - text: "Not, yapay zekâ desteğiyle düzenlenir ve gönderilmeden önce size gösterilir."
-      source: "files/06_COMPLIANCE_TR.md §7 note footer (\"yapay zekâ desteğiyle yapılandırılmıştır\"); apps/mobile/src/app/(tabs)/visits/[visitId]/review.tsx"
-    - text: "Şikâyetinizi sesli ya da yazılı olarak anlatabilirsiniz."
-      source: "apps/mobile/src/lib/i18n/tr.ts welcome.body (\"sesli ya da yazılı\")"
+    - text: "Not, gönderilmeden önce size gösterilir."
+      source: "apps/mobile/src/app/(tabs)/visits/[visitId]/review.tsx (the note is shown for review before it is sent); legal review INT-502 B3"
+    - text: "Soruları yazarak ya da size uyan seçeneği işaretleyerek yanıtlayabilirsiniz."
+      source: "apps/mobile/src/lib/i18n/tr.ts intake.open.hint (typed answers) and the intake.opt.* closed choices; voice intake is __DEV__-only in a store build (legal review INT-502 B1)"
     - text: "Her seferinde yalnızca bir soru sorulur."
       source: "CLAUDE.md invariant 2 (one question per turn); files/03_ARCHITECTURE.md §4.2"
     - text: "Notunuzu göndermeden önce okuyabilir ve düzenleyebilirsiniz."
@@ -62,12 +60,8 @@ sources:
       source: "apps/mobile/src/lib/i18n/tr.ts review.intro, second sentence verbatim"
     - text: "Bir paylaşımı dilediğiniz an durdurabilirsiniz."
       source: "apps/mobile/src/lib/i18n/tr.ts shares.guide.body (\"Dilediğiniz an durdurabilirsiniz.\")"
-    - text: "Raporlarınızı ve tahlil sonuçlarınızı yükleyebilirsiniz."
-      source: "apps/mobile/src/app/(tabs)/records.tsx; apps/mobile/src/lib/i18n/tr.ts records.upload, records.guide.title"
     - text: "İsterseniz telefonunuzdaki adım, uyku ve dinlenme nabzı özetlerini de ekleyebilirsiniz."
       source: "apps/mobile/src/lib/health/healthKitConnector.ts (steps, resting heart rate, sleep; read-only); apps/mobile/src/lib/i18n/tr.ts health.rhr.label"
-    - text: "Sesiniz yazıya dökülür; ses kaydı telefonunuza ya da sunucularımıza yazılmaz."
-      source: "CLAUDE.md invariant 3; tests/voice/test_audio_retention_guard.py"
     - text: "Önvizit tanı koymaz ve tedavi önermez."
       source: "apps/mobile/src/lib/i18n/tr.ts app.disclaimer; files/06_COMPLIANCE_TR.md §0.4"
     - text: "Anlattıklarınız hekim değerlendirmesinin yerine geçmez."

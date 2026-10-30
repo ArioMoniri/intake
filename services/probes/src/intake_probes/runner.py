@@ -34,6 +34,7 @@ from intake_probes.probes import Failed, Outcome, Skipped, SupportsPing
 from intake_probes.registry import Registry, load_registry
 
 __all__ = [
+    "STALE_AFTER_S",
     "SWEEP_INTERVAL_S",
     "DevProbeConfig",
     "ProbeFn",
@@ -52,6 +53,9 @@ _HTTP_TIMEOUT_S = 5.0
 #: files/10 §6: "services/probes exercises every model and service every 60 s".
 #: The scheduler shell sleeps this long; the console derives staleness from it.
 SWEEP_INTERVAL_S: Final = 60
+#: Three missed sweeps: past this a result is the last one, not the current
+#: one. Every console that shows a result's age reads this one constant.
+STALE_AFTER_S: Final = 3 * SWEEP_INTERVAL_S
 
 
 class ProbeStatus(StrEnum):

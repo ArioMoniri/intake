@@ -77,7 +77,7 @@ outside the console's id shape.
 `infra/keycloak/providers/webauthn-session-notes.sha256`:
 
 ```
-91da12328b158bdf7195bd62e510b7aaf47b35b2deb200ff4ec5ffb1b201b694  intake-webauthn-session-notes-1.0.0.jar
+3ca703b66c79734521cfa2a2ff56909cccebf793488256b979f10898887cd323  intake-webauthn-session-notes-1.0.0.jar
 ```
 
 The build is reproducible, so the owner can rebuild from the tagged source and get the same
@@ -103,7 +103,18 @@ By hand, on any other Keycloak:
    `intake-webauthn-session-notes`, not `webauthn-authenticator`. Keycloak cannot change an
    execution's provider in place. Add the new execution to the subflow, give it the `amr hwk`
    reference config (`default.reference.value: hwk`, `default.reference.maxAge: 28800`), set it
-   ALTERNATIVE at the stock execution's position, then delete the stock execution.
+   REQUIRED at the stock execution's position, then delete the stock execution. Set the OTP
+   execution (`auth-otp-form`) to DISABLED and leave it in place until the owner decides
+   INT-389 (#644). Check that the required action `webauthn-register` is enabled
+   (Authentication → Required actions). When you change a requirement through the admin API,
+   send the execution's current `priority` in the same body. Keycloak copies whatever priority
+   the body carries, and a body without one sets it to 0.
+
+   **Why REQUIRED (INT-550).** Keycloak 26.7.4 sends a user who has no passkey to
+   `webauthn-register` only from a REQUIRED execution. An ALTERNATIVE WebAuthn step, with OTP
+   as the other ALTERNATIVE, refuses every new staff user after the password with "Invalid
+   username or password", and no required action runs. That was the host's state on
+   17 Oct 2026.
 5. Sign in with a WebAuthn staff account and decode the access token. `aaguid` must equal the
    AAGUID the admin console shows for that credential (Users → Credentials → Show data), and
    `credential_id` must be its id in base64url. A TOTP sign-in carries neither (below).
@@ -121,11 +132,29 @@ and one longer than 96 bytes encodes to more than 128 characters. Both fall outs
 console's id shape, so such a login is refused (fail closed) even with the provider. Until the
 console's rule changes, re-register the key for that staff member, which mints a new id.
 
+**A new staff member's first sign-in (INT-550).** The first sign-in goes like this:
+1. The password, then a new password if the one they were given is temporary.
+2. They register a security key or passkey on the `webauthn-register` page. Keycloak then
+   completes the login.
+3. The console refuses this first session, because it asserted no passkey. Its token's `amr`
+   is `["pwd"]`, with no `aaguid` and no `credential_id`.
+
+An SSO resume keeps that session's `amr`. So once the passkey is registered, the staff member:
+1. signs out of Keycloak (`https://auth.<host>/realms/intake/protocol/openid-connect/logout`,
+   and confirm);
+2. signs out of the console's proxy (`https://admin.<host>/oauth2/sign_out`);
+3. opens the console again and signs in with the password and the passkey.
+
+That login carries `hwk` and both ids, and the console admits it. Waiting out the 30-minute
+idle timeout has the same effect.
+
 **Owner decision still needed.** INT-365 lets the six roles that never reach patient content
 sign in with TOTP instead of WebAuthn. A TOTP login has no AAGUID, so the provider writes
 nothing and the console refuses the token. The choices are (a) require WebAuthn for every
 console role, or (b) require `aaguid` only when `amr` contains `hwk`. The console's rule is
-unchanged until the owner records the choice (INT-389, issue #644).
+unchanged until the owner records the choice (INT-389, issue #644). Until then the realm's OTP
+step is DISABLED (INT-550). If (b) brings it back, it cannot return as an ALTERNATIVE beside
+the WebAuthn step, because that is exactly the shape that refused every new user.
 
 ## 4. Who may write `org` and `tenant` — the user profile
 

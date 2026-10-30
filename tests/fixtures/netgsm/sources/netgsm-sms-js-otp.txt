@@ -1,0 +1,224 @@
+# source: Netgsm's official JavaScript SDK, @netgsm/sms 1.1.11 (npm gitHead 33ca38622067e3730479aded9e56f6b1151bfeb5)
+# url: https://github.com/netgsm/netgsm-sms-js/tree/33ca38622067e3730479aded9e56f6b1151bfeb5
+# linked_from: https://www.netgsm.com.tr/dokuman/ ('JavaScript için https://www.npmjs.com/package/@netgsm/sms')
+# licence: MIT, Copyright (c) 2024 Netgsm İletişim ve Bilgi Teknolojileri A.Ş (raw LICENSE sha256 daf2a4e33705570a4033a1217da7924933b8da1122546985e6a139eae2af5256)
+# retrieved_on: 2026-10-28
+# retrieval: curl of raw.githubusercontent.com at the pinned commit; read as data, never installed or run
+# scope: verbatim line ranges, each prefixed with its line number; [...] separates them
+---
+== src/types.ts lines 78-94 (file sha256 e952b58cf9fae4ae6c8f681449d0fa51264a4f87557183265712bf1a581223d3)
+  78| /**
+  79|  * API response structure for sending SMS via REST v2 API.
+  80|  */
+  81| export interface RestSmsResponse {
+  82|   code: SendSmsErrorCode;
+  83|   description: string;
+  84|   jobid?: string;
+  85| }
+  86| 
+  87| /**
+  88|  * API response structure for sending OTP SMS via REST v2 API.
+  89|  */
+  90| export interface OtpSmsResponse {
+  91|   code: SendOtpSmsErrorCode;
+  92|   description: string;
+  93|   jobId?: string;
+  94| }
+[...]
+== src/enums.ts lines 70-101 (file sha256 dc5c077d2aeb0c0a3932096578820566e4f36c01d4b15fde965fe49d41c5adcc)
+  70| /**
+  71|  * /sms/rest/v2/otp API error codes
+  72|  * @enum {string}
+  73|  */
+  74| export enum SendOtpSmsErrorCode {
+  75|   /** Operation successful */
+  76|   SUCCESS = "00",
+  77|   /** Could not be sent due to a problem in the message text or exceeded the standard maximum message character count */
+  78|   MESSAGE_TEXT_ERROR = "20",
+  79|   /** Invalid username, password or no API access. If IP restriction exists, request may have been made from an unauthorized IP */
+  80|   INVALID_AUTH = "30",
+  81|   /** Message header (sender name) is not defined in the system */
+  82|   UNDEFINED_HEADER = "40",
+  83|   /** Message header (sender name) is not valid in the system */
+  84|   INVALID_HEADER = "41",
+  85|   /** Check for Number */
+  86|   CHECK_NUMBER_50 = "50",
+  87|   /** Check for Number */
+  88|   CHECK_NUMBER_51 = "51",
+  89|   /** Check for Number */
+  90|   CHECK_NUMBER_52 = "52",
+  91|   /** No Credit for OTP */
+  92|   NO_CREDIT = "60",
+  93|   /** Invalid query. One of the parameters is incorrect or a required field is missing */
+  94|   PARAMETER_ERROR = "70",
+  95|   /** System error */
+  96|   SYSTEM_ERROR_100 = "100",
+  97|   /** System error */
+  98|   SYSTEM_ERROR_101 = "101",
+  99|   /** Undefined error */
+ 100|   UNDEFINED_ERROR = "5000",
+ 101| }
+[...]
+== src/netgsm.ts lines 34-52 (file sha256 6c9f071a8b13ea39fcff56a482162775b1b47715dc32c3fc0b228851d1053edc)
+  34| 
+  35| /**
+  36|  * Validates if a code exists in an enum, returns "5000" if not found
+  37|  * @param code - The code to validate
+  38|  * @param enumObj - The enum object to check against (optional)
+  39|  * @returns Valid code or "5000" for undefined errors
+  40|  */
+  41| function normalizeErrorCode(code: string | undefined | null, enumObj?: object): string {
+  42|   if (!code || typeof code !== "string") {
+  43|     return "5000";
+  44|   }
+  45| 
+  46|   // If enum provided, check if code exists in enum values
+  47|   if (enumObj && !Object.values(enumObj).includes(code)) {
+  48|     return "5000";
+  49|   }
+  50| 
+  51|   return code;
+  52| }
+[...]
+== src/netgsm.ts lines 128-150 (file sha256 6c9f071a8b13ea39fcff56a482162775b1b47715dc32c3fc0b228851d1053edc)
+ 128|   /**
+ 129|    * Send OTP SMS using REST v2 API
+ 130|    * @param {OtpSmsPayload} payload - JSON payload for sending OTP SMS.
+ 131|    * @returns {Promise<OtpSmsResponse>} - The API response.
+ 132|    */
+ 133|   async sendOtpSms(payload: OtpSmsPayload): Promise<OtpSmsResponse> {
+ 134|     const response = await fetch(`${this.baseURL}/sms/rest/v2/otp`, {
+ 135|       method: "POST",
+ 136|       headers: this.headers,
+ 137|       body: JSON.stringify({
+ 138|         msgheader: payload.msgheader,
+ 139|         ...(payload?.appname
+ 140|           ? { appname: payload.appname }
+ 141|           : this.sdkAppName
+ 142|             ? { appname: this.sdkAppName }
+ 143|             : {}),
+ 144|         msg: payload.msg,
+ 145|         no: payload.no,
+ 146|       }),
+ 147|     });
+ 148| 
+ 149|     return await this.handleResponse<OtpSmsResponse>(response, SendOtpSmsErrorCode);
+ 150|   }
+[...]
+== src/netgsm.ts lines 296-342 (file sha256 6c9f071a8b13ea39fcff56a482162775b1b47715dc32c3fc0b228851d1053edc)
+ 296|   private async handleResponse<T>(response: Response, errorCodeEnum?: object): Promise<T> {
+ 297|     // Try to parse JSON response
+ 298|     let data;
+ 299|     try {
+ 300|       data = await response.json();
+ 301|     } catch (error) {
+ 302|       // If JSON parsing fails, throw HTTP error
+ 303|       throw {
+ 304|         status: response.status,
+ 305|         code: "PARSE_ERROR",
+ 306|         description: `Failed to parse JSON response: ${error instanceof Error ? error.message : "Unknown error"}`,
+ 307|       };
+ 308|     }
+ 309| 
+ 310|     // Check if response is success status
+ 311|     if (response.status === 200 || response.status === 406) {
+ 312|       // Validate data structure
+ 313|       if (typeof data !== "object" || data === null) {
+ 314|         throw {
+ 315|           status: response.status,
+ 316|           code: "INVALID_RESPONSE",
+ 317|           description: "Response is not a valid object",
+ 318|         };
+ 319|       }
+ 320| 
+ 321|       // Normalize error code - if code is missing or not in enum, set to "5000"
+ 322|       data.code = normalizeErrorCode(data.code, errorCodeEnum);
+ 323| 
+ 324|       // Check if API returned an error code
+ 325|       if (data.code !== "00") {
+ 326|         throw {
+ 327|           status: response.status !== 200 ? response.status : 406,
+ 328|           ...data,
+ 329|         };
+ 330|       }
+ 331| 
+ 332|       // Success case
+ 333|       return data as T;
+ 334|     }
+ 335| 
+ 336|     // HTTP error cases (non-200/406 status codes)
+ 337|     throw {
+ 338|       status: response.status,
+ 339|       code: normalizeErrorCode(data?.code, errorCodeEnum) || response.statusText,
+ 340|       description: data?.description || "HTTP Error",
+ 341|     };
+ 342|   }
+[...]
+== __tests__/integration/netgsm.integration.test.ts lines 233-299 (file sha256 ae9d0312e5f75e9d846d4cb0b19254bc15edd88dc769d8a59df8d4fd1cb45e5b)
+ 233|   // 8. OTP SMS gönderimi
+ 234|   it("should send OTP SMS", async () => {
+ 235|     const otpSmsPayload = {
+ 236|       msgheader: process.env.NETGSM_MESSAGE_HEADER || "TEST",
+ 237|       msg: "OTP test mesajı",
+ 238|       no: process.env.TEST_PHONE_NUMBER || "",
+ 239|     };
+ 240| 
+ 241|     const smsResponse = await netgsm.sendOtpSms(otpSmsPayload);
+ 242| 
+ 243|     expect(smsResponse.code).toBe(SendOtpSmsErrorCode.SUCCESS);
+ 244|     expect(smsResponse.jobId).toBeTruthy();
+ 245|     const otpSmsJobId = smsResponse.jobId || "";
+ 246|     // eslint-disable-next-line no-console
+ 247|     console.log(`OTP SMS jobid: ${otpSmsJobId}`);
+ 248| 
+ 249|     // SMS işlenmesi için bekleyelim
+ 250|     await new Promise((resolve) => setTimeout(resolve, 5000));
+ 251|   }, 10000);
+ 252| 
+ 253|   // 9. OTP SMS gönderimi uzun mesaj hatasi
+ 254|   it("should send long OTP SMS", async () => {
+ 255|     const otpSmsPayload = {
+ 256|       msgheader: process.env.NETGSM_MESSAGE_HEADER || "TEST",
+ 257|       msg: "OTP test mesaj OTP test mesaj OTP test mesaj OTP test mesaj OTP test mesaj OTP test mesajOTP test mesaj OTP test mesaj OTP test mesaj OTP test mesaj OTP test mesaj OTP test mesaj",
+ 258|       no: process.env.TEST_PHONE_NUMBER || "",
+ 259|     };
+ 260| 
+ 261|     try {
+ 262|       await netgsm.sendOtpSms(otpSmsPayload);
+ 263|       // Eğer hata fırlatılmadıysa, test başarısız olmalı
+ 264|       fail("Expected an error to be thrown");
+ 265|     } catch (error) {
+ 266|       // Hata bekleniyor - uzun mesaj hatası
+ 267|       expect((error as { code: string }).code).toBe(SendOtpSmsErrorCode.MESSAGE_TEXT_ERROR);
+ 268|       expect((error as { status: number }).status).toBe(406);
+ 269|       // eslint-disable-next-line no-console
+ 270|       console.log("Uzun mesaj hatası yakalandı (beklenen durum)");
+ 271|     }
+ 272| 
+ 273|     // SMS işlenmesi için bekleyelim
+ 274|     await new Promise((resolve) => setTimeout(resolve, 5000));
+ 275|   }, 10000);
+ 276| 
+ 277|   // 10. OTP SMS gönderimi hatali numara hatasi
+ 278|   it("should wrong number OTP SMS", async () => {
+ 279|     const otpSmsPayload = {
+ 280|       msgheader: process.env.NETGSM_MESSAGE_HEADER || "TEST",
+ 281|       msg: "OTP test mesaj",
+ 282|       no: process.env.TEST_PHONE_NUMBER + "99999999" || "9999999999999999999999",
+ 283|     };
+ 284| 
+ 285|     try {
+ 286|       await netgsm.sendOtpSms(otpSmsPayload);
+ 287|       // Eğer hata fırlatılmadıysa, test başarısız olmalı
+ 288|       fail("Expected an error to be thrown");
+ 289|     } catch (error) {
+ 290|       // Hata bekleniyor
+ 291|       expect((error as { code: string }).code).toBe(SendOtpSmsErrorCode.CHECK_NUMBER_50);
+ 292|       expect((error as { status: number }).status).toBe(406);
+ 293|       expect((error as { description: string }).description).toBe("number format");
+ 294|       // eslint-disable-next-line no-console
+ 295|       console.log("Hatalı numara hatası yakalandı (beklenen durum)");
+ 296|     }
+ 297| 
+ 298|     // SMS işlenmesi için bekleyelim
+ 299|     await new Promise((resolve) => setTimeout(resolve, 5000));

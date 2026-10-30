@@ -56,9 +56,11 @@ import { useTabBarClearance } from "@/components/FloatingTabBar";
 import { GuidanceBlock } from "@/components/GuidanceBlock";
 import { Kicker } from "@/components/Kicker";
 import { ListGroup, ListRow } from "@/components/ListRow";
+import { ShareConsentControl } from "@/components/ShareConsentControl";
 import { AppText, Screen, useStackHeader } from "@/components/Themed";
 import { useClinicalScreenPrivacy } from "@/lib/auth/screenPrivacy";
 import { t } from "@/lib/i18n";
+import { serverVisitIdOf } from "@/lib/intake/delivery/store";
 import {
   categoryLabelKey,
   formatShareMoment,
@@ -83,7 +85,9 @@ export default function ShareCentre() {
   // Armed, not stopped: the first tap on a grant only changes the word, and
   // arming another disarms this one.
   const [armed, setArmed] = useState<string | null>(null);
-  const visit = visitId ?? "";
+  // INT-587: the grants hang off the SERVER visit the note was delivered to.
+  // A local or hospital-feed id is not one; a fixture's id is used as it is.
+  const visit = serverVisitIdOf(visitId ?? "") ?? visitId ?? "";
 
   useEffect(() => {
     if (visit !== "") {
@@ -116,7 +120,7 @@ export default function ShareCentre() {
             sublabel={t("shares.issue.sub")}
             chevron
             hint={t("a11y.shares.issueHint")}
-            onPress={() => router.push(`/(tabs)/visits/${visit}/issue-link`)}
+            onPress={() => router.push(`/(tabs)/visits/${visitId ?? ""}/issue-link`)}
           />
         </ListGroup>
         <View style={styles.section}>
@@ -205,6 +209,9 @@ export default function ShareCentre() {
             ))}
           </ListGroup>
         </View>
+        {/* INT-587: the share consent itself, apart from the stop control
+            above — stopping one link never waits on a consent value. */}
+        <ShareConsentControl onWithdrawn={() => void loadShareCentre(visit)} />
         <AppText role="caption" color="inkFaint">
           {t("shares.held")}
         </AppText>

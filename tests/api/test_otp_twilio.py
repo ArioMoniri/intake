@@ -167,8 +167,8 @@ def test_a_vendor_error_code_is_kept_as_a_number_only(phi_egress: None) -> None:
 
 
 def test_the_shipped_allowlist_refuses_the_vendor_before_a_byte_leaves(phi_egress: None) -> None:
-    """The SHIPPED allow-list has no SMS row (awaiting the owner), so the guard
-    refuses before resolving and before the transport is reached."""
+    """The SHIPPED allow-list's one SMS row is Netgsm's (INT-528), so the guard
+    refuses Twilio before resolving and before the transport is reached."""
     vendor = Vendor(created)
     shipped = EgressPolicy.for_tier(load_allowlist(SHIPPED_ALLOWLIST), "phi_path", resolver)
     with pytest.raises(otp_module().OtpDeliveryError) as caught:

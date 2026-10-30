@@ -18,6 +18,10 @@ import yaml
 
 REPO = Path(__file__).resolve().parents[2]
 DRAFTS = REPO / "docs" / "legal" / "drafts" / "store"
+#: INT-495 promoted the App Store listing and submission to their served paths;
+#: the Play copy stays a draft (Play is deferred, INT-496).
+SERVED_LISTING = REPO / "docs" / "legal" / "store" / "listing"
+SERVED_SUBMISSION = REPO / "docs" / "legal" / "store" / "submission" / "app-store.yaml"
 
 #: GitHub #825: the store name. INT-420 (#729) renames the app itself.
 APP_NAME = "Önvizit"
@@ -30,8 +34,22 @@ BANNER = (
 STRICT = ("performance", "satisfaction", "bare_percentage")
 
 
-def draft(store: str, locale: str) -> Path:
-    return DRAFTS / f"{store}.{locale}.draft.yaml"
+def listing_source(store: str, locale: str) -> Path:
+    """The served listing where it has been promoted, else its draft."""
+    served = SERVED_LISTING / f"{store}.{locale}.yaml"
+    return served if served.exists() else DRAFTS / f"{store}.{locale}.draft.yaml"
+
+
+def submission_source() -> Path:
+    if SERVED_SUBMISSION.exists():
+        return SERVED_SUBMISSION
+    return DRAFTS / "app-store.submission.draft.yaml"
+
+
+def store_texts() -> list[Path]:
+    """Every store artefact under docs/legal: the drafts and the served files."""
+    served = [p for p in (SERVED_LISTING, SERVED_SUBMISSION.parent) if p.is_dir()]
+    return sorted([*DRAFTS.iterdir(), *(f for d in served for f in d.glob("*.yaml"))])
 
 
 def body(path: Path) -> dict[str, Any]:
@@ -56,8 +74,8 @@ def promote(tmp: Path, *, stores: tuple[str, ...] = STORES) -> Path:
     listing.mkdir(parents=True)
     for store in stores:
         for locale in LOCALES:
-            shutil.copy(draft(store, locale), listing / f"{store}.{locale}.yaml")
+            shutil.copy(listing_source(store, locale), listing / f"{store}.{locale}.yaml")
     submission = tmp / "docs" / "legal" / "store" / "submission"
     submission.mkdir(parents=True)
-    shutil.copy(DRAFTS / "app-store.submission.draft.yaml", submission / "app-store.yaml")
+    shutil.copy(submission_source(), submission / "app-store.yaml")
     return tmp

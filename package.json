@@ -18,16 +18,17 @@
     "prettier": "^3.3.3",
     "typescript": "^5.6.3",
     "typescript-eslint": "^8.8.1",
-    "vitest": "^4.1.11"
+    "vite": "6.4.5",
+    "vitest": "^4.1.12"
   },
   "pnpm": {
     "overrides": {
-      "vite@<6.4.3": "^6.4.3",
+      "vite@<6.4.4": "^6.4.4",
       "uuid@<11.1.1": "^11.1.1",
-      "decode-uri-component@<0.5.0": "^0.5.0",
+      "decode-uri-component@<0.5.1": "^0.5.1",
       "brace-expansion@<1.1.20": "^1.1.20",
       "brace-expansion@>=5.0.0 <5.0.11": "^5.0.11",
-      "fast-uri@>=3.0.0 <3.1.8": "^3.1.8",
+      "fast-uri@>=3.0.0 <3.1.9": "^3.1.9",
       "shell-quote@<1.11.0": "^1.11.0",
       "compression@<1.8.2": "^1.8.2",
       "source-map-js@<1.2.2": "^1.2.2",
