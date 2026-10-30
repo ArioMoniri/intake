@@ -227,7 +227,7 @@ CANDIDATE — clinician to approve wording.
 **Q12 — Support around the person** · archetype: `OBSERVATION.story.v1` · source: general intake (S3
 supportive relationship)
 > "Bu süreçte yanınızda olan, size destek olan kişiler var mı?"
-gen: slot=destek_cevresi; type=boolean
+gen: slot=sosyal_destek; type=boolean
 CANDIDATE — clinician to approve wording.
 
 *(12 candidate questions after revision — all supportive intake; none is a crisis/red-flag item.)*

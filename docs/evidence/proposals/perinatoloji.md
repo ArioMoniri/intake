@@ -242,7 +242,7 @@ CANDIDATE — clinician to approve wording. Neutral symptom capture; no rule to 
 
 **Q11 — Visual disturbance** · archetype: `OBSERVATION.symptom_sign.v1` · source: PR-S1 PDF p. 21 ("Görmede bulanıklık"); PR-S3 Tablo 1; PR-S5 rec 1.1.1
 > "Son günlerde görmenizde bulanıklık ya da ışık çakmaları oldu mu?"
-gen: slot=gorme_bulanikligi; type=boolean
+gen: slot=gebelikte_gorme_bozuklugu; type=boolean
 CANDIDATE — clinician to approve wording. **Feeds HB-C4 pre-eclampsia pattern (§2.2).**
 
 **Q12a — Fetal movements felt yet** · archetype: `OBSERVATION.story.v1` · source: PR-S1 PDF p. 21 ("Bebek hareketlerinde azalma"); PR-S7 rec 1.2.34

@@ -53,7 +53,7 @@ sections:
         ask_tr:
           tr: Bu şikâyetiniz başladığından bu yana nasıl değişti?
         openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/endodonti.md'
-      sicak_soguk_agri:
+      dis_hassasiyeti:
         type: boolean
         required: false
         ask_tr:
@@ -64,7 +64,7 @@ sections:
         required: false
         ask_tr:
           tr: Bu ağrı, yiyecek ya da içecek ağzınızdan gittikten sonra da sürüyor mu?
-        ask_if: sicak_soguk_agri == true
+        ask_if: dis_hassasiyeti == true
         openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/endodonti.md'
       kendiliginden_agri:
         type: boolean

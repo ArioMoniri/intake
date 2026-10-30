@@ -89,7 +89,7 @@ sections:
         ask_tr:
           tr: Çocuğunuzun yenidoğan döneminde yapılan topuk kanı taramasında şüpheli ya da anormal bir sonuç çıktı mı?
         openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.problem_diagnosis.v1 recorded in docs/evidence/proposals/cocuk_genetik_hastaliklari.md'
-      alisilmadik_halsizlik:
+      uykulu_tepkisiz:
         type: boolean
         required: false
         ask_tr:
