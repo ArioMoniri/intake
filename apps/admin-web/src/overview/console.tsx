@@ -12,7 +12,10 @@
 import type { ReactElement } from "react";
 
 import { ConsoleNav } from "../ops/nav";
-import { Cell, ScrollTable, Tile } from "../ops/tiles";
+import { Cell, Rows, ScrollTable, Tile } from "../ops/tiles";
+import { BarList, Gauge, toneOf, type BarRow } from "../ui/charts";
+import { figureOf, percentOf, sharesOf } from "../ui/figure";
+import { RefusedPage } from "../ui/states";
 import { COPY, type Lang, type OverviewCopy } from "./copy";
 import type { OverviewState } from "./load";
 import type { Age, OverviewView, SloView } from "./module";
@@ -26,6 +29,41 @@ function ageText(value: Age | null, c: C): string | null {
 function Health({ value, c }: { value: string | null; c: C }): ReactElement {
   if (value === null) return <span className="cell-unknown">{c.unknown}</span>;
   return <span data-state={value}>{c.health[value] ?? value}</span>;
+}
+
+/**
+ * INT-459 — each lane's two burn rates on one track with the lane's alert
+ * threshold marked (after Astryx's `referenceLine`). Each lane is scaled to
+ * the larger of its threshold and its rates, so the mark always shows; every
+ * bar is the plain data tone, because the condition is stated as the rule it
+ * is, never toned as good or bad (invariant 20).
+ */
+function BurnChart({ t, c }: { t: SloView; c: C }): ReactElement | null {
+  const rows: BarRow[] = t.lanes.flatMap((lane) => {
+    const factor = figureOf(lane.factor)?.value ?? null;
+    const burns = [lane.longBurn, lane.shortBurn].map((b) => figureOf(b)?.value ?? null);
+    const scale = Math.max(factor ?? 0, ...burns.map((b) => b ?? 0));
+    const name = c.slo.lanes[lane.lane] ?? lane.lane;
+    const windows = [lane.longWindow, lane.shortWindow];
+    return [lane.longBurn, lane.shortBurn].map((text, i) => ({
+      key: `${name} · ${windows[i]}`,
+      text,
+      share: burns[i] === null || scale <= 0 ? null : burns[i]! / scale,
+      tone: "data" as const,
+      mark: factor === null || scale <= 0 ? null : factor / scale,
+      markText: lane.factor,
+    }));
+  });
+  return (
+    <div className="viz">
+      <BarList
+        id={`burn-${t.key}`}
+        title={c.slo.burnChart}
+        rows={rows}
+        c={{ unknown: c.unknown, mark: c.slo.thresholdWord }}
+      />
+    </div>
+  );
 }
 
 function SloTile({ t, c }: { t: SloView; c: C }): ReactElement {
@@ -43,17 +81,28 @@ function SloTile({ t, c }: { t: SloView; c: C }): ReactElement {
       c={c}
       meta={meta}
     >
-      <dl className="facts">
-        <dt>{c.slo.sli}</dt>
-        <dd>
-          <Cell value={t.sli} c={c} />
-        </dd>
-        <dt>{c.slo.budget}</dt>
-        <dd data-overspent={t.budgetOverspent === true ? "true" : "false"}>
-          <Cell value={t.budgetRemaining} c={c} />
-          {t.budgetOverspent === true ? <> · {c.slo.overspent}</> : null}
-        </dd>
-      </dl>
+      <div className="kpis">
+        <Gauge
+          id={`slo-budget-${t.key}`}
+          label={c.slo.budget}
+          text={t.budgetRemaining}
+          share={percentOf(t.budgetRemaining)}
+          tone={t.budgetOverspent === true ? "bad" : "ok"}
+          c={c}
+        />
+        <dl className="facts">
+          <dt>{c.slo.sli}</dt>
+          <dd>
+            <Cell value={t.sli} c={c} />
+          </dd>
+          <dt>{c.slo.budget}</dt>
+          <dd data-overspent={t.budgetOverspent === true ? "true" : "false"}>
+            <Cell value={t.budgetRemaining} c={c} />
+            {t.budgetOverspent === true ? <> · {c.slo.overspent}</> : null}
+          </dd>
+        </dl>
+      </div>
+      <BurnChart t={t} c={c} />
       <ScrollTable>
         <thead>
           <tr>
@@ -117,6 +166,29 @@ function Slos({ view, c }: { view: OverviewView; c: C }): ReactElement {
   );
 }
 
+/** INT-450 — the measured probes' latency, drawn; a stale reading is hatched. */
+function ProbeLatency({ view, c }: { view: OverviewView; c: C }): ReactElement | null {
+  const measured = view.probeMatrix.rows.filter((row) => row.latency !== null);
+  if (measured.length === 0) return null;
+  const shares = sharesOf(measured.map((row) => row.latency));
+  return (
+    <div className="viz">
+      <BarList
+        id="probe-latency"
+        title={c.probes.latency}
+        rows={measured.map((row, i) => ({
+          key: row.component,
+          text: row.latency,
+          share: shares[i] ?? null,
+          tone: toneOf(row.status),
+          stale: row.stale,
+        }))}
+        c={{ unknown: c.unknown, stale: c.probes.stale }}
+      />
+    </div>
+  );
+}
+
 function ProbeMatrix({ view, c }: { view: OverviewView; c: C }): ReactElement {
   const m = view.probeMatrix;
   const meta = (
@@ -128,12 +200,14 @@ function ProbeMatrix({ view, c }: { view: OverviewView; c: C }): ReactElement {
   return (
     <Tile
       id="probe_matrix"
+      wide
       title={c.probes.title}
       state={m.state}
       reason={m.reason}
       c={c}
       meta={meta}
     >
+      <ProbeLatency view={view} c={c} />
       <ScrollTable>
         <thead>
           <tr>
@@ -146,8 +220,8 @@ function ProbeMatrix({ view, c }: { view: OverviewView; c: C }): ReactElement {
             <th>{c.probes.age}</th>
           </tr>
         </thead>
-        <tbody>
-          {m.rows.map((row) => (
+        <Rows rows={m.rows} columns={7} kind="probes" empty={c.empties.probes}>
+          {(row) => (
             <tr key={row.component} data-stale={row.stale ? "true" : "false"}>
               <td>
                 <code>{row.component}</code>
@@ -174,17 +248,75 @@ function ProbeMatrix({ view, c }: { view: OverviewView; c: C }): ReactElement {
                 <Cell value={ageText(row.age, c)} c={c} />
               </td>
             </tr>
-          ))}
-        </tbody>
+          )}
+        </Rows>
       </ScrollTable>
     </Tile>
+  );
+}
+
+const HEALTHS = ["healthy", "degraded", "unhealthy"] as const;
+
+/** A health the strip can fill, or `unread` for any other word (skipped, no
+ * result, unknown): a component with no reading to fill a cell with. */
+function stripHealth(health: string): string {
+  return (HEALTHS as readonly string[]).includes(health) ? health : "unread";
+}
+
+/**
+ * INT-459 — the components at a glance, rebuilt from public status pages
+ * (nothing copied): a count by each health word the table prints (the three
+ * readings first, then any other word in the order it appears), then one cell
+ * per component with its name and word under it. Nominal: counts, never a
+ * verdict. A component with no reading is an outlined cell, never filled and
+ * never counted under a reading's word.
+ */
+function ComponentStrip({
+  rows,
+  c,
+}: {
+  rows: OverviewView["dependencies"]["components"]["rows"];
+  c: C;
+}): ReactElement | null {
+  if (rows.length === 0) return null;
+  const words = [...new Set<string>([...HEALTHS, ...rows.map((r) => r.health)])];
+  const counts = words
+    .map((h) => [h, rows.filter((r) => r.health === h).length] as const)
+    .filter(([, n]) => n > 0);
+  return (
+    <>
+      <p className="status-summary">
+        {counts.map(([h, n]) => `${n} ${c.health[h] ?? h}`).join(" · ")}
+      </p>
+      <ul className="status-strip" aria-label={c.deps.strip}>
+        {rows.map((row) => (
+          <li key={row.component} data-health={stripHealth(row.health)}>
+            <span
+              className="status-cell"
+              data-health={stripHealth(row.health)}
+              aria-hidden="true"
+            />
+            <code>{row.component}</code>
+            <span>{c.health[row.health] ?? row.health}</span>
+          </li>
+        ))}
+      </ul>
+    </>
   );
 }
 
 function Components({ view, c }: { view: OverviewView; c: C }): ReactElement {
   const s = view.dependencies.components;
   return (
-    <Tile id="dep_components" title={c.deps.components} state={s.state} reason={s.reason} c={c}>
+    <Tile
+      id="dep_components"
+      title={c.deps.components}
+      state={s.state}
+      reason={s.reason}
+      c={c}
+      wide
+    >
+      <ComponentStrip rows={s.rows} c={c} />
       <ScrollTable>
         <thead>
           <tr>
@@ -194,8 +326,8 @@ function Components({ view, c }: { view: OverviewView; c: C }): ReactElement {
             <th>{c.deps.fallbackHealth}</th>
           </tr>
         </thead>
-        <tbody>
-          {s.rows.map((row) => (
+        <Rows rows={s.rows} columns={4} kind="components" empty={c.empties.components}>
+          {(row) => (
             <tr key={row.component}>
               <td>
                 <code>{row.component}</code>
@@ -222,8 +354,8 @@ function Components({ view, c }: { view: OverviewView; c: C }): ReactElement {
                 {row.fallbackKind === "none" ? "—" : <Health value={row.fallbackHealth} c={c} />}
               </td>
             </tr>
-          ))}
-        </tbody>
+          )}
+        </Rows>
       </ScrollTable>
     </Tile>
   );
@@ -260,8 +392,8 @@ function GpuHosts({ view, c }: { view: OverviewView; c: C }): ReactElement {
             <th>{c.deps.health}</th>
           </tr>
         </thead>
-        <tbody>
-          {s.rows.map((row) => (
+        <Rows rows={s.rows} columns={2} kind="gpuHosts" empty={c.empties.gpuHosts}>
+          {(row) => (
             <tr key={row.hostId}>
               <td>
                 <code>{row.hostId}</code>
@@ -270,8 +402,8 @@ function GpuHosts({ view, c }: { view: OverviewView; c: C }): ReactElement {
                 <Health value={row.health} c={c} />
               </td>
             </tr>
-          ))}
-        </tbody>
+          )}
+        </Rows>
       </ScrollTable>
     </Tile>
   );
@@ -289,8 +421,8 @@ function Vendors({ view, c }: { view: OverviewView; c: C }): ReactElement {
             <th>{c.deps.health}</th>
           </tr>
         </thead>
-        <tbody>
-          {s.rows.map((row) => (
+        <Rows rows={s.rows} columns={3} kind="vendors" empty={c.empties.vendors}>
+          {(row) => (
             <tr key={row.component}>
               <td>
                 <code>{row.component}</code>
@@ -306,8 +438,8 @@ function Vendors({ view, c }: { view: OverviewView; c: C }): ReactElement {
                 <Health value={row.health} c={c} />
               </td>
             </tr>
-          ))}
-        </tbody>
+          )}
+        </Rows>
       </ScrollTable>
     </Tile>
   );
@@ -330,8 +462,8 @@ function ApiReadiness({ view, c }: { view: OverviewView; c: C }): ReactElement {
             <th>{c.deps.health}</th>
           </tr>
         </thead>
-        <tbody>
-          {s.checks.map((row) => (
+        <Rows rows={s.checks} columns={2} kind="readiness" empty={c.empties.readiness}>
+          {(row) => (
             <tr key={row.check}>
               <td>
                 <code>{row.check}</code>
@@ -340,8 +472,8 @@ function ApiReadiness({ view, c }: { view: OverviewView; c: C }): ReactElement {
                 <Health value={row.health} c={c} />
               </td>
             </tr>
-          ))}
-        </tbody>
+          )}
+        </Rows>
       </ScrollTable>
     </Tile>
   );
@@ -357,22 +489,20 @@ export function OverviewConsole({
   const c = COPY[lang];
   if (state.kind === "not_admitted") {
     return (
-      <main lang={lang} className="ops" data-page="overview">
-        <h1>{c.title}</h1>
+      <RefusedPage page="overview" lang={lang} title={c.title} state={state}>
         <p className="refusal" data-refusal={state.reason}>
           {c.refusals[state.reason]}
         </p>
-      </main>
+      </RefusedPage>
     );
   }
   if (state.kind === "unavailable") {
     return (
-      <main lang={lang} className="ops" data-page="overview">
-        <h1>{c.title}</h1>
+      <RefusedPage page="overview" lang={lang} title={c.title} state={state}>
         <p className="refusal" data-unavailable={state.reason}>
           {c.unavailable[state.reason]}
         </p>
-      </main>
+      </RefusedPage>
     );
   }
   const view = state.view;

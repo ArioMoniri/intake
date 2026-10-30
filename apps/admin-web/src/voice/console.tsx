@@ -13,7 +13,10 @@
 import type { ReactElement } from "react";
 
 import { ConsoleNav } from "../ops/nav";
-import { Cell, ScrollTable, Tile } from "../ops/tiles";
+import { Cell, Rows, ScrollTable, Tile } from "../ops/tiles";
+import { BarList } from "../ui/charts";
+import { sharesOf } from "../ui/figure";
+import { RefusedPage } from "../ui/states";
 import type { ResultCode } from "./actions";
 import { ControlForms, ControlsTile, PendingTile } from "./controls";
 import { COPY, type Lang, type VoiceCopy } from "./copy";
@@ -45,8 +48,8 @@ function Sessions({ view, c }: { view: VoiceView; c: C }): ReactElement {
             <th>{c.cols.sessions}</th>
           </tr>
         </thead>
-        <tbody>
-          {t.rows.map((row) => (
+        <Rows rows={t.rows} columns={3} kind="sessions" empty={c.empties.sessions}>
+          {(row) => (
             <tr key={`${row.profile}:${row.reason}`} data-profile={row.profile}>
               <td>
                 <code>{row.profile}</code>
@@ -56,8 +59,8 @@ function Sessions({ view, c }: { view: VoiceView; c: C }): ReactElement {
                 <Cell value={row.sessions} c={c} />
               </td>
             </tr>
-          ))}
-        </tbody>
+          )}
+        </Rows>
       </ScrollTable>
     </Tile>
   );
@@ -92,6 +95,26 @@ function KillSwitchActivity({ view, c }: { view: VoiceView; c: C }): ReactElemen
   );
 }
 
+/** INT-450 — p50 and p95 per profile, drawn on one scale so the two compare. */
+function LatencyCharts({ view, c }: { view: VoiceView; c: C }): ReactElement | null {
+  const rows = view.turnLatency.rows;
+  if (rows.length === 0) return null;
+  const shares = sharesOf(rows.flatMap((row) => [row.p50, row.p95]));
+  const series = (p: 0 | 1) =>
+    rows.map((row, i) => ({
+      key: row.profile,
+      text: p === 0 ? row.p50 : row.p95,
+      share: shares[i * 2 + p] ?? null,
+      tone: "data" as const,
+    }));
+  return (
+    <div className="viz">
+      <BarList id="turn-p50" title={c.cols.p50} rows={series(0)} c={c} />
+      <BarList id="turn-p95" title={c.cols.p95} rows={series(1)} c={c} />
+    </div>
+  );
+}
+
 function TurnLatency({ view, c }: { view: VoiceView; c: C }): ReactElement {
   const t = view.turnLatency;
   const meta = (
@@ -108,6 +131,7 @@ function TurnLatency({ view, c }: { view: VoiceView; c: C }): ReactElement {
       c={c}
       meta={meta}
     >
+      <LatencyCharts view={view} c={c} />
       <ScrollTable>
         <thead>
           <tr>
@@ -116,8 +140,8 @@ function TurnLatency({ view, c }: { view: VoiceView; c: C }): ReactElement {
             <th>{c.cols.p95}</th>
           </tr>
         </thead>
-        <tbody>
-          {t.rows.map((row) => (
+        <Rows rows={t.rows} columns={3} kind="turns" empty={c.empties.turns}>
+          {(row) => (
             <tr key={row.profile} data-profile={row.profile}>
               <td>
                 <code>{row.profile}</code>
@@ -129,8 +153,8 @@ function TurnLatency({ view, c }: { view: VoiceView; c: C }): ReactElement {
                 <Cell value={row.p95} c={c} />
               </td>
             </tr>
-          ))}
-        </tbody>
+          )}
+        </Rows>
       </ScrollTable>
     </Tile>
   );
@@ -157,8 +181,8 @@ function SpeechErrors({ view, c }: { view: VoiceView; c: C }): ReactElement {
             <th>{c.cols.errorRatio}</th>
           </tr>
         </thead>
-        <tbody>
-          {t.rows.map((row) => (
+        <Rows rows={t.rows} columns={5} kind="speech" empty={c.empties.speech}>
+          {(row) => (
             <tr key={`${row.component}:${row.kind}`}>
               <td>
                 <code>{row.component}</code>
@@ -170,8 +194,8 @@ function SpeechErrors({ view, c }: { view: VoiceView; c: C }): ReactElement {
                 <Cell value={row.errorRatio} c={c} />
               </td>
             </tr>
-          ))}
-        </tbody>
+          )}
+        </Rows>
       </ScrollTable>
     </Tile>
   );
@@ -196,8 +220,8 @@ function Failovers({ view, c }: { view: VoiceView; c: C }): ReactElement {
             <th>{c.cols.count}</th>
           </tr>
         </thead>
-        <tbody>
-          {t.rows.map((row) => (
+        <Rows rows={t.rows} columns={3} kind="failovers" empty={c.empties.failovers}>
+          {(row) => (
             <tr key={`${row.from}>${row.to}`}>
               <td>
                 <code>{row.from}</code>
@@ -209,8 +233,8 @@ function Failovers({ view, c }: { view: VoiceView; c: C }): ReactElement {
                 <Cell value={row.count} c={c} />
               </td>
             </tr>
-          ))}
-        </tbody>
+          )}
+        </Rows>
       </ScrollTable>
     </Tile>
   );
@@ -227,8 +251,8 @@ function Breakers({ view, c }: { view: VoiceView; c: C }): ReactElement {
             <th>{c.cols.state}</th>
           </tr>
         </thead>
-        <tbody>
-          {t.rows.map((row) => (
+        <Rows rows={t.rows} columns={2} kind="breakers" empty={c.empties.breakers}>
+          {(row) => (
             <tr key={row.component} data-breaker={row.state ?? "unknown"}>
               <td>
                 <code>{row.component}</code>
@@ -241,27 +265,10 @@ function Breakers({ view, c }: { view: VoiceView; c: C }): ReactElement {
                 )}
               </td>
             </tr>
-          ))}
-        </tbody>
+          )}
+        </Rows>
       </ScrollTable>
     </Tile>
-  );
-}
-
-function Refused({
-  lang,
-  c,
-  children,
-}: {
-  lang: Lang;
-  c: C;
-  children: ReactElement;
-}): ReactElement {
-  return (
-    <main lang={lang} className="ops" data-page="voice">
-      <h1>{c.title}</h1>
-      {children}
-    </main>
   );
 }
 
@@ -277,20 +284,20 @@ export function VoiceConsole({
   const c = COPY[lang];
   if (state.kind === "not_admitted") {
     return (
-      <Refused lang={lang} c={c}>
+      <RefusedPage page="voice" lang={lang} title={c.title} state={state}>
         <p className="refusal" data-refusal={state.reason}>
           {c.refusals[state.reason]}
         </p>
-      </Refused>
+      </RefusedPage>
     );
   }
   if (state.kind === "unavailable") {
     return (
-      <Refused lang={lang} c={c}>
+      <RefusedPage page="voice" lang={lang} title={c.title} state={state}>
         <p className="refusal" data-unavailable={state.reason}>
           {c.unavailable[state.reason]}
         </p>
-      </Refused>
+      </RefusedPage>
     );
   }
   const view = state.view;

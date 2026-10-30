@@ -1,0 +1,58 @@
+# source_id: TR-KVKK-ILKE-2026-347
+# instrument: Kişisel Verileri Koruma Kurulu, "Veri Sorumluları Tarafından Açık Rıza Ve Aydınlatma Metinlerinin Ayrı Ayrı Düzenlenmesi Gerektiği Hakkında İlke Kararı", Karar No 2026/347, Karar Tarihi 18/02/2026
+# gazette: Resmî Gazete 24 Mart 2026, sayı 33203
+# url: https://www.resmigazete.gov.tr/eskiler/2026/03/20260324-3.pdf (linked from https://www.kvkk.gov.tr/Icerik/7201/ilke-kararlari)
+# retrieved_on: 2026-10-16 (INT-529)
+# retrieved_sha256: d4c4a31a1d7577fc9e3f472e94cce6c37e3fc7446a66bbdcf071f3f37941dff1 (the PDF as served, 8 pages)
+# transcription: the PDF has no text layer (pdftotext returns the page header only), so this is a manual transcription of pages 1-4 read from rendered page images. Line breaks are not the original's; bullets are written as "-". Pages 5-8 are the annex templates (Ek-1 İyi Uygulama Şablonları, Ek-2 Kötü Uygulama Şablonu) and are described, not transcribed.
+---
+KURUL KARARI
+Kişisel Verileri Koruma Kurumundan:
+Veri Sorumluları Tarafından Açık Rıza Ve Aydınlatma Metinlerinin Ayrı Ayrı Düzenlenmesi Gerektiği Hakkında İlke Kararı
+Karar No: 2026/347 Karar Tarihi: 18/02/2026
+
+Açık rıza metni ile aydınlatma metninin iç içe geçmiş şekilde ilgili kişilere sunulması, Kişisel Verileri Koruma Kurumuna (Kurum) intikal eden ihbar ve şikâyetlerde en çok karşılaşılan hukuka aykırılıklardan biri olarak görülmektedir.
+
+6698 sayılı Kişisel Verilerin Korunması Kanunu'nun (Kanun) 10'uncu maddesinde düzenlenen aydınlatma yükümlülüğü temelde, kişisel verileri işlenen ilgili kişilerin bilgilendirilmesi anlamına gelmektedir. Açık rıza ise kişisel verilerin hukuka uygun olarak işlenebilmesi için Kanun'da öngörülen işleme şartlarından biridir. Bu doğrultuda, niteliği itibariyle farklı kavramlara karşılık gelen açık rıza ve aydınlatma metinlerinin ayrı ayrı metinlerde düzenlemesi gerektiği hususunda kamuoyunun bilgilendirilmesi ve konuya ilişkin olarak Kişisel Verileri Koruma Kurulu (Kurul) tarafından İlke Kararı alınması gereği hasıl olmuştur.
+
+Bu çerçevede, konu ile alakalı mevzuat hükümlerine bakıldığında;
+- Anayasa'nın 20'nci maddesinin üçüncü fıkrasında, kişisel verilerin, ancak kanunda öngörülen hallerde veya kişinin açık rızasıyla işlenebileceği hüküm altına alınmıştır.
+- 6698 sayılı Kanun'un 5'inci maddesinde kişisel verilerin, 6'ncı maddesinde ise özel nitelikli kişisel verilerin işlenmesi için açık rıza alınması kişisel veri işleme şartları arasında sayılmıştır.
+
+Açık rıza, Kanun'un 3'üncü maddesinde; "belirli bir konuya ilişkin, bilgilendirilmeye dayanan ve özgür iradeyle açıklanan rıza" şeklinde tanımlanmıştır. Bu tanım kapsamında açık rıza, ilgili kişinin kendisiyle ilgili kişisel verilerin işlenmesine izin verdiğini/işlenmesini onayladığını gösteren özgürce verilmiş, konuya özel, bilgilendirilmiş ve belirsizlik içermeyen rızası anlamına gelmektedir.
+
+Açık rıza metinlerine, ilgili kişiler tarafından kişisel verilerinin metinde yer alan amaç ve hukuki sebeplere dayalı olarak işlenmesine açık rıza verildiğinin beyan edilmesi gerekmektedir. Bununla birlikte, Kanun'a uygun bir şekilde açık rıza alındığına ilişkin ispat yükümlülüğü veri sorumlusuna aittir.
+
+Aydınlatma yükümlülüğü ise Kanun'un 10'uncu maddesinde "(1) Kişisel verilerin elde edilmesi sırasında veri sorumlusu veya yetkilendirdiği kişi, ilgili kişilere; a) Veri sorumlusunun ve varsa temsilcisinin kimliği, b) Kişisel verilerin hangi amaçla işleneceği, c) İşlenen kişisel verilerin kimlere ve hangi amaçla aktarılabileceği, ç) Kişisel veri toplamanın yöntemi ve hukuki sebebi, d) 11 inci maddede sayılan diğer hakları, konusunda bilgi vermekle yükümlüdür." şeklinde açıklanmıştır. Aydınlatma yükümlülüğün amacı işlenen kişisel veriler ve işleme faaliyetlerine ilişkin olarak ilgili kişilerin bilgilendirilmesinden ibaret olup aydınlatma metinleri sözleşme niteliği taşımamaktadır. Bu nedenle aydınlatma metinlerinde sıkça yapılan hatalardan olan "okudum ve kabul ediyorum", "okudum ve açık rıza veriyorum", "okudum ve onaylıyorum" şeklindeki metnin sonunda yer verilen ifadeler yerine aydınlatma metninin ilgili kişi tarafından okunduğu ve anlaşıldığına yönelik olarak "okudum ve anladım" şeklindeki beyanda bulunulması bu aşamada hukuka uygun bir kullanım teşkil edecektir. Ayrıca, aydınlatma yükümlülüğünün yerine getirildiğinin ispatı da veri sorumlusuna aittir.
+
+Aydınlatma Yükümlülüğünün Yerine Getirilmesinde Uyulacak Usul ve Esaslar Hakkında Tebliğ'in 5'inci ("Tebliğ") maddesinin birinci fıkrasının (f) bendi; "Veri sorumlusu ya da yetkilendirdiği kişi tarafından sözlü, yazılı, ses kaydı, çağrı merkezi gibi fiziksel veya elektronik ortam kullanılmak suretiyle aydınlatma yükümlülüğünün yerine getirilmesi esnasında aşağıda sayılan usul ve esaslara uyulması gerekmektedir: Kişisel veri işleme faaliyetinin açık rıza şartına dayalı olarak gerçekleştirilmesi halinde, aydınlatma yükümlülüğü ve açık rızanın alınması işlemlerinin ayrı ayrı yerine getirilmesi gerekmektedir." hükmünü amirdir.
+
+Bu kapsamda, ilgili kişinin talebine veya herhangi bir onaya bağlı olmayan aydınlatma yükümlülüğünün kişisel veri işleme faaliyetinin açık rıza da dahil olmak üzere Kanun'da sayılan işleme şartlarından hangisine dayalı olarak gerçekleştirildiğinden bağımsız olarak her durumda (kişisel veri işlemeye başlamadan önce) veri sorumluları tarafından yerine getirilmesi gerekmektedir. Kişisel veri işleme faaliyetinin açık rıza şartına dayalı olarak gerçekleştirilmesi halinde aydınlatma metni ile açık rıza metni ayrı ayrı düzenlenerek ilgili kişilere sunulmalıdır. Söz konusu metinler tek bir sayfada yer alacak olsa dahi ilgili kişiler tarafından verilecek beyanlar niteliği itibariyle farklı olduğundan her iki metnin alt ve üst şeklinde ayrı ayrı yer alması ve her iki metin için ayrı beyanlarda bulunulması gerekmektedir.
+
+Öte yandan uygulamada;
+- Açık rıza ve aydınlatma metinlerinin iç içe geçmiş şekilde tek bir metin halinde sunulması,
+- Aydınlatma yapıldığına dair ilgili kişilerden onay/rıza talep edilmesi,
+- Başka bir veri sorumlusu tarafından düzenlenen metinlerin veri sorumluları tarafından kendi faaliyetlerine uyarlanmadan birebir aynısının kullanılması,
+- Aydınlatma metinlerinde açık, anlaşılır ve sade bir dil kullanılmaması, genel nitelikte, farklı anlaşılmaya müsait, eksik, ilgili kişileri yanıltıcı ve yanlış bilgilere yer verilmesi (örneğin; yurt dışına aktarım yapılmıyorken yurt dışına aktarım yapıldığı izlenimi uyandıran ifadeler kullanılması, "kişisel verileriniz Kanun'un 5 ve 6'ncı maddesinde belirtilen işleme şartları kapsamında işlenmektedir" gibi muğlak ifadelere yer verilmesi)
+- Çok detaylı, karmaşık ve uzun metinlerin kullanılması,
+gibi hukuka aykırılıklar sıkça tespit edilmektedir.
+
+Bu itibarla;
+- İlgili kişinin talebine veya herhangi bir onaya bağlı olmayan aydınlatma yükümlülüğünün kişisel veri işleme faaliyetinin açık rıza da dahil olmak üzere Kanun'da sayılan işleme şartlarından hangisine dayalı olarak gerçekleştirildiğinden bağımsız olarak her durumda (kişisel veri işlemeye başlamadan önce) veri sorumluları tarafından yerine getirilmesi,
+- Kişisel veri işleme faaliyetinin açık rıza şartına dayalı olarak gerçekleştirilmesi halinde aydınlatma metni ve açık rıza metinlerinin farklı başlıklar altında ayrı ayrı metinler olarak düzenlenmesi,
+- Aydınlatma metni ve açık rıza metinlerinin aynı sayfada bulunması halinde farklı başlıklar altında (alt alta gelecek şekilde) ve iki metin için ayrı beyanlarda bulunulacak şekilde düzenlenmesi,
+- Kişisel veri işleme faaliyetinin açık rıza şartı haricindeki Kanun'da sayılan diğer işleme şartlarından herhangi birine dayalı olarak gerçekleştirilesi durumunda sadece aydınlatma yükümlülüğünün yerine getirilmesi, ilgili kişilere ayrıca açık rıza metni sunulmaması,
+- İlgili kişilerden sadece, aydınlatma metninin okunduğuna ve bilgi edinildiğine ilişkin geri bildirim alınması, aydınlatma metninde yer alan ifadeler için onay/rıza verilmesinin talep edilmemesi,
+- Başka bir veri sorumlusu tarafından düzenlenen metinlerin birebir aynısının kullanılmaması, metinlerin her veri sorumlusu tarafından kendi organizasyonuna ve faaliyetlerine uygun şekilde düzenlenmesi,
+- Metinlerde açık, anlaşılır ve sade bir dil kullanılması; genel nitelikte, farklı anlaşılmaya müsait, eksik, ilgili kişileri yanıltıcı ve yanlış bilgilere yer verilmemesi,
+- Çok detaylı, karmaşık ve uzun metinlerin kullanılmaması (örneğin; Kanun'un 11'inci maddesinin tamamına yer verilmesi metnin uzamasına sebep olacağından, "Kanun'un 11'nci maddesi kapsamındaki haklarınız" şeklinde ifade edilmesi),
+- Aydınlatma metinlerinde işlenen kişisel veriler ve kategorileri ile birlikte kişisel veri işleme faaliyetinin amaç ve hukuki sebebinin açık ve net bir biçimde ifade edilmesi
+gerektiği kamuoyunun bilgisine sunulmaktadır.
+
+[Kanun m.12(1) and m.15(6) are then quoted; the Board decides unanimously to take the principle decision and publish it with its annex in the Resmî Gazete and on the Kurum's website.]
+
+Ek:
+1) İyi Uygulama Şablonları
+2) Kötü Uygulama Şablonu
+
+[Annex, described: Ek-1 shows an aydınlatma metni headed by the controller's title with five sections — 1. Veri sorumlusunun kimliği (Ünvan, MERSİS Numarası, Adres, Telefon, E-posta, KEP); 2. İşlenen kişisel veriler, işleme amacı ve hukuki sebebi; 3. Kişisel verilerin aktarılma amacı ve alıcı grupları; 4. Kişisel veri toplamanın yöntemi; 5. KVKK kapsamındaki haklarınız — closing with "aydınlatma metnini okudum ve anladım"; and a separate "AÇIK RIZA METNİ" closing with "... amacıyla kişisel verilerimin işlenmesine ve paylaşılmasına açık rıza veriyorum / açık rıza vermiyorum".]

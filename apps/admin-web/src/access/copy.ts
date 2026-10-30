@@ -7,11 +7,14 @@
 import type { Lang } from "../ops/copy";
 
 export type { Lang } from "../ops/copy";
+import { EMPTIES, FILLS } from "../ui/fills";
 
 const tr = {
   title: "Erişim gözden geçirmesi",
   generatedAt: "Oluşturulma",
   unknown: "Bilinmiyor",
+  fills: FILLS.tr,
+  empties: EMPTIES.tr,
   yes: "evet",
   no: "hayır",
   none: "yok",
@@ -75,6 +78,7 @@ const tr = {
     pending: "Onay bekleyen",
     failed: "Başarısız",
     none: "Açık kayıt yok.",
+    noneWhy: "Başlatılan bir hesap kapatma, her adımı tamamlanana dek burada izlenir.",
   },
 };
 
@@ -84,6 +88,8 @@ const en: AccessCopy = {
   title: "Access review",
   generatedAt: "Generated",
   unknown: "Unknown",
+  fills: FILLS.en,
+  empties: EMPTIES.en,
   yes: "yes",
   no: "no",
   none: "none",
@@ -148,6 +154,7 @@ const en: AccessCopy = {
     pending: "Awaiting confirmation",
     failed: "Failed",
     none: "No open record.",
+    noneWhy: "An offboarding that has started is tracked here until every step completes.",
   },
 };
 
