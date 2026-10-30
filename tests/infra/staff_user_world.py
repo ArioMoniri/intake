@@ -36,11 +36,30 @@ EMAIL = "ada.owner@example.org"
 PARAM = f"/intake/staging/staff_tmp/{USERNAME}"
 PROMPTS = "username: email: role (platform_owner|qms_owner): "
 ORG_PROMPT = "organisation id: "
-REVEAL = (
-    f"aws ssm get-parameter --region us-east-1 --name {PARAM} --with-decryption"
-    f" --query Parameter.Value --output text"
-    f" && aws ssm delete-parameter --region us-east-1 --name {PARAM}"
-)
+
+
+def reveal_for(param: str) -> str:
+    """The one command that shows the temporary password once, then deletes it.
+
+    The value is printed alone on its line, with nothing after it, and then a line with its
+    length, so the owner can see a short or long paste before signing in.
+    """
+    return (
+        f"v=$(aws ssm get-parameter --region us-east-1 --name {param} --with-decryption"
+        " --query Parameter.Value --output text)"
+        ' && printf \'%s\\npaste exactly; %s characters\\n\' "$v" "${#v}"'
+        f" && aws ssm delete-parameter --region us-east-1 --name {param}; unset v"
+    )
+
+
+REVEAL = reveal_for(PARAM)
+
+
+def revealed(value: str) -> str:
+    """What the reveal command prints for a value."""
+    return f"{value}\npaste exactly; {len(value)} characters\n"
+
+
 #: The laptop half runs under /bin/bash: macOS ships bash 3.2 there, Linux a current one.
 BASH = "/bin/bash"
 RUNBOOK = REPO / "docs" / "runbooks" / "second-admin.md"

@@ -225,6 +225,28 @@
   - INT-519 items 5, 6 and 7 are unchanged, and item 5's amendment is now one number in CD-04.
   - New items: a hedge plus a choice in one answer; a plain negative to the onset question; a never-asked anchor at session end; CD-05's own wording for "asked, never answered at close".
 - Residuals in evidence: the CD-08 inbox kind `chest_pain_arms_unresolved` is unbuilt; CD-04 is not applied to non-anchor slots; no production worker pumps the close yet.
+### 2026-10-16T22:30:00+03:00 · INT-538 round 3 · done (branch pushed, no PR yet, not run against the host)
+- Goal: the owner's first console sign-in as `ariomoniri` was refused with "Invalid username or password". The temporary password had already been revealed and deleted, and create refuses an existing user.
+- Plan:
+  - Diagnose from the code.
+  - Add `staff_user.sh --reset <username>`: a new temporary password plus the `webauthn-register` and `UPDATE_PASSWORD` required actions, same secret rules, an unknown user refused.
+  - The reveal prints the value alone, then `paste exactly; <n> characters`.
+- Tests added (with the near-miss negative for any safety rule):
+  - `tests/infra/test_staff_user_reset.py` (25): reset, an unknown user, malformed and mistyped flags, a waiting parameter, both failed steps, IAM, unanswered.
+  - Reveal-format and byte-equality tests in `test_staff_user.py`.
+  - Red: 19 failed against `2ccd07ee`. Green: 124 passed. 6 of 6 mutations caught.
+- Result: shellcheck and ruff clean; the touched suites green; no_placeholders, evidence_check and sec_row linkage OK.
+- Invariants touched and still passing:
+  - 6 (no credential or email printed);
+  - 14 (secrets never in argv, the command or a log);
+  - 16 (Sec-Row `platform`).
+- Decisions / ADRs / `00_STATE.md` rows: none.
+- Root cause:
+  - No byte mismatch exists in the code. Both ends shape-check 64 hex, and the reveal equals the stored credential.
+  - The realm refuses email sign-in. An unknown name reads exactly like a wrong password and counts no failure, which matches the "0 failures".
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): nothing. The owner runs `--reset ariomoniri` and signs in with the username.
+- Next: the owner resets and signs in; then a PR for this branch.
+- LOOP_STATUS: CONTINUE
 
 ### 2026-10-16T17:45:00Z · INT-544 · done (PR #923 open, round 2; owner patch and host install pending)
 - Goal: a pull request clears CI in under 20 minutes on the intake-aws-ci pool (GitHub #919, P0, Sec-Row cicd). The acceptance is quoted verbatim in docs/evidence/INT-544.md.

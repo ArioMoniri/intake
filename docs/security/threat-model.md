@@ -138,7 +138,9 @@ it or whose tests exercise it.
   a new user joins the platform_owner's org and a differing org is refused; only the very first
   user, who must be the platform_owner, types it once as a slug. It is never invented. An instance
   role that may not read the staff_tmp parameters is named with the IAM statement to add. A failed
-  step rolls the user back. **INT-550** (both committed realms and
+  step rolls the user back. `--reset <username>` re-issues a temporary password for an existing
+  user under the same rules and refuses an unknown one; the reveal prints the value alone with
+  its length. **INT-550** (both committed realms and
   `infra/staging/keycloak/staff_flow.py`): the `intake-webauthn-session-notes` step is REQUIRED, so Keycloak sends a user without a
   passkey to `webauthn-register` after the password. A user with a passkey is challenged for it
   and offered nothing else. The OTP step is DISABLED until INT-389, so it is neither offered nor
@@ -151,7 +153,8 @@ it or whose tests exercise it.
   shape) after every deploy.
 - **Tests:** tests/smoke/test_make_check.py; tests/ci/test_no_placeholders.py;
   tests/ci/test_coverage_floors.py; tests/infra/test_staff_user.py;
-  tests/infra/test_staff_user_host.py; tests/admin/test_staff_passkey_enrolment.py;
+  tests/infra/test_staff_user_host.py; tests/infra/test_staff_user_reset.py;
+  tests/admin/test_staff_passkey_enrolment.py;
   tests/infra/test_staging_keycloak_provider.py; `StaffSecondFactorFlowTest` (Keycloak
   26.7.4's own flow engine, in `infra/keycloak/providers/webauthn-session-notes`).
 
