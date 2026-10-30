@@ -1460,6 +1460,24 @@ metrics:
     unit: "count"
     status: planned
     description: Open penetration-test findings.
+  # --- INT-584 (owner decision D38): where the API's phone-tokenization key
+  # came from. 08 §4 names no id for it, so the entry carries none. Both
+  # labels are closed vocabularies of ids (inv. 6): never a key, a pseudonym
+  # or a number.
+  - name: tokenization_key_state
+    type: gauge
+    labels: [state, origin]
+    owner: security
+    unit: "bool"
+    description: >-
+      1 on the API's current phone-tokenization key state and origin, set once
+      at wiring; every other series is cleared. state is loaded, absent,
+      unreadable or malformed (the last three keep the OTP tier and the
+      previsit read-back at 503 with tokenization_key_<state>); origin is
+      env_file (carried across from the synthetic host's env file by
+      infra/staging/tokenization_key.sh, D38), generated (made in OpenBao),
+      process_local (dev under file-dev KEKs only), unrecorded, or none when
+      no key loaded. Emitted by intake_api.tokenization_key.
   # --- files/08 §4 N. Reliability & client (files/10 §6)
   - name: slo_error_budget_remaining
     id: slo.error_budget_remaining

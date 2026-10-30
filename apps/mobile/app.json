@@ -56,8 +56,8 @@
       [
         "@kingstinct/react-native-healthkit",
         {
-          "NSHealthShareUsageDescription": "Önvizit; adım, nabız ve uyku verilerinizi yalnızca bu cihazda görüntülemek ve ancak sizin onayınızla vizit notunuza eklemek için okur.",
-          "NSHealthUpdateUsageDescription": false,
+          "NSHealthShareUsageDescription": "Önvizit adım, dinlenme nabzı ve uyku verilerinizi yalnızca okur. Bu veriler bu telefonda gösterilir. Notunuza ancak siz eklerseniz girer; notunuzu gönderirseniz onunla birlikte gider.",
+          "NSHealthUpdateUsageDescription": "Önvizit Sağlık uygulamasına hiçbir veri yazmaz ve oradaki verilerinizi değiştirmez. Yalnızca okuma izni ister.",
           "background": false
         }
       ],

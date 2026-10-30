@@ -93,8 +93,8 @@ patient's on-site location answer).
    is refused (503) meanwhile and the device retries it.
    `red clinic route unidentified` means the RED named no session or visit the API
    may keep: an app build from before INT-475 that sends no ids, or a non-UUID id
-   (a synced hospital visit) with no tokenization key configured
-   (`INTAKE_TOKENIZATION_KEY`). Such an id is never stored raw (invariant 14); the
+   (a synced hospital visit) with no tokenization key configured (OpenBao
+   `secret/api/tokenization`, INT-584). Such an id is never stored raw (invariant 14); the
    chain row names `visit:unidentified/red:<rule id>`.
 4. Otherwise open an incident: the route is built to be unable to fail (an
    in-memory append of an id-shaped entry), so a failure is a defect.

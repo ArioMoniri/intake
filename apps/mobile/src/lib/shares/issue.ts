@@ -26,8 +26,16 @@
  * reads no store, writes none, logs nothing (invariant 6), and puts neither the
  * token nor the recipient in a URL — both routes are POST and carry their
  * payload in the body, exactly as the server's own contract requires.
+ *
+ * INT-587 puts two things in front of the first POST: a `StepUpProof` (the
+ * typed D36 seam — ./stepUp; today the OTP session tier, a passkey once
+ * INT-582 lands), and two more true sentences for the screen: `consent` when
+ * the server refuses the share scope (the patient withdrew it — a revoked
+ * grant stops the link), and `session` when there is no session to issue on.
  */
 import { authedFetch } from "@/lib/auth/api";
+
+import { isStepUpProof, type StepUpProof } from "./stepUp";
 
 /** The one bundle a screen may render, and only while it is mounted. */
 export interface IssuedCredential {
@@ -43,7 +51,14 @@ export interface IssuedCredential {
 
 /** Why an attempt did not produce a credential — one reason per true sentence. */
 export type IssueFailure =
-  "not_shared" | "date_unknown" | "recipient_invalid" | "limited" | "unavailable" | "unreachable";
+  | "not_shared"
+  | "date_unknown"
+  | "recipient_invalid"
+  | "limited"
+  | "unavailable"
+  | "unreachable"
+  | "consent"
+  | "session";
 
 export type IssueResult =
   { ok: true; credential: IssuedCredential } | { ok: false; reason: IssueFailure };
@@ -148,7 +163,23 @@ function failureFor(status: number, error: string): IssueFailure {
   if (status === 503 || error === "doctor_link_unconfigured") {
     return "unavailable";
   }
+  if (status === 403 && error === "consent_required") {
+    // the share scope (or core beneath it) does not hold: no link is minted
+    return "consent";
+  }
+  if (status === 401) {
+    return "session";
+  }
   return "unreachable";
+}
+
+/** An auth-layer throw that means "no session here", not "no network". */
+function isSessionError(error: unknown): boolean {
+  if (typeof error !== "object" || error === null) {
+    return false;
+  }
+  const kind = (error as { kind?: unknown }).kind;
+  return kind === "session" || kind === "unconfigured";
 }
 
 async function jsonOrNull(response: Response): Promise<unknown> {
@@ -165,8 +196,18 @@ async function jsonOrNull(response: Response): Promise<unknown> {
  *
  * The two POSTs are sequential on purpose: the code is minted only for a grant
  * that was actually issued, so a failure to issue never mints a stray code.
+ *
+ * `proof` is the step-up for this act (./stepUp). A value that is not a proof
+ * of a known tier is refused before any network.
  */
-export async function issueDoctorLink(visitId: string, rawRecipient: string): Promise<IssueResult> {
+export async function issueDoctorLink(
+  visitId: string,
+  rawRecipient: string,
+  proof: StepUpProof,
+): Promise<IssueResult> {
+  if (!isStepUpProof(proof)) {
+    return { ok: false, reason: "session" };
+  }
   const recipient = validateRecipient(rawRecipient);
   if (recipient === null) {
     return { ok: false, reason: "recipient_invalid" };
@@ -202,8 +243,8 @@ export async function issueDoctorLink(visitId: string, rawRecipient: string): Pr
         expiresAt: grant.expiresAt,
       },
     };
-  } catch {
+  } catch (error) {
     // A DPoP/session error or a dropped connection — never a credential.
-    return { ok: false, reason: "unreachable" };
+    return { ok: false, reason: isSessionError(error) ? "session" : "unreachable" };
   }
 }
