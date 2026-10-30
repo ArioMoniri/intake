@@ -2058,6 +2058,28 @@ metrics:
       the number's five attempts in a rolling hour, across codes, and locked
       it), missing (no live code) or locked (refused by the lockout).
       Emitted by intake_api.otp.
+  # --- INT-488 (owner decision D39): the App Review sign-in. Two closed
+  # labels; no number, pseudonym, device or code (inv. 6). Every use alerts
+  # (ReviewSignInUsed), and every refusal pages (ReviewSignInRefused).
+  - name: sec_review_signin_total
+    type: counter
+    labels: [step, outcome]
+    owner: security
+    unit: "count"
+    description: >-
+      Uses of the App Review sign-in (the reserved reviewer number), by step
+      (request, verify) and outcome. A request is admitted (a code record
+      minted; nothing is ever sent), withheld (the number's own budget),
+      locked (the INT-578 lockout), limited (the caller's device or address
+      budget), not_synthetic (not the synthetic host's synthetic tenant, or
+      the model-lane control bound real_phi), hosted_lanes_open (the reviewer
+      tenant's kill switch is off or unreadable), window_closed (the review
+      window is off), unconfigured (the window is open and OpenBao holds no
+      usable code: a typed 503) or code_retired (the code reached its miss cap
+      and stays refused until a new one is generated). A verify is signed_in,
+      one of the INT-578 verdicts (invalid, unbound, missing, exhausted),
+      locked, or refused for the same five reasons. Every pair is exported at zero from start, so
+      the first use of each kind alerts. Emitted by intake_api.review_flow.
   # --- INT-242 survey cadence. files/08 §4 group F names the two satisfaction
   # series (nps.monthly, clinician.pulse) but no id for the scheduling of
   # them, so this entry carries no `id` — the same posture as the INT-141 rows

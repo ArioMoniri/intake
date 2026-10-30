@@ -36,7 +36,15 @@ class AuditWriter:
                 # first use resumes the persisted chain (reads the tail)
                 self._chain = await asyncio.to_thread(AuditChain, self._store)
             chain = self._chain
-            return await asyncio.to_thread(fn, chain)
+
+            def caught_up(chain: AuditChain) -> _T:
+                # INT-488: an operator's command beside the API appends to the
+                # same chain; adopt its rows first, or this one would reuse its
+                # seq (the primary key) and every audited route would fail
+                chain.catch_up()
+                return fn(chain)
+
+            return await asyncio.to_thread(caught_up, chain)
 
     async def record(
         self, *, actor: str, action: str, resource_ref: str, consent_scope: str

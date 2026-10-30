@@ -36,6 +36,7 @@ from typing import Protocol
 __all__ = [
     "GENESIS_PREV_HASH",
     "AuditChain",
+    "AuditChainForked",
     "AuditEntry",
     "AuditStore",
     "InMemoryAuditStore",
@@ -143,6 +144,11 @@ def _utc_now() -> datetime:
     return datetime.now(tz=UTC)
 
 
+class AuditChainForked(Exception):
+    """INT-488: rows another writer appended after this chain's head do not
+    chain from it. Nothing is appended over them; the message names seqs only."""
+
+
 class AuditChain:
     """Writer + verifier over a store. Holds the running head in memory: the
     head is the one fact a truncate-and-re-append fork cannot reproduce,
@@ -161,6 +167,37 @@ class AuditChain:
         """The running head: the newest entry's hash, or the genesis value
         while the chain is empty (which is what entry 1 will link to)."""
         return self._head
+
+    def catch_up(self) -> int:
+        """Adopt the rows another writer appended since this chain's head —
+        an operator's command run beside the API (``intake_api.sms_spend``,
+        ``intake_api.review_signin``, ``access_hygiene``) — so this writer's
+        next row neither collides with theirs nor forks the chain (INT-488,
+        security review of 30 Oct 2026).
+
+        Adopted only if they chain from the head held in memory: consecutive
+        seqs, each linking to the one before, each hash recomputing. The held
+        head stays the check a truncate-and-re-append forgery cannot pass,
+        because the forged rows never saw it. Returns how many rows were
+        adopted; one cheap read (the tail) when there are none."""
+        tail = self._store.last()
+        if tail is None or tail.seq < self._next_seq:
+            return 0
+        head, expected = self._head, self._next_seq
+        newer = [entry for entry in self._store.entries() if entry.seq >= expected]
+        for entry in newer:
+            if (
+                entry.seq != expected
+                or entry.prev_hash != head
+                or _entry_hash(entry) != entry.entry_hash
+            ):
+                raise AuditChainForked(
+                    f"audit row seq {entry.seq} does not chain from this writer's head at "
+                    f"seq {self._next_seq - 1}; nothing is appended over it"
+                )
+            head, expected = entry.entry_hash, expected + 1
+        self._head, self._next_seq = head, expected
+        return len(newer)
 
     def append(
         self, *, actor: str, action: str, resource_ref: str, consent_scope_ref: str

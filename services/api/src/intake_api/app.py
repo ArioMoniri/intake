@@ -99,6 +99,7 @@ from intake_api.doctor_link.service import (
 from intake_api.documents import DocumentsConfig, DocumentsGateway
 from intake_api.embed import EmbedService, EmbedWiring
 from intake_api.otp import AuthWiring, OtpAuthService, ensure_consumer_tenant
+from intake_api.review_signin import ensure_review_tenant
 from intake_api.settings import ENV_MINIO_PASSWORD, ENV_MINIO_USER, ApiSettings
 from intake_api.state import ApiState
 
@@ -255,7 +256,11 @@ def _auth_from_settings(
     Netgsm or nothing, never the dev logger (INT-325) — see otp_netgsm. ``secrets`` is
     the OpenBao reader, injectable for tests. The pepper (INT-578): OpenBao
     ``secret/api/otp``, read after the delivery adapter so a tier that cannot
-    send pulls no key; only dev under file-dev KEKs takes a process-local one."""
+    send pulls no key; only dev under file-dev KEKs takes a process-local one.
+    The App Review reviewer (INT-488, D39): OpenBao ``secret/api/review_signin``,
+    read after the pepper and outside dev only. It is read wherever the
+    document can be, synthetic or not, so the reviewer number stays reserved
+    (never sent) on a deployment whose gate refuses the reviewer."""
     if not settings.otp_auth_configured or settings.tokenization_key is None:
         return None
     from intake_api.otp_netgsm import NetgsmSmsDeliveryAdapter, otp_delivery_from_settings
@@ -288,15 +293,31 @@ def _auth_from_settings(
         PlatformAttestationVerifier,
     )
     from intake_api.carrier_geo import carrier_geo_from_path
+    from intake_api.review_signin import (
+        ReviewSignIn,
+        review_guards_from_env,
+        review_signin_from_vault,
+    )
 
+    tokenizer = Tokenizer(
+        keys={settings.tokenization_key_id: settings.tokenization_key.encode("utf-8")},
+        active_key_id=settings.tokenization_key_id,
+    )
+    review: ReviewSignIn | None = None
+    if not settings.dev_tier_expected:
+        review = review_signin_from_vault(
+            secrets,
+            settings=settings,
+            tokenizer=tokenizer,
+            pepper=pepper,
+            # the stores the model-lane router itself reads (ADR-035, INT-182)
+            guards=review_guards_from_env(os.environ),
+        )
     redis_client = Redis.from_url(settings.redis_url)
     app_attest = _app_attest_from_settings(settings, redis_client)
     return AuthWiring(
         redis_client=redis_client,
-        tokenizer=Tokenizer(
-            keys={settings.tokenization_key_id: settings.tokenization_key.encode("utf-8")},
-            active_key_id=settings.tokenization_key_id,
-        ),
+        tokenizer=tokenizer,
         delivery=delivery,
         attestation=PlatformAttestationVerifier(
             app_attest=app_attest,
@@ -315,6 +336,7 @@ def _auth_from_settings(
         carrier_geo=carrier_geo_from_path(settings.msisdn_allocation_path),
         recipients=recipients,
         pepper=pepper,
+        review=review,
     )
 
 
@@ -578,6 +600,13 @@ def create_app(wiring: ApiWiring | None = None) -> FastAPI:
                     await ensure_consumer_tenant(w.bootstrap_engine or w.engine)
                 except Exception:  # noqa: BLE001 — readiness reports; ids-only log
                     logger.warning("consumer tenant bootstrap deferred: database not ready")
+            if w.auth is not None and w.auth.review is not None and w.auth.review.admitted:
+                try:
+                    # INT-488 (D39): the App Review reviewer's synthetic tenant,
+                    # on the synthetic host's synthetic tenant only
+                    await ensure_review_tenant(w.bootstrap_engine or w.engine)
+                except Exception:  # noqa: BLE001 — ids-only log
+                    logger.warning("review tenant bootstrap deferred: database not ready")
         if w.admin is not None:
             # INT-366: read the review state off the chain at start, so the
             # review-age gauge is not +Inf until the first admin request.

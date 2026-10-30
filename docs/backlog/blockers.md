@@ -517,3 +517,11 @@ coordinator decision, not one an agent mints.
 | issue | status | who | the one sentence they must answer | HB id |
 |---|---|---|---|---|
 | INT-465 | awaiting-human (the wait and the late answer; the no-answer branch is fixed at REMOTE, and since LD-05 a late answer still moves the RED; the device runs both on synthetic tenants only) | physician of record (**Dr Efe Onganer**) | How long may an unanswered "Şu anda hastanede misiniz?" stand before the RED takes its REMOTE branch — and may a late answer move the RED, may a later "hayır" restore REMOTE, should the screen say why 112 is gone, is a SILENT RED's large 112 right, and under SILENT may the screen reader's focus move to the RED's action when the no-answer wait expires, or only after the patient's own answer? | HB-C25 |
+
+## INT-488 — the App Review window has no end time of its own
+
+**Raised:** 30 Oct 2026 by the security review of INT-488 · **Named human:** the owner
+
+| issue | status | who | the one sentence they must answer | HB id |
+|---|---|---|---|---|
+| INT-488 | open, not blocking (`--off` and the miss cap close the window; no automatic end is built, because its length is a value nobody has chosen) | owner | Should the App Review window close itself after a fixed time, and if so after how many days? | — (the coordinator allocates it; agents mint no HB ids) |

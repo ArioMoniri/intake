@@ -257,7 +257,8 @@ def test_every_strict_environment_reads_the_pepper_from_openbao(
     vault = kit.complete_vault()
     wiring = _auth_from_settings(_settings(environment), secrets=vault)
     assert isinstance(wiring, AuthWiring)
-    assert vault.paths == ["api/netgsm", pepper_module().OTP_PEPPER_KV_PATH]
+    # INT-488: the App Review document is read after the pepper, outside dev only
+    assert vault.paths == ["api/netgsm", pepper_module().OTP_PEPPER_KV_PATH, "api/review_signin"]
     held = pepper_module().OtpPepper.parse(kit.PEPPER_DOC)
     assert wiring.pepper.code_digest(PSEUDONYM, "f" * 32, "1") == held.code_digest(
         PSEUDONYM, "f" * 32, "1"

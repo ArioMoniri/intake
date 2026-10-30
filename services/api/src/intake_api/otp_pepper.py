@@ -59,6 +59,7 @@ _PEPPER_SHAPE = re.compile(r"(?:[0-9a-f]{2}){32,128}")
 _CODE_DOMAIN: Final = b"intake.otp.code.v1"
 _DEVICE_DOMAIN: Final = b"intake.otp.device.v1"
 _RATE_DOMAIN: Final = b"intake.otp.rate.v1"
+_REVIEW_DOMAIN: Final = b"intake.otp.review.v1"
 
 
 class OtpPepperError(ValueError):
@@ -130,6 +131,13 @@ class OtpPepper:
         hash of one is reversed by enumeration."""
         message = _framed(_RATE_DOMAIN, dimension, value)
         return hmac.new(self._key, message, hashlib.sha256).hexdigest()
+
+    def review_code(self, code: str) -> str:
+        """INT-488 (D39): what the API keeps of the App Review reviewer's fixed
+        code, and what it derives from a submitted one, so the code itself is
+        held only for the moment the OpenBao document is parsed. Its own
+        domain: never equal to a code digest, a binding or a rate key."""
+        return hmac.new(self._key, _framed(_REVIEW_DOMAIN, code), hashlib.sha256).hexdigest()
 
 
 def otp_pepper_from_vault(secrets_reader: KvSecrets | None = None) -> OtpPepper | None:

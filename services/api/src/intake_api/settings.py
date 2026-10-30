@@ -20,7 +20,9 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Literal
 
+from intake_platform.model_lanes.guard import deployment_data_class as declared_data_class
 from intake_platform.model_lanes.guard import egress_proxy_url
+from intake_platform.model_lanes.model import TenantDataClass
 from intake_platform.red_tenant import TenantKind
 
 __all__ = [
@@ -279,6 +281,11 @@ class ApiSettings:
     triage_signature_path: Path | None = None
     triage_tenant_kind: TenantKind = TenantKind.REAL
     triage_deployment: str | None = None
+    # INT-488 (D39): the deployment's data class, which the synthetic image
+    # bakes (INTAKE_DEPLOYMENT_DATA_CLASS=synthetic) and nothing else sets. The
+    # App Review sign-in admits only the synthetic host's synthetic tenant;
+    # the default, like every other reading, is real PHI (fail closed).
+    deployment_data_class: TenantDataClass = TenantDataClass.REAL_PHI
     # INT-465: admit a served set citing a tests/fixtures snapshot. Test harness
     # only: from_env never sets it, so no deployment can.
     triage_fixture_sources: bool = False
@@ -371,5 +378,6 @@ class ApiSettings:
             ),
             triage_tenant_kind=_triage_tenant_kind(os.environ),
             triage_deployment=os.environ.get(ENV_TRIAGE_DEPLOYMENT, "").strip() or None,
+            deployment_data_class=declared_data_class(os.environ),
             environment=environment_name(os.environ),
         )

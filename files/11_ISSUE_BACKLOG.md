@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**378 issues.** By phase: P0 183 · P1 140 · P2 48 · P3 7. By status: awaiting-human 38 · doing 7 · done 257 · todo 75 · withdrawn 1.
+**379 issues.** By phase: P0 183 · P1 141 · P2 48 · P3 7. By status: awaiting-human 38 · doing 7 · done 258 · todo 75 · withdrawn 1.
 
 ## P0
 
@@ -339,6 +339,7 @@
 | INT-579 | OTP enumeration — identical response and timing whether a number is registered or not | E01-platform | INT-131, INT-528, INT-577, INT-578 | area:api, risk:security | done |
 | INT-581 | SMS data protection — no number or code in logs/metrics/traces, tokenised at rest, OpenBao-only creds, SMS proxy only, audited sends | E01-platform | INT-528, INT-578, INT-577, INT-579 | area:api, risk:security | done |
 | INT-580 | SMS hijacking and phishing — code-only SMS, domain-bound one-time-code format, new-device notice, passkey step-up | E01-platform | INT-528, INT-578, INT-579 | area:api, risk:security | done |
+| INT-488 | Store-review sign-in path for release builds (synthetic tenant only), security-reviewed | E08-mobile | INT-131, INT-578, INT-580 | area:mobile, area:api, risk:security, risk:legal | done |
 
 ## P2
 

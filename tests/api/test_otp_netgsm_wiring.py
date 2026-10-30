@@ -102,8 +102,9 @@ def test_non_dev_wires_netgsm_when_every_piece_is_present(
     wiring = _auth_from_settings(settings, secrets=vault)
     assert isinstance(wiring, AuthWiring)
     assert isinstance(wiring.delivery, netgsm().NetgsmSmsDeliveryAdapter)
-    # INT-578: the OTP pepper is read after the vendor document, never before
-    assert vault.paths == ["api/netgsm", "api/otp"]
+    # INT-578: the OTP pepper is read after the vendor document, never before;
+    # INT-488: the App Review document after the pepper, outside dev only
+    assert vault.paths == ["api/netgsm", "api/otp", "api/review_signin"]
 
 
 @pytest.mark.parametrize("environment", STRICT_ENVIRONMENTS)
@@ -163,8 +164,9 @@ def test_the_shipped_allowlist_and_the_vault_wire_netgsm(
     wiring = _auth_from_settings(_settings(environment), secrets=vault)
     assert isinstance(wiring, AuthWiring)
     assert isinstance(wiring.delivery, netgsm().NetgsmSmsDeliveryAdapter)
-    # INT-578: the OTP pepper is read after the vendor document, never before
-    assert vault.paths == ["api/netgsm", "api/otp"]
+    # INT-578: the OTP pepper is read after the vendor document, never before;
+    # INT-488: the App Review document after the pepper, outside dev only
+    assert vault.paths == ["api/netgsm", "api/otp", "api/review_signin"]
 
 
 @pytest.mark.parametrize("environment", STRICT_ENVIRONMENTS)

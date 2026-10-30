@@ -49,6 +49,7 @@ __all__ = [
     "purpose_unknown",
     "refresh_reused",
     "release_freeze_refused",
+    "review_signin_unconfigured",
     "taxonomy_unconfigured",
     "unauthorized",
     "unknown_embed_tenant",
@@ -186,6 +187,14 @@ def otp_auth_unconfigured() -> HTTPException:
     """OTP auth needs Redis + a tokenization key; without them it fails
     closed while the dev-bearer tier keeps carrying the demo (INT-197)."""
     return HTTPException(status_code=503, detail={"error": "otp_auth_unconfigured"})
+
+
+def review_signin_unconfigured() -> HTTPException:
+    """INT-488 (D39): the review window is open, but the API holds no usable
+    reviewer code (OpenBao ``secret/api/review_signin`` has none, or a
+    malformed one). Typed, so the owner sees what to fix; it carries no number
+    and no code, and nothing is sent."""
+    return HTTPException(status_code=503, detail={"error": "review_signin_unconfigured"})
 
 
 def otp_delivery_unavailable() -> HTTPException:

@@ -13,6 +13,10 @@
 # which netgsm_secrets.sh writes with the root token; the API can neither
 # write nor list it. INT-578: read on the OTP pepper, secret/api/otp, which
 # lib.sh's ensure_otp_pepper writes with the root token; the same, read only.
+# INT-488 (owner decision D39, 30 Oct 2026): read on the App Review reviewer
+# account, secret/api/review_signin, which the owner's review_signin.sh
+# --generate writes with the root token; the same, read only, so the API can
+# neither change the reviewer code nor list or reveal it.
 # No other KV path is reachable.
 #
 # Caveat: OpenBao's trailing glob also matches the key's sub-paths, such as
@@ -48,5 +52,9 @@ path "secret/data/api/netgsm" {
 }
 
 path "secret/data/api/otp" {
+  capabilities = ["read"]
+}
+
+path "secret/data/api/review_signin" {
   capabilities = ["read"]
 }

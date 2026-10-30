@@ -71,6 +71,7 @@ acknowledgement) turned out to have no section carrying them.
 | Check-in / kiosk | `kiosk` | `ephemeral` |
 | Notifications / reminders | `notifications` | `content-free` |
 | Offline drafts + sync (`mobile`, INT-142) | `mobile` | `INT-142` |
+| App Store review sign-in (`mobile`, INT-488) | `mobile` | `INT-488` |
 | Protocol registry & clip cache | `protocol-registry` | `tampered clip` |
 | Learning loops | `learning-loops` | `proposal_scope` |
 | Admin console | `admin-console` | `IDOR` |
@@ -2033,6 +2034,15 @@ it or whose tests exercise it.
   [Dd] a draft outliving its session; [L/Dd] another account's draft surfacing on a shared
   device; [T] a tampered blob read as a sound draft; [D] silent data loss when a local edit
   meets a newer server copy.
+  **App Store review sign-in (§9 review row, INT-488, owner decision D39):** [S/E] a standing
+  credential that bypasses SMS — leaked from App Store Connect, guessed, or used after the
+  review; [I/Dd] the reviewer reaching a tenant that may hold a real patient; [I/Nc] the
+  reviewer number sending an SMS to whoever holds it; [I] the code in a repository, fixture,
+  log, trace or chat; [R] a window opened or a sign-in made with no record; [D] a stranger
+  locking the reviewer out with wrong codes (accepted: it pages, and the owner rotates);
+  [Dd/Nc/L] the reviewer is a real person: their input retained across reviews, seen by the
+  next reviewer, or carried by a hosted model lane labelled non-personal; [T/R] an operator's
+  out-of-process row forking the API's hash chain.
 - **Controls (files/10):** §4 mobile — SecureStore with biometrics, FLAG_SECURE, EAS Update
   code signing, MobSF on every build, jailbreak/root as a soft signal degrading to typed
   mode, native ATS/`network_security_config` pinning with a documented rotation recovery
@@ -2043,12 +2053,33 @@ it or whose tests exercise it.
   `WHEN_UNLOCKED_THIS_DEVICE_ONLY`; the GCM tag fails the open on tamper; a deterministic
   last-writer-wins rule that preserves the losing copy, so no loss is silent; account-scoped
   hydration; visit-id path sanitisation; crypto-shred of the blobs and the DEK on sign-out.
+  **App Store review sign-in (§9, INT-488):** one reserved reviewer number and one 6-digit
+  code, drawn on the synthetic host from the CSPRNG by `infra/staging/review_signin.sh
+  --generate` and held only in OpenBao `secret/api/review_signin` (a read-only API grant); the
+  API keeps the number's pseudonym and the code's HMAC under the OTP pepper and has no delivery
+  adapter on the reviewer path, so no SMS is ever sent; a four-fact gate (environment, baked
+  data class, the tenant's real-patient flag, named deployment) admits only the synthetic
+  host's synthetic tenant, and every other deployment withholds the request with nothing
+  minted; live guards on every step: the bound data class is not `real_phi` (ADR-035) and the
+  reviewer tenant's hosted-lane kill switch is engaged; INT-578's device- and request-bound
+  code record, five-attempt budget and lockout, and a miss cap per generated code that closes
+  the window; a review window, default OFF, whose flips are audited (the opening's row first),
+  each opening with its own synthetic reviewer patient in its own tenant and every session
+  bound to it; opening and closing erase every reviewer subject through the DSAR erasure; the
+  API adopts an operator's rows only if they chain from its head (`AuditChain.catch_up`); `--reveal-to-owner` prints once, to a
+  terminal only, after recording the reveal. Residuals: the number and code live in App Store
+  Connect for the review's length; a 6-digit code bounded by the lockout to five guesses an
+  hour; the window has no end time of its own.
 - **Signals:** attestation failures (§9 onboarding row) and crash-free-session tracking (§6)
   land with INT-145/INT-146. Offline drafts are device-local and have no server signal by
-  design (§9); the crash-free rate covers them (INT-145).
+  design (§9); the crash-free rate covers them (INT-145). The review sign-in counts every use
+  in `sec_review_signin_total{step,outcome}`; `ReviewSignInUsed` tickets every use and
+  `ReviewSignInRefused` pages every refusal (INT-488); every step is an `auth.review.*` row.
 - **Tests:** MobSF gate lands with INT-146; telemetry scrubbing tests with INT-145. Offline
   drafts landed with INT-142: `apps/mobile/e2e/offline.spec.ts` and
-  `apps/mobile/src/lib/intake/offline/{envelope,reconcile,draftStore}.test.ts`.
+  `apps/mobile/src/lib/intake/offline/{envelope,reconcile,draftStore}.test.ts`. The review
+  sign-in landed with INT-488: `tests/security/test_review_signin.py`,
+  `tests/security/test_review_signin_reset.py` and `tests/infra/test_staging_review_signin.py`.
 
 ## `experience` — satisfaction and wait-time measurement
 

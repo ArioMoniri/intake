@@ -411,7 +411,9 @@ def test_backlog_parses_and_is_complete() -> None:
     # + INT-580 (SMS hijacking and phishing, GitHub #975) and INT-582 (the
     # patient passkey step-up split out of it, GitHub #981); grows only with a
     # stated reason.
-    assert len(ids) == 378, f"expected 175 blueprint + 203 added issues, got {len(ids)}"
+    # + INT-488 (the App Store review sign-in, owner decision D39, GitHub #829);
+    # grows only with a stated reason.
+    assert len(ids) == 379, f"expected 175 blueprint + 204 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 

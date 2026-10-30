@@ -60,6 +60,14 @@ and counted. What still differs is what is the same for every number: a
 malformed one (422), the caller's own device or address budget (429), the
 platform's caps and switch (429, 503). Verify takes an attempt and runs both
 comparisons whether or not a code exists or the number is locked.
+
+INT-488 (owner decision D39, 30 Oct 2026): one number is reserved for the App
+Store reviewer. Where OpenBao holds the reviewer document, a request or verify
+for that number goes to ``intake_api.review_flow`` and nowhere else: nothing is
+sent, and a sign-in lands the synthetic reviewer patient in its own tenant, on
+the synthetic host's synthetic tenant only and only while the review window is
+open (``intake_api.review_signin``). A reviewer session ends when the window
+closes.
 """
 
 from __future__ import annotations
@@ -122,6 +130,8 @@ from intake_api.errors import (
     unauthorized,
 )
 from intake_api.otp_pepper import OtpPepper
+from intake_api.review_flow import ReviewSignInFlow
+from intake_api.review_signin import REVIEW_TENANT_ID, ReviewSignIn, ReviewWindow
 from intake_api.sms_recipients import ADMIT_ALL, RecipientGate
 from intake_api.sms_spend import DAY_S, SmsBudget, SpendKillSwitch, SpendStateUnreadable
 
@@ -364,6 +374,9 @@ class AuthWiring:
     sms_budget: SmsBudget = field(default_factory=SmsBudget)
     # INT-580: who tells the patient about a sign-in from a new device
     sign_in_notice: SignInNotice = field(default_factory=NoSignInNoticeChannel)
+    # INT-488 (D39): the App Review reviewer account, read from OpenBao
+    # (secret/api/review_signin) outside dev; None where there is no document
+    review: ReviewSignIn | None = None
 
 
 async def ensure_consumer_tenant(engine: AsyncEngine) -> None:
@@ -435,6 +448,20 @@ class OtpAuthService:
         self._dispatches: set[asyncio.Task[None]] = set()
         self._engine = engine
         self._audit = audit
+        # INT-488: the reserved reviewer number's own steps; none send an SMS
+        self._review = (
+            ReviewSignInFlow(
+                wiring.review,
+                store=self._store,
+                pepper=self._pepper,
+                window=ReviewWindow(wiring.redis_client, wiring.now_fn),
+                redis_client=wiring.redis_client,
+                audit=audit,
+                engine=engine,
+            )
+            if wiring.review is not None
+            else None
+        )
 
     def _now(self) -> float:
         return self._wiring.now_fn() if self._wiring.now_fn is not None else time.time()
@@ -565,6 +592,17 @@ class OtpAuthService:
             SEC_OTP_REQUESTS_TOTAL.labels(outcome="kill_switch").inc()
             raise otp_delivery_unavailable()
         ip = request.client.host if request.client is not None else "unknown"
+        if self._review is not None and self._review.matches(pseudonym):
+            # INT-488 (D39): the reserved reviewer number never reaches the
+            # vendor. After the kill switch, so it answers as every number does
+            # while sending is stopped (security review, 30 Oct 2026).
+            return await self._review.request(
+                pseudonym=pseudonym,
+                ip_key=self._pepper.rate_key("ip", ip),
+                device_key=self._pepper.rate_key("device", bound),
+                binding=self._pepper.device_binding(bound),
+                actor=f"phone:{self._tokenizer.log_ref(phone)}",
+            )
         decision = await asyncio.to_thread(
             partial(
                 self._store.otp_request_decision,
@@ -728,7 +766,12 @@ class OtpAuthService:
         return patient.id
 
     async def _issue_tokens(
-        self, patient_id: uuid.UUID, jkt: str, family_id: str | None = None
+        self,
+        patient_id: uuid.UUID,
+        jkt: str,
+        family_id: str | None = None,
+        *,
+        tenant_id: uuid.UUID = CONSUMER_TENANT_ID,
     ) -> TokenBundle:
         access = secrets.token_urlsafe(32)
         refresh = secrets.token_urlsafe(48)
@@ -737,7 +780,7 @@ class OtpAuthService:
             self._store.save_access,
             _token_hash(access),
             patient_id=patient_id,
-            tenant_id=CONSUMER_TENANT_ID,
+            tenant_id=tenant_id,
             jkt=jkt,
         )
         await asyncio.to_thread(
@@ -745,7 +788,7 @@ class OtpAuthService:
             _token_hash(refresh),
             family_id=family,
             patient_id=patient_id,
-            tenant_id=CONSUMER_TENANT_ID,
+            tenant_id=tenant_id,
             jkt=jkt,
         )
         return TokenBundle(
@@ -754,7 +797,7 @@ class OtpAuthService:
             token_type="DPoP",  # noqa: S106 — RFC 9449 token_type label, not a secret
             expires_in=ACCESS_TTL_S,
             patient_id=str(patient_id),
-            tenant_id=str(CONSUMER_TENANT_ID),
+            tenant_id=str(tenant_id),
         )
 
     async def verify_code(
@@ -764,6 +807,21 @@ class OtpAuthService:
         bound = _bound_device(payload)
         phone, pseudonym = self._require_phone(phone_raw)
         jkt = await self._verify_proof(request)
+        if self._review is not None and self._review.matches(pseudonym):
+            # INT-488 (D39): the reviewer lands the synthetic reviewer patient
+            patient_id = await self._review.verify(
+                pseudonym=pseudonym,
+                request_id=request_id,
+                code=code,
+                binding=self._pepper.device_binding(bound),
+                actor=f"phone:{self._tokenizer.log_ref(phone)}",
+            )
+            bundle = await self._issue_tokens(patient_id, jkt, tenant_id=REVIEW_TENANT_ID)
+            # the session lives only inside the window it was issued in
+            await self._review.bind_session(
+                _token_hash(bundle.access_token), _token_hash(bundle.refresh_token)
+            )
+            return bundle
         locked = await asyncio.to_thread(self._store.lockout_wait, pseudonym) is not None
         # INT-579: the attempt is taken and compared under a lockout too, so a
         # locked number costs the same work as any other wrong answer
@@ -832,7 +890,7 @@ class OtpAuthService:
         jkt = await self._verify_proof(request)
         token_hash = _token_hash(refresh_token)
         record = await asyncio.to_thread(self._store.get_refresh, token_hash)
-        if record is None:
+        if record is None or not await self._session_allowed(record.tenant_id, token_hash):
             raise unauthorized()
         if record.status == "rotated":
             # REUSE: the whole family dies, and the event is audited
@@ -850,7 +908,23 @@ class OtpAuthService:
             # family, or a stolen token becomes a denial-of-service lever
             raise dpop_invalid("dpop_mismatch")
         await asyncio.to_thread(self._store.mark_refresh_rotated, token_hash)
-        return await self._issue_tokens(record.patient_id, jkt, family_id=record.family_id)
+        bundle = await self._issue_tokens(
+            record.patient_id, jkt, family_id=record.family_id, tenant_id=record.tenant_id
+        )
+        if record.tenant_id == REVIEW_TENANT_ID and self._review is not None:
+            await self._review.bind_session(
+                _token_hash(bundle.access_token), _token_hash(bundle.refresh_token)
+            )
+        return bundle
+
+    async def _session_allowed(self, tenant_id: uuid.UUID, token_hash: str) -> bool:
+        """INT-488: a reviewer token lives only inside the window it was issued
+        in, while a reviewer could sign in; closing the window ends every one,
+        and a later window does not revive them. Every other tenant's sessions
+        are untouched."""
+        if tenant_id != REVIEW_TENANT_ID:
+            return True
+        return self._review is not None and await self._review.session_live(token_hash)
 
     # --- resource-request resolution (Authorization: DPoP <token>) -----------------
 
@@ -861,6 +935,8 @@ class OtpAuthService:
             raise unauthorized()
         if record.jkt != jkt:
             raise dpop_invalid("dpop_mismatch")
+        if not await self._session_allowed(record.tenant_id, _token_hash(token)):
+            raise unauthorized()
         return DevAccount(
             account_id=f"patient:{record.patient_id}",
             role="patient",

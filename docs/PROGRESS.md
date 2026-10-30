@@ -1,5 +1,27 @@
 # PROGRESS — one entry per LOOP iteration (template in LOOP.md)
 
+### 2026-10-30T18:00:00+03:00 · INT-488 · done (committed; pushed to backup/int-488-review-signin only; PR after the SMS stack merges)
+- Goal: GitHub #829, P1, Sec-Row `mobile`. App Store review sign-in for release builds, built as the owner approved it on 30 Oct 2026 (D39, "B Y"). Stacked on the INT-580 PR (`backup/int-580-sms-hijacking`, b41a83cb).
+- Plan:
+  - The account: a reserved reviewer number and one fixed code, both drawn on the synthetic host by `infra/staging/review_signin.sh --generate` and held only in OpenBao `secret/api/review_signin`, under a new read-only API grant.
+  - The API holds the number's pseudonym and the code's HMAC under the OTP pepper. The reviewer path has no delivery adapter and runs through INT-578's code record, budget and lockout.
+  - The gate: a four-fact start-time gate, plus live guards (the bound data class, and hosted lanes off for the reviewer tenant).
+  - A review window, default OFF, with audited flips. Each window has its own synthetic reviewer patient and sessions bound to it, and the reviewer tenant is erased through the DSAR path on `on` and `off`.
+  - Every use is audited and alerted; the typed 503 answers when no code is configured.
+- Tests added (with the near-miss negative for any safety rule): `tests/security/test_review_signin.py`, `tests/security/test_review_signin_reset.py`, `tests/infra/test_staging_review_signin.py`. Each D39 clause has a near miss (an ordinary number still sent; every fact synthetic admits; four misses then the right code; a well-formed window; a consumer patient untouched by the window and the erasure). Red 87 failed before any code; green 120 passed; 22/22 mutants killed.
+- Result (`make check` / `make safety` / `make security` summary): ruff, format, mypy --strict (353 files), no_placeholders, phi_scan, claims_scan and shellcheck are clean; the whole-suite coverage run is recorded in docs/evidence/INT-488.md. check-integration is CI-only (no container runtime here). `make safety` is not affected.
+- Invariants touched and still passing:
+  - 4: every step, flip, rotation, reveal and reset is on the hash chain. Operator rows are adopted by the API's chain (`AuditChain.catch_up`) only if they chain.
+  - 6: canary scan, no code or number anywhere.
+  - 14: OpenBao only, read-only grant, CSPRNG on the host.
+  - 16: the files/10 §9 row and the threat model are added.
+  - 17: no placeholder and no skipped test.
+  - 18: no new personal-data category, confirmed by the legal lane.
+- Decisions / ADRs / `00_STATE.md` rows: D39 (recorded by INT-585). The security and legal reviews of 30 Oct 2026 asked for changes; those are built, and both re-reviews returned APPROVE. The window-expiry ask is in docs/backlog/blockers.md (HB id for the coordinator). Engineering default: `REVIEW_MISS_CAP = 15`.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): nothing blocks the build. The owner engages the reviewer tenant's hosted-lane kill switch once, then runs `--generate`, `--on` and `--reveal-to-owner` when the review window opens. Counsel's questions (data abroad, purpose) are in the evidence.
+- Next: the merge queue opens the PR after the SMS stack; the security reviewer and the legal lane see it again there.
+- LOOP_STATUS: CONTINUE
+
 ### 2026-10-28T10:30:00+03:00 · INT-576 · done (PR open; deploy and the owner's retry pending)
 - Goal: GitHub #971, P0 on the build-6 path, Sec-Row `onboarding`. The owner's real OTP send on the synthetic host logged `refusal=- reason=malformed_response http_status=200 vendor_code=-`, yet the SMS arrived after both tries. Only `otp_netgsm.py`'s response parsing was wrong; the request, credentials, header, IP allow-list and sms-egress proxy work.
 - Plan:

@@ -126,3 +126,40 @@ groups:
         sign-in by SMS is down. The refusal reasons are the outcome label of
         otp_sms_delivery_total.
       runbook: docs/runbooks/sms-abuse.md#otp-sms-is-not-being-delivered
+- name: review-signin
+  rules:
+  # tests/security/test_review_signin.py (INT-488, owner decision D39: every
+  # use of the App Review sign-in alerts). Any request or verify for the
+  # reserved reviewer number, whatever its outcome, so the owner sees each
+  # use the hash chain records.
+  - alert: ReviewSignInUsed
+    expr: sum(increase(sec_review_signin_total[5m])) > 0
+    labels:
+      severity: ticket
+    annotations:
+      summary: 'the App Review sign-in was used'
+      description: >-
+        A request or a verify for the reserved reviewer number. During an
+        open review window this is App Review at work; the outcome label of
+        sec_review_signin_total and the auth.review.* rows on the audit chain
+        say what happened.
+      runbook: docs/runbooks/review-signin.md#the-review-sign-in-was-used
+  # The same series, refusals only: the number tried outside the window, on a
+  # deployment that is not the synthetic host's synthetic tenant, with hosted
+  # lanes on for the reviewer tenant, with no code in OpenBao, or with a
+  # wrong, spent or locked code. Someone holds the number who should not, or
+  # the account is broken mid-review: page. Every label pair is exported at
+  # zero from start (intake_api.review_signin), so the first one counts.
+  - alert: ReviewSignInRefused
+    expr: sum(increase(sec_review_signin_total{outcome!~"admitted|signed_in"}[5m])) > 0
+    labels:
+      severity: page
+    annotations:
+      summary: 'the App Review sign-in refused a use'
+      description: >-
+        The reserved reviewer number was refused: a closed window, a
+        deployment that is not the synthetic host's synthetic tenant, hosted
+        lanes on for the reviewer tenant, no code in OpenBao, or a wrong,
+        spent or locked code. The outcome label of sec_review_signin_total
+        names which.
+      runbook: docs/runbooks/review-signin.md#the-review-sign-in-refused-a-use

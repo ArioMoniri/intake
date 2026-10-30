@@ -737,6 +737,8 @@ class TestOpenBao:
             "secret/metadata/model-lanes/*": {"read", "list", "delete"},
             f"secret/data/{SMS_KV_PATH}": {"read"},
             "secret/data/api/otp": {"read"},
+            # INT-488 (D39): read on the App Review reviewer account
+            "secret/data/api/review_signin": {"read"},
         }
         for path, caps in blocks:
             granted = {c.strip().strip('"') for c in caps.split(",") if c.strip()}

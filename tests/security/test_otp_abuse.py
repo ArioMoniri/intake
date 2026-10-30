@@ -391,6 +391,7 @@ def _build(
     recipients: Any = None,
     sign_in_notice: Any = None,
     attestation: Any = None,
+    review: Any = None,
 ) -> Iterator[OtpHarness]:
     from intake_platform.db.audit_store import SqlAlchemyAuditStore
     from sqlalchemy import create_engine
@@ -447,9 +448,16 @@ def _build(
             **({"recipients": recipients} if recipients is not None else {}),
             # INT-580: the new-device sign-in notice channel, when a test sets one
             **({"sign_in_notice": sign_in_notice} if sign_in_notice is not None else {}),
+            # INT-488: the App Review reviewer account, when a test sets one
+            **({"review": review} if review is not None else {}),
         ),
     )
     run(ensure_consumer_tenant(engine))
+    if review is not None and review.admitted:
+        # the lifespan provisions the reviewer tenant only where the gate admits
+        from intake_api.review_signin import ensure_review_tenant
+
+        run(ensure_review_tenant(engine))
     run(ensure_dev_fixture(engine))  # the dev-bearer tier stays load-bearing
     app = create_app(wiring)
     audit_store = wiring.audit_store

@@ -250,7 +250,10 @@ def test_ids_unique_and_well_formed() -> None:
     # + INT-580 (SMS hijacking and phishing: the tr SMS copy, the domain-bound
     # line, the new-device signal; GitHub #975) + INT-582 (the patient passkey
     # step-up split out of it, awaiting the owner; GitHub #981).
-    assert len(ids) == 378
+    # + INT-488 (the App Store review sign-in: a reserved reviewer number, one
+    # code in OpenBao, the synthetic host's synthetic tenant only; owner
+    # decision D39, GitHub #829).
+    assert len(ids) == 379
     import re
 
     for i in ids:

@@ -152,7 +152,8 @@ def test_dryrun_plans_creates_and_updates(tmp_path: Path) -> None:
     # + INT-581 (SMS data protection, the owner's SMS security order, GitHub #976)
     # + INT-580 (SMS hijacking and phishing, GitHub #975)
     # + INT-582 (patient passkey step-up, split from INT-580, GitHub #981)
-    assert len(actions) == 378
+    # + INT-488 (the App Store review sign-in, owner decision D39, GitHub #829)
+    assert len(actions) == 379
     assert actions["INT-001"]["action"] == "update"
     assert actions["INT-001"]["number"] == 1
     assert actions["INT-004"]["action"] == "create"
