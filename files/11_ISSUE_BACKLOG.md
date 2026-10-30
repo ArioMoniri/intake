@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**377 issues.** By phase: P0 183 · P1 140 · P2 47 · P3 7. By status: awaiting-human 39 · doing 7 · done 256 · todo 74 · withdrawn 1.
+**378 issues.** By phase: P0 183 · P1 141 · P2 47 · P3 7. By status: awaiting-human 39 · doing 7 · done 257 · todo 74 · withdrawn 1.
 
 ## P0
 
@@ -339,6 +339,7 @@
 | INT-529 | Synthetic-scope consent texts, marked sentetik test metni and loaded only on the synthetic host | E14-legal | INT-038, INT-210 | area:legal, risk:legal | awaiting-human |
 | INT-537 | The app grants the core consent that visits and notes require | E08-mobile | INT-529, INT-132, INT-232 | area:mobile, risk:legal | done |
 | INT-586 | opentelemetry-api lifted to 1.67.0 in the Keycloak provider, past GHSA-ccrj-gw8r-854m, so the vulnerabilities gate is green without an exception | E13-infra | INT-378 | area:security | done |
+| INT-565 | Serve the Protocols, Clinical quality & safety, Security and Cost composites as console routes and pages | E12-admin | INT-459, INT-184, INT-185, INT-190, INT-192 | area:admin | done |
 
 ## P2
 

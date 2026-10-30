@@ -247,7 +247,9 @@ def test_ids_unique_and_well_formed() -> None:
     # + INT-537 (the app grants the core consent that visits and notes
     # require; INT-529 legal-author finding F2, GitHub #904).
     # + INT-586 (opentelemetry-api past GHSA-ccrj-gw8r-854m, GitHub #986).
-    assert len(ids) == 377
+    # + INT-565 (the Protocols, Clinical quality & safety, Security and Cost
+    # composites as console routes and pages; GitHub #954).
+    assert len(ids) == 378
     import re
 
     for i in ids:

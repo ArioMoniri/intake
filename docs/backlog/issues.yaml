@@ -7489,3 +7489,25 @@
     - "the passkey login is re-recorded with the new pinned jar on a real Keycloak 26.7.4 off the laptop (provider admitted, stock refused), never edited by hand, and the run is torn down"
   tests: [tests/admin/test_webauthn_session_notes_provider.py, tests/infra/test_staging_keycloak_provider.py]
   sec_row: "cicd"
+- id: INT-565
+  epic: E12-admin
+  phase: P1
+  title: "Serve the Protocols, Clinical quality & safety, Security and Cost composites as console routes and pages"
+  # GitHub #954, from the admin audit of 18 Oct 2026: the composers existed only
+  # in scripts/dev/record_*_fixture.py, with view-models and no route or page.
+  # Each is now a pure builder in services/api/src/intake_api/admin, the
+  # recorder delegates to it, and four console pages render it. The API imports
+  # neither the voice runtime nor the learning pipeline nor the audit verifier:
+  # their closed sets live in intake_platform.admin.console_vocab, held equal to
+  # the owners by a test.
+  depends_on: [INT-459, INT-184, INT-185, INT-190, INT-192]
+  labels: [area:admin]
+  status: done
+  evidence: docs/evidence/INT-565.md
+  acceptance:
+    - "GET /admin/protocols, /admin/quality-safety, /admin/security and /admin/cost are console routes (role matrix, audit wrapper, route drive): each a read by the roles that answer for it, ids and counts only, and each committed e2e fixture is the route's own builder."
+    - "No figure without a source: PolicyGuard blocks and egress denials are read from the API's Prometheus reader over a stated window and are a reason, never a zero, when unread; every price and budget stays 'not configured' until the owner fills it (HB-O8); no admin body carries a 64-hex value, so the audit chain shows the verifier's verdict and never a head (HB-I12)."
+    - "The API's import closure reaches neither intake_voice_runtime, intake_learning nor intake_platform.audit_verifier; the console's copies of their closed sets are held equal to the owners."
+    - "/protocols, /quality-safety, /security and /cost are console pages on the INT-459 shell, each in the sidebar, each loading with the caller's bearer; a refusal or a refused body keeps the shell with a named next step and paints no tile; every page passes axe in tr and en."
+  tests: [tests/admin/test_protocols_console.py, tests/admin/test_quality_safety_console.py, tests/admin/test_security_console.py, tests/admin/test_cost_console.py, tests/admin/test_console_vocab.py, apps/admin-web/e2e/pages565.spec.ts]
+  sec_row: "admin-console"
