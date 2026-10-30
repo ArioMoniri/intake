@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**387 issues.** By phase: P0 184 · P1 149 · P2 47 · P3 7. By status: awaiting-human 39 · doing 7 · done 266 · todo 74 · withdrawn 1.
+**388 issues.** By phase: P0 184 · P1 150 · P2 47 · P3 7. By status: awaiting-human 39 · doing 7 · done 267 · todo 74 · withdrawn 1.
 
 ## P0
 
@@ -349,6 +349,7 @@
 | INT-588 | Patient copy is true in the no-voice release build: no voice clause, no 'sent' before delivery, consent rows match the served texts | E08-mobile | INT-587, INT-253, INT-529 | area:mobile | done |
 | INT-591 | Release build hides the grant action for voice and lane:affect consents, keeps standing grants withdrawable | E08-mobile | INT-588, INT-132 | area:mobile | done |
 | INT-584 | The phone-tokenization key moves into OpenBao with the same key material — no pseudonym changes (D38) | E01-platform | INT-013, INT-017, INT-131, INT-345, INT-352 | area:api, risk:security | done |
+| INT-577 | SMS pumping and overuse — per-number/device/IP/tenant limits, global caps, spend kill switch, +90 mobile only, spike alert | E01-platform | INT-131, INT-263, INT-308, INT-528, INT-578 | area:api, risk:security | done |
 
 ## P2
 

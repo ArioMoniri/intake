@@ -58,6 +58,7 @@ OTP_PEPPER_FIELD: Final = "pepper"
 _PEPPER_SHAPE = re.compile(r"(?:[0-9a-f]{2}){32,128}")
 _CODE_DOMAIN: Final = b"intake.otp.code.v1"
 _DEVICE_DOMAIN: Final = b"intake.otp.device.v1"
+_RATE_DOMAIN: Final = b"intake.otp.rate.v1"
 
 
 class OtpPepperError(ValueError):
@@ -121,6 +122,14 @@ class OtpPepper:
     def device_binding(self, device: str) -> str:
         """What the store keeps for the device a code was minted for."""
         return hmac.new(self._key, _framed(_DEVICE_DOMAIN, device), hashlib.sha256).hexdigest()
+
+    def rate_key(self, dimension: str, value: str) -> str:
+        """INT-577: the identifier a request budget is counted under, for a
+        value that must not sit in a Redis key in clear (a caller's address,
+        a device). Keyed, because an IPv4 address has 2³² values and a plain
+        hash of one is reversed by enumeration."""
+        message = _framed(_RATE_DOMAIN, dimension, value)
+        return hmac.new(self._key, message, hashlib.sha256).hexdigest()
 
 
 def otp_pepper_from_vault(secrets_reader: KvSecrets | None = None) -> OtpPepper | None:

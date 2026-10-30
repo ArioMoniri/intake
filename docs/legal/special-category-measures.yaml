@@ -485,7 +485,7 @@ measures:
           - metric: sec_attestation_failures
             status: planned
           - metric: sec_otp_abuse_blocks
-            status: planned
+            status: live
     gaps:
       - id: staff-second-factor
         kind: engineering
@@ -498,7 +498,7 @@ measures:
       - id: authentication-signal
         kind: signal
         owner: security_owner
-        ask: "Which service will emit sec_attestation_failures and sec_otp_abuse_blocks, given that both are catalogued as planned and no live signal reports authentication abuse today?"
+        ask: "Which service will emit sec_attestation_failures, given that it is catalogued as planned and sec_otp_abuse_blocks (live since INT-577) counts budget refusals, not refused attestations?"
 
   - id: "4a"
     quote: "a) Özel nitelikli kişisel verilerin bulunduğu ortamın niteliğine göre yeterli güvenlik önlemlerinin (elektrik kaçağı, yangın, su baskını, hırsızlık vb. durumlara karşı) alındığından emin olunması,"

@@ -268,7 +268,9 @@ def test_ids_unique_and_well_formed() -> None:
     # + INT-578 (OTP brute force and replay: HMAC under an OpenBao pepper,
     # device- and request-bound, atomic budget, lockout; the owner's SMS
     # security order, GitHub #973).
-    assert len(ids) == 387
+    # + INT-577 (SMS pumping and overuse: proven-key and hashed-address budgets,
+    # backoff, tenant and global caps, the spend kill switch; GitHub #972).
+    assert len(ids) == 388
     import re
 
     for i in ids:

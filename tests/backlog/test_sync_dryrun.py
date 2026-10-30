@@ -161,7 +161,8 @@ def test_dryrun_plans_creates_and_updates(tmp_path: Path) -> None:
     # + INT-592 (a truthful NSHealthUpdateUsageDescription, ITMS-90683, GitHub #1000)
     # + INT-584 (the tokenization key moves into OpenBao, owner decision D38, GitHub #983)
     # + INT-578 (OTP brute force and replay, the owner's SMS security order, GitHub #973)
-    assert len(actions) == 387
+    # + INT-577 (SMS pumping and overuse, the owner's SMS security order, GitHub #972)
+    assert len(actions) == 388
     assert actions["INT-001"]["action"] == "update"
     assert actions["INT-001"]["number"] == 1
     assert actions["INT-004"]["action"] == "create"

@@ -1239,19 +1239,27 @@ metrics:
   - name: sec_otp_requests_total
     id: sec.otp_requests_total
     type: counter
-    labels: []
+    labels: [outcome]
     owner: security
     unit: "count"
-    status: planned
-    description: OTP requests.
+    description: >-
+      OTP requests by outcome (INT-577): admitted (a code minted), limited (a
+      request budget refused), kill_switch (the SMS spend kill switch refused
+      or the day cap tripped it), locked (the INT-578 lockout),
+      phone_invalid (not a Turkish mobile) or refused (the carrier check or
+      the synthetic host's test list). Emitted by intake_api.otp; the ops
+      console's sms tile and the OtpRequestSpike alert read it.
   - name: sec_otp_abuse_blocks
     id: sec.otp_abuse_blocks
     type: counter
-    labels: []
+    labels: [dimension]
     owner: security
     unit: "count"
-    status: planned
-    description: OTP requests blocked as abuse.
+    description: >-
+      OTP requests refused by a request budget, by the budget that refused
+      (INT-577): cooldown (the exponential resend backoff), phone, ip,
+      device, tenant, global_hour, global_day. One request refused by
+      several budgets counts once in each. Emitted by intake_api.otp.
   - name: sec_attestation_failures
     id: sec.attestation_failures
     type: counter
@@ -2019,6 +2027,26 @@ metrics:
       code_not_sendable, not_on_test_allowlist) or a transport reason (egress_denied, timeout,
       unreachable, auth_failed, rate_limited, rejected, vendor_unavailable,
       malformed_response). Emitted by intake_api.otp_netgsm.
+  # --- INT-577: the SMS spend kill switch (intake_api.sms_spend). No label
+  # carries a number, a tenant or an amount (inv. 6).
+  - name: sms_spend_kill_switch_engaged
+    type: gauge
+    labels: []
+    owner: security
+    unit: "bool"
+    description: >-
+      1 while the SMS spend kill switch is engaged and no OTP SMS is sent, else
+      0; set on every read of the switch. Pages through
+      SmsSpendKillSwitchEngaged. Emitted by intake_api.sms_spend.
+  - name: sms_spend_kill_switch_trips_total
+    type: counter
+    labels: [reason]
+    owner: security
+    unit: "count"
+    description: >-
+      Times the SMS spend kill switch was engaged, by reason: day_cap (the
+      global day send cap was reached) or manual (an operator engaged it).
+      Emitted by intake_api.sms_spend.
   # --- INT-578: OTP verify outcomes. One closed label; the caller sees one
   # generic refusal whatever the outcome, the operator sees which. `unbound`
   # (a code tried from a device that did not ask for it) is the interception

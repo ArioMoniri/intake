@@ -73,3 +73,35 @@ groups:
         A revocation failed or a manual step (Grafana, Langfuse, Unleash)
         awaits confirmation. The review lists it under pending_offboardings.
       runbook: docs/runbooks/access-review.md#incomplete
+- name: sms-abuse
+  rules:
+  # tests/security/test_sms_pumping.py (INT-577). The kill switch latches when
+  # the global day send cap is reached and stays engaged until an operator
+  # releases it, so while it is up no patient receives a code: page.
+  - alert: SmsSpendKillSwitchEngaged
+    expr: max(sms_spend_kill_switch_engaged) == 1
+    labels:
+      severity: page
+    annotations:
+      summary: 'the SMS spend kill switch is engaged: no OTP SMS is being sent'
+      description: >-
+        The global day send cap was reached, or an operator engaged the
+        switch. Sign-ins by SMS code are refused until it is released.
+      runbook: docs/runbooks/sms-abuse.md#the-kill-switch-is-engaged
+  # tests/security/test_sms_pumping.py (INT-577). The same definition as the
+  # ops console's sms tile (intake_api.sms_spend.is_spike): the last hour over
+  # 3 x the day's own hourly rate, and over 20, so a quiet night's few
+  # requests never page.
+  - alert: OtpRequestSpike
+    expr: >-
+      sum(increase(sec_otp_requests_total[1h])) > 3 * (sum(increase(sec_otp_requests_total[1d])) / 24)
+      and sum(increase(sec_otp_requests_total[1h])) > 20
+    labels:
+      severity: ticket
+    annotations:
+      summary: 'OTP requests in the last hour are far above the day''s rate'
+      description: >-
+        A pumping attempt spreads requests over many numbers, devices and
+        addresses so that each stays inside its own budget. The per-dimension
+        blocks are in sec_otp_abuse_blocks.
+      runbook: docs/runbooks/sms-abuse.md#an-otp-request-spike
