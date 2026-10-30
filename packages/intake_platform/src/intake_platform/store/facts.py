@@ -239,8 +239,9 @@ _SIGN_IN_DEVICES = OffSchemaFlow(
         "the OTP pepper, never the device's key id",
         BASIS_LEGAL_OBLIGATION,
         "30 days after the last sign-in or refresh from any of the account's devices "
-        "(the refresh-token lifetime, REFRESH_TTL_S), then the key expires; a device "
-        "another device signs out is removed at once (INT-583)",
+        "(the refresh-token lifetime, REFRESH_TTL_S), then the key expires; a device is "
+        "removed at once when it is signed out or its family is revoked on reuse, and at "
+        "the account's next refresh or read once all its sessions have ended (INT-583)",
         REC_INTERNAL,
     )[INVENTORY_KEY],
     persisted=True,
@@ -263,8 +264,9 @@ _DEVICE_SESSIONS = OffSchemaFlow(
         "show the patient the devices their account is signed in on and let them sign "
         "one or all of the others out, or report a sign-in that was not theirs (INT-583)",
         BASIS_LEGAL_OBLIGATION,
-        "30 days after the last sign-in or refresh on the account (REFRESH_TTL_S), or "
-        "at once when the device is signed out or all its sessions have ended",
+        "30 days after the last sign-in or refresh on the account (REFRESH_TTL_S); at once "
+        "when the device is signed out; and at the account's next refresh or read once all "
+        "its sessions have ended",
         REC_INTERNAL,
     )[INVENTORY_KEY],
     persisted=True,

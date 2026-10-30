@@ -257,6 +257,12 @@ export default function Sessions() {
                 onPress={() => void signOutOthers(false)}
               />
             ) : null}
+          </View>
+        ) : null}
+        {view.showReport ? (
+          // The report has its own block: it stays open when no other device
+          // is listed, because the intruder may already be gone from the list.
+          <View style={styles.section}>
             {state.confirming ? (
               <View style={styles.confirm}>
                 <AppText role="body" color="inkSoft">

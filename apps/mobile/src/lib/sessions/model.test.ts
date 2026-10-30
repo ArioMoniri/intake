@@ -126,11 +126,14 @@ describe("what the screen shows for a loaded list", () => {
     expect(view.canReportNotMe).toBe(true);
   });
 
-  it("only this device: nothing to sign out and nothing to report", () => {
+  it("only this device: nothing to sign out, but the patient can still report", () => {
+    // a patient who got a notice may find the intruder already gone from the
+    // list (signed itself out, or expired); the report must still be open
     const view = sessionsView(loaded(listOf([HERE])), NOW);
     expect(view.others).toBe(0);
     expect(view.canSignOutOthers).toBe(false);
-    expect(view.canReportNotMe).toBe(false);
+    expect(view.canReportNotMe).toBe(true);
+    expect(view.showReport).toBe(true);
   });
 
   it("no list yet: no rows and no actions", () => {
@@ -138,6 +141,7 @@ describe("what the screen shows for a loaded list", () => {
     expect(view.rows).toEqual([]);
     expect(view.canSignOutOthers).toBe(false);
     expect(view.canReportNotMe).toBe(false);
+    expect(view.showReport).toBe(false);
     expect(view.currentPush).toBeNull();
   });
 

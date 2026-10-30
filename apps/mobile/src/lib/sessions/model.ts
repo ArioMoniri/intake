@@ -236,6 +236,13 @@ export interface SessionsView {
   currentPush: boolean | null;
   /** Whether the server has a push channel wired; null before a list. */
   noticesOn: boolean | null;
+  /**
+   * "Bu girişi ben yapmadım" is shown once a list is loaded, other devices or
+   * not: a patient who got a notice may find the intruder already gone from
+   * the list (it signed itself out, or its session ended), and must still be
+   * able to report it.
+   */
+  showReport: boolean;
 }
 
 export function sessionsView(state: SessionsState, now: Date): SessionsView {
@@ -244,12 +251,14 @@ export function sessionsView(state: SessionsState, now: Date): SessionsView {
   const listHold = state.list === null ? FREE : holdFromList(state.list.signOutOthersAfter, now);
   const hold = eitherHold(listHold, stillHeld(state.refusal, now));
   const open = others > 0 && !state.busy;
+  const showReport = state.list !== null;
   return {
     rows,
     others,
     hold,
     canSignOutOthers: open && !hold.held,
-    canReportNotMe: open,
+    canReportNotMe: showReport && !state.busy,
+    showReport,
     currentPush: rows.find((row) => row.current)?.push ?? null,
     noticesOn: state.list === null ? null : state.list.noticesOn,
   };

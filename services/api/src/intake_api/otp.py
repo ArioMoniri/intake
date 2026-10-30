@@ -891,8 +891,16 @@ class OtpAuthService:
             raise unauthorized()
         if record.status == "rotated":
             # REUSE: the whole family dies, and the event is audited
-            # (files/10 §2: "refresh reuse detection revokes the family")
+            # (files/10 §2: "refresh reuse detection revokes the family").
+            # INT-583: the device is forgotten too, so its return is told.
+            device = await asyncio.to_thread(
+                self.device_sessions.session_of_family, record.patient_id, record.family_id
+            )
             await asyncio.to_thread(self._store.revoke_family, record.family_id)
+            if device is not None:
+                await asyncio.to_thread(
+                    self._store.forget_device, str(record.patient_id), device.device_ref
+                )
             await self._audit.record(
                 actor=f"patient:{record.patient_id}",
                 action="auth.refresh.reuse_detected",

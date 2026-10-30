@@ -539,10 +539,15 @@ class AuthStore:
         self._r.expire(key, REFRESH_TTL_S)
         return new
 
+    def known_devices_key(self, patient_id: str) -> str:
+        """The Redis key of the account's known devices (for a transaction)."""
+        return self._key("otp", "devices", patient_id)
+
     def forget_device(self, patient_id: str, device_ref: str) -> None:
-        """INT-583: a device another device signed out is no longer known, so
-        its next sign-in is a new device again and the patient is told."""
-        self._r.srem(self._key("otp", "devices", patient_id), device_ref)
+        """INT-583: a device whose last session ended (it was signed out, by
+        itself or another device, or its family was revoked on reuse) is no
+        longer known, so its next sign-in is new and the patient is told."""
+        self._r.srem(self.known_devices_key(patient_id), device_ref)
 
     def renew_known_devices(self, patient_id: str) -> None:
         """INT-583: a refresh keeps the account's known devices for another

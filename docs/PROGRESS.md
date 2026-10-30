@@ -23,6 +23,12 @@
   - legal B1: the push_tokens basis is m.5/2-c and the recipient and documents texts are verbatim; B2: retention per record, dead rows pruned, DELETE on denied; B3: notices_on, 503 push_unavailable, refresh renews the row and the known set; B4: the Bildirimler copy; B5: the tripwire's purposes, its APNs host set and an AST scan;
   - the owner patch no longer touches tests/legal/.
   - Red: 20 failed of 128 on the server, plus 21, 2 and 1 on mobile.
+- Review round three:
+  - security B1: a device is forgotten whenever its last session ends (any sign-out, its own included; a reuse revoke; an expired family dropped by a WATCH compare-and-delete), and "not me" stays open with no other device listed;
+  - legal B6: "not me" is admitted per account and per reporting device, with non-paging repeat traces;
+  - legal B2-r: touch() prunes before it renews;
+  - the documents.yaml head now follows the inventory; the owner patch carries the approved post-row wording, and a pin ties the "until" clauses to the absence of push rows.
+  - Red: 8 failed of 51, plus 3 on mobile.
 - Next: the merge queue, after INT-580.
 - LOOP_STATUS: CONTINUE
 

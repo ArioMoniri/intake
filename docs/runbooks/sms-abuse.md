@@ -97,7 +97,12 @@ number, so a patient's report ("no code came") can be matched to a cause by the 
 
 ## A patient says a sign-in was not theirs
 
-INT-583 (owner decision D35). When an account is signed in from a new device, the patient's
+INT-583 (owner decision D35). Each reporting device's first report in a day writes
+`auth.session.disowned`; read every disowned row for the account; a row after an incident is
+closed reopens it. A repeat from the same device in that day writes
+`auth.session.disowned_repeat`, which does not page.
+
+When an account is signed in from a new device, the patient's
 other signed-in devices get a push notice, and the app's "Cihazlarınız" screen has a "Bu
 girişi ben yapmadım" ("that sign-in wasn't me") action. Pressing it writes
 `auth.session.disowned` to the hash chain under the patient id, increments

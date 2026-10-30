@@ -765,11 +765,17 @@ it or whose tests exercise it.
   Apple's push service as processor, outside Türkiye under KVKK m.9), as the legal review of
   30 Oct 2026 settled them. Retention is per record: a token goes 30 days after its own last
   registration, or when its device has no live session, whichever is first. **Review fixes
-  (30 Oct 2026):** a device another device signs out is forgotten, so its next sign-in is new
-  and told; a revoked refresh family is tombstoned, so a refresh in flight during a sign-out is
+  (30 Oct 2026, three rounds):** a device stops being known once its last session ends,
+  whatever the cause (signed out by any device, its own included; its family revoked on reuse;
+  its family expired, dropped at the account's next refresh or read by a compare-and-delete
+  that never drops a row a sign-in just rewrote), so an intruder's phone cannot leave and come
+  back silently; a revoked refresh family is tombstoned, so a refresh in flight during a sign-out is
   undone and refused rather than reviving the family; a refresh renews the device row and the
   known-device set, so a patient who stays signed in keeps both and an intruder's later sign-in
-  still counts as new; the notice budget and the once-a-day "not me" report are admitted
+  still counts as new; "Bu girişi ben yapmadım" stays open when no other device is listed, and
+  each reporting device's first report in a day is recorded (a repeat leaves a non-paging
+  trace), so an intruder's report during the hold cannot swallow the patient's; the notice
+  budget and the report windows are admitted
   atomically; h2's `hpack` logger, which logs every header at DEBUG, is held at INFO.
   **Residuals:** a SIM-swapped intruder can
   sign in again by SMS after being signed out; only the passkey step-up (INT-582) or an

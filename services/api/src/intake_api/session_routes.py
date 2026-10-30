@@ -195,10 +195,10 @@ async def sign_out_session(session_id: str, request: Request, state: State) -> R
     own = target.device_ref == device.device_ref
     if not own and (left := _hold_left(device, service.now())) > 0:
         raise _too_new(left)
-    # another device signing this one out forgets it, so its next sign-in is
-    # new and told; the patient's own sign-out keeps it known
+    # every sign-out forgets the device, its own included: an intruder's
+    # phone that signs itself out must not come back silently (round three)
     await asyncio.to_thread(
-        partial(store.sign_out, current.patient_id, target.device_ref, forget=not own)
+        partial(store.sign_out, current.patient_id, target.device_ref, forget=True)
     )
     SEC_SESSIONS_SIGNED_OUT_TOTAL.labels(scope="self" if own else "one").inc()
     await service.audit_account(
@@ -212,11 +212,18 @@ async def sign_out_others(payload: SignOutOthersIn, request: Request, state: Sta
     service = _service(request, state)
     current = await _current(request, service)
     store = service.device_sessions
-    if payload.not_me and await asyncio.to_thread(store.first_disowned_report, current.patient_id):
+    if payload.not_me:
         # the report is the breach hook, recorded before anything can refuse,
-        # the missing device binding included; once a day per account
-        SEC_SIGN_IN_DISOWNED_TOTAL.inc()
-        await service.audit_account(current.patient_id, "auth.session.disowned")
+        # the missing device binding included. Each reporting device's first
+        # report in a day pages and writes the row; a repeat leaves a
+        # non-paging trace (legal B6)
+        reporter = current.device.device_ref if current.device is not None else None
+        first = await asyncio.to_thread(store.first_disowned_report, current.patient_id, reporter)
+        if first:
+            SEC_SIGN_IN_DISOWNED_TOTAL.inc()
+            await service.audit_account(current.patient_id, "auth.session.disowned")
+        else:
+            await service.audit_account(current.patient_id, "auth.session.disowned_repeat")
     device = _bound(current)
     if (left := _hold_left(device, service.now())) > 0:
         raise _too_new(left)

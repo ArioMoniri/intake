@@ -316,8 +316,11 @@ def test_the_retention_texts_are_the_ones_the_store_enforces() -> None:
         "(sign-out, or notifications found turned off), Apple reports the token gone, or "
         "30 days after that token was last registered (REFRESH_TTL_S), whichever is first"
     )
-    sessions = OFF_SCHEMA_FLOWS["device_sessions"].annotation["retention"]
-    assert "last sign-in or refresh" in sessions
+    assert OFF_SCHEMA_FLOWS["device_sessions"].annotation["retention"] == (
+        "30 days after the last sign-in or refresh on the account (REFRESH_TTL_S); at once "
+        "when the device is signed out; and at the account's next refresh or read once all "
+        "its sessions have ended"
+    )
     assert "last sign-in or refresh" in OFF_SCHEMA_FLOWS["sign_in_devices"].annotation["retention"]
 
 
@@ -325,15 +328,53 @@ def test_the_push_token_names_apple_as_its_one_recipient() -> None:
     from intake_platform.store.facts import OFF_SCHEMA_FLOWS
 
     recipients = OFF_SCHEMA_FLOWS["push_tokens"].annotation["recipients"]
-    assert recipients == (
-        "Apple Push Notification service (APNs), as processor, outside Türkiye: receives "
-        "the device token and the constant notice text with each new-device sign-in notice, "
-        "a transfer abroad under KVKK m.9 whose mechanism is awaiting counsel; nothing "
-        "leaves until the owner's APNs egress row is applied, and nothing else leaves the "
-        "PHI boundary"
-    )
+    # the approved wording for each state of the allow-list; the owner's APNs
+    # patch moves the text from the first to the second in the same change
+    expected = REC_AFTER_THE_ROWS if _push_rows_shipped() else REC_BEFORE_THE_ROWS
+    assert recipients == expected
     assert "auth:push:" in OFF_SCHEMA_FLOWS["push_tokens"].what
     assert "auth:sess:" in OFF_SCHEMA_FLOWS["device_sessions"].what
+
+
+REC_BEFORE_THE_ROWS = (
+    "Apple Push Notification service (APNs), as processor, outside Türkiye: receives "
+    "the device token and the constant notice text with each new-device sign-in notice, "
+    "a transfer abroad under KVKK m.9 whose mechanism is awaiting counsel; nothing "
+    "leaves until the owner's APNs egress row is applied, and nothing else leaves the "
+    "PHI boundary"
+)
+REC_AFTER_THE_ROWS = (
+    "Apple Push Notification service (APNs), as processor, outside Türkiye: receives "
+    "the device token and the constant notice text with each new-device sign-in notice, "
+    "at the allow-list's two APNs hosts only, a transfer abroad under KVKK m.9 whose "
+    "mechanism is awaiting counsel; nothing else leaves the PHI boundary"
+)
+UNTIL_CLAUSE = "nothing leaves until the owner's APNs egress row is applied"
+DOCUMENTS_UNTIL = "once the owner's APNs egress row is applied"
+DOCUMENTS_AFTER = "at the allow-list's two APNs hosts only"
+
+
+def _push_rows_shipped() -> bool:
+    allowlist = yaml.safe_load(
+        (REPO / "infra" / "security" / "egress-allowlist.yaml").read_text(encoding="utf-8")
+    )
+    rows = allowlist["tiers"].get("phi_path") or []
+    return any(row.get("purpose_id") == "push_security_notice" for row in rows)
+
+
+def test_the_until_clause_stands_exactly_while_no_push_row_exists() -> None:
+    """The inventory and the legal index say nothing leaves until the owner's
+    APNs row is applied; that is true exactly while no push row ships, so the
+    clause and the rows must change together."""
+    from intake_platform.store.facts import OFF_SCHEMA_FLOWS
+
+    shipped = _push_rows_shipped()
+    recipients = OFF_SCHEMA_FLOWS["push_tokens"].annotation["recipients"]
+    assert (UNTIL_CLAUSE in recipients) is (not shipped)
+    documents = (REPO / "docs" / "legal" / "synthetic" / "documents.yaml").read_text("utf-8")
+    line = next(row for row in documents.splitlines() if "auth:push:<patient id>" in row)
+    assert (DOCUMENTS_UNTIL in line) is (not shipped)
+    assert (DOCUMENTS_AFTER in line) is shipped
 
 
 def test_the_disowned_alert_pages_and_names_the_runbook() -> None:

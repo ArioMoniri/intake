@@ -165,8 +165,11 @@ class DeviceSessionStore:
         return session
 
     def touch(self, patient_id: uuid.UUID) -> None:
-        """A refresh: the rows live another session lifetime. The sign-in
-        instant is not moved, so the hold still counts from the sign-in."""
+        """A refresh: first the rows (and push records) of devices whose
+        sessions have all ended are pruned and those devices forgotten, then the
+        rest live another session lifetime. The sign-in instant is not moved,
+        so the hold still counts from the sign-in."""
+        self._live_push_records(patient_id)
         self._r.expire(self._sessions_key(patient_id), REFRESH_TTL_S)
 
     @staticmethod
@@ -190,12 +193,33 @@ class DeviceSessionStore:
             device_ref = _text(raw_field)
             if device_ref is None:
                 continue
-            session = self._read(device_ref, _text(raw))
+            text = _text(raw)
+            session = self._read(device_ref, text)
             if session is not None and any(self._auth.family_alive(f) for f in session.families):
                 found.append(session)
             else:
-                self._r.hdel(key, device_ref)
+                self._drop_dead_row(patient_id, device_ref, text)
         return sorted(found, key=lambda s: s.signed_in_at, reverse=True)
+
+    def _drop_dead_row(self, patient_id: uuid.UUID, device_ref: str, seen: str | None) -> None:
+        """Compare-and-delete a row whose sessions have all ended: the row,
+        its push record and the device's place among the account's known
+        devices go together, but only if the row is still the one read. A
+        sign-in that rewrote it meanwhile (``bind``) keeps it (WATCH/MULTI)."""
+        key = self._sessions_key(patient_id)
+        with self._r.pipeline() as pipe:
+            try:
+                pipe.watch(key)  # type: ignore[no-untyped-call]  # redis-py: untyped
+                if _text(pipe.hget(key, device_ref)) != seen:
+                    pipe.unwatch()
+                    return
+                pipe.multi()
+                pipe.hdel(key, device_ref)
+                pipe.hdel(self._push_key(patient_id), device_ref)
+                pipe.srem(self._auth.known_devices_key(str(patient_id)), device_ref)
+                pipe.execute()
+            except redis.WatchError:
+                return
 
     def session_of_family(self, patient_id: uuid.UUID, family_id: str) -> DeviceSession | None:
         """The device a session's refresh family belongs to."""
@@ -207,8 +231,9 @@ class DeviceSessionStore:
     def sign_out(self, patient_id: uuid.UUID, device_ref: str, *, forget: bool) -> int:
         """End every session of one device: its refresh families (tombstoned,
         and with them its access tokens), its push token and its row. With
-        ``forget`` (another device asked) it also leaves the account's known
-        devices, so its next sign-in is new and told. Returns the refresh
+        ``forget`` it also leaves the account's known devices, so its next
+        sign-in is new and told; the routes forget on every sign-out, the
+        device's own included (review round three). Returns the refresh
         tokens revoked."""
         key = self._sessions_key(patient_id)
         session = self._read(device_ref, _text(self._r.hget(key, device_ref)))
@@ -338,6 +363,10 @@ class DeviceSessionStore:
         """Spend one of the account's notices in the rolling hour, or refuse."""
         return self._admit(f"auth:push:rate:{patient_id}", NOTICE_LIMIT_PER_HOUR, OTP_WINDOW_S)
 
-    def first_disowned_report(self, patient_id: uuid.UUID) -> bool:
-        """Whether this "not me" report is the account's first in the window."""
-        return self._admit(f"auth:disowned:{patient_id}", 1, DISOWNED_REPORT_WINDOW_S)
+    def first_disowned_report(self, patient_id: uuid.UUID, reporter: str | None) -> bool:
+        """Whether this "not me" report is the first in the window from this
+        reporting device (``reporter``, its device hash, or None for a session
+        bound to none) on this account. Per device, so an intruder's own
+        report during the hold never swallows the patient's (legal B6)."""
+        key = f"auth:disowned:{patient_id}:{reporter or 'unbound'}"
+        return self._admit(key, 1, DISOWNED_REPORT_WINDOW_S)

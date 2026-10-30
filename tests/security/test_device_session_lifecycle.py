@@ -3,9 +3,9 @@
 The security review (30 Oct 2026) found two holes and the legal review two false
 statements, and this suite holds each one closed:
 
-- **A device signed out by another device is forgotten** (security B1). Its
-  next sign-in is a new device again, so the patient is told. Near miss: a
-  device that signs itself out stays known.
+- **A signed-out device is forgotten** (security B1, rounds two and three).
+  Its next sign-in is a new device again, so the patient is told, whoever
+  signed it out, itself included.
 - **Sign-out is final against a refresh that is already in flight** (security
   B2). A revoked family is tombstoned. A rotation that lands after the revoke
   is undone and refused, and the family stays dead. Shown with a
@@ -106,17 +106,21 @@ def test_sign_out_others_forgets_every_other_device(tmp_path: Path) -> None:
         assert _pushed(vendor) == [kit.TOKEN_A]
 
 
-def test_a_device_that_signs_itself_out_stays_known(tmp_path: Path) -> None:
-    """Near miss: the patient's own sign-out is not an intrusion, and the
-    same phone signing in again is not a new device."""
-    with harness(tmp_path) as otp:
-        sign_in(otp, "device-a")
+def test_a_device_that_signs_itself_out_is_new_again_and_is_told(tmp_path: Path) -> None:
+    """Round three: an intruder's phone that signs itself out must not come
+    back silently, so every sign-out forgets the device, its own included."""
+    vendor = kit.Vendor(kit.replay("accepted"))
+    with harness(tmp_path, push_gateway=recorded_gateway(vendor)) as otp:
+        a = sign_in(otp, "device-a")
         b = sign_in(otp, "device-b")
+        assert a.renew().register(kit.TOKEN_A).status_code == 204
         own = next(s["session_id"] for s in b.sessions()["sessions"] if s["current"])
         assert b.call("DELETE", f"/v1/auth/sessions/{own}").status_code == 204
         before = _actions(otp, "auth.login.new_device")
+        vendor.requests.clear()
         sign_in(otp, "device-b")
-        assert _actions(otp, "auth.login.new_device") == before
+        assert len(_actions(otp, "auth.login.new_device")) == len(before) + 1
+        assert _pushed(vendor) == [kit.TOKEN_A]
 
 
 # --- security B2: sign-out is final against a refresh already in flight ------------------
@@ -322,19 +326,23 @@ def test_two_racing_admissions_never_exceed_the_hourly_limit() -> None:
     assert fakeredis.FakeStrictRedis(server=server).zcard(f"auth:push:rate:{patient}") == limit
 
 
-def test_not_me_is_recorded_once_a_day_per_account(tmp_path: Path) -> None:
+def _disowned(otp: Any) -> list[str]:
+    return [e.action for e in otp.audit_store.entries() if e.action == "auth.session.disowned"]
+
+
+def test_not_me_is_recorded_once_a_day_per_reporting_device(tmp_path: Path) -> None:
     with harness(tmp_path) as otp:
         sign_in(otp, "device-a")
         b = sign_in(otp, "device-b")
         before = REGISTRY.get_sample_value("sec_sign_in_disowned_total") or 0.0
         for _ in range(3):
             b.call("POST", "/v1/auth/sessions/sign-out-others", {"not_me": True})
-        assert _actions(otp, "auth.session.disowned") == ["auth.session.disowned"]
+        assert _disowned(otp) == ["auth.session.disowned"]
         assert REGISTRY.get_sample_value("sec_sign_in_disowned_total") == before + 1
         # near miss: a day later it is a new report
         otp.clock.advance(DAY_S + 1)
         b.renew().call("POST", "/v1/auth/sessions/sign-out-others", {"not_me": True})
-        assert len(_actions(otp, "auth.session.disowned")) == 2
+        assert len(_disowned(otp)) == 2
 
 
 def test_not_me_from_an_unbound_session_is_still_recorded(tmp_path: Path) -> None:
@@ -345,7 +353,7 @@ def test_not_me_from_an_unbound_session_is_still_recorded(tmp_path: Path) -> Non
         otp.redis_client.delete(f"auth:sess:{a.patient_id}")
         response = a.call("POST", "/v1/auth/sessions/sign-out-others", {"not_me": True})
         assert response.status_code == 409
-        assert _actions(otp, "auth.session.disowned") == ["auth.session.disowned"]
+        assert _disowned(otp) == ["auth.session.disowned"]
 
 
 # --- no channel, no registration ------------------------------------------------------------

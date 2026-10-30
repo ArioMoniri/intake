@@ -198,3 +198,17 @@ describe("copy: tr source of truth, en mirror, B1 siz register", () => {
     }
   });
 });
+
+describe("the report stays open when no other device is listed (review round three)", () => {
+  it("the not-me action is rendered outside the block that needs other devices", () => {
+    const screen = file(SCREEN);
+    const othersBlock = screen.indexOf("{view.others > 0 ? (");
+    const reportBlock = screen.indexOf("{view.showReport ? (");
+    const notMe = screen.indexOf('label={t("sessions.notMe")}');
+    expect(othersBlock).toBeGreaterThan(-1);
+    expect(reportBlock).toBeGreaterThan(othersBlock);
+    expect(notMe).toBeGreaterThan(reportBlock);
+    // nothing of the report lives in the block that needs other devices
+    expect(screen.slice(othersBlock, reportBlock)).not.toContain('"sessions.notMe');
+  });
+});
