@@ -18,7 +18,12 @@
 import { AppState, type NativeEventSubscription } from "react-native";
 
 import { authedFetch } from "@/lib/auth/api";
-import { consentQueueClear, shareStanding } from "@/lib/consent/store";
+import {
+  consentQueueClear,
+  lastShareWithdrawal,
+  shareStanding,
+  subscribeToLedger,
+} from "@/lib/consent/store";
 import { ensureServerVisit } from "@/lib/records/api";
 
 import { nativeDraftBackend } from "../offline/nativeBackend";
@@ -31,6 +36,7 @@ let foreground: NativeEventSubscription | null = null;
 
 const deps: DeliveryDeps = {
   shareStanding,
+  lastShareWithdrawal,
   flushConsent: consentQueueClear,
   async resolveServerVisit(visit): Promise<ResolveResult> {
     try {
@@ -59,6 +65,10 @@ export async function startNativeDelivery(accountId: string, memoryOnly: boolean
       const handle = setTimeout(run, delayMs);
       return () => clearTimeout(handle);
     },
+    // INT-587 legal review B1: any share withdrawal — the share centre, a
+    // core withdrawal on İzinleriniz, the first-run screen, a future one —
+    // parks every unsent note the moment the ledger records it
+    watchConsent: subscribeToLedger,
   });
 }
 

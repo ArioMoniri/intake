@@ -129,8 +129,18 @@ export async function fetchConsentSnapshot(): Promise<ConsentSnapshot | null> {
   }
 }
 
-/** Push one queued op. False = keep it queued (offline / route absent). */
-export async function pushConsentOp(op: QueuedOp): Promise<boolean> {
+/**
+ * What one push came to.
+ * - `landed`: the server recorded it;
+ * - `wait`: offline, a 5xx, a 408/429, or no session — keep it queued;
+ * - `refused`: any other 4xx (409 `consent_text_changed`, 409 `text_missing`,
+ *   422 `purpose_unknown`, …). A retry cannot change that answer, so the op is
+ *   dropped rather than left at the head of the queue, where it would stall a
+ *   later withdrawal forever (INT-587 legal review N5).
+ */
+export type PushOutcome = "landed" | "wait" | "refused";
+
+export async function pushConsentOp(op: QueuedOp): Promise<PushOutcome> {
   const path = op.kind === "grant" ? "/v1/consents/grant" : "/v1/consents/withdraw";
   const payload =
     op.kind === "grant"
@@ -142,8 +152,14 @@ export async function pushConsentOp(op: QueuedOp): Promise<boolean> {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     });
-    return response.ok;
+    if (response.ok) {
+      return "landed";
+    }
+    const status = response.status;
+    const answered =
+      status >= 400 && status < 500 && status !== 401 && status !== 408 && status !== 429;
+    return answered ? "refused" : "wait";
   } catch {
-    return false;
+    return "wait";
   }
 }

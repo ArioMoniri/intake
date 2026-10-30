@@ -1,5 +1,16 @@
 # PROGRESS — one entry per LOOP iteration (template in LOOP.md)
 
+### 2026-10-30T10:00:00+03:00 · INT-587 · legal review round 1 fixed (committed locally; push frozen)
+- Goal: the independent legal review returned B1 (a share consent given for one note could release another after a withdrawal — KVKK m.4/5/6) and notes N3, N5.
+- Plan: the outbox subscribes to the consent ledger and parks every queued and refused note on any share withdrawal (core included); each note is bound to the receipt given for it, sealed with it, and released only by a receipt for that note; the engine refuses a grant older than the last withdrawal; refused consent ops are dropped and re-asked (N5); "Şimdi değil" beside the grant with equal weight (N3).
+- Tests added (with the near-miss negative for any safety rule): `consentBinding.test.ts` (a)(b)(c) over the real consent store with a restart from disk; near miss: a `documents` withdrawal parks nothing. Red: 6 files, 18 tests failed, including the review's scenario. Green: mobile 142 files / 2996 tests. Mutation 5/5 killed.
+- Result (`make check` / `make safety` / `make security` summary): mobile suite, typecheck, `make check-i18n` and PolicyGuard green; details in docs/evidence/INT-587.md §8.
+- Invariants touched and still passing: 4, 6, 18.
+- Decisions / ADRs / `00_STATE.md` rows: none.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): nothing; the reviewer re-verifies on this head.
+- Next: rebase INT-588 onto this head.
+- LOOP_STATUS: CONTINUE
+
 ### 2026-10-29T02:20:00+03:00 · INT-587 · done (committed locally; push frozen for the build-6 wave)
 - Goal: GitHub #988, P1, from the store-listing legal review (B4). In a release build the patient's note never reached a clinician: "Gönder" only changed local state, no client called `PUT /v1/visits/{id}/note`, the app could not grant `share:previsit_note`, and Review & send said "gönderildi" on no evidence. Sec-Row: the issue names `sharing`, which is no files/10 §9 row; the work is the Review & send row, so `review-send`.
 - Plan:

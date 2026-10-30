@@ -15,15 +15,20 @@
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { shareView, viewOf } from "./ledger";
 import {
   consentOutbox,
   flushConsentQueue,
+  grantLocal,
+  grantShareLocal,
   ledgerSeededFor,
   ledgerSnapshot,
+  refreshLedgerFromServer,
   resetLedger,
   seedLedgerForAccount,
   subscribeToLedger,
   withdrawLocal,
+  withdrawShareLocal,
   type ConsentOutbox,
 } from "./store";
 
@@ -169,5 +174,79 @@ describe("which account the working copy belongs to (INT-537)", () => {
     await seeded();
     resetLedger();
     expect(ledgerSeededFor("hesap-1")).toBe(false);
+  });
+});
+
+/* ------------------------------------------------------------------ */
+/* INT-587 legal review N5 — a refused grant cannot stall a withdrawal */
+/* ------------------------------------------------------------------ */
+
+describe("a grant the server refuses is an answer, not a wait (INT-587 N5)", () => {
+  const HASH = "e".repeat(64);
+  const TEXTS = [
+    { purpose: "documents", version: "syn1", text_hash: HASH, body: "Deneme belge metni." },
+    { purpose: "share", version: "syn1", text_hash: HASH, body: "Deneme paylaşım metni." },
+  ];
+
+  /** The snapshot serves texts; a grant answers `grantStatus`; everything else lands. */
+  function serving(grantStatus: number): string[] {
+    const posted: string[] = [];
+    mocks.authedFetch.mockImplementation(async (path: string) => {
+      if (path === "/v1/consents") {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({ scopes: [], texts: TEXTS }),
+        } as unknown as Response;
+      }
+      posted.push(path);
+      const status = path.endsWith("/grant") ? grantStatus : 200;
+      return { ok: status < 300, status, json: async () => ({}) } as unknown as Response;
+    });
+    return posted;
+  }
+
+  async function signedIn(grantStatus: number): Promise<string[]> {
+    const posted = serving(grantStatus);
+    seedLedgerForAccount("hesap-1", null);
+    await refreshLedgerFromServer();
+    return posted;
+  }
+
+  it("a 409 on the share grant is dropped, and the withdrawal behind it reaches the server", async () => {
+    const posted = await signedIn(409);
+    grantShareLocal("v-1");
+    await settle();
+    expect(await withdrawShareLocal()).toBe(true);
+    expect(posted).toEqual(["/v1/consents/grant", "/v1/consents/withdraw"]);
+    expect(ledgerSnapshot().queue).toEqual([]);
+  });
+
+  it("a refused share grant is asked again: the phone no longer counts it as given", async () => {
+    await signedIn(409);
+    grantShareLocal("v-1");
+    await settle();
+    await flushConsentQueue();
+    expect(shareView(ledgerSnapshot()).standing).toBe("unknown");
+  });
+
+  it("a 422 on a purpose grant is dropped and the purpose is offered again", async () => {
+    await signedIn(422);
+    grantLocal("documents");
+    await settle();
+    await flushConsentQueue();
+    const documents = viewOf(ledgerSnapshot()).find((view) => view.id === "documents");
+    expect(documents?.allowed).toBe(false);
+    expect(documents?.grantable).toBe(true);
+    expect(ledgerSnapshot().queue).toEqual([]);
+  });
+
+  it("near miss: a 503 is a wait — the grant stays queued and the outbox holds", async () => {
+    await signedIn(503);
+    grantShareLocal("v-1");
+    await settle();
+    await flushConsentQueue();
+    expect(ledgerSnapshot().queue).toHaveLength(1);
+    expect(consentOutbox()).toBe("held");
   });
 });

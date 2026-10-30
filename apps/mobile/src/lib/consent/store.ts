@@ -12,6 +12,7 @@ import {
   applyServerScopes,
   applyShareText,
   applyTexts,
+  dropRefusedHead,
   freshLedger,
   grant,
   grantShare,
@@ -171,11 +172,15 @@ let flushing: Promise<void> | null = null;
 async function flushPass(): Promise<void> {
   while (state.queue.length > 0) {
     const next = state.queue[0];
-    if (!(await pushConsentOp(next))) {
+    const outcome = await pushConsentOp(next);
+    if (outcome === "wait") {
       moveOutbox("held");
       return;
     }
-    commit(shiftQueue(state, 1));
+    // INT-587 N5: a refusal is an answer, not a wait. The op is dropped (a
+    // refused grant undone, so it is asked again) and the ops behind it —
+    // a withdrawal above all — go on.
+    commit(outcome === "landed" ? shiftQueue(state, 1) : dropRefusedHead(state));
   }
   moveOutbox("clear");
 }
@@ -218,12 +223,13 @@ export function withdrawLocal(id: PurposeId, atIso?: string): readonly PurposeId
 // --- INT-587: the share consent, asked at the send ----------------------------------
 
 /**
- * Grant the share consent against the loaded share text and start a flush.
- * Returns the receipt the note outbox requires, or null when no share text is
- * loaded (nothing changes — invariant 18).
+ * Grant the share consent for ONE note against the loaded share text and
+ * start a flush. Returns that note's receipt — the only thing the outbox
+ * queues or releases it against — or null when no share text is loaded
+ * (nothing changes — invariant 18).
  */
-export function grantShareLocal(atIso?: string): ShareGrantReceipt | null {
-  const result = grantShare(state, atIso ?? new Date().toISOString());
+export function grantShareLocal(visitId: string, atIso?: string): ShareGrantReceipt | null {
+  const result = grantShare(state, atIso ?? new Date().toISOString(), visitId);
   if (result.receipt === null) {
     return null;
   }
@@ -256,4 +262,10 @@ export async function consentQueueClear(): Promise<boolean> {
 /** What this phone knows of the share consent in this session. */
 export function shareStanding(): ShareStanding {
   return state.share.standing;
+}
+
+/** When the share consent was last withdrawn on this phone (directly or via
+ * core), or null. A note granted before it is never sent on a later grant. */
+export function lastShareWithdrawal(): string | null {
+  return state.share.withdrawnAt;
 }

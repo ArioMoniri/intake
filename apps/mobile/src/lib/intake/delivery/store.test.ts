@@ -91,13 +91,14 @@ function fakeBackend(): DraftBackend & { blobBytes: Map<string, string> } {
   };
 }
 
-/** A receipt the way the app gets one: a grant against a loaded share text. */
-function receipt(): ShareGrantReceipt {
+/** A receipt the way the app gets one: a grant against a loaded share text,
+ * for ONE note (INT-587 legal review B1). */
+function receipt(visitId = "v-local-1"): ShareGrantReceipt {
   const ledger = applyShareText(freshLedger(), {
     status: "loaded",
     text: { version: "2026-10-28.syn1", textHash: "a".repeat(64), body: "Deneme metni." },
   });
-  const granted = grantShare(ledger, "2026-10-29T10:00:00Z");
+  const granted = grantShare(ledger, "2026-10-29T10:00:00.000Z", visitId);
   if (granted.receipt === null) throw new Error("fixture");
   return granted.receipt;
 }
@@ -120,6 +121,7 @@ function harness(backend: DraftBackend): Harness {
   };
   const deps: DeliveryDeps = {
     shareStanding: () => "granted",
+    lastShareWithdrawal: () => null,
     flushConsent: async () => h.network.online,
     resolveServerVisit: async () =>
       h.network.online ? { kind: "resolved", serverVisitId: SERVER } : { kind: "transient" },
@@ -266,6 +268,29 @@ describe("no share without the grant", () => {
     expect(h.puts).toBe(before);
     await reconfirmDelivery("v-local-1", receipt());
     expect(deliveryOf("v-local-1")?.stage).toBe("delivered");
+  });
+
+  it("a receipt granted for another note neither queues nor releases this one (B1)", async () => {
+    const backend = fakeBackend();
+    const h = harness(backend);
+    h.network.online = true;
+    await startDelivery("acct-1", h.runtime);
+    // B's receipt cannot queue C …
+    expect(
+      await enqueueDelivery(
+        { visitId: "v-local-c", visit: VISIT, body: BODY },
+        receipt("v-local-b"),
+      ),
+    ).toBe(false);
+    expect(deliveryOf("v-local-c")).toBeNull();
+    // … and cannot release a parked C either
+    h.network.online = false;
+    await enqueueDelivery({ visitId: "v-local-c", visit: VISIT, body: BODY }, receipt("v-local-c"));
+    await holdDeliveriesForConsent();
+    h.network.online = true;
+    await reconfirmDelivery("v-local-c", receipt("v-local-b"));
+    expect(deliveryOf("v-local-c")?.stage).toBe("awaiting_consent");
+    expect(h.puts).toBe(0);
   });
 });
 

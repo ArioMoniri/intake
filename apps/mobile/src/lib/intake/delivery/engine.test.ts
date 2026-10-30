@@ -27,14 +27,24 @@ const VISIT = {
 const SERVER = "0b6f6a52-0000-4000-8000-0000000000a1";
 const T0 = 1_800_000_000_000;
 
+const GRANT = {
+  version: "2026-10-28.syn1",
+  textHash: "a".repeat(64),
+  atIso: "2026-10-29T10:00:00.000Z",
+};
+
 function item(): DeliveryItem {
-  return newItem({ visitId: "v-local-1", accountId: "acct-1", visit: VISIT, body: BODY }, T0);
+  return newItem(
+    { visitId: "v-local-1", accountId: "acct-1", visit: VISIT, body: BODY, grant: GRANT },
+    T0,
+  );
 }
 
 function deps(overrides: Partial<DeliveryDeps> = {}): DeliveryDeps & { calls: string[] } {
   const calls: string[] = [];
   const base: DeliveryDeps = {
     shareStanding: () => "granted",
+    lastShareWithdrawal: () => null,
     flushConsent: async () => {
       calls.push("flush");
       return true;
@@ -74,6 +84,34 @@ describe("no share without the grant", () => {
   it("a share consent withdrawn on this phone parks the note with no network at all", async () => {
     const d = deps({ shareStanding: () => "withdrawn" });
     const next = await attemptDelivery(item(), d, T0);
+    expect(d.calls).toEqual([]);
+    expect(next.stage).toBe("awaiting_consent");
+  });
+
+  it("a note granted BEFORE the last withdrawal is parked, even once the standing is granted again (B1)", async () => {
+    // Note C was granted at 10:00; the patient withdrew at 10:30 and then
+    // granted the share again at 10:45 — for note B. That later grant is not
+    // C's: C is parked with no network at all.
+    const d = deps({
+      shareStanding: () => "granted",
+      lastShareWithdrawal: () => "2026-10-29T10:30:00.000Z",
+    });
+    const next = await attemptDelivery(item(), d, T0);
+    expect(d.calls).toEqual([]);
+    expect(next.stage).toBe("awaiting_consent");
+    expect(next.grant).toBeNull();
+  });
+
+  it("near miss: a note granted AFTER the last withdrawal is sent", async () => {
+    const d = deps({ lastShareWithdrawal: () => "2026-10-29T09:30:00.000Z" });
+    const next = await attemptDelivery(item(), d, T0);
+    expect(d.calls).toEqual(["flush", "resolve", "put"]);
+    expect(next.stage).toBe("delivered");
+  });
+
+  it("a queued item carrying no grant of its own is never sent", async () => {
+    const d = deps();
+    const next = await attemptDelivery({ ...item(), grant: null }, d, T0);
     expect(d.calls).toEqual([]);
     expect(next.stage).toBe("awaiting_consent");
   });

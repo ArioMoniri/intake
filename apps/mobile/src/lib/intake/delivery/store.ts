@@ -18,9 +18,14 @@
  *   run a pass.
  * - **a 4xx is surfaced and not retried forever.** A refused item is never
  *   due again until the patient retries it (./outbox).
- * - **no share without the grant.** An item is queued only against a
- *   share-scope receipt, which only a grant against a loaded share text
- *   produces (lib/consent/ledger `grantShare`).
+ * - **no share without the grant — this note's grant.** An item is queued,
+ *   and a parked item released, only against a share-scope receipt given for
+ *   THAT note, which only a grant against a loaded share text produces
+ *   (lib/consent/ledger `grantShare`). The moment the share consent is
+ *   withdrawn on this phone — directly, through core, or from any future
+ *   screen — every unsent note is parked and its grant unbound, in memory at
+ *   once and then on disk, so neither a later grant for another note nor a
+ *   restart can send it (`watchConsent`; INT-587 legal review B1).
  *
  * Nothing here logs, and nothing here reaches the network except through the
  * injected dependencies (invariant 6; ./native wires the real ones).
@@ -37,6 +42,7 @@ import {
   reopenable,
   retryNow,
   type DeliveryItem,
+  type ShareGrantBinding,
   type VisitIdentity,
 } from "./outbox";
 import type { NotePutBody } from "./payload";
@@ -48,9 +54,17 @@ export interface DeliveryRuntime {
   now(): number;
   /** Run `run` once after `delayMs`; returns its cancel. */
   schedule(run: () => void, delayMs: number): () => void;
+  /**
+   * Subscribe to consent changes (the consent ledger's own subscription); the
+   * outbox parks every unsent note whenever a new share withdrawal appears in
+   * `deps.lastShareWithdrawal()`. Returns the unsubscribe.
+   */
+  watchConsent?(listener: () => void): () => void;
 }
 
 let runtime: DeliveryRuntime | null = null;
+let unwatchConsent: (() => void) | null = null;
+let seenWithdrawal: string | null = null;
 let account: string | null = null;
 let items: Readonly<Record<string, DeliveryItem>> = {};
 let hydrated = false;
@@ -77,16 +91,36 @@ async function commit(next: DeliveryItem): Promise<void> {
   }
 }
 
-function isShareReceipt(receipt: unknown): receipt is ShareGrantReceipt {
+/** A share-scope receipt given for THIS note — never another note's. */
+function isReceiptFor(receipt: unknown, visitId: string): receipt is ShareGrantReceipt {
   if (typeof receipt !== "object" || receipt === null) {
     return false;
   }
   const value = receipt as Record<string, unknown>;
   return (
     value.scope === SHARE_SCOPE &&
+    value.visitId === visitId &&
     typeof value.version === "string" &&
-    typeof value.textHash === "string"
+    typeof value.textHash === "string" &&
+    typeof value.atIso === "string"
   );
+}
+
+function bindingOf(receipt: ShareGrantReceipt): ShareGrantBinding {
+  return { version: receipt.version, textHash: receipt.textHash, atIso: receipt.atIso };
+}
+
+/** A new share withdrawal on this phone parks every unsent note at once. */
+function onConsentChange(): void {
+  const rt = runtime;
+  if (rt === null) {
+    return;
+  }
+  const withdrawnAt = rt.deps.lastShareWithdrawal();
+  if (withdrawnAt !== null && withdrawnAt !== seenWithdrawal) {
+    seenWithdrawal = withdrawnAt;
+    void holdDeliveriesForConsent();
+  }
 }
 
 function scheduleNext(): void {
@@ -156,6 +190,10 @@ export async function startDelivery(accountId: string, rt: DeliveryRuntime): Pro
   stopDelivery();
   runtime = rt;
   account = accountId;
+  // A withdrawal already on record parks older notes at their next attempt
+  // (the engine's own check); only a NEW one parks everything at once.
+  seenWithdrawal = rt.deps.lastShareWithdrawal();
+  unwatchConsent = rt.watchConsent?.(onConsentChange) ?? null;
   const gen = generation;
   let loaded: DeliveryItem[] = [];
   try {
@@ -181,6 +219,9 @@ export async function startDelivery(accountId: string, rt: DeliveryRuntime): Pro
 /** Sign-out / restart: drop the working copy. Disk is the session's to shred. */
 export function stopDelivery(): void {
   generation += 1;
+  unwatchConsent?.();
+  unwatchConsent = null;
+  seenWithdrawal = null;
   cancelTimer?.();
   cancelTimer = null;
   runtime = null;
@@ -193,37 +234,39 @@ export function stopDelivery(): void {
 }
 
 /**
- * Queue a sent note for delivery. Refused — nothing queued, nothing written —
- * without a share-scope receipt, before the outbox has started, or when this
- * visit already has an item (the screen reconfirms or retries that one).
+ * Queue a sent note for delivery, bound to its own grant. Refused — nothing
+ * queued, nothing written — without a share-scope receipt given for THIS
+ * note, before the outbox has started, or when this visit already has an item
+ * (the screen reconfirms or retries that one).
  */
 export async function enqueueDelivery(
   input: { visitId: string; visit: VisitIdentity; body: NotePutBody },
   receipt: ShareGrantReceipt,
 ): Promise<boolean> {
   const rt = runtime;
-  if (rt === null || account === null || !isShareReceipt(receipt)) {
+  if (rt === null || account === null || !isReceiptFor(receipt, input.visitId)) {
     return false;
   }
   if (items[input.visitId] !== undefined) {
     return false;
   }
-  await commit(newItem({ ...input, accountId: account }, rt.now()));
+  await commit(newItem({ ...input, accountId: account, grant: bindingOf(receipt) }, rt.now()));
   await runDueDeliveries();
   return true;
 }
 
-/** The patient agreed again: release an item that was waiting for consent. */
+/** The patient agreed again FOR THIS NOTE: release it, bound to that grant.
+ * A receipt given for another note releases nothing. */
 export async function reconfirmDelivery(
   visitId: string,
   receipt: ShareGrantReceipt,
 ): Promise<void> {
   const rt = runtime;
   const item = items[visitId];
-  if (rt === null || item === undefined || !isShareReceipt(receipt)) {
+  if (rt === null || item === undefined || !isReceiptFor(receipt, visitId)) {
     return;
   }
-  const next = reconfirm(item, rt.now());
+  const next = reconfirm(item, bindingOf(receipt), rt.now());
   if (next !== item) {
     await commit(next);
   }
@@ -244,12 +287,34 @@ export async function retryDelivery(visitId: string): Promise<void> {
   await runDueDeliveries();
 }
 
-/** The share consent was withdrawn on this phone: nothing queued may leave. */
+/**
+ * The share consent was withdrawn on this phone: no unsent note may leave.
+ * Every queued and refused note is parked IN MEMORY AT ONCE — before any await,
+ * so no pass can pick one up in between — and then written to disk, so a
+ * restart finds it parked.
+ */
 export async function holdDeliveriesForConsent(): Promise<void> {
+  const parked: DeliveryItem[] = [];
+  const next: Record<string, DeliveryItem> = { ...items };
   for (const item of Object.values(items)) {
-    const next = holdForConsent(item);
-    if (next !== item) {
-      await commit(next);
+    const held = holdForConsent(item);
+    if (held !== item) {
+      next[item.visitId] = held;
+      parked.push(held);
+    }
+  }
+  if (parked.length === 0) {
+    return;
+  }
+  // captured now: a sign-out right after the withdrawal must not skip a write
+  const persistence = runtime?.persistence;
+  items = next;
+  notify();
+  for (const item of parked) {
+    try {
+      await persistence?.save(item);
+    } catch {
+      // the parked item stands in memory; its next change persists it again
     }
   }
 }

@@ -27,12 +27,13 @@ const SHARE_TEXT: TextEntry = {
   text: { version: "2026-10-28.syn1", textHash: "c".repeat(64), body: "Deneme metni." },
 };
 const AT = "2026-10-29T10:00:00Z";
+const NOTE = "v-local-1";
 
 describe("the share text is the only thing a share grant can bind to", () => {
   it("a fresh ledger has no share text and nothing can be granted (invariant 18)", () => {
     const state = freshLedger();
     expect(shareView(state).display).toBe("pending_text");
-    const result = grantShare(state, AT);
+    const result = grantShare(state, AT, NOTE);
     expect(result.receipt).toBeNull();
     expect(result.state).toBe(state);
     expect(state.queue).toEqual([]);
@@ -40,11 +41,14 @@ describe("the share text is the only thing a share grant can bind to", () => {
 
   it("a grant binds the version and hash that were shown, and queues one grant op", () => {
     const loaded = applyShareText(freshLedger(), SHARE_TEXT);
-    const result = grantShare(loaded, AT);
+    const result = grantShare(loaded, AT, NOTE);
     expect(result.receipt).toMatchObject({
       scope: SHARE_SCOPE,
       version: "2026-10-28.syn1",
       textHash: "c".repeat(64),
+      // B1: the receipt is for ONE note, at one instant
+      visitId: NOTE,
+      atIso: AT,
     });
     expect(result.state.queue).toEqual([
       {
@@ -59,14 +63,14 @@ describe("the share text is the only thing a share grant can bind to", () => {
   });
 
   it("is asked at every send: a second grant is recorded again, never assumed", () => {
-    const once = grantShare(applyShareText(freshLedger(), SHARE_TEXT), AT).state;
-    const twice = grantShare(once, AT);
+    const once = grantShare(applyShareText(freshLedger(), SHARE_TEXT), AT, NOTE).state;
+    const twice = grantShare(once, AT, NOTE);
     expect(twice.receipt).not.toBeNull();
     expect(twice.state.queue).toHaveLength(2);
   });
 
   it("a moved text makes the grant stale — the receipt no longer stands", () => {
-    const granted = grantShare(applyShareText(freshLedger(), SHARE_TEXT), AT).state;
+    const granted = grantShare(applyShareText(freshLedger(), SHARE_TEXT), AT, NOTE).state;
     const moved = applyShareText(granted, {
       status: "loaded",
       text: { version: "2026-11-01.syn2", textHash: "d".repeat(64), body: "Yeni metin." },
@@ -78,7 +82,7 @@ describe("the share text is the only thing a share grant can bind to", () => {
 
 describe("the patient can take it back", () => {
   it("withdrawal is instant locally and queues exactly one op for the server", () => {
-    const granted = grantShare(applyShareText(freshLedger(), SHARE_TEXT), AT).state;
+    const granted = grantShare(applyShareText(freshLedger(), SHARE_TEXT), AT, NOTE).state;
     const result = withdrawShare(granted, AT);
     expect(result.changed).toBe(true);
     expect(shareView(result.state).standing).toBe("withdrawn");
@@ -100,7 +104,7 @@ describe("the patient can take it back", () => {
   });
 
   it("a core withdrawal takes the share down with it, as the server cascades", () => {
-    const granted = grantShare(applyShareText(freshLedger(), SHARE_TEXT), AT).state;
+    const granted = grantShare(applyShareText(freshLedger(), SHARE_TEXT), AT, NOTE).state;
     const result = withdraw(granted, "core", AT);
     expect(shareView(result.state).standing).toBe("withdrawn");
     // one op for the root only: the server derives the cascade itself
@@ -111,9 +115,25 @@ describe("the patient can take it back", () => {
 
   it("a grant after a withdrawal re-opens it against the current text", () => {
     const withdrawn = withdrawShare(applyShareText(freshLedger(), SHARE_TEXT), AT).state;
-    const regranted = grantShare(withdrawn, AT);
+    const regranted = grantShare(withdrawn, AT, NOTE);
     expect(regranted.receipt).not.toBeNull();
     expect(shareView(regranted.state).standing).toBe("granted");
+  });
+
+  it("every withdrawal records its instant — a later grant does not erase it (B1)", () => {
+    const LATER = "2026-10-29T11:00:00Z";
+    const shareWithdrawn = withdrawShare(applyShareText(freshLedger(), SHARE_TEXT), AT).state;
+    expect(shareWithdrawn.share.withdrawnAt).toBe(AT);
+    const coreWithdrawn = withdraw(applyShareText(freshLedger(), SHARE_TEXT), "core", AT).state;
+    expect(coreWithdrawn.share.withdrawnAt).toBe(AT);
+    const regranted = grantShare(shareWithdrawn, LATER, "v-other").state;
+    expect(regranted.share.withdrawnAt).toBe(AT);
+  });
+
+  it("near miss: withdrawing another purpose records no share withdrawal", () => {
+    const state = withdraw(applyShareText(freshLedger(), SHARE_TEXT), "documents", AT).state;
+    expect(state.share.withdrawnAt).toBeNull();
+    expect(shareView(state).standing).toBe("unknown");
   });
 });
 

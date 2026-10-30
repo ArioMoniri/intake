@@ -39,8 +39,19 @@ const VISIT = {
 
 const T0 = 1_800_000_000_000;
 
+/** The share grant this note was queued under (INT-587 legal review B1). */
+const GRANT = {
+  version: "2026-10-28.syn1",
+  textHash: "a".repeat(64),
+  atIso: "2026-10-29T10:00:00.000Z",
+};
+const LATER_GRANT = { ...GRANT, atIso: "2026-10-29T11:00:00.000Z" };
+
 function queued(): DeliveryItem {
-  return newItem({ visitId: "v-local-1", accountId: "acct-1", visit: VISIT, body: BODY }, T0);
+  return newItem(
+    { visitId: "v-local-1", accountId: "acct-1", visit: VISIT, body: BODY, grant: GRANT },
+    T0,
+  );
 }
 
 describe("a new item is queued and due at once", () => {
@@ -140,19 +151,42 @@ describe("consent", () => {
     expect(waiting.serverVisitId).toBe("srv-1");
   });
 
-  it("a fresh confirmation re-queues it", () => {
+  it("a fresh confirmation re-queues it, bound to the new grant", () => {
     const waiting = settle(queued(), { kind: "consent", serverVisitId: null }, T0);
-    expect(reconfirm(waiting, T0 + 1).stage).toBe("queued");
-    expect(isDue(reconfirm(waiting, T0 + 1), T0 + 1)).toBe(true);
+    const released = reconfirm(waiting, LATER_GRANT, T0 + 1);
+    expect(released.stage).toBe("queued");
+    expect(released.grant).toEqual(LATER_GRANT);
+    expect(isDue(released, T0 + 1)).toBe(true);
   });
 
-  it("a local withdrawal parks a queued item before it can be sent", () => {
-    expect(holdForConsent(queued()).stage).toBe("awaiting_consent");
+  it("a local withdrawal parks a queued item before it can be sent, and unbinds its grant", () => {
+    const parked = holdForConsent(queued());
+    expect(parked.stage).toBe("awaiting_consent");
+    expect(parked.grant).toBeNull();
+  });
+
+  it("a local withdrawal parks a REFUSED item too — a retry must not resend it (B1)", () => {
+    const refused = settle(
+      queued(),
+      { kind: "refused", reason: "session", serverVisitId: null },
+      T0,
+    );
+    const parked = holdForConsent(refused);
+    expect(parked.stage).toBe("awaiting_consent");
+    expect(parked.refusal).toBeNull();
+    expect(parked.grant).toBeNull();
+    expect(retryNow(parked, T0)).toBe(parked);
   });
 
   it("a local withdrawal does not reach back into a delivered item", () => {
     const delivered = settle(queued(), { kind: "delivered", serverVisitId: "srv-1" }, T0);
     expect(holdForConsent(delivered)).toBe(delivered);
+  });
+
+  it("a parked item is released only by reconfirm, never by a retry", () => {
+    const parked = holdForConsent(queued());
+    expect(retryNow(parked, T0)).toBe(parked);
+    expect(isDue(parked, T0 + BACKOFF.capMs * 100)).toBe(false);
   });
 });
 
@@ -172,7 +206,7 @@ describe("delivered", () => {
       settle(delivered, { kind: "transient", retryAfterMs: null, serverVisitId: null }, T0),
     ).toBe(delivered);
     expect(retryNow(delivered, T0)).toBe(delivered);
-    expect(reconfirm(delivered, T0)).toBe(delivered);
+    expect(reconfirm(delivered, LATER_GRANT, T0)).toBe(delivered);
   });
 });
 
@@ -208,5 +242,21 @@ describe("a stored item is validated before it is trusted", () => {
     expect(parseItem({ ...queued(), stage: "lost" })).toBeNull();
     expect(parseItem({ ...queued(), body: null })).toBeNull();
     expect(parseItem("x")).toBeNull();
+  });
+
+  it("restores a parked item parked — the restart cannot resurrect a send", () => {
+    const parked = holdForConsent(queued());
+    const restored = parseItem(JSON.parse(JSON.stringify(parked)));
+    expect(restored?.stage).toBe("awaiting_consent");
+    expect(restored?.grant).toBeNull();
+  });
+
+  it("a stored queued item with no valid grant comes back parked, never sendable", () => {
+    for (const grant of [null, undefined, { version: 1 }, { ...GRANT, atIso: 5 }]) {
+      const restored = parseItem({ ...queued(), grant });
+      expect(restored?.stage, JSON.stringify(grant)).toBe("awaiting_consent");
+      expect(restored?.grant).toBeNull();
+      expect(restored?.body).toEqual(BODY); // kept, not dropped
+    }
   });
 });

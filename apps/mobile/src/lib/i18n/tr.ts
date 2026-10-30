@@ -1431,8 +1431,13 @@ export const tr = {
   "delivery.consent.pendingBody":
     "Paylaşım metni hazır olmadan not gönderilmez. Notunuz bu telefonda bekliyor.",
   "delivery.edit": "Notu düzenleyin",
+  // INT-587 legal review N3: declining is one tap, as easy as agreeing.
+  "delivery.consent.decline": "Şimdi değil",
+  "delivery.consent.review": "Paylaşım onayını okuyun",
+  "delivery.declined": "Notunuz gönderilmedi; yalnızca bu telefonda duruyor.",
   "delivery.status.title": "Gönderim durumu",
-  "delivery.queued": "Notunuz gönderilmeyi bekliyor. Bağlantı kurulunca kendiliğinden gönderilir.",
+  // N5: "bağlantı" is also the Doctor Link; this line is about the server.
+  "delivery.queued": "Notunuz gönderilmeyi bekliyor. Sunucuya ulaşılınca kendiliğinden gönderilir.",
   "delivery.held": "Notunuz bu telefonda duruyor; hekiminize ulaşmadı.",
   "delivery.refused.session": "Oturumunuz kapalı olduğu için not gönderilemedi.",
   "delivery.refused.core": "Temel hizmet izniniz kapalı olduğu için not gönderilemedi.",

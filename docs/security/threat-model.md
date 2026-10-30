@@ -1472,14 +1472,21 @@ it or whose tests exercise it.
 - **Threats added by INT-587 (delivery):** [R/U] the app telling the patient a note was sent
   that never left the phone; [I] a note shared without — or after the withdrawal of — the share
   consent; [D] a queued note silently dropped by a failure or a restart; [I] note text reaching a
-  log through a delivery error; [D] a client hammering a server that has already refused.
+  log through a delivery error; [D] a client hammering a server that has already refused; [I] a
+  share consent given for one note releasing another after a withdrawal (legal review B1); [D] a
+  refused consent op stalling a later withdrawal in the queue (N5).
 - **Controls added by INT-587:** the explicit confirm step is the share consent itself, asked at
   the send against the docs/legal share text the loader serves (body, version and binding
-  rendered; no text, no grant action), hash-bound and recorded server-side (`consent.grant`,
-  audited). A note enters the outbox only with the receipt that grant returns, and each attempt
-  flushes the consent queue first, so neither a grant nor a withdrawal is overtaken by the note;
-  a withdrawal on the phone parks every queued note with no network, and the server's own
-  share-scope check (`write_note`, `issue_link`, the OTP mint, redemption) stays the authority.
+  rendered; no text, no grant action; "Şimdi değil" as easy as agreeing), hash-bound and recorded
+  server-side (`consent.grant`, audited). A note enters the outbox, and a parked note is released,
+  only with the receipt given for THAT note; the binding is sealed with the note. Every share
+  withdrawal on the phone — direct or through core, from any screen — reaches the outbox through
+  the ledger subscription and parks every queued and refused note at once, unbinding its grant;
+  the engine also refuses a note whose grant predates the last withdrawal. Each attempt flushes
+  the consent queue first, so neither a grant nor a withdrawal is overtaken by the note, and a
+  consent op the server refuses is dropped (a refused grant re-asked) instead of stalling the
+  queue. The server's own share-scope check (`write_note`, `issue_link`, the OTP mint,
+  redemption) stays the authority.
   The outbox is sealed through the INT-142 draft backend (AES-256-GCM, DEK in the
   Keychain/Keystore, memory only in kiosk mode), restored from disk after a restart, retried
   with capped exponential backoff and Retry-After, and never drops an item; a 4xx is an answer —

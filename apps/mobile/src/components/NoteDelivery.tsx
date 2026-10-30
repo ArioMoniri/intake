@@ -93,6 +93,9 @@ export function NoteDelivery({
   const item = useDelivery(visitId);
   const hydrated = useDeliveryHydrated();
   const [unbuildable, setUnbuildable] = useState(false);
+  // "Şimdi değil" (legal review N3): the note stays unsent and on the phone;
+  // nothing is recorded, and the text is one tap away again
+  const [declined, setDeclined] = useState(false);
   const queuedNews = useNews(item?.stage === "queued");
   const share = shareView(ledger);
   const textStatus = share.text.status;
@@ -129,17 +132,35 @@ export function NoteDelivery({
         setUnbuildable(true);
         return;
       }
-      const receipt = grantShareLocal();
+      // the grant is for THIS note: its receipt queues this note and no other
+      const receipt = grantShareLocal(visitId);
       if (receipt !== null) {
         void enqueueDelivery({ visitId, visit: identityOf(visit), body: payload.body }, receipt);
       }
       return;
     }
-    const receipt = grantShareLocal();
+    const receipt = grantShareLocal(visitId);
     if (receipt !== null) {
       void reconfirmDelivery(visitId, receipt);
     }
   };
+
+  if (declined && (item === null || item.stage === "awaiting_consent")) {
+    return (
+      <Card>
+        <Kicker label={t("delivery.consent.title")} />
+        <Hairline />
+        <AnnouncedText tone="status" role="body" color="inkSoft" message={t("delivery.declined")} />
+        <View style={styles.actions}>
+          <SecondaryButton
+            label={t("delivery.consent.review")}
+            onPress={() => setDeclined(false)}
+          />
+          <SecondaryButton label={t("delivery.edit")} onPress={reopen} />
+        </View>
+      </Card>
+    );
+  }
 
   if (item !== null && item.stage === "queued") {
     return (
@@ -210,10 +231,18 @@ export function NoteDelivery({
               message={t("delivery.refused.invalid")}
             />
           ) : null}
+          {/* Agreeing and not agreeing carry the same weight (legal review
+              N3): one control each, the same style, side by side in the
+              reading order. Editing the note is a separate act, below. */}
           <View style={styles.actions}>
-            <PrimaryButton label={t("consent.detail.grant")} onPress={confirm} />
-            <SecondaryButton label={t("delivery.edit")} onPress={reopen} />
+            <SecondaryButton label={t("consent.detail.grant")} onPress={confirm} />
+            <SecondaryButton
+              label={t("delivery.consent.decline")}
+              onPress={() => setDeclined(true)}
+            />
           </View>
+          <Hairline />
+          <SecondaryButton label={t("delivery.edit")} onPress={reopen} />
         </>
       ) : (
         <>

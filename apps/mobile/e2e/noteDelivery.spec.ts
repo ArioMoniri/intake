@@ -171,6 +171,26 @@ describe("the share consent is granted in context against the served text", () =
     expect(card).toMatch(/enqueueDelivery\([\s\S]*?receipt\)/);
   });
 
+  it("grants for THIS note only — every grant names the note (legal review B1)", () => {
+    const card = code(file(DELIVERY_CARD));
+    const calls = card.split("grantShareLocal(").length - 1;
+    expect(calls).toBeGreaterThan(0);
+    expect(card.split("grantShareLocal(visitId)").length - 1).toBe(calls);
+  });
+
+  it("declining is as easy as agreeing: same control, side by side (legal review N3)", () => {
+    const card = code(file(DELIVERY_CARD)).replace(/\s+/g, " ");
+    expect(card).toContain(
+      '<SecondaryButton label={t("consent.detail.grant")} onPress={confirm} /> ' +
+        '<SecondaryButton label={t("delivery.consent.decline")}',
+    );
+    expect(tr["delivery.consent.decline"]).toBe("Şimdi değil");
+  });
+
+  it("every share withdrawal reaches the outbox through the ledger subscription (B1)", () => {
+    expect(code(file(NATIVE))).toContain("watchConsent: subscribeToLedger");
+  });
+
   it("has no İzinleriniz row — the share is asked at the send, never as a toggle", () => {
     expect(code(file("src/lib/consent/purposes.ts"))).not.toMatch(/id: "share/);
   });

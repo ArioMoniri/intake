@@ -3,8 +3,10 @@
  *
  * The order of the steps is the disclosure policy:
  *
- * 1. **A share consent withdrawn on this phone stops everything.** The item is
- *    parked for the patient and nothing reaches the network.
+ * 1. **Only the note's own grant sends it.** No grant, a share consent
+ *    withdrawn now, or one withdrawn after this note's grant (even if granted
+ *    again since, for another note): the item is parked for the patient and
+ *    nothing reaches the network (INT-587 legal review B1).
  * 2. **The consent queue is flushed first.** The patient's share grant travels
  *    through the consent outbox (lib/consent/store); `write_note` checks the
  *    share scope in the same transaction that creates the share, so a note
@@ -21,7 +23,13 @@
  * place a note waits, not a place it can be lost.
  */
 import type { ShareStanding } from "../../consent/ledger";
-import { settle, type DeliveryItem, type RefusalReason, type VisitIdentity } from "./outbox";
+import {
+  holdForConsent,
+  settle,
+  type DeliveryItem,
+  type RefusalReason,
+  type VisitIdentity,
+} from "./outbox";
 import type { NotePutBody } from "./payload";
 import type { PutResult } from "./transport";
 
@@ -32,6 +40,8 @@ export type ResolveResult =
 
 export interface DeliveryDeps {
   shareStanding(): ShareStanding;
+  /** When the share consent was last withdrawn on this phone, or null. */
+  lastShareWithdrawal(): string | null;
   /** Push every queued consent change; true once none is left on the phone. */
   flushConsent(): Promise<boolean>;
   resolveServerVisit(visit: VisitIdentity, visitId: string): Promise<ResolveResult>;
@@ -39,6 +49,22 @@ export interface DeliveryDeps {
 }
 
 const RETRY = { kind: "transient", retryAfterMs: null } as const;
+
+/**
+ * Whether this note's OWN grant still stands (INT-587 legal review B1). It
+ * does not when the note carries none, when the share is withdrawn now, or
+ * when it was withdrawn on this phone AFTER the note's grant — even if the
+ * standing is `granted` again, because that later grant was given for another
+ * note. The outbox also parks every unsent note the moment a withdrawal
+ * happens (./store); this is the second lock on the same door.
+ */
+function grantStands(item: DeliveryItem, deps: DeliveryDeps): boolean {
+  if (item.grant === null || deps.shareStanding() === "withdrawn") {
+    return false;
+  }
+  const withdrawnAt = deps.lastShareWithdrawal();
+  return withdrawnAt === null || item.grant.atIso > withdrawnAt;
+}
 
 /**
  * A failure of the server-visit lookup (records `ensureServerVisit`, whose
@@ -87,8 +113,8 @@ export async function attemptDelivery(
   if (item.body === null) {
     return settle(item, { kind: "refused", reason: "invalid", serverVisitId: null }, now);
   }
-  if (deps.shareStanding() === "withdrawn") {
-    return { ...item, stage: "awaiting_consent" };
+  if (!grantStands(item, deps)) {
+    return holdForConsent(item);
   }
 
   try {

@@ -1343,9 +1343,12 @@ export const en: Record<MessageKey, string> = {
   "delivery.consent.pendingBody":
     "The note is not sent until the sharing text is ready. Your note is waiting on this phone.",
   "delivery.edit": "Edit the note",
+  "delivery.consent.decline": "Not now",
+  "delivery.consent.review": "Read the sharing consent",
+  "delivery.declined": "Your note was not sent; it stays on this phone only.",
   "delivery.status.title": "Delivery status",
   "delivery.queued":
-    "Your note is waiting to be sent. It goes on its own once there is a connection.",
+    "Your note is waiting to be sent. It goes on its own once the server can be reached.",
   "delivery.held": "Your note is on this phone; it has not reached your doctor.",
   "delivery.refused.session": "The note could not be sent because you are signed out.",
   "delivery.refused.core":
