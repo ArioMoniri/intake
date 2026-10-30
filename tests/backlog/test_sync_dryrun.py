@@ -154,13 +154,19 @@ def test_dryrun_plans_creates_and_updates(tmp_path: Path) -> None:
     # + INT-590 (decode-uri-component past CVE-2026-118664, GitHub #991)
     # + INT-559 (the app's voice lane never writes patient audio to a file, GitHub #947)
     # + INT-536 (consent-screen copy true for the host, GitHub #903)
+    # + INT-585 (the owner's 28 Oct SMS decisions as D34-D38, GitHub #984)
+    # + INT-587 (the note reaches the clinician from a release build, GitHub #988)
+    # + INT-588 (patient copy is true in the no-voice release build, GitHub #989)
+    # + INT-591 (a release build offers no voice consent it cannot use, GitHub #993)
+    # + INT-592 (a truthful NSHealthUpdateUsageDescription, ITMS-90683, GitHub #1000)
+    # + INT-584 (the tokenization key moves into OpenBao, owner decision D38, GitHub #983)
     # + INT-578 (OTP brute force and replay, the owner's SMS security order, GitHub #973)
     # + INT-577 (SMS pumping and overuse, the owner's SMS security order, GitHub #972)
     # + INT-579 (OTP enumeration, the owner's SMS security order, GitHub #974)
     # + INT-581 (SMS data protection, the owner's SMS security order, GitHub #976)
     # + INT-580 (SMS hijacking and phishing, GitHub #975)
     # + INT-582 (patient passkey step-up, split from INT-580, GitHub #981)
-    assert len(actions) == 386
+    assert len(actions) == 392
     assert actions["INT-001"]["action"] == "update"
     assert actions["INT-001"]["number"] == 1
     assert actions["INT-004"]["action"] == "create"

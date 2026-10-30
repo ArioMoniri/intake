@@ -344,7 +344,8 @@ def test_the_shipped_recipient_registry_refuses_every_fetch(harness: ApiHarness)
 
 def test_without_a_tokenization_key_the_read_back_fails_closed(tmp_path: Path) -> None:
     """No key, no way to turn a patient number into the pseudonym that
-    addresses a patient — and guessing is not an option (invariant 14)."""
+    addresses a patient — and guessing is not an option (invariant 14). The
+    503 says why with a typed reason (INT-584)."""
     for harness in build_harness(
         tmp_path,
         token_patient=PATIENT_TOKEN,
@@ -353,7 +354,10 @@ def test_without_a_tokenization_key_the_read_back_fails_closed(tmp_path: Path) -
     ):
         response = fetch(harness)
         assert response.status_code == 503
-        assert response.json() == {"error": "previsit_output_unconfigured"}
+        assert response.json() == {
+            "error": "previsit_output_unconfigured",
+            "reason": "tokenization_key_absent",
+        }
 
 
 def test_a_patient_principal_cannot_use_the_read_back(wired: ApiHarness) -> None:

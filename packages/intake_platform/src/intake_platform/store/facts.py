@@ -417,6 +417,13 @@ _CLASSIFICATIONS: Final[tuple[PermissionClassification, ...]] = (
         "health_platform_reads",
         "the iOS side of the health-platform reads",
     ),
+    PermissionClassification(
+        "NSHealthUpdateUsageDescription",
+        None,
+        "declared only because App Store processing requires the key once the "
+        "HealthKit library is linked (ITMS-90683, INT-592); the app requests no "
+        "write type and writes nothing to HealthKit, so no personal data moves",
+    ),
 )
 
 PERMISSION_CLASSIFICATION: Final[Mapping[str, PermissionClassification]] = MappingProxyType(

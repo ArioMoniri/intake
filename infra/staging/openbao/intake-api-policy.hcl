@@ -35,6 +35,14 @@ path "transit/rewrap/tenant-*" {
   capabilities = ["update"]
 }
 
+# INT-584 (owner decision D38): read on the phone-tokenization key,
+# secret/api/tokenization, which tokenization_key.sh writes with the root
+# token (moved from the env file with the same material, or made for a new
+# host). The API can neither write, list nor delete it.
+path "secret/data/api/tokenization" {
+  capabilities = ["read"]
+}
+
 path "secret/data/model-lanes/*" {
   capabilities = ["create", "update", "read"]
 }
