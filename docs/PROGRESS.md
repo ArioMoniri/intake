@@ -11,6 +11,28 @@
 - Next: push to #860, carry it into INT-502, then INT-595.
 - LOOP_STATUS: CONTINUE
 
+### 2026-10-31T02:00:00+03:00 · INT-502 · doing (capture-review rulings and the legal re-check applied; PR to open)
+- Goal: apply the orchestrator's rulings on the build-7 capture flags and the legal re-check of 31 Oct. The store frames must show only what the store build truthfully shows, and the header must show only frames that ship.
+- Plan:
+  - bugun waits for INT-594 (#1007) and carries a `dropped` entry. gorunum is dropped for "Sizi dinliyoruz.". izinler's drop stands.
+  - konusma and not record `resolved_in` build 7 (690a16bb).
+  - The header becomes tek-soru, not and verileriniz, in both the spec and the caption draft.
+  - en-US ships no frames. A must_not_show line keeps the %36 gauge out.
+  - The uploader is INT-593 (#1006).
+  - The held and dropped captures are withdrawn.
+- Tests added (with the near-miss negative for any safety rule):
+  - `tests/legal/test_asc_frames.py`: frames that ship; the header shows only shipped frames and no dropped one; the loader's four refusals (held phone, dropped phone, resolved without a wait, short sha); render paints only shipped frames; en-US is refused while LOCALE_REGISTRY is tr-only; the committed captures equal the shipped frames with their hashes; a provenance merge keeps earlier resolutions.
+  - Red: 13 failed / 35 passed (rulings), then 3 failed / 47 passed (re-check). Green: 50 passed.
+- Result (`make check` / `make safety` / `make security` summary): broad regression 3201 passed, 5 failed (four `test_deid_ner` for the missing local model cache; one `test_brand_name` from INT-482's evidence, fixed on int-495 and carried in). ruff, ruff format (whole tree) and mypy strict on the store scripts are clean. A preview of 13 outputs passes the slot checks (evidence §12).
+- Invariants touched and still passing: 2, 5, 6, 17, 18, 20.
+- Decisions / ADRs / `00_STATE.md` rows: none. The rulings are the orchestrator's (31 Oct), and the re-check is the legal lane's.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id):
+  - the caption draft's legal-lane promotion, before export;
+  - the acceptance amendment (no dark and no en-US frame; the upload moves to INT-593), which is the orchestrator's;
+  - the App Store Connect writes, until the owner's go.
+- Next: open the INT-502 PR, stacked on #860.
+- LOOP_STATUS: CONTINUE
+
 ### 2026-10-28T16:30:00+03:00 · INT-585 · done (PR open)
 - Goal: GitHub #984, Sec-Row `onboarding`. Record the owner's 28 Oct SMS decisions ("1Y 2Y 3Y 4Y 5Y") as D34-D38 in files/00_STATE.md §3, and the live Netgsm OTP confirmation in docs/evidence/INT-576.md.
 - Plan:
@@ -344,6 +366,29 @@
   - The voice lane's temporary file and its GPU-box route need re-verifying when INT-515 ships.
 - Next: legal-approved. #940 merged in on the reviewer's ruling (core who-line kept; consent.spec pin aligned; pins at 367). Retarget to main once #911 and #940 merge.
 - LOOP_STATUS: CONTINUE
+### 2026-10-29T01:30:00Z · INT-502 · doing (committed locally, not pushed; push freeze; stacked on #860 INT-495)
+- Goal: an App Store header and screenshots from the real app, synthetic patients only, with Turkish captions that pass PolicyGuard, in 6.9 inch, 6.5 inch and the required medium group; plus the App Store Connect draft values for the owner's go.
+- Plan:
+  - The captions become a legal-lane draft, and export reads served copy only.
+  - frames.yaml holds the journey, the theme tokens, the app's OFL faces pinned by sha256, the layout and the targets.
+  - The geometry is pure Python, and a CoreGraphics painter draws it.
+  - A simulator capture script records hash-only provenance.
+  - The capture API on the synthetic host's loopback (route d, coordinator 29 Oct) has an SSM up/down/forward.
+- Tests added: `tests/legal/test_asc_frames.py` (34) and `tests/infra/test_capture_api_host.py` (24).
+  - RED: collection error (no `capture_frames`). The host-script suite then caught "envfile: unbound variable" (7 failed).
+  - GREEN: 34 + 24, and `tests/legal` with the threat-model test, 691. Six of six mutations were killed.
+- Result (docs/evidence/INT-502.md):
+  - A preview of all 22 outputs passed the slot checks. It used evidence captures as stand-ins and was written outside the repo.
+  - ruff, ruff format and mypy strict are clean. shellcheck is clean.
+  - `no_placeholders`, the claims scan and the PHI scan are OK.
+- Invariants touched and still passing: 2, 5, 6, 14, 17, 18, 20.
+- Decisions / ADRs / `00_STATE.md` rows: none. The capture API follows the coordinator's route (d) and the owner rule of 29 Oct: nothing server-side on the Mac.
+- Backlog: INT-502 `doing`, with the tests listed; files/11 regenerated. No id was minted.
+- Blocked on:
+  - the captures, until the host carries build 6;
+  - the caption draft's legal-lane review;
+  - App Store Connect writes, until the owner's go;
+  - the App Asset Library upload, not built in this pass.
 
 ### 2026-10-16T19:30:00Z · INT-540 · done (committed locally, not pushed; stacked on #915 INT-522)
 - Goal: from the INT-522 clinical review (F1, F2), the onset anchor could stay `ASKED_PENDING` for a whole session and K2 never fire.

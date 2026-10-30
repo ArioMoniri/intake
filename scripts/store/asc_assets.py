@@ -26,8 +26,10 @@ __all__ = [
     "AssetEntry",
     "AssetManifest",
     "ManifestError",
+    "banned_name",
     "check_file",
     "load_manifest",
+    "read_png_facts",
 ]
 
 REPO: Final[Path] = Path(__file__).resolve().parents[2]
@@ -115,10 +117,20 @@ def _png_facts(data: bytes) -> tuple[int, int, int, bool] | None:
     return width, height, colour, transparency
 
 
+def banned_name(name: str) -> bool:
+    """True when a file name says it is a development, demo or test capture."""
+    return _BANNED_NAME.search(name) is not None
+
+
+def read_png_facts(path: Path) -> tuple[int, int, int, bool] | None:
+    """(width, height, colour type, has tRNS) of a PNG file, or None."""
+    return _png_facts(path.read_bytes())
+
+
 def check_file(path: Path, entry: AssetEntry) -> tuple[str, ...]:
     """Every reason ``path`` cannot fill ``entry``'s slot, or ``()``."""
     problems: list[str] = []
-    if _BANNED_NAME.search(path.name):
+    if banned_name(path.name):
         problems.append(f"{path.name}: the file name marks a non-production capture")
     if not path.is_file():
         return (*problems, f"{path}: no such file")

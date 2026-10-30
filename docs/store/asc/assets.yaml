@@ -23,6 +23,13 @@
 # (scripts/store/asc_listing.py --placement-groups) and written here then. A
 # null group blocks its slot rather than guessing an identifier.
 retrieved_on: "2026-10-16"
+# INT-502 re-read the screenshot specifications page on 2026-10-29. It agrees with every
+# size below, and it adds the large Face ID group (6.5 inch, 1284×2778 or 1242×2688).
+# Apple uses that group only when the large Dynamic Island set is missing. The owner
+# asked for 6.9 inch and 6.5 inch, so both are rendered, along with the medium group
+# Apple requires. tests/legal/test_asc_frames.py holds this manifest equal to that
+# page's table.
+reverified_on: "2026-10-29"
 assets:
   - id: product-page-header
     placement_type: PRODUCT_PAGE_HEADER_ASSET
@@ -37,6 +44,14 @@ assets:
     category: APP_SCREENSHOTS_AND_PREVIEWS
     placement_group: IPHONE_DYNAMIC_ISLAND_LARGE_PROFILE
     sizes: [[1320, 2868], [1290, 2796], [1260, 2736]]
+    max_per_locale: 10
+    required: false
+    files: {tr: [], en-US: []}
+  - id: iphone-faceid-large
+    placement_type: APP_SCREENSHOT
+    category: APP_SCREENSHOTS_AND_PREVIEWS
+    placement_group: null
+    sizes: [[1284, 2778], [1242, 2688]]
     max_per_locale: 10
     required: false
     files: {tr: [], en-US: []}
