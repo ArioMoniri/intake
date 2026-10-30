@@ -118,6 +118,8 @@ export interface VendorRow {
   readonly cells: readonly RegisterCell[];
   /** "due by <date>" while the window is open, "window elapsed" once past. */
   readonly notification: string;
+  /** The deadline itself, for a page that words the notification in its own language. */
+  readonly notificationDue: string;
   readonly notificationOverdue: boolean;
 }
 
@@ -233,6 +235,7 @@ function renderVendorRow(row: VendorRegisterRow): VendorRow {
       ? `due by ${row.notification_due}`
       : `window elapsed (was due ${row.notification_due})`,
     notificationOverdue: !row.notification_window_open,
+    notificationDue: row.notification_due,
   };
 }
 

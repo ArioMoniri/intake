@@ -1,5 +1,40 @@
 # PROGRESS — one entry per LOOP iteration (template in LOOP.md)
 
+### 2026-10-30T12:00:00+03:00 · INT-564 · done (committed locally; push frozen until build 6 deploys)
+- Goal: GitHub #953, Sec-Row `admin-console`. The Compliance, Models and Experience modules had APIs and view-models but no page.
+- Plan:
+  - `/compliance` reads the five INT-189 routes, the audit search for one day; consent counts from 1 to 9 render as "fewer than 10".
+  - `/models` puts the release gate first, then the registry rows, with a benchmark form per lane the API enables.
+  - `/experience` reads a new console composite, `GET /admin/experience`:
+    - the patient-token `/v1/admin` route cannot take the console's bearer, so the composite is built from the tenant's own rollups at serve time;
+    - the window is required, the tenant comes from the claim, and below k >= 10 only the count survives;
+    - the e2e fixture is recorded through the route's own builder.
+  - All three pages are in the sidebar.
+- Tests added (with the near-miss negative for any safety rule):
+  - `tests/admin/test_experience_console.py`:
+    - window near misses;
+    - tenant from the claim, `?tenant=` refused;
+    - 9 against 10 responses across the floor;
+    - no text or target;
+    - fixture parity.
+  - Route matrix and audit drive for the new route.
+  - `apps/admin-web/e2e/pages564.spec.ts`:
+    - loaders over a recording fetch;
+    - refused bodies;
+    - consent k-floor;
+    - benchmark near misses;
+    - window rules;
+    - axe in tr and en.
+  - Red: 13 failed (no route) and the page spec cannot import. Green: 2370 Python passed; console lint, typecheck and the new spec clean.
+- Result (`make check` / `make safety` / `make security` summary): see docs/evidence/INT-564.md. files/11 regenerated; pins 372 to 373 (re-pinned from the real count at push).
+- Invariants touched and still passing:
+  - 5: tr source;
+  - 6: counts and ids only;
+  - 17: honest empty states;
+  - 20: a window on every figure, no target.
+- Decisions / ADRs / `00_STATE.md` rows: none. The new console route is a read under the existing role model.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): nothing.
+- Next: INT-565.
 ### 2026-10-28T16:30:00+03:00 · INT-585 · done (PR open)
 - Goal: GitHub #984, Sec-Row `onboarding`. Record the owner's 28 Oct SMS decisions ("1Y 2Y 3Y 4Y 5Y") as D34-D38 in files/00_STATE.md §3, and the live Netgsm OTP confirmation in docs/evidence/INT-576.md.
 - Plan:

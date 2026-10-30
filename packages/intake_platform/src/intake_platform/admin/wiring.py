@@ -144,6 +144,22 @@ _SAFETY_QUEUE_READERS = frozenset(
 )
 
 
+#: INT-564 — the Experience composite (files/08 §3, §4 F/G): k >= 10
+#: aggregates over a tenant's own surveys and wait times, tenant-scoped from the
+#: claim. Read by the roles that answer for a tenant's service (its admin and
+#: clinical responsible), the all-tenant clinical lead, the platform owner, and
+#: the auditor as read-only evidence (§2.1).
+_EXPERIENCE_READERS = frozenset(
+    {
+        AdminRole.TENANT_ADMIN,
+        AdminRole.TENANT_CLINICAL_RESPONSIBLE,
+        AdminRole.CLINICAL_LEAD,
+        AdminRole.PLATFORM_OWNER,
+        AdminRole.AUDITOR,
+    }
+)
+
+
 @dataclass(frozen=True)
 class AdminRoute:
     method: str
@@ -434,6 +450,8 @@ ADMIN_ROUTES: tuple[AdminRoute, ...] = (
     # INT-406 — the Safety queue (files/08 §3, §0c F19; invariant 49). The read
     # is tenant-scoped from the claim; the acknowledgement is tier 1, one key,
     # the tenant's clinical responsible's alone.
+    # INT-564 — the Experience composite; a read, audited like every route.
+    AdminRoute("GET", "/admin/experience", "admin.experience.read", _EXPERIENCE_READERS),
     AdminRoute("GET", "/admin/safety-queue", "admin.safety_queue.read", _SAFETY_QUEUE_READERS),
     AdminRoute(
         "POST",

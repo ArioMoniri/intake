@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**386 issues.** By phase: P0 184 · P1 148 · P2 47 · P3 7. By status: awaiting-human 39 · doing 7 · done 265 · todo 74 · withdrawn 1.
+**387 issues.** By phase: P0 184 · P1 149 · P2 47 · P3 7. By status: awaiting-human 39 · doing 7 · done 266 · todo 74 · withdrawn 1.
 
 ## P0
 
@@ -336,6 +336,7 @@
 | INT-573 | next, certifi and filelock lifted past the 27 Oct 2026 advisories, so the vulnerabilities gate is green without an exception | E13-infra | INT-501 | area:security | done |
 | INT-574 | test_the_red_never_waits_on_the_inbox_store is deterministic — no wall-clock budget under shared-runner load | E13-infra | INT-475 | area:api | done |
 | INT-576 | Netgsm OTP adapter parses the live success shape; an HTTP 200 the parser cannot read is never retried | E01-platform | INT-528 | area:api | done |
+| INT-564 | Render the headless admin modules as pages: Compliance, Models registry, Experience wait times | E12-admin | INT-459, INT-189, INT-183, INT-186, INT-241 | area:admin | done |
 | INT-560 | The operability registry page tells the truth: real probe results from the synthetic host, honest deployment and severity columns | E12-admin | INT-022, INT-183, INT-351, INT-377, INT-345 | area:observability | done |
 | INT-529 | Synthetic-scope consent texts, marked sentetik test metni and loaded only on the synthetic host | E14-legal | INT-038, INT-210 | area:legal, risk:legal | awaiting-human |
 | INT-537 | The app grants the core consent that visits and notes require | E08-mobile | INT-529, INT-132, INT-232 | area:mobile, risk:legal | done |

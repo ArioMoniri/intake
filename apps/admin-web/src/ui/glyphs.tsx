@@ -10,7 +10,17 @@
 import type { ReactElement } from "react";
 
 export type GlyphName =
-  "grid" | "gauge" | "waveform" | "key" | "branch" | "chip" | "search" | "mark";
+  | "grid"
+  | "gauge"
+  | "waveform"
+  | "key"
+  | "branch"
+  | "chip"
+  | "cube"
+  | "chart"
+  | "shield"
+  | "search"
+  | "mark";
 
 const SHAPES: Record<GlyphName, ReactElement> = {
   // square.grid.2x2 — the overview
@@ -54,6 +64,22 @@ const SHAPES: Record<GlyphName, ReactElement> = {
       <rect x="6.5" y="6.5" width="11" height="11" rx="2.5" />
       <rect x="9.75" y="9.75" width="4.5" height="4.5" rx="1" />
       <path d="M9.5 3.5v3M14.5 3.5v3M9.5 17.5v3M14.5 17.5v3M3.5 9.5h3M3.5 14.5h3M17.5 9.5h3M17.5 14.5h3" />
+    </>
+  ),
+  // cube — the models & self-hosting registry (INT-564)
+  cube: (
+    <>
+      <path d="M12 3.5 19.5 7.5v9L12 20.5 4.5 16.5v-9Z" />
+      <path d="M4.5 7.5 12 11.5l7.5-4M12 11.5v9" />
+    </>
+  ),
+  // chart.bar — experience and wait times (INT-564)
+  chart: <path d="M5 19.5h14M7.5 16.5v-5M12 16.5v-9M16.5 16.5v-6.5" />,
+  // checkmark.shield — compliance (INT-564)
+  shield: (
+    <>
+      <path d="M12 3.5 19 6v5.5c0 4.4-3 7.7-7 9-4-1.3-7-4.6-7-9V6Z" />
+      <path d="m9 12 2.2 2.2L15.5 10" />
     </>
   ),
   // magnifyingglass — not found

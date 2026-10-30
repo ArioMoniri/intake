@@ -63,6 +63,7 @@ from intake_probes.console import BenchmarkKind, BenchmarkRefused
 from intake_api.admin import access_console, compliance_source, safety_queue, views
 from intake_api.admin.cicd_routes import CICD_HANDLERS
 from intake_api.admin.deps import AdminCaller, get_admin_wiring, resolve_caller
+from intake_api.admin.experience_console import experience_read
 from intake_api.admin.model_lanes_routes import MODEL_LANES_HANDLERS
 from intake_api.admin.models_source import (
     load_models_module,
@@ -409,6 +410,8 @@ _HANDLERS: dict[str, Handler] = {
     "admin.access.review.countersign": access_console.review_countersign,
     "admin.access.offboard": access_console.offboard_run,
     "admin.access.offboard.confirm": access_console.offboard_confirm,
+    # INT-564 — the Experience composite (files/08 §3, §4 F/G)
+    "admin.experience.read": experience_read,
     # INT-406 — the Safety queue (files/08 §3, §0c F19; invariant 49)
     "admin.safety_queue.read": safety_queue.queue_read,
     "admin.safety_queue.acknowledge": safety_queue.acknowledge,
