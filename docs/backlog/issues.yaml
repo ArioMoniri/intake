@@ -7687,3 +7687,25 @@
     - "The API's OpenBao policy grants read-only access to the path; the migration outcome is observable with ids only and catalogued; files/10 §9 and the threat-model residual are updated; tests first with near misses."
   tests: [tests/api/test_tokenization_key.py, tests/api/test_tokenization_probe.py, tests/infra/test_staging_tokenization_key.py, tests/infra/test_staging_compose.py, tests/infra/test_staging_netgsm.py, tests/api/test_previsit_output.py, tests/api/test_otp_netgsm_wiring.py]
   sec_row: "onboarding"
+- id: INT-600
+  epic: E13-infra
+  phase: P2
+  title: "Evidence for retiring the unused osv exceptions (braces GHSA-vfj7-8cjw-p6xm; keycloak provider GHSA-794g-x443-36f7)"
+  # GitHub #1020, 31 Oct 2026. osv-scanner 2.5.1 reports both entries as unused
+  # ignores. GitHub withdrew the braces advisory on 23 Oct 2026 (braces 3.0.3
+  # still resolves), and since 26 Oct OSV ends the keycloak-services record's
+  # 26.5.0 range at 26.5.5, so 26.7.4 matches none of its ranges. Retiring an
+  # exception is the owner's call: the agent writes the evidence and the owner
+  # patch, and commits no suppression file or gate test.
+  depends_on: [INT-378, INT-426]
+  labels: [area:infra, risk:security]
+  status: done
+  evidence: docs/evidence/INT-600.md
+  acceptance:
+    - "docs/evidence/INT-600.md shows the versions each row matched and who pulls them now: braces 3.0.3 only under micromatch 4.0.8 (metro-file-map 0.84.5 and 0.84.6, @expo/metro-file-map 57.0.2; importer apps/mobile), traced from pnpm-lock.yaml; keycloak-services 26.7.4 only, provided with every transitive dependency excluded, from the provider's Maven dependency tree and .mvn/checksums"
+    - "it records why each row matches nothing: the braces record is withdrawn, and the keycloak-services record's ranges end at 26.2.5, 26.4.7 and 26.5.5, from OSV's and GitHub's own records and an OSV query for each version"
+    - "osv-scanner 2.5.1, the CI invocation, runs on scratch copies with and without the rows: with them it reports both as unused ignores (red run); without them it reports no new finding and no unused ignore, and on main with #1018 and owner-597 applied it reports no issue, rc=0 (green run); trivy 0.74.0 reports no braces finding with or without its row"
+    - "owner-600-retire-unused-osv.patch in issue-drafts, with a .msg whose lines are at most 100 characters, removes the braces osv entry and trivy row and the provider's osv-scanner.toml, adds the retired ids to ADVISORY_IDS, replaces the two exception tests with retirement tests and lowers MAX_OSV_SUPPRESSIONS 5 to 3 and MAX_TRIVY_SUPPRESSIONS 3 to 2; it applies with git am after owner-597-minimatch-exception.patch, the gate tests fail without its test changes and pass with them, and each restored row is a near miss that fails"
+    - "no suppression file and no security-gate test is committed by an agent"
+  tests: [tests/ci/test_security_gates.py]
+  sec_row: "cicd"
