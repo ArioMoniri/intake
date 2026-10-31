@@ -61,6 +61,7 @@ from intake_platform.admin.metrics import (
 )
 
 from intake_api.admin.deps import AdminCaller
+from intake_api.admin.step_up_routes import GRANT_FIELD, stepped_up_approver
 from intake_api.admin.views import pending_view
 from intake_api.errors import (
     access_refused,
@@ -300,7 +301,7 @@ async def review_countersign(
 ) -> dict[str, Any]:
     _sweep_expired(wiring)
     identity = _identity(wiring)
-    payload = await _body(request, frozenset({"assertion_id"}))
+    payload = await _body(request, frozenset({GRANT_FIELD}))
     try:
         pending = wiring.four_eyes.get(request.path_params["action_id"])
     except FourEyesRefused:
@@ -325,10 +326,11 @@ async def review_countersign(
     current = _current_digests(await _staff(identity), wiring)
     if current.get(section) != digest:
         raise access_refused("access_review_changed")
+    stepped_up, assertion = await stepped_up_approver(
+        request, caller, wiring, role, action_id=pending.id, payload=payload
+    )
     try:
-        wiring.four_eyes.approve(
-            pending.id, approver=approver, assertion_id=payload["assertion_id"]
-        )
+        wiring.four_eyes.approve(pending.id, approver=stepped_up, assertion_id=assertion)
     except SelfApproval as refusal:
         ADMIN_FOUR_EYES_SELF_APPROVAL_ATTEMPT_TOTAL.inc()
         raise four_eyes_refused(refusal.code) from None

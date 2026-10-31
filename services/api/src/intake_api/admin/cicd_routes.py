@@ -49,6 +49,7 @@ from intake_platform.release_freeze import DeployFreezeChange, ReleaseFreezeUnav
 from intake_api.admin import views
 from intake_api.admin.cicd_console import freeze_view, load_cicd_console
 from intake_api.admin.deps import AdminCaller
+from intake_api.admin.step_up_routes import GRANT_FIELD, stepped_up_approver
 from intake_api.errors import four_eyes_refused, not_found, release_freeze_refused
 
 __all__ = ["CICD_HANDLERS"]
@@ -56,7 +57,7 @@ __all__ = ["CICD_HANDLERS"]
 Handler = Callable[[Request, AdminCaller, AdminWiring, AdminRole], Awaitable[dict[str, Any]]]
 
 _REASON_BODY = frozenset({"reason_class", "justification"})
-_APPROVE_BODY = frozenset({"assertion_id"})
+_APPROVE_BODY = frozenset({GRANT_FIELD})
 
 
 def _count(control: DeployFreezeChange, outcome: str) -> None:
@@ -200,13 +201,11 @@ async def _approve_lift(
     action_id = request.path_params["action_id"]
     try:
         payload = await _body(request, _APPROVE_BODY)
-        assertion = payload.get("assertion_id")
+        approver, assertion = await stepped_up_approver(
+            request, caller, wiring, role, action_id=action_id, payload=payload
+        )
         freeze = await run_in_threadpool(
-            lambda: governor.approve_lift(
-                action_id,
-                approver=caller.principal.actor_block(role),
-                assertion_id=assertion if isinstance(assertion, str) else "",
-            )
+            lambda: governor.approve_lift(action_id, approver=approver, assertion_id=assertion)
         )
     except HTTPException:
         _count(change, "refused")

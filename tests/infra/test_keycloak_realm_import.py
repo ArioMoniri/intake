@@ -207,6 +207,10 @@ NOT_STORED: dict[str, str] = {
     ),
     "authenticationFlows[].authenticationExecutions[].requirement": "an enum, stored as INT",
     "users[].realmRoles[]": "resolved to the role id",
+    # INT-563 review: the step-up client's one default scope, linked by id
+    "clients[].defaultClientScopes[]": (
+        "resolved by name; CLIENT_SCOPE_CLIENT holds the client scope id"
+    ),
     "users[].credentials[].value": "hashed; the hash goes to CREDENTIAL.SECRET_DATA (CLOB)",
 }
 

@@ -39,6 +39,7 @@ from intake_platform.admin.actions import (
     BREAK_GLASS_OPEN,
     DEPLOY_FREEZE_ENGAGE,
     DEPLOY_FREEZE_LIFT,
+    FOUR_EYES_STEP_UP,
     MODEL_BENCHMARK_RUN,
     MODEL_LANES_HOSTED_DISABLE,
     MODEL_LANES_HOSTED_RELEASE,
@@ -57,6 +58,7 @@ from intake_platform.admin.four_eyes import FourEyesService
 from intake_platform.admin.ip_allowlist import IpAllowList
 from intake_platform.admin.principal import AdminClaimsVerifier
 from intake_platform.admin.roles import ADMIN_ROLES, ROLE_SPECS, AdminRole, RoleScope
+from intake_platform.admin.step_up import StepUpService
 from intake_platform.model_lanes.wiring import ModelLanesWiring
 from intake_platform.release_freeze import ReleaseFreezeStore
 from intake_platform.safety_inbox import SafetyInbox
@@ -431,6 +433,23 @@ ADMIN_ROUTES: tuple[AdminRoute, ...] = (
         OFFBOARD.actor_roles,
         OFFBOARD.id,
     ),
+    # INT-563 (ADR-043) — the four-eyes step-up. Opening a ceremony and
+    # completing it are one tier-1 action; the approval it enables is the
+    # approve or countersign route of the action itself.
+    AdminRoute(
+        "POST",
+        "/admin/step-up",
+        "admin.four_eyes.step_up.begin",
+        FOUR_EYES_STEP_UP.actor_roles,
+        FOUR_EYES_STEP_UP.id,
+    ),
+    AdminRoute(
+        "POST",
+        "/admin/step-up/complete",
+        "admin.four_eyes.step_up.complete",
+        FOUR_EYES_STEP_UP.actor_roles,
+        FOUR_EYES_STEP_UP.id,
+    ),
     # INT-406 — the Safety queue (files/08 §3, §0c F19; invariant 49). The read
     # is tenant-scoped from the claim; the acknowledgement is tier 1, one key,
     # the tenant's clinical responsible's alone.
@@ -479,3 +498,8 @@ class AdminWiring:
     #: the hosted adapters. ``None`` = unconfigured: the model-lane mutations
     #: answer 503 and the module's tiles read unknown (fail closed).
     model_lanes: ModelLanesWiring | None = None
+    #: INT-563 (ADR-043): the four-eyes step-up — a fresh WebAuthn
+    #: re-authentication at Keycloak, spent once on one approval. ``None`` =
+    #: unconfigured: every approve and countersign route refuses (503), and
+    #: there is no other way to present a second key.
+    step_up: StepUpService | None = None

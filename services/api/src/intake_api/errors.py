@@ -49,6 +49,7 @@ __all__ = [
     "purpose_unknown",
     "refresh_reused",
     "release_freeze_refused",
+    "step_up_refused",
     "taxonomy_unconfigured",
     "unauthorized",
     "unknown_embed_tenant",
@@ -386,6 +387,16 @@ def four_eyes_refused(code: str) -> HTTPException:
     """A ceremony refusal (files/08 §8.2). 409: the request was understood
     and the ceremony's state or distinctness rule forbids it."""
     return HTTPException(status_code=409, detail={"error": code})
+
+
+def step_up_refused(status: int, code: str) -> HTTPException:
+    """INT-563 (ADR-043): the four-eyes step-up refused. 403 — no live
+    ceremony or grant for this caller, or the ID token did not prove a fresh
+    WebAuthn re-authentication by this caller in this session; 502 — Keycloak
+    would not redeem the code; 503 — no step-up wired, so no second key can be
+    presented at all. ``code`` is machine-shaped and echoes nothing submitted
+    (invariant 6)."""
+    return HTTPException(status_code=status, detail={"error": code})
 
 
 def compliance_query_refused(code: str) -> HTTPException:

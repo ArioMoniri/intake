@@ -1,5 +1,37 @@
 # PROGRESS — one entry per LOOP iteration (template in LOOP.md)
 
+### 2026-10-28T14:00:00+03:00 · INT-563 · done (committed locally; push frozen by the orchestrator for the build-6 wave)
+- Goal: GitHub #952, Sec-Row `admin-console`, ADR-043.
+  - Every console Approve was disabled.
+  - The API took any unused string as the WebAuthn assertion, and the approver's "credential" was the session's login one. The approval was a second click, not a second key.
+- Plan:
+  - The API runs an OIDC step-up at the new public PKCE client `admin-web-stepup`:
+    - `POST /admin/step-up` opens a ceremony bound to sub, sid and one action;
+    - `prompt=login` and `max_age=0`;
+    - `POST /admin/step-up/complete` redeems the code with the API-held verifier and verifies the ID token. It requires `amr hwk` and a fresh `auth_time`, from the Keycloak 26.1.4/26.7.4 source. The credential notes name the key.
+  - The one-time grant is the only thing the nine approve and countersign routes take. The old `assertion_id` path is deleted.
+  - The console carries it without script:
+    - **Onayla** on each pending row posts to `/step-up/start`;
+    - `/step-up/callback` presents the grant;
+    - `/step-up` serves break-glass and the countersign;
+    - `form-action` admits the Keycloak origin.
+  - `deploy.sh` adds or verifies the client through `keycloak/step_up_client.py`, which never touches a flow.
+- Tests added (with the near-miss negative for any safety rule):
+  - `tests/admin/test_step_up.py`: the ceremony; one near miss per verified claim; replay; TTLs; binding; the exchange over an httpx mock; both realm clients.
+  - `tests/admin/test_step_up_routes.py`: the old unused-string approval refused in the old and the new field; grant binding; self-approval counted; audit by ids only, written ahead; registration.
+  - `tests/infra/test_staging_step_up_client.py`: the script's client is the realm file's; 14 drift near misses; add/verify/refuse; no flow path; deploy order; stdin password.
+  - `apps/admin-web/e2e/step-up.spec.ts`: begin and complete over a recording fetch; open-redirect near misses; CSP; return cookie; the `/step-up` page under axe.
+  - The voice, CI/CD, model-lanes, access-review and offboarding suites approve through the step-up.
+  - Red: on base 3533999d an unused string approves break-glass (200 approved). The new suites fail to collect (no `intake_platform.admin.step_up`), and 3 console specs fail. Green and gates are in docs/evidence/INT-563.md.
+- Result (`make check` / `make safety` / `make security` summary): see docs/evidence/INT-563.md. files/11 regenerated; the three pins go from 372 to 373 (re-pinned from the real count at push).
+- Invariants touched and still passing:
+  - 6: audit rows carry the action and a hash of the token id; no grant, credential or submitted value anywhere;
+  - 14: no secret added; the step-up client is public;
+  - 16: Sec-Row `admin-console`, with the threat/control mapping in the evidence;
+  - 17: no placeholders, and no fallback when unconfigured (503).
+- Decisions / ADRs / `00_STATE.md` rows: ADR-043 (allocated by the orchestrator). It widens the console CSP's `form-action` by one origin.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): nothing. The live check is one approval on staging after deploy.
+- Next: push when the freeze lifts; then INT-564 and INT-565.
 ### 2026-10-28T16:30:00+03:00 · INT-585 · done (PR open)
 - Goal: GitHub #984, Sec-Row `onboarding`. Record the owner's 28 Oct SMS decisions ("1Y 2Y 3Y 4Y 5Y") as D34-D38 in files/00_STATE.md §3, and the live Netgsm OTP confirmation in docs/evidence/INT-576.md.
 - Plan:

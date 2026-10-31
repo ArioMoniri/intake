@@ -21,7 +21,6 @@ the IP allow-list, the role matrix, the write-ahead hash-chained audit):
 from __future__ import annotations
 
 import logging
-import uuid
 from collections.abc import Iterator
 from pathlib import Path
 from typing import Any
@@ -39,6 +38,7 @@ from intake_platform.model_lanes import (
 from intake_platform.model_lanes.wiring import ModelLanesWiring
 from model_lanes_kit import LLM_SNAPSHOT, TEST_KEY, Lanes, build_lanes, green
 from prometheus_client import REGISTRY
+from step_up_fakes import StepUpHarness
 
 REASON = {
     "reason_class": "incident_mitigation",
@@ -46,8 +46,8 @@ REASON = {
 }
 
 
-def _assertion() -> str:
-    return f"assn-{uuid.uuid4().hex}"
+#: INT-563: approvals go through the step-up, the console's own sequence.
+STEP_UP = StepUpHarness.build()
 
 
 def _changes(control: str, outcome: str) -> float:
@@ -66,7 +66,7 @@ def lanes() -> Lanes:
 
 @pytest.fixture()
 def harness(tmp_path: Path, lanes: Lanes) -> Iterator[ApiHarness]:
-    wiring = build_admin_wiring()
+    wiring = build_admin_wiring(step_up=STEP_UP.service)
     wiring.model_lanes = ModelLanesWiring(store=lanes.store, router=lanes.router)
     yield from build_admin_harness(tmp_path, admin=wiring)
 
@@ -78,11 +78,7 @@ def _switch(client: Any, role: str, body: dict[str, Any], who: str = "platform_a
 
 
 def _approve(client: Any, path: str, action_id: str, who: str = "qms_owner") -> Any:
-    return client.post(
-        f"/admin/model-lanes/{path}/{action_id}/approve",
-        json={"assertion_id": _assertion()},
-        headers=bearer(who),
-    )
+    return STEP_UP.approve(client, f"/admin/model-lanes/{path}/{action_id}/approve", action_id, who)
 
 
 class TestTheComposite:

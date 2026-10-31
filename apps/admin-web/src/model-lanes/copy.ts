@@ -180,8 +180,8 @@ const tr = {
     string
   >,
   approve: "Onayla",
-  approveNeedsStepUp:
-    "Onay, konsolun henüz üretemediği tek kullanımlık bir WebAuthn doğrulaması ister (files/08 §2.3).",
+  approveStepUp:
+    "Onaylamak için parolanız ve güvenlik anahtarınız yeniden istenir; onay tek kullanımlıktır ve yalnızca o talep içindir (files/08 §2.3).",
   forms: {
     section: "Kontroller",
     policy:
@@ -369,8 +369,8 @@ const en: ModelLanesCopy = {
   },
   pendingStates: { pending: "pending", approved: "approved", expired: "expired" },
   approve: "Approve",
-  approveNeedsStepUp:
-    "Approval needs a fresh single-use WebAuthn assertion, which the console cannot mint yet (files/08 §2.3).",
+  approveStepUp:
+    "Approving asks for your password and security key again; the approval is single-use and covers that request only (files/08 §2.3).",
   forms: {
     section: "Controls",
     policy:

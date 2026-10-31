@@ -171,8 +171,8 @@ const tr = {
     request: "Talep aç",
   },
   approve: "Onayla",
-  approveNeedsStepUp:
-    "Onay, konsolun henüz üretemediği tek kullanımlık bir WebAuthn doğrulaması ister (files/08 §2.3).",
+  approveStepUp:
+    "Onaylamak için parolanız ve güvenlik anahtarınız yeniden istenir; onay tek kullanımlıktır ve yalnızca o talep içindir (files/08 §2.3).",
   results: {
     engaged: "Dağıtımlar donduruldu; deploy.sh bir sonraki çalıştırmada reddeder.",
     unchanged: "Dağıtımlar zaten donduruluydu; değişiklik yok.",
@@ -368,8 +368,8 @@ const en: CicdCopy = {
     request: "Open request",
   },
   approve: "Approve",
-  approveNeedsStepUp:
-    "Approval needs a fresh single-use WebAuthn assertion, which the console cannot mint yet (files/08 §2.3).",
+  approveStepUp:
+    "Approving asks for your password and security key again; the approval is single-use and covers that request only (files/08 §2.3).",
   results: {
     engaged: "Deploys are frozen; deploy.sh refuses on its next run.",
     unchanged: "Deploys were already frozen; nothing changed.",

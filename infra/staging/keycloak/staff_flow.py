@@ -21,6 +21,12 @@ the reason, unless it exists and is enabled: without it a new user still cannot 
 requirement change always sends the execution's current priority, because Keycloak's
 ``updateExecutions`` copies whatever priority the body carries (an absent one is 0).
 
+It also reads, and never edits, what sits around that subflow (INT-563 review): the realm's
+browser flow must be ``staff browser``, and that flow must be exactly the cookie or the forms,
+the forms exactly the password then the second factor, both REQUIRED — any other way in (a
+rebound browser flow, a third ALTERNATIVE, a second factor no longer REQUIRED) is refused before
+any change, because ADR-043's step-up is a WebAuthn proof only on that path.
+
 Nothing else is touched. It is idempotent: each step is taken only when the live flow differs,
 and the run ends by checking that the flow is in the committed state, or it fails. ``--check``
 only reads. It runs in a one-off api container (stdlib only) on the internal network, and reads
@@ -56,6 +62,16 @@ HWK_CONFIG = {"default.reference.value": "hwk", "default.reference.maxAge": "288
 MAX_PASSES = 8
 #: The steps that change a requirement, and the requirement each one sets.
 REQUIREMENT_STEPS = {"set_required": REQUIRED, "disable_otp": DISABLED}
+#: The realm's browser flow and the committed steps around the second factor (INT-563 review):
+#: (level, name, requirement), a subflow named by its alias and an execution by its provider.
+TOP_FLOW = "staff browser"
+FORMS = "staff browser forms"
+OUTLINE: tuple[tuple[int, str, str], ...] = (
+    (0, "auth-cookie", "ALTERNATIVE"),
+    (0, FORMS, "ALTERNATIVE"),
+    (1, "auth-username-password-form", REQUIRED),
+    (1, SUBFLOW, REQUIRED),
+)
 
 
 @dataclass(frozen=True)
@@ -78,6 +94,15 @@ class Step:
     priority: int | None = None
 
 
+@dataclass(frozen=True)
+class Node:
+    """One line of ``staff browser``'s executions listing."""
+
+    level: int
+    name: str
+    requirement: str
+
+
 class FlowRefused(Exception):
     """The live realm is in a state this script will not edit: a human looks first."""
 
@@ -86,6 +111,8 @@ class FlowAdmin(Protocol):
     def executions(self) -> list[Execution]: ...
 
     def register_action(self) -> Mapping[str, Any] | None: ...
+
+    def binding(self) -> tuple[str | None, list[Node]]: ...
 
     def apply(self, step: Step) -> None: ...
 
@@ -104,6 +131,23 @@ def register_problem(action: Mapping[str, Any] | None) -> str | None:
         return f"the realm has no {REGISTER} required action: a new staff user cannot enrol"
     if action.get("enabled") is not True:
         return f"the realm's {REGISTER} required action is disabled: a new staff user cannot enrol"
+    return None
+
+
+def binding_problem(browser_flow: str | None, outline: Sequence[Node]) -> str | None:
+    """Why a login could reach the console without the second factor, or None."""
+    if browser_flow != TOP_FLOW:
+        return f"the realm's browser flow is not '{TOP_FLOW}'"
+    shallow = tuple(
+        (node.level, node.name, node.requirement)
+        for node in outline
+        if node.level <= 1 and node.requirement != DISABLED
+    )
+    if shallow != OUTLINE:
+        return (
+            f"'{TOP_FLOW}' is not cookie-or-forms with the password and '{SUBFLOW}' REQUIRED: "
+            "another way in would skip the second factor"
+        )
     return None
 
 
@@ -187,6 +231,25 @@ class Admin:
             raise
         return action
 
+    def binding(self) -> tuple[str | None, list[Node]]:
+        """The realm's browser flow and the outline of ``staff browser``: two reads."""
+        realm = self._call("GET", "") or {}
+        flow = urllib.parse.quote(TOP_FLOW, safe="")
+        nodes = [
+            Node(
+                int(item.get("level", 0)),
+                str(
+                    item.get("displayName")
+                    if item.get("authenticationFlow")
+                    else item.get("providerId")
+                ),
+                str(item.get("requirement", "")),
+            )
+            for item in self._call("GET", f"/authentication/flows/{flow}/executions") or []
+        ]
+        browser = realm.get("browserFlow")
+        return (browser if isinstance(browser, str) else None), nodes
+
     def apply(self, step: Step) -> None:
         flow = urllib.parse.quote(SUBFLOW, safe="")
         if step.action == "add_provider":
@@ -239,6 +302,10 @@ def run(admin: FlowAdmin, *, check_only: bool) -> list[Step]:
     problem = register_problem(admin.register_action())
     if problem is not None:
         raise FlowRefused(problem)
+    # read-only and refused in both modes: this script never edits the parent flows
+    problem = binding_problem(*admin.binding())
+    if problem is not None:
+        raise FlowRefused(problem)
     taken: list[Step] = []
     for _ in range(MAX_PASSES):
         step = next_step(admin.executions())
@@ -283,7 +350,7 @@ def main(argv: Sequence[str]) -> int:
         print(f"staff flow: {step.action} {step.target or PROVIDER}")
     print(
         f"staff flow: realm {realm} runs {PROVIDER} REQUIRED with the hwk reference, "
-        f"OTP disabled, and {REGISTER} enabled"
+        f"OTP disabled, {REGISTER} enabled, under the '{TOP_FLOW}' browser flow"
     )
     return 0
 

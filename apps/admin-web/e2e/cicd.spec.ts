@@ -365,13 +365,17 @@ describe("what the view-model refuses rather than paints", () => {
 // ------------------------------------------------------------------ controls
 
 describe("the controls — one key to freeze, a request for two to lift", () => {
-  it("offers exactly two forms posting to the page's own handler, and no approve or rollback form", async () => {
+  it("offers exactly two forms posting to the page's own handler, the step-up's Onayla per pending lift, and no rollback form", async () => {
     const markup = await page(payload());
-    expect(markup.match(/<form /g)?.length).toEqual(2);
+    const pending = renderCicd(payload()).pending.actions.length;
     expect(markup.match(/action="\/cicd\/action" method="post"/g)?.length).toEqual(2);
+    // INT-563: approval is the step-up, one form per pending request
+    expect(markup.match(/action="\/step-up\/start"/g)?.length ?? 0).toEqual(pending);
+    expect(markup.match(/<form /g)?.length).toEqual(2 + pending);
     expect(markup).toContain('data-control="freeze_engage" data-tier="1"');
     expect(markup).toContain('data-control="freeze_lift" data-tier="2"');
-    expect(markup).toMatch(/<button[^>]*disabled=""[^>]*data-reason="step_up_unwired"/);
+    expect(markup).not.toContain("step_up_unwired");
+    expect(markup).not.toMatch(/name="(assertion_id|step_up_grant)"/);
   });
 
   it("names who may request and approve from the server's registry", () => {

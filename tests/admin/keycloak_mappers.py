@@ -7,7 +7,10 @@ to the source at the tag ``infra/docker-compose.obs.yml`` pins:
 
 - **gate** — ``AbstractOIDCProtocolMapper.transformAccessToken``: a mapper
   touches the access token only when ``access.token.claim`` is the string
-  ``"true"`` (``OIDCAttributeMapperHelper.includeInAccessToken``).
+  ``"true"`` (``OIDCAttributeMapperHelper.includeInAccessToken``);
+  ``transformIDToken`` touches the ID token only when ``id.token.claim`` is
+  (``includeInIDToken``). INT-563's step-up reads an ID token, so both gates
+  are modelled and :func:`mint_id_token_claims` applies the second.
 - ``oidc-audience-mapper`` — ``AudienceProtocolMapper.setClaim``: adds
   ``included.client.audience``, else ``included.custom.audience``, to ``aud``.
   ``JsonWebToken.aud`` serialises one audience as a string and several as an
@@ -44,6 +47,7 @@ __all__ = [
     "USER_ATTRIBUTE_MAPPER",
     "client",
     "mint_access_token_claims",
+    "mint_id_token_claims",
 ]
 
 AUDIENCE_MAPPER = "oidc-audience-mapper"
@@ -106,13 +110,53 @@ def mint_access_token_claims(
     session_notes: Mapping[str, str],
 ) -> dict[str, Any]:
     """The access-token claims Keycloak would issue to ``client_id``."""
+    return _mint(
+        realm,
+        client_id,
+        "access.token.claim",
+        base=base,
+        user_attributes=user_attributes,
+        session_notes=session_notes,
+    )
+
+
+def mint_id_token_claims(
+    realm: Mapping[str, Any],
+    client_id: str,
+    *,
+    base: Mapping[str, Any],
+    user_attributes: Mapping[str, Sequence[str]],
+    session_notes: Mapping[str, str],
+) -> dict[str, Any]:
+    """The ID-token claims Keycloak would issue to ``client_id`` (the mappers
+    whose ``id.token.claim`` is ``"true"``; ``aud`` is the client itself,
+    ``TokenManager.generateIDToken``, so ``base`` carries it)."""
+    return _mint(
+        realm,
+        client_id,
+        "id.token.claim",
+        base=base,
+        user_attributes=user_attributes,
+        session_notes=session_notes,
+    )
+
+
+def _mint(
+    realm: Mapping[str, Any],
+    client_id: str,
+    gate: str,
+    *,
+    base: Mapping[str, Any],
+    user_attributes: Mapping[str, Sequence[str]],
+    session_notes: Mapping[str, str],
+) -> dict[str, Any]:
     claims = {k: copy.deepcopy(v) for k, v in base.items()}
     audiences: list[str] = []
     for mapper in client(realm, client_id).get("protocolMappers", []):
         config: Mapping[str, str] = mapper.get("config", {})
         if mapper.get("protocol") != "openid-connect":
             continue
-        if config.get("access.token.claim") != "true":
+        if config.get(gate) != "true":
             continue
         kind = mapper.get("protocolMapper")
         if kind == AUDIENCE_MAPPER:

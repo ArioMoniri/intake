@@ -18,6 +18,8 @@ import { BarList } from "../ui/charts";
 import { sharesOf } from "../ui/figure";
 import { RefusedPage } from "../ui/states";
 import type { ResultCode } from "./actions";
+import { StepUpBanner } from "../step-up/form";
+import type { StepUpResult } from "../step-up/results";
 import { ControlForms, ControlsTile, PendingTile } from "./controls";
 import { COPY, type Lang, type VoiceCopy } from "./copy";
 import type { VoiceState } from "./load";
@@ -276,10 +278,12 @@ export function VoiceConsole({
   state,
   lang,
   result,
+  stepUp = null,
 }: {
   state: VoiceState;
   lang: Lang;
   result: ResultCode | null;
+  stepUp?: StepUpResult | null;
 }): ReactElement {
   const c = COPY[lang];
   if (state.kind === "not_admitted") {
@@ -315,6 +319,7 @@ export function VoiceConsole({
             {c.results[result]}
           </p>
         )}
+        <StepUpBanner result={stepUp} lang={lang} />
       </header>
       <section className="band" aria-labelledby="band-tenants">
         <h2 id="band-tenants" className="band-head">
@@ -322,7 +327,7 @@ export function VoiceConsole({
         </h2>
         <div className="grid">
           <ControlsTile view={view} c={c} />
-          <PendingTile view={view} c={c} />
+          <PendingTile view={view} lang={lang} c={c} />
         </div>
       </section>
       <section className="band" aria-labelledby="band-profiles">

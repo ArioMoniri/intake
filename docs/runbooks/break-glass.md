@@ -23,7 +23,11 @@ console view). The ceremony:
 
 1. A closed-category reason plus ≥ 20 characters of free text.
 2. A **distinct** human approver — different account, different WebAuthn
-   credential, different session — presenting a fresh single-use assertion.
+   credential, different session — presenting a fresh single-use assertion:
+   the approver opens `/step-up?action_id={action_id}` on the console and
+   presses **Onayla**, a new password-and-passkey login whose one-time grant
+   is the only thing the approve route accepts (INT-563,
+   docs/runbooks/four-eyes-step-up.md).
 3. A `controller_instruction_ref`, because as a processor we may act only on
    documented controller instruction.
 4. Scoped to one session id, TTL ≤ 60 minutes, single use.

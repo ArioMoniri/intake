@@ -10,10 +10,16 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 import { buildCsp, newNonce } from "./src/ops/csp";
+import { stepUpOriginFromEnv } from "./src/step-up/flow";
 
 export function proxy(request: NextRequest): NextResponse {
   const nonce = newNonce();
-  const csp = buildCsp(nonce, process.env.NODE_ENV ?? "production");
+  // INT-563: form-action also admits the step-up's Keycloak origin, if set
+  const csp = buildCsp(
+    nonce,
+    process.env.NODE_ENV ?? "production",
+    stepUpOriginFromEnv(process.env),
+  );
   const forwarded = new Headers(request.headers);
   forwarded.set("x-nonce", nonce);
   forwarded.set("content-security-policy", csp);

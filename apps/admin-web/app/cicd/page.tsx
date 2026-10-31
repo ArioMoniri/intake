@@ -17,6 +17,7 @@ import { CicdConsole } from "../../src/cicd/console";
 import { loadCicd, resultFrom } from "../../src/cicd/load";
 import { bearerFrom, opsConfigFromEnv } from "../../src/ops/access";
 import { langFrom } from "../../src/ops/copy";
+import { stepUpResultFrom } from "../../src/step-up/results";
 
 export default async function CicdPage({
   searchParams,
@@ -31,5 +32,12 @@ export default async function CicdPage({
     authorization: bearerFrom(requestHeaders),
     fetch: (url, init) => fetch(url, init),
   });
-  return <CicdConsole state={state} lang={lang} result={resultFrom(params["result"])} />;
+  return (
+    <CicdConsole
+      state={state}
+      lang={lang}
+      result={resultFrom(params["result"])}
+      stepUp={stepUpResultFrom(params["step_up"])}
+    />
+  );
 }

@@ -152,6 +152,13 @@ services:
       INTAKE_ADMIN_OIDC_ISSUER: https://auth.${STAGING_HOSTNAME:?run init.sh}/realms/intake
       INTAKE_ADMIN_OIDC_AUDIENCE: api
       INTAKE_ADMIN_OIDC_JWKS_PATH: /run/intake/keycloak-jwks.json
+      # INT-563 (ADR-043): the four-eyes step-up. The console's callback is
+      # the one redirect URI of the realm's admin-web-stepup client; the code
+      # is redeemed on the internal network, where Keycloak answers for the
+      # public issuer (KC_HOSTNAME_BACKCHANNEL_DYNAMIC). Unset, every approval
+      # answers 503.
+      INTAKE_ADMIN_STEP_UP_REDIRECT_URI: https://admin.${STAGING_HOSTNAME:?run init.sh}/step-up/callback
+      INTAKE_ADMIN_STEP_UP_EXCHANGE_URL: http://keycloak:8080/realms/intake/protocol/openid-connect/token
       # Owner decision D19 (files/00_STATE.md §3, 2 Oct 2026): "dont make admin
       # access ip restricted". This is an explicit allow-all, because an empty
       # list would admit nobody. The gate is the Keycloak login: a password
@@ -432,6 +439,10 @@ services:
       dockerfile: infra/staging/Dockerfile.admin-web
     environment:
       INTAKE_ADMIN_API_BASE: http://api:8000
+      # INT-563 (ADR-043): the step-up's Keycloak origin. The CSP's form-action
+      # admits it beside 'self' (the Onayla form continues there), and the
+      # console follows only an authorization URL on it.
+      INTAKE_ADMIN_STEP_UP_ORIGIN: https://auth.${STAGING_HOSTNAME:?run init.sh}
     networks: [edge]
     depends_on:
       api:

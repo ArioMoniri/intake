@@ -27,7 +27,7 @@ import binascii
 import json
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from cryptography.exceptions import InvalidSignature
@@ -36,10 +36,13 @@ from cryptography.hazmat.primitives.asymmetric import padding, rsa
 
 from intake_platform.admin.principal import ClaimsRejected
 
-__all__ = ["KeycloakClaimsVerifier", "load_jwks"]
+__all__ = ["CLOCK_LEEWAY", "KeycloakClaimsVerifier", "load_jwks"]
 
 #: Clock skew allowance, matching the DPoP tier's window (INT-131).
 _LEEWAY_S = 300
+#: How far past ``exp`` (and before ``nbf``) a token still verifies; whatever
+#: remembers a spent token must remember it at least this long (INT-563).
+CLOCK_LEEWAY = timedelta(seconds=_LEEWAY_S)
 #: A Keycloak access token is well under this; the cap bounds the parse.
 _MAX_TOKEN_BYTES = 8192
 _REQUIRED_ALG = "RS256"

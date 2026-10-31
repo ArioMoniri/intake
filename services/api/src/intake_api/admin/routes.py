@@ -36,6 +36,7 @@ from fastapi.responses import JSONResponse
 from intake_platform.admin import (
     ADMIN_ROUTES,
     BREAK_GLASS_GRANT_TTL,
+    BREAK_GLASS_OPEN,
     AdminActionRecord,
     AdminRole,
     AdminRoute,
@@ -72,6 +73,7 @@ from intake_api.admin.models_source import (
 )
 from intake_api.admin.ops_console import load_ops_console
 from intake_api.admin.reliability_console import load_reliability_console
+from intake_api.admin.step_up_routes import GRANT_FIELD, STEP_UP_HANDLERS, stepped_up_approver
 from intake_api.admin.voice_routes import VOICE_HANDLERS
 from intake_api.consent_guard import administrative_action
 from intake_api.db import tenant_session
@@ -200,12 +202,22 @@ async def _break_glass_approve(
 ) -> dict[str, Any]:
     _sweep_expired(wiring)
     payload = await _json_body(request)
+    if set(payload) != {GRANT_FIELD}:
+        raise break_glass_refused(f"{GRANT_FIELD}_required")
+    action_id = request.path_params["action_id"]
     try:
-        approved = wiring.four_eyes.approve(
-            request.path_params["action_id"],
-            approver=caller.principal.actor_block(role),
-            assertion_id=_text(payload, "assertion_id"),
-        )
+        pending = wiring.four_eyes.get(action_id)
+    except FourEyesRefused:
+        raise not_found() from None
+    if pending.action.id != BREAK_GLASS_OPEN.id:
+        # another module's ceremony is approved on its own route, which also
+        # applies it; approving it here would mark it done and change nothing
+        raise not_found()
+    approver, assertion = await stepped_up_approver(
+        request, caller, wiring, role, action_id=action_id, payload=payload
+    )
+    try:
+        approved = wiring.four_eyes.approve(action_id, approver=approver, assertion_id=assertion)
     except SelfApproval as refusal:
         # files/08 §5: an intrusion signal, not a hygiene metric.
         ADMIN_FOUR_EYES_SELF_APPROVAL_ATTEMPT_TOTAL.inc()
@@ -409,6 +421,8 @@ _HANDLERS: dict[str, Handler] = {
     "admin.access.review.countersign": access_console.review_countersign,
     "admin.access.offboard": access_console.offboard_run,
     "admin.access.offboard.confirm": access_console.offboard_confirm,
+    # INT-563 (ADR-043) — the four-eyes step-up
+    **STEP_UP_HANDLERS,
     # INT-406 — the Safety queue (files/08 §3, §0c F19; invariant 49)
     "admin.safety_queue.read": safety_queue.queue_read,
     "admin.safety_queue.acknowledge": safety_queue.acknowledge,

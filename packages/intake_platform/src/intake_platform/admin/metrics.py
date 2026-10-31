@@ -25,6 +25,7 @@ __all__ = [
     "ADMIN_MODEL_LANE_CHANGES_TOTAL",
     "ADMIN_OFFBOARDING_TOTAL",
     "ADMIN_PENDING_ACTION_EXPIRED_TOTAL",
+    "ADMIN_STEP_UP_TOTAL",
     "ADMIN_VOICE_CONTROL_CHANGES_TOTAL",
     "SEC_ADMIN_ACTIONS_TOTAL",
     "SEC_BREAK_GLASS_TOTAL",
@@ -127,4 +128,17 @@ ADMIN_MODEL_LANE_CHANGES_TOTAL = Counter(
     "admin_model_lane_changes_total",
     "Model lanes module control changes, by control and outcome.",
     ["control", "outcome"],
+)
+
+
+#: INT-563 (ADR-043): the four-eyes step-up, by stage (begin, complete,
+#: redeem) and outcome (``ok`` or the refusal's machine code — a closed set,
+#: the ``StepUpRefused`` codes plus the four-eyes codes a begin can answer).
+#: The alert of ``admin.four_eyes.step_up``: a run of ``step_up_token_refused``
+#: or ``step_up_replayed`` is somebody presenting a token they did not earn.
+#: Who stepped up is on the audit chain, never a label (invariant 6).
+ADMIN_STEP_UP_TOTAL = Counter(
+    "admin_step_up_total",
+    "Four-eyes WebAuthn step-ups, by stage and outcome.",
+    ["stage", "outcome"],
 )

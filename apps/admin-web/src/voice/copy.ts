@@ -133,8 +133,8 @@ const tr = {
     request: "Talep aç",
   },
   approve: "Onayla",
-  approveNeedsStepUp:
-    "Onay, konsolun henüz üretemediği tek kullanımlık bir WebAuthn doğrulaması ister (files/08 §2.3).",
+  approveStepUp:
+    "Onaylamak için parolanız ve güvenlik anahtarınız yeniden istenir; onay tek kullanımlıktır ve yalnızca o talep içindir (files/08 §2.3).",
   results: {
     engaged: "Acil kapatma çekildi; yeni oturumlar ekranda başlar, canlı oturumlar ekrana geçer.",
     unchanged: "Acil kapatma zaten çekili; değişiklik yok.",
@@ -288,8 +288,8 @@ const en: VoiceCopy = {
     request: "Open request",
   },
   approve: "Approve",
-  approveNeedsStepUp:
-    "Approval needs a fresh single-use WebAuthn assertion, which the console cannot mint yet (files/08 §2.3).",
+  approveStepUp:
+    "Approving asks for your password and security key again; the approval is single-use and covers that request only (files/08 §2.3).",
   results: {
     engaged: "Kill switch pulled; new sessions start on screen and live sessions move to it.",
     unchanged: "The kill switch was already pulled; nothing changed.",

@@ -99,6 +99,8 @@ ensure_probe_role
 ensure_keycloak_database
 compose up -d --no-build --wait keycloak
 ensure_staff_webauthn_notes
+# INT-563: the four-eyes step-up's client (added if absent, never a flow change)
+ensure_step_up_client
 mirror_keycloak_jwks
 
 # --no-build: the api runs the image build_api_image made and syft described

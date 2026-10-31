@@ -316,6 +316,74 @@
           }
         }
       ]
+    },
+    {
+      "clientId": "admin-web-stepup",
+      "name": "INTAKE admin console step-up (dev; public, PKCE, re-authentication only)",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "bearerOnly": false,
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "redirectUris": [
+        "http://localhost:3000/step-up/callback",
+        "http://127.0.0.1:3000/step-up/callback"
+      ],
+      "webOrigins": [],
+      "fullScopeAllowed": false,
+      "defaultClientScopes": [
+        "basic"
+      ],
+      "authenticationFlowBindingOverrides": {},
+      "attributes": {
+        "pkce.code.challenge.method": "S256"
+      },
+      "protocolMappers": [
+        {
+          "name": "aaguid",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usersessionmodel-note-mapper",
+          "consentRequired": false,
+          "config": {
+            "user.session.note": "intake.webauthn.aaguid",
+            "claim.name": "aaguid",
+            "jsonType.label": "String",
+            "access.token.claim": "false",
+            "introspection.token.claim": "false",
+            "id.token.claim": "true",
+            "userinfo.token.claim": "false"
+          }
+        },
+        {
+          "name": "credential_id",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usersessionmodel-note-mapper",
+          "consentRequired": false,
+          "config": {
+            "user.session.note": "intake.webauthn.credential_id",
+            "claim.name": "credential_id",
+            "jsonType.label": "String",
+            "access.token.claim": "false",
+            "introspection.token.claim": "false",
+            "id.token.claim": "true",
+            "userinfo.token.claim": "false"
+          }
+        },
+        {
+          "name": "amr",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-amr-mapper",
+          "consentRequired": false,
+          "config": {
+            "id.token.claim": "true",
+            "access.token.claim": "false",
+            "introspection.token.claim": "false"
+          }
+        }
+      ]
     }
   ],
   "components": {
