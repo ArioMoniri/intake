@@ -4704,5 +4704,6 @@
   - The re-share card is offered only while the link window is open (end of the visit day in Türkiye + 72 h), and says so otherwise.
   - A landed withdrawal now marks delivered notes on the sealed outbox item, so the card survives a restart.
   - Red 19, green 180 / mobile 3191. Evidence §8.
+- Update (reviewer's follow-up on #1024): `linkWindow` now anchors at the start of the visit day in Türkiye + 72 h, never later than the server's link close (the server returns no close instant to use instead). Near misses re-pinned: open at 1 ms before the earliest server close, closed at it; the TR/UTC boundary shifted. Red 3; green mobile 3192.
 - Next: merge after #1018 turns CI green.
 - LOOP_STATUS: CONTINUE

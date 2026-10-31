@@ -248,15 +248,22 @@ export type LinkWindow = "open" | "closed" | "no_date";
  * INT-589 legal note: a re-share is worth offering only while a Doctor Link
  * can still be issued. A link closes at the latest 72 h after the visit
  * (files/02 §2b), and an undated visit cannot have one (`visit_date_unknown`).
- * The phone holds the visit's DATE and not its hour, so it calls the window
- * closed only once it is closed whatever the hour was: 72 h after the END of
- * the visit day in Türkiye.
+ * The phone holds the visit's DATE and not its hour, and the server's note
+ * answer carries no close instant. So the window is anchored where the
+ * server's own fallback is: the START of the visit day in Türkiye + 72 h
+ * (legal review of #1024). That is never later than the server's link close,
+ * which the appointment hour can only move later, so the card never asks for
+ * consent to a share whose links are already dead.
+ *
+ * "now − 72 h falls on a day before the visit day" is exactly "now < start of
+ * the visit day + 72 h". Türkiye keeps one offset all year, so 72 h is three
+ * calendar days there.
  */
 export function linkWindow(visitDate: string | null, now: number): LinkWindow {
   if (visitDate === null) {
     return "no_date";
   }
-  return isoDateIn(new Date(now - LINK_WINDOW_MS)) <= visitDate ? "open" : "closed";
+  return isoDateIn(new Date(now - LINK_WINDOW_MS)) < visitDate ? "open" : "closed";
 }
 
 const LINK_WINDOW_MS = 72 * 60 * 60 * 1_000;

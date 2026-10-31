@@ -339,28 +339,40 @@ describe("re-share after a withdrawal", () => {
  * INT-589 legal note: a re-share is only worth offering while a Doctor Link
  * can still be issued. A link closes at the latest 72 h after the visit
  * (files/02 §2b), and an undated visit cannot have one. The device holds the
- * visit's DATE, not its hour, so "closed" is claimed only once it is closed
- * whatever the hour was: 72 h after the END of the visit day in Türkiye.
+ * visit's DATE, not its hour, and the server's note answer carries no close
+ * instant, so the window is anchored where the server's own fallback is: the
+ * START of the visit day in Türkiye + 72 h. That is never later than the
+ * server's link close (the appointment hour can only move it later), so the
+ * card never asks for consent to a share whose links are already dead.
  */
 describe("the link window a re-share needs", () => {
   const at = (iso: string): number => Date.parse(iso);
 
-  it("is open on the visit day and for three days after it", () => {
-    expect(linkWindow("2026-11-02", at("2026-11-02T08:00:00+03:00"))).toBe("open");
-    expect(linkWindow("2026-11-02", at("2026-11-05T23:59:00+03:00"))).toBe("open");
+  it("is open from before the visit until 72 h after the start of its day", () => {
     expect(linkWindow("2026-11-02", at("2026-10-20T08:00:00+03:00"))).toBe("open");
+    expect(linkWindow("2026-11-02", at("2026-11-02T08:00:00+03:00"))).toBe("open");
+    expect(linkWindow("2026-11-02", at("2026-11-04T23:59:59+03:00"))).toBe("open");
   });
 
-  it("is closed once three days have passed after the end of the visit day", () => {
-    expect(linkWindow("2026-11-02", at("2026-11-06T00:00:01+03:00"))).toBe("closed");
+  it("is closed from 72 h after the start of the visit day", () => {
+    expect(linkWindow("2026-11-02", at("2026-11-05T00:00:00+03:00"))).toBe("closed");
     expect(linkWindow("2026-11-02", at("2026-12-01T12:00:00+03:00"))).toBe("closed");
   });
 
+  it("near miss: never later than the server's close, even for a midnight appointment", () => {
+    // the earliest the server can close a link for this visit: 00:00 + 72 h
+    const serverEarliestClose = at("2026-11-02T00:00:00+03:00") + 72 * 60 * 60 * 1_000;
+    expect(linkWindow("2026-11-02", serverEarliestClose - 1)).toBe("open");
+    expect(linkWindow("2026-11-02", serverEarliestClose)).toBe("closed");
+    // the end-of-day anchor the review replaced would still say open here
+    expect(linkWindow("2026-11-02", at("2026-11-05T12:00:00+03:00"))).toBe("closed");
+  });
+
   it("near miss: the day boundary is Türkiye's, not UTC's", () => {
-    // 2026-11-05T21:30Z is already 6 Nov 00:30 in Türkiye: closed there
-    expect(linkWindow("2026-11-02", at("2026-11-05T21:30:00Z"))).toBe("closed");
-    // and 2026-11-05T20:30Z is still 5 Nov 23:30 in Türkiye: open
-    expect(linkWindow("2026-11-02", at("2026-11-05T20:30:00Z"))).toBe("open");
+    // 2026-11-04T21:30Z is already 5 Nov 00:30 in Türkiye: closed there
+    expect(linkWindow("2026-11-02", at("2026-11-04T21:30:00Z"))).toBe("closed");
+    // and 2026-11-04T20:30Z is still 4 Nov 23:30 in Türkiye: open
+    expect(linkWindow("2026-11-02", at("2026-11-04T20:30:00Z"))).toBe("open");
   });
 
   it("an undated visit has no link window at all", () => {
