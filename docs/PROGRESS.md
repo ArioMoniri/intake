@@ -4685,3 +4685,46 @@
   - Tests first: red 4 vitest + 2 pytest; green brand 19, mobile 2972, legal + release 964.
 - Next: merge #995 (INT-587) before or with #1001, then TestFlight build 7.
 - LOOP_STATUS: CONTINUE
+
+### 2026-10-31T04:10:00+03:00 · INT-599 · awaiting-human (PR open; the reason correction is the owner's patch)
+- Goal: GitHub #1019, Sec-Row `cicd`, from the INT-597 deps work. The admin-web runtime image carries no build/dev npm tooling, and the zod/deepmerge exception reasons say only what is true.
+- Acceptance: as in the INT-599 row of docs/backlog/issues.yaml.
+- Plan:
+  - The runtime stage of infra/staging/Dockerfile.admin-web copies only Next's standalone output and the static assets. Its one command removes the base image's npm, corepack and Yarn.
+  - next.config.ts sets output: standalone.
+  - A builder-side guard (infra/staging/admin_web_trace_guard.sh) holds the trace to admin-web's production closure.
+  - The reasons are corrected in owner-599-exception-reasons.patch.
+- Tests added (with the near-miss negative for any safety rule):
+  - tests/infra/test_admin_web_runtime_image.py, 50 tests, covering:
+    - the runtime stage's copies and its one command;
+    - the standalone entry point;
+    - the builder's lockfile closure, which holds no Expo package, zod 3.25.76 or deepmerge (control: apps/mobile holds all three);
+    - the production closure, which holds no devDependency;
+    - the guard over fixture trees.
+  - Near misses:
+    - main's `COPY --from=builder /app /app`;
+    - a second install;
+    - a forced removal, and a prune that keeps npm or Yarn;
+    - `next start`;
+    - an inexact store entry;
+    - a hoisted copy;
+    - an empty production list.
+  - Red: 33 failed. Green: 50 passed.
+- Result (`make check` / `make safety` / `make security` summary):
+  - tests/infra + backlog + smoke + ci: 1646 passed.
+  - `make check-ts`: green.
+  - ruff: clean.
+  - Local `next build`: a 22 MB standalone trace with 7 store entries. The guard passed on it under sh and dash, and refused planted devDependencies.
+  - Owner-patch pins: red 2, green 67. `git apply --check` is clean.
+  - check-py's coverage lines and check-integration run on CI.
+  - make safety: not affected.
+- Invariants touched and still passing: 14 (no gate weakened, no exception widened; the owner-only files are untouched on the branch), 16 (Sec-Row `cicd`), 17 (no placeholders).
+- Decisions / ADRs / `00_STATE.md` rows: none.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id):
+  - Owner: "commit owner-599-exception-reasons.patch?" It touches the owner-only osv-scanner.toml, .trivyignore.yaml and tests/ci/test_security_gates.py.
+  - The patch's deepmerge hunk overlaps owner-597's patch, so whichever is applied second needs a rebase of that hunk.
+- Next:
+  - The first `compose build admin-web` on the AWS host is the end-to-end check.
+  - The braces reasons carry the same false clause.
+  - owner-597's minimatch reason describes main's runtime stage.
+- LOOP_STATUS: WAITING_HUMAN
