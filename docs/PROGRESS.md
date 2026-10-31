@@ -4685,3 +4685,14 @@
   - Tests first: red 4 vitest + 2 pytest; green brand 19, mobile 2972, legal + release 964.
 - Next: merge #995 (INT-587) before or with #1001, then TestFlight build 7.
 - LOOP_STATUS: CONTINUE
+
+### 2026-10-31T03:30:00+03:00 · INT-597 · awaiting-human (PR open; the minimatch 3.1.5 row is the owner's commit)
+- Goal: on 30 Oct around 23:00 UTC OSV published eleven node-forge records, one glob record and one minimatch record. osv-scanner 2.5.1 turned main 5d6984a7 red with 14 findings, which blocks every PR, the SMS stack included.
+- Plan: lift node-forge (<1.4.1), glob (9.x to 13.x) and minimatch 10.x by root pnpm overrides, and floor them in tests/ci/test_security_gates.py: FIXED_VERSIONS and OVERRIDE_FLOORS for node-forge, plus a new typed RANGED_FLOORS for the two line-bounded floors. ADVISORY_IDS names the cleared records. minimatch 3.1.5, under eslint 9 and its plugins, has no in-range fix, so its exception goes to the owner as owner-597-minimatch-exception.patch.
+- Tests added: two RANGED_FLOORS tests, and a near miss (13.0.6 and 10.2.6 caught; 3.1.5 and 14.0.2 spared). Red: 4 failed, 65 passed on main's lockfile. Green: test_security_gates 69, tests/ci 424, backlog and smoke 74 with the pins at 387.
+- Result: osv-scanner reports only minimatch 3.1.5 on the branch. Local trivy reports 0 but its DB predates the records. `pnpm -r lint/typecheck/test`, `expo config`, `@expo/fingerprint` (87 sources), `expo export --platform ios` and three code-signing checks on node-forge 1.4.2 all pass, and the licence gate is clean. The `make check` fan-out runs on the PR's AWS runner.
+- Invariants touched and still passing: 14 (no suppression on the branch; the one exception is the owner's); 16 (Sec-Row `cicd`); 17 (no placeholders).
+- Decisions / ADRs / `00_STATE.md` rows: none.
+- Blocked on: the owner commits owner-597-minimatch-exception.patch onto the branch. It holds the minimatch 3.1.5 osv row, which expires 2026-11-30, and retires the node-forge 1.4.0 rows. Suppression files and their pins are owner-only.
+- Next: the owner applies the patch and pushes; then merge at the front of the queue.
+- LOOP_STATUS: WAITING_HUMAN
