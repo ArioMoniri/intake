@@ -21,6 +21,7 @@ import {
   withdraw,
   withdrawShare,
   type LedgerState,
+  type QueuedOp,
   type ShareGrantReceipt,
   type ShareStanding,
 } from "./ledger";
@@ -169,6 +170,9 @@ export async function refreshLedgerFromServer(): Promise<void> {
  */
 let flushing: Promise<void> | null = null;
 
+/** INT-589: the ops the server refused, so their caller can say "not done". */
+const refusedOps = new WeakSet<QueuedOp>();
+
 async function flushPass(): Promise<void> {
   while (state.queue.length > 0) {
     const next = state.queue[0];
@@ -180,6 +184,9 @@ async function flushPass(): Promise<void> {
     // INT-587 N5: a refusal is an answer, not a wait. The op is dropped (a
     // refused grant undone, so it is asked again) and the ops behind it —
     // a withdrawal above all — go on.
+    if (outcome !== "landed") {
+      refusedOps.add(next);
+    }
     commit(outcome === "landed" ? shiftQueue(state, 1) : dropRefusedHead(state));
   }
   moveOutbox("clear");
@@ -239,18 +246,32 @@ export function grantShareLocal(visitId: string, atIso?: string): ShareGrantRece
   return result.receipt;
 }
 
+/** Where a share withdrawal stands once its push has been tried. */
+export type WithdrawalOutcome = "landed" | "unsent" | "refused";
+
 /**
- * Withdraw the share consent: instant here, then pushed. Resolves true once
- * the withdrawal has reached the server — which revokes every live share and
- * Doctor Link in that same pass — and false while it waits on the phone.
+ * Withdraw the share consent: instant here, then pushed. `landed` once the
+ * withdrawal has reached the server, which revokes every live share and
+ * Doctor Link in that same pass. `unsent` while it waits on the phone.
+ * `refused` when the server answered no (INT-589): that is not done, and is
+ * never reported as done.
  */
-export async function withdrawShareLocal(atIso?: string): Promise<boolean> {
+export async function withdrawShareLocal(atIso?: string): Promise<WithdrawalOutcome> {
   const result = withdrawShare(state, atIso ?? new Date().toISOString());
+  let op: QueuedOp | undefined;
   if (result.changed) {
     commit(result.state);
+    op = state.queue[state.queue.length - 1];
     moveOutbox("sending");
   }
-  return consentQueueClear();
+  const clear = await consentQueueClear();
+  if (op !== undefined && refusedOps.has(op)) {
+    return "refused";
+  }
+  if (op !== undefined && state.queue.includes(op)) {
+    return "unsent";
+  }
+  return clear ? "landed" : "unsent";
 }
 
 /** Push every queued consent change; true once none is left on the phone. */

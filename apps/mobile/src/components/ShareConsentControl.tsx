@@ -31,7 +31,7 @@ import { holdDeliveriesForConsent } from "@/lib/intake/delivery/store";
 import { useSession } from "@/lib/session";
 import { spacing } from "@/lib/theme";
 
-type Outcome = "none" | "landed" | "unsent";
+type Outcome = "none" | "landed" | "unsent" | "refused";
 
 export function ShareConsentControl({ onWithdrawn }: { onWithdrawn: () => void }) {
   const { account, consents } = useSession();
@@ -55,9 +55,11 @@ export function ShareConsentControl({ onWithdrawn }: { onWithdrawn: () => void }
   const withdraw = async () => {
     setArmed(false);
     await holdDeliveriesForConsent();
-    const landed = await withdrawShareLocal();
-    setOutcome(landed ? "landed" : "unsent");
-    if (landed) {
+    // INT-589: only a withdrawal the server took is reported as done. A
+    // refused one says so, and the control is offered again.
+    const result = await withdrawShareLocal();
+    setOutcome(result);
+    if (result === "landed") {
       onWithdrawn();
     }
   };
@@ -97,6 +99,14 @@ export function ShareConsentControl({ onWithdrawn }: { onWithdrawn: () => void }
           role="caption"
           color="inkSoft"
           message={t("shares.consent.unsent")}
+        />
+      ) : null}
+      {outcome === "refused" ? (
+        <AnnouncedText
+          tone="error"
+          role="caption"
+          color="inkSoft"
+          message={t("shares.consent.refused")}
         />
       ) : null}
     </View>

@@ -4685,3 +4685,19 @@
   - Tests first: red 4 vitest + 2 pytest; green brand 19, mobile 2972, legal + release 964.
 - Next: merge #995 (INT-587) before or with #1001, then TestFlight build 7.
 - LOOP_STATUS: CONTINUE
+
+### 2026-10-31T04:40:00+03:00 · INT-589 · done (PR open; legal review of the copy pending)
+- Goal: GitHub #990, the delivery follow-ups from the INT-587 legal review and its re-check. N1 and N2 are for counsel and were left alone.
+- Plan:
+  - (1) Re-share a delivered note after a withdrawal on a fresh per-note grant (`needsReshare`, `reshareDelivery`, NoteDelivery's re-share card), with a true `notShared` line.
+  - (2) Sign-out warns while a note is unsent (open it, stay, or sign out anyway).
+  - (3) The server share lives until visit instant + 72 h and never under 72 h from the send (`share_lifetime.py`). It follows a reschedule and is audited; the copy says the same.
+  - (4) The summary's "who" is the link holder, not the hospital.
+  - (5) A refused share withdrawal reads as not done and is offered again.
+  - (6) `Date.parse` for the grant and withdrawal order.
+- Tests: tests/api/test_share_lifetime.py (12) and six mobile files with near misses. Red: 5 pytest (against the characterised send-anchored rule) and 39 vitest. Green: tests/api + tests/clinician 1106; mobile 155 files / 3183; tsc 0; tests/release + tests/legal 964 (no new i18n or PolicyGuard finding); backlog and smoke pins at 387.
+- Invariants touched and still passing: 2, 4, 5, 6, 16 (Sec-Row `review-send`), 17, 18.
+- Decisions / ADRs / `00_STATE.md` rows: none. The share window now runs from the appointment (02 §2b, share.tr.md); flagged for counsel in evidence §3.
+- Blocked on: the legal reviewer's read of the copy.
+- Next: merge after #1018 turns CI green.
+- LOOP_STATUS: CONTINUE

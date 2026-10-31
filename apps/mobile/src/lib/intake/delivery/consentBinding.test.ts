@@ -30,13 +30,14 @@ import {
 } from "../../consent/store";
 import type { DraftBackend } from "../offline/draftStore";
 import type { DeliveryDeps } from "./engine";
-import { BACKOFF } from "./outbox";
+import { BACKOFF, needsReshare } from "./outbox";
 import type { NotePutBody } from "./payload";
 import { sealedOutbox } from "./persistence";
 import {
   deliveryOf,
   enqueueDelivery,
   reconfirmDelivery,
+  reshareDelivery,
   retryDelivery,
   runDueDeliveries,
   startDelivery,
@@ -260,7 +261,7 @@ describe("(c) 'Tekrar deneyin' after a withdrawal sends nothing", () => {
     const cPuts = puts(w, "v-c");
     w.answers.delete("v-c");
 
-    expect(await withdrawShareLocal("2026-10-29T10:05:00.000Z")).toBe(true);
+    expect(await withdrawShareLocal("2026-10-29T10:05:00.000Z")).toBe("landed");
     await send("v-b", "2026-10-29T10:06:00.000Z");
     await retryDelivery("v-c");
 
@@ -282,5 +283,53 @@ describe("near miss: a withdrawal of another purpose parks nothing", () => {
     await runDueDeliveries();
     expect(deliveryOf("v-c")?.stage).toBe("delivered");
     expect(puts(w, "v-c")).toBe(1);
+  });
+});
+
+describe("(e) INT-589: a delivered note is shared again only on a fresh grant for it", () => {
+  /** An instant `ms` after the outbox clock started, as the ledger records one. */
+  const at = (ms: number): string => new Date(T0 + ms).toISOString();
+
+  async function deliveredThenWithdrawn(w: World): Promise<void> {
+    await signedIn(w);
+    w.online.value = true;
+    await send("v-r", at(0));
+    expect(deliveryOf("v-r")?.stage).toBe("delivered");
+    expect(await withdrawShareLocal(at(60_000))).toBe("landed");
+  }
+
+  it("after a withdrawal the delivered note needs a re-share; a fresh grant for it re-sends it", async () => {
+    const w = world();
+    await deliveredThenWithdrawn(w);
+    expect(needsReshare(deliveryOf("v-r"), lastShareWithdrawal())).toBe(true);
+
+    // two minutes later, on the same clock the outbox stamps deliveries with
+    w.clock.now = T0 + 120_000;
+    const receipt = grantShareLocal("v-r", at(120_000));
+    if (receipt === null) throw new Error("fixture: no share text");
+    expect(await reshareDelivery("v-r", BODY, receipt)).toBe(true);
+    expect(deliveryOf("v-r")?.stage).toBe("delivered");
+    expect(puts(w, "v-r")).toBe(2);
+    expect(needsReshare(deliveryOf("v-r"), lastShareWithdrawal())).toBe(false);
+  });
+
+  it("near miss: a grant given for another note re-shares nothing", async () => {
+    const w = world();
+    await deliveredThenWithdrawn(w);
+    const other = grantShareLocal("v-other", at(120_000));
+    if (other === null) throw new Error("fixture: no share text");
+    expect(await reshareDelivery("v-r", BODY, other)).toBe(false);
+    expect(puts(w, "v-r")).toBe(1);
+    expect(needsReshare(deliveryOf("v-r"), lastShareWithdrawal())).toBe(true);
+  });
+
+  it("near miss: a note still on its way is not re-shared — it is reconfirmed instead", async () => {
+    const w = world();
+    await signedIn(w);
+    await send("v-q", at(0)); // offline: queued
+    const receipt = grantShareLocal("v-q", at(30_000));
+    if (receipt === null) throw new Error("fixture: no share text");
+    expect(await reshareDelivery("v-q", BODY, receipt)).toBe(false);
+    expect(deliveryOf("v-q")?.stage).toBe("queued");
   });
 });

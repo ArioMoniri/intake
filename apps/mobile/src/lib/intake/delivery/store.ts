@@ -40,6 +40,7 @@ import {
   newItem,
   reconfirm,
   reopenable,
+  reshare,
   retryNow,
   type DeliveryItem,
   type ShareGrantBinding,
@@ -273,6 +274,31 @@ export async function reconfirmDelivery(
   await runDueDeliveries();
 }
 
+/**
+ * INT-589: share a delivered note again after a withdrawal took its share
+ * away. The patient agreed again FOR THIS NOTE, and the frozen body goes out
+ * once more bound to that grant. A receipt for another note, or a note that is
+ * not delivered, re-shares nothing (false).
+ */
+export async function reshareDelivery(
+  visitId: string,
+  body: NotePutBody,
+  receipt: ShareGrantReceipt,
+): Promise<boolean> {
+  const rt = runtime;
+  const item = items[visitId];
+  if (rt === null || item === undefined || !isReceiptFor(receipt, visitId)) {
+    return false;
+  }
+  const next = reshare(item, body, bindingOf(receipt), rt.now());
+  if (next === item) {
+    return false;
+  }
+  await commit(next);
+  await runDueDeliveries();
+  return true;
+}
+
 /** The patient's "Tekrar deneyin" on a refused item. */
 export async function retryDelivery(visitId: string): Promise<void> {
   const rt = runtime;
@@ -385,6 +411,18 @@ export function useDelivery(visitId: string): DeliveryItem | null {
     () => deliveryOf(visitId),
     () => deliveryOf(visitId),
   );
+}
+
+/** Every item by visit id. Each change replaces the map, so one value is a
+ * stable snapshot until the next change. */
+export function allDeliveries(): Readonly<Record<string, DeliveryItem>> {
+  return items;
+}
+
+/** React binding: every visit's item at once. Bugün reads several visits
+ * (INT-594), and hooks cannot be called in a loop. */
+export function useDeliveries(): Readonly<Record<string, DeliveryItem>> {
+  return useSyncExternalStore(subscribeToDeliveries, allDeliveries, allDeliveries);
 }
 
 /** React binding: false until this account's outbox has been read from disk. */

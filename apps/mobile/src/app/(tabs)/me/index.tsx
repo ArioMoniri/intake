@@ -13,8 +13,10 @@
  * actions, never to leaving).
  */
 import { useRouter } from "expo-router";
+import { useState } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 
+import { AnnouncedText } from "@/components/Announced";
 import { useTabBarClearance } from "@/components/FloatingTabBar";
 import { HealthSection } from "@/components/HealthSection";
 import { Kicker } from "@/components/Kicker";
@@ -23,6 +25,8 @@ import { AppText, RAIL_EDGES, Screen, SecondaryButton, useTheme } from "@/compon
 import { withContext } from "@/lib/a11y/labels";
 import { verticalSlop } from "@/lib/a11y/target";
 import { availableLocales, t, type Locale } from "@/lib/i18n";
+import { unsentItems } from "@/lib/intake/delivery/outbox";
+import { useDeliveries } from "@/lib/intake/delivery/store";
 import { chooseFromChooser, present, toChoices } from "@/lib/locale/chooser";
 import { offerableAppLocales } from "@/lib/i18n/locale";
 import { accountBadgeKey } from "@/lib/profile/badge";
@@ -106,6 +110,12 @@ export default function Me() {
   const { account, consents, setConsent, signOut, locale, switchLocale } = useSession();
   // Hoisted above the early return: hooks run in the same order every render.
   const tabBarClearance = useTabBarClearance();
+  // INT-589 (2): a sign-out shreds the outbox with the drafts, so a note still
+  // on the phone would be lost unseen. The patient is told first and can open
+  // the note to send it, or keep it by staying signed in.
+  const deliveries = useDeliveries();
+  const unsent = unsentItems(deliveries);
+  const [confirmingSignOut, setConfirmingSignOut] = useState(false);
   // INT-301 — the language chooser, reachable here without ending a visit in
   // progress. It reads the registry (INT-296) and is ABSENT below two real
   // choices; with only `tr` registered it renders nothing.
@@ -259,7 +269,28 @@ export default function Me() {
             onPress={() => router.push("/(tabs)/me/data")}
           />
         </ListGroup>
-        <SecondaryButton label={t("me.signOut")} onPress={signOut} />
+        {confirmingSignOut && unsent.length > 0 ? (
+          <View style={styles.section}>
+            <AnnouncedText tone="error" role="body" message={t("me.signOut.unsent")} />
+            <SecondaryButton
+              label={t("me.signOut.openNote")}
+              onPress={() => {
+                setConfirmingSignOut(false);
+                router.push(`/(tabs)/visits/${unsent[0].visitId}/review`);
+              }}
+            />
+            <SecondaryButton
+              label={t("me.signOut.stay")}
+              onPress={() => setConfirmingSignOut(false)}
+            />
+            <SecondaryButton label={t("me.signOut.anyway")} onPress={signOut} />
+          </View>
+        ) : (
+          <SecondaryButton
+            label={t("me.signOut")}
+            onPress={() => (unsent.length > 0 ? setConfirmingSignOut(true) : signOut())}
+          />
+        )}
       </ScrollView>
     </Screen>
   );

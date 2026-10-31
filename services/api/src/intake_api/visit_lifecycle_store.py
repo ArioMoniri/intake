@@ -30,12 +30,14 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from intake_api import store
+from intake_api.share_lifetime import share_expires_at
 
 __all__ = [
     "LiveGrants",
     "live_grants",
     "lock_visit",
     "repin_links",
+    "repin_shares",
     "write_lifecycle",
     "write_schedule",
 ]
@@ -201,3 +203,29 @@ async def repin_links(
         link.expires_at = expires_at
     await session.flush()
     return repinned
+
+
+async def repin_shares(
+    session: AsyncSession,
+    *,
+    tenant_id: uuid.UUID,
+    note_id: uuid.UUID,
+    schedule: VisitSchedule,
+    now: datetime,
+) -> tuple[Share, ...]:
+    """INT-589: a share's expiry follows the visit too, by the rule it was
+    minted with (``share_lifetime``), from its own send. A link hangs off a live
+    share, so a share left on the old window would close a re-pinned link early.
+    Only live shares move. A revoked one stays revoked and an expired one stays
+    expired, and a share is never re-pinned shorter than 72 h from its send."""
+    grants = await live_grants(session, tenant_id=tenant_id, note_id=note_id)
+    repinned: list[Share] = []
+    for share in grants.shares:
+        if _aware(share.expires_at) <= now:
+            continue
+        expires_at = share_expires_at(schedule, _aware(share.created_at))
+        if expires_at != _aware(share.expires_at):
+            share.expires_at = expires_at
+            repinned.append(share)
+    await session.flush()
+    return tuple(repinned)

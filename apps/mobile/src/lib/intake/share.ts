@@ -9,9 +9,11 @@
  *   note's own order. It is `sentSections` that decides, the same function the
  *   send path uses, so the summary and the send cannot disagree. A second
  *   reading of `scopes` here would be a second source of truth.
- * - **with whom** — the visit's hospital and department. `null` when there is
- *   no visit: a recipient nobody named is left unnamed rather than filled in
- *   with a plausible one.
+ * - **with whom** — whoever the patient shows the link and its opening code
+ *   to (share.tr.md, "Kimler görür"). INT-589: this used to name the visit's
+ *   clinic, and the clinic receives nothing, since no reader is registered for
+ *   it. So the summary names who can open the note, as an anchor, and no
+ *   place.
  * - **until when** — an ANCHOR, not a timestamp. 02 §2 pins the Doctor Link
  *   expiry to `visit_datetime + 72 h` and calls `issue_time + 72 h` the single
  *   most likely cause of "the doctor couldn't see it", because a note prepared
@@ -39,29 +41,23 @@ import { sentSections, type NoteAccount, type NoteState } from "./note";
  */
 export const SHARE_EXPIRY_ANCHOR = "visit_datetime" as const;
 
-/** Who the note goes to, as the visit already names them on screen. */
-export interface ShareRecipient {
-  hospital: string;
-  department: string;
-}
+/** Who can open a shared note: the holder of the link and code the patient
+ * creates and shows (share.tr.md). Named so a test can hold it as a value. */
+export const SHARE_OPENER = "link_holder" as const;
 
 export interface ShareSummary {
   /** Title keys of the sections scoped ON, in note order. May be empty. */
   sections: MessageKey[];
-  /** The visit's recipient, or null when no visit names one. */
-  recipient: ShareRecipient | null;
+  /** Who can open it — never a place the note is not sent to. */
+  opener: typeof SHARE_OPENER;
   /** The expiry's anchor. There is deliberately no computed timestamp. */
   expiryAnchor: typeof SHARE_EXPIRY_ANCHOR;
 }
 
-export function shareSummary(
-  state: NoteState,
-  account: NoteAccount,
-  visit: ShareRecipient | null,
-): ShareSummary {
+export function shareSummary(state: NoteState, account: NoteAccount): ShareSummary {
   return {
     sections: sentSections(state, account).map((section) => section.titleKey),
-    recipient: visit === null ? null : { hospital: visit.hospital, department: visit.department },
+    opener: SHARE_OPENER,
     expiryAnchor: SHARE_EXPIRY_ANCHOR,
   };
 }

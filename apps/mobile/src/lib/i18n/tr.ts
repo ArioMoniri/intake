@@ -318,6 +318,12 @@ export const tr = {
   "data.unsent": "Bu istek gönderilemedi.",
   "data.deviceOnly": "Görünüm ayarlarınız ve sağlık okumalarınız yalnızca bu telefonda kalır.",
   "me.signOut": "Çıkış yapın",
+  // INT-589 — çıkış, telefondaki gönderilmemiş notu da siler; önce söylenir.
+  "me.signOut.unsent":
+    "Henüz gönderilmemiş notunuz var. Çıkış yaparsanız not bu telefondan silinir ve hekiminize gitmez.",
+  "me.signOut.openNote": "Notu açın",
+  "me.signOut.stay": "Oturumda kalın",
+  "me.signOut.anyway": "Yine de çıkış yapın",
   "me.syntheticBadge": "Sentetik deneme hesabı",
 
   "intake.q.complaint": "Sizi bugün hekime getiren nedir?",
@@ -1313,9 +1319,15 @@ export const tr = {
   "review.consent.title": "Paylaşım özeti",
   "review.consent.sections": "Paylaşılan bölümler",
   "review.consent.nothing": "Şu anda hiçbir bölüm paylaşılmıyor.",
-  "review.consent.recipient": "Kime gidiyor",
+  // INT-589 — "kim": share.tr.md'nin "Kimler görür" bölümü; hastane hiçbir
+  // şey almaz. "Ne zamana kadar": sunucunun paylaşım süresi (share_lifetime).
+  "review.consent.recipient": "Kim açabilir",
+  "review.consent.recipientValue": "Oluşturacağınız bağlantıyı ve açma kodunu gösterdiğiniz kişi.",
   "review.consent.until": "Ne zamana kadar",
-  "review.consent.untilValue": "Paylaşım, randevunuzun saatinden üç gün sonra sona erer.",
+  "review.consent.untilValue":
+    "Paylaşım en geç randevunuzdan üç gün sonra kendiliğinden kapanır. Notu randevudan sonra gönderirseniz, gönderdiğiniz andan üç gün sonra kapanır.",
+  "review.consent.untilValueNoDate":
+    "Bu vizitin tarihi olmadığı için paylaşım, notu gönderdiğiniz andan üç gün sonra kendiliğinden kapanır.",
   // --- INT-137 · gönderimden sonra sorulan memnuniyet sorusu. 06 §2
   // `satisfaction` izni yoksa kart hiç görünmez ve hiçbir şey toplanmaz.
   // Ölçek rakamla değil sözcükle sorulur (invariant 22).
@@ -1407,7 +1419,8 @@ export const tr = {
     "Bu kodu ve anahtarı muayenede hekiminize gösterin. Hekiminiz notunuzu bunlarla açar.",
   "shares.issue.oneScreen": "Bu bilgiler yalnızca burada görünür; bu telefonda saklanmaz.",
   "shares.issue.back": "Paylaşımlara dönün",
-  "shares.issue.error.notShared": "Bu not henüz paylaşılmadı. Önce notu gönderin.",
+  "shares.issue.error.notShared":
+    "Bu not şu anda paylaşılmıyor, bu yüzden bağlantı oluşturulamadı.",
   "shares.issue.error.dateUnknown": "Bu vizitin tarihi yok. Vizit tarihini ekleyin.",
   "shares.issue.error.recipient": "Bu adı kontrol edin.",
   "shares.issue.error.limited": "Çok fazla deneme oldu. Biraz sonra tekrar deneyin.",
@@ -1428,6 +1441,9 @@ export const tr = {
   "shares.consent.done": "Paylaşım onayınız geri çekildi. Açık bağlantılar kapandı.",
   "shares.consent.unsent":
     "Geri çekme isteğiniz sunucuya henüz ulaşmadı. Bağlantılar açık kalmış olabilir.",
+  // INT-589 — sunucu geri çekmeyi kabul etmediyse yapılmış sayılmaz.
+  "shares.consent.refused":
+    "Geri çekme isteğiniz kabul edilmedi. Bağlantılar açık kalmış olabilir.",
   "a11y.shares.consentHint": "İki kez dokunmak paylaşım onayınızı geri çekmeyi hazırlar.",
   "a11y.shares.consentConfirmHint": "İki kez dokunmak geri çekme isteğini gönderir.",
   // INT-587 — the note's way to the clinician. Only a confirmed delivery says
@@ -1444,6 +1460,12 @@ export const tr = {
   "delivery.consent.decline": "Şimdi değil",
   "delivery.consent.review": "Paylaşım onayını okuyun",
   "delivery.declined": "Notunuz gönderilmedi; yalnızca bu telefonda duruyor.",
+  // INT-589 — onay geri çekildikten sonra, gönderilmiş bir notu yeniden paylaşma.
+  "delivery.reshare.title": "Yeniden paylaşım",
+  "delivery.reshare.body":
+    "Paylaşım onayınızı geri çektiğiniz için bu notun bağlantıları kapandı. Yeniden paylaşmak isterseniz, bu not için onayınızı yeniden verebilirsiniz.",
+  "delivery.reshare.declined": "Bu not şu anda kimseyle paylaşılmıyor.",
+  "delivery.reshare.pending": "Paylaşım metni hazır olduğunda bu notu yeniden paylaşabilirsiniz.",
   "delivery.status.title": "Gönderim durumu",
   // N5: "bağlantı" is also the Doctor Link; this line is about the server.
   "delivery.queued": "Notunuz gönderilmeyi bekliyor. Sunucuya ulaşılınca kendiliğinden gönderilir.",

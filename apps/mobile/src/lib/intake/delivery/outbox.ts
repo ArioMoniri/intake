@@ -210,6 +210,55 @@ export function reopenable(item: DeliveryItem | null): boolean {
   return item === null || item.stage === "awaiting_consent" || item.stage === "refused";
 }
 
+/**
+ * INT-589 (1): whether a DELIVERED note lost its share to a withdrawal made
+ * after it was delivered. The server revoked its share and every link then
+ * (consents.py), so it can no longer be linked until it is shared again.
+ * Instants are compared as instants; an unreadable one asks for nothing.
+ */
+export function needsReshare(item: DeliveryItem | null, withdrawnAt: string | null): boolean {
+  if (item === null || item.stage !== "delivered" || item.deliveredAt === null) {
+    return false;
+  }
+  if (withdrawnAt === null) {
+    return false;
+  }
+  const withdrawn = Date.parse(withdrawnAt);
+  return Number.isFinite(withdrawn) && withdrawn > item.deliveredAt;
+}
+
+/**
+ * Share a delivered note again: the same frozen body, bound to a fresh grant
+ * given FOR THIS NOTE, queued as a send of its own. The server recreates the
+ * share in that PUT (notes.write_note). Only a delivered note is re-shared; a
+ * note still on its way is reconfirmed instead (`reconfirm`).
+ */
+export function reshare(
+  item: DeliveryItem,
+  body: NotePutBody,
+  grant: ShareGrantBinding,
+  now: number,
+): DeliveryItem {
+  if (item.stage !== "delivered") {
+    return item;
+  }
+  return {
+    ...item,
+    body,
+    stage: "queued",
+    attempts: 0,
+    nextAttemptAt: now,
+    refusal: null,
+    deliveredAt: null,
+    grant: { ...grant },
+  };
+}
+
+/** INT-589 (2): every note a sign-out would shred before it reached anyone. */
+export function unsentItems(items: Readonly<Record<string, DeliveryItem>>): DeliveryItem[] {
+  return Object.values(items).filter((item) => item.stage !== "delivered");
+}
+
 function isString(value: unknown): value is string {
   return typeof value === "string";
 }

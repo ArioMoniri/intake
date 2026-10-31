@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import json
 import uuid
+from datetime import UTC, datetime
 
 from fastapi import APIRouter
 from intake_platform.db.envelope_json import encrypted_field_from_json, encrypted_field_to_json
@@ -28,6 +29,7 @@ from intake_api.dev_fixture import DevAccount
 from intake_api.errors import not_found
 from intake_api.previsit_output import record_previsit_output
 from intake_api.schemas import NoteBody, NoteOut, NotePut
+from intake_api.share_lifetime import share_expires_at, visit_schedule
 from intake_api.state import ApiState, State
 from intake_api.visits import CORE_SCOPE
 
@@ -168,12 +170,17 @@ async def write_note(
                 scope=SHARE_SCOPE,
                 actor=patient.account_id,
             )
+            # INT-589: the share lives until the visit's window closes (the
+            # Doctor Link's anchor), never less than 72 h from this send
             share = await store.create_share(
                 session,
                 tenant_id=patient.tenant_id,
                 note_id=note.id,
                 section_ids=payload.shared_section_ids(),
                 withheld_section_ids=payload.withheld_section_ids(),
+                expires_at=share_expires_at(
+                    visit_schedule(record.date, record.time), datetime.now(UTC)
+                ),
             )
             await state.audit.record(
                 actor=patient.account_id,

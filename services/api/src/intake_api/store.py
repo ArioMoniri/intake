@@ -24,7 +24,7 @@ import json
 import uuid
 from collections.abc import Sequence
 from dataclasses import dataclass, field
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 from typing import Literal
 
 from clinical_schemas.visit_time import (
@@ -53,6 +53,8 @@ from protocols.types import DataCategory
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm.attributes import flag_modified
+
+from intake_api import share_lifetime
 
 __all__ = [
     "SHARE_TTL",
@@ -102,8 +104,9 @@ _SLOT_VISIT_TYPE = "visit.visit_type"
 # (invariant 18), and a pre-INT-306 visit simply lacks it and reads back None.
 _SLOT_TIME = "visit.time"
 
-# 06 §3: share tokens expire, 72 h default ceiling.
-SHARE_TTL = timedelta(hours=72)
+# 06 §3's 72 h, anchored on the visit since INT-589 (``share_lifetime``):
+# one constant, re-exported here for the callers that already read it.
+SHARE_TTL = share_lifetime.SHARE_TTL
 
 NoteStatus = Literal["draft", "sent"]
 
@@ -565,7 +568,10 @@ async def create_share(
     note_id: uuid.UUID,
     section_ids: list[str],
     withheld_section_ids: list[str],
+    expires_at: datetime,
 ) -> Share:
+    # ``expires_at`` comes from ``intake_api.share_lifetime`` (INT-589): the
+    # visit's window, never shorter than 72 h from the send.
     # ``section_ids`` is the grant the read path and Doctor Link redemption read;
     # ``withheld_section_ids`` records the patient's scope-off choices as an
     # affirmative fact rather than an absence (INT-304, invariant 4). Readers
@@ -578,7 +584,7 @@ async def create_share(
             "section_ids": section_ids,
             "withheld_section_ids": withheld_section_ids,
         },
-        expires_at=datetime.now(UTC) + SHARE_TTL,
+        expires_at=expires_at,
     )
     session.add(share)
     await session.flush()

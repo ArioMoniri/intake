@@ -244,10 +244,21 @@ async def _repin(
     schedule: VisitSchedule,
     now: datetime,
 ) -> None:
-    """``rescheduled``: the Doctor Link expiry follows the visit (§2b)."""
+    """``rescheduled``: the Doctor Link expiry follows the visit (§2b), and so
+    does the share the link hangs off (INT-589)."""
     note = await store.get_note_row(session, tenant_id=patient.tenant_id, visit_id=visit.id)
     if note is None:
         return
+    shares = await lifecycle_store.repin_shares(
+        session, tenant_id=patient.tenant_id, note_id=note.id, schedule=schedule, now=now
+    )
+    for share in shares:
+        await state.audit.record(
+            actor=patient.account_id,
+            action="api.note.share_expiry_repinned",
+            resource_ref=f"share:{share.id}",
+            consent_scope=f"scope:{SHARE_SCOPE}",
+        )
     links = await lifecycle_store.repin_links(
         session, tenant_id=patient.tenant_id, note_id=note.id, schedule=schedule, now=now
     )

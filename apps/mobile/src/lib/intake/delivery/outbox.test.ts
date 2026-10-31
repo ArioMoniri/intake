@@ -13,12 +13,15 @@ import {
   backoffMs,
   holdForConsent,
   isDue,
+  needsReshare,
   newItem,
   parseItem,
   reconfirm,
   reopenable,
+  reshare,
   retryNow,
   settle,
+  unsentItems,
   type DeliveryItem,
 } from "./outbox";
 import type { NotePutBody } from "./payload";
@@ -258,5 +261,79 @@ describe("a stored item is validated before it is trusted", () => {
       expect(restored?.grant).toBeNull();
       expect(restored?.body).toEqual(BODY); // kept, not dropped
     }
+  });
+});
+
+/*
+ * INT-589 (1): after the patient withdraws the share consent, the server
+ * revokes the delivered note's share and links (consents.py), so the note can
+ * no longer be linked. A re-share is a fresh grant FOR THIS NOTE and the same
+ * frozen body sent again; the server recreates the share in that PUT.
+ */
+describe("re-share after a withdrawal", () => {
+  const delivered = (at: number): DeliveryItem =>
+    settle(queued(), { kind: "delivered", serverVisitId: "srv-1" }, at);
+
+  it("a note delivered BEFORE the withdrawal needs a re-share", () => {
+    const item = delivered(Date.parse("2026-10-29T10:00:00.000Z"));
+    expect(needsReshare(item, "2026-10-29T11:00:00.000Z")).toBe(true);
+  });
+
+  it("near miss: a note delivered AFTER the withdrawal does not", () => {
+    const item = delivered(Date.parse("2026-10-29T12:00:00.000Z"));
+    expect(needsReshare(item, "2026-10-29T11:00:00.000Z")).toBe(false);
+  });
+
+  it("near miss: no withdrawal, an undelivered note, or an unreadable instant: no re-share", () => {
+    expect(needsReshare(delivered(T0), null)).toBe(false);
+    expect(needsReshare(queued(), "2026-10-29T11:00:00.000Z")).toBe(false);
+    expect(needsReshare(null, "2026-10-29T11:00:00.000Z")).toBe(false);
+    expect(needsReshare(delivered(T0), "not-a-date")).toBe(false);
+  });
+
+  it("re-queues the delivered note with the fresh grant and the body again", () => {
+    const item = delivered(T0);
+    expect(item.body).toBeNull();
+    const next = reshare(item, BODY, LATER_GRANT, T0 + 5);
+    expect(next.stage).toBe("queued");
+    expect(next.body).toEqual(BODY);
+    expect(next.grant).toEqual(LATER_GRANT);
+    expect(next.deliveredAt).toBeNull();
+    expect(next.attempts).toBe(0);
+    expect(isDue(next, T0 + 5)).toBe(true);
+    // the server visit it reached is kept: the PUT goes to the same visit
+    expect(next.serverVisitId).toBe("srv-1");
+  });
+
+  it("near miss: only a delivered note can be re-shared", () => {
+    const item = queued();
+    expect(reshare(item, BODY, LATER_GRANT, T0)).toBe(item);
+  });
+});
+
+/*
+ * INT-589 (2): sign-out shreds the outbox with the drafts. A note still on
+ * the phone — queued, refused or waiting for consent — is lost then, so the
+ * sign-out warns while there is one.
+ */
+describe("which notes a sign-out would lose", () => {
+  it("lists every note not yet delivered, and no delivered one", () => {
+    const items: Record<string, DeliveryItem> = {
+      a: queued(),
+      b: { ...queued(), visitId: "b", stage: "refused", refusal: "rejected" },
+      c: holdForConsent({ ...queued(), visitId: "c" }),
+      d: settle({ ...queued(), visitId: "d" }, { kind: "delivered", serverVisitId: "s" }, T0),
+    };
+    expect(
+      unsentItems(items)
+        .map((item) => item.visitId)
+        .sort(),
+    ).toEqual(["b", "c", "v-local-1"]);
+  });
+
+  it("near miss: an outbox of delivered notes loses nothing", () => {
+    const d = settle(queued(), { kind: "delivered", serverVisitId: "s" }, T0);
+    expect(unsentItems({ [d.visitId]: d })).toEqual([]);
+    expect(unsentItems({})).toEqual([]);
   });
 });

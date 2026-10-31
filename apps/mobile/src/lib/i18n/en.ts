@@ -311,6 +311,11 @@ export const en: Record<MessageKey, string> = {
   "data.unsent": "This request could not be sent.",
   "data.deviceOnly": "Your appearance settings and health readings stay on this phone only.",
   "me.signOut": "Sign out",
+  "me.signOut.unsent":
+    "You have a note that has not been sent yet. If you sign out, it is deleted from this phone and does not reach your doctor.",
+  "me.signOut.openNote": "Open the note",
+  "me.signOut.stay": "Stay signed in",
+  "me.signOut.anyway": "Sign out anyway",
   "me.syntheticBadge": "Synthetic test account",
 
   "intake.q.complaint": "What brings you to the doctor today?",
@@ -1240,9 +1245,14 @@ export const en: Record<MessageKey, string> = {
   "review.consent.title": "Sharing summary",
   "review.consent.sections": "Sections being shared",
   "review.consent.nothing": "No section is being shared right now.",
-  "review.consent.recipient": "Who receives it",
+  "review.consent.recipient": "Who can open it",
+  "review.consent.recipientValue":
+    "The person you show the link and opening code to, once you create them.",
   "review.consent.until": "Until when",
-  "review.consent.untilValue": "Sharing ends three days after your appointment time.",
+  "review.consent.untilValue":
+    "Sharing closes by itself at the latest three days after your appointment. If you send the note after the appointment, it closes three days after you send it.",
+  "review.consent.untilValueNoDate":
+    "This visit has no date, so sharing closes by itself three days after you send the note.",
   "csat.title": "How was this conversation?",
   "csat.optional": "This question is optional. Your note was sent whether you answer or not.",
   "csat.scoreGroup": "Rate the conversation",
@@ -1319,7 +1329,8 @@ export const en: Record<MessageKey, string> = {
     "Show this code and key to your doctor at the visit. Your doctor opens your note with them.",
   "shares.issue.oneScreen": "These details appear only here; they are not stored on this phone.",
   "shares.issue.back": "Back to shares",
-  "shares.issue.error.notShared": "This note has not been shared yet. Send the note first.",
+  "shares.issue.error.notShared":
+    "This note is not being shared right now, so the link could not be created.",
   "shares.issue.error.dateUnknown": "This visit has no date. Add the visit date.",
   "shares.issue.error.recipient": "Check this name.",
   "shares.issue.error.limited": "Too many attempts. Try again a little later.",
@@ -1338,6 +1349,7 @@ export const en: Record<MessageKey, string> = {
   "shares.consent.done": "Your sharing consent is withdrawn. Open links are closed.",
   "shares.consent.unsent":
     "Your withdrawal has not reached the server yet. Links may still be open.",
+  "shares.consent.refused": "Your withdrawal was not accepted. Links may still be open.",
   "a11y.shares.consentHint": "Double tapping prepares the withdrawal of your sharing consent.",
   "a11y.shares.consentConfirmHint": "Double tapping sends the withdrawal.",
   "delivery.consent.title": "Sharing consent",
@@ -1350,6 +1362,11 @@ export const en: Record<MessageKey, string> = {
   "delivery.consent.decline": "Not now",
   "delivery.consent.review": "Read the sharing consent",
   "delivery.declined": "Your note was not sent; it stays on this phone only.",
+  "delivery.reshare.title": "Sharing again",
+  "delivery.reshare.body":
+    "You withdrew your sharing consent, so this note's links closed. If you want to share it again, you can give your consent again for this note.",
+  "delivery.reshare.declined": "This note is not shared with anyone right now.",
+  "delivery.reshare.pending": "You can share this note again once the sharing text is ready.",
   "delivery.status.title": "Delivery status",
   "delivery.queued":
     "Your note is waiting to be sent. It goes on its own once the server can be reached.",

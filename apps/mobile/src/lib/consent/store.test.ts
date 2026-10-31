@@ -217,7 +217,7 @@ describe("a grant the server refuses is an answer, not a wait (INT-587 N5)", () 
     const posted = await signedIn(409);
     grantShareLocal("v-1");
     await settle();
-    expect(await withdrawShareLocal()).toBe(true);
+    expect(await withdrawShareLocal()).toBe("landed");
     expect(posted).toEqual(["/v1/consents/grant", "/v1/consents/withdraw"]);
     expect(ledgerSnapshot().queue).toEqual([]);
   });
@@ -248,5 +248,64 @@ describe("a grant the server refuses is an answer, not a wait (INT-587 N5)", () 
     await flushConsentQueue();
     expect(ledgerSnapshot().queue).toHaveLength(1);
     expect(consentOutbox()).toBe("held");
+  });
+});
+
+/* ------------------------------------------------------------------ */
+/* INT-589 — a withdrawal is reported as done only when it landed       */
+/* ------------------------------------------------------------------ */
+
+describe("a withdrawal the server refuses is reported as not done (INT-589)", () => {
+  const HASH = "f".repeat(64);
+  const TEXTS = [
+    { purpose: "share", version: "syn1", text_hash: HASH, body: "Deneme paylaşım metni." },
+  ];
+
+  /** Grants land; a withdrawal answers `withdrawStatus`. */
+  async function signedIn(withdrawStatus: number): Promise<void> {
+    mocks.authedFetch.mockImplementation(async (path: string) => {
+      if (path === "/v1/consents") {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({ scopes: [], texts: TEXTS }),
+        } as unknown as Response;
+      }
+      const status = path.endsWith("/withdraw") ? withdrawStatus : 200;
+      return { ok: status < 300, status, json: async () => ({}) } as unknown as Response;
+    });
+    seedLedgerForAccount("hesap-2", null);
+    await refreshLedgerFromServer();
+    grantShareLocal("v-1", "2026-10-30T10:00:00.000Z");
+    await settle();
+    await flushConsentQueue();
+  }
+
+  it("a landed withdrawal says landed", async () => {
+    await signedIn(200);
+    expect(await withdrawShareLocal("2026-10-30T11:00:00.000Z")).toBe("landed");
+    expect(shareView(ledgerSnapshot()).standing).toBe("withdrawn");
+  });
+
+  it("a refused withdrawal says refused, never landed", async () => {
+    await signedIn(409);
+    expect(await withdrawShareLocal("2026-10-30T11:00:00.000Z")).toBe("refused");
+    expect(ledgerSnapshot().queue).toEqual([]);
+  });
+
+  it("after a refusal the withdrawal is offered again, and unsent notes stay held", async () => {
+    await signedIn(422);
+    await withdrawShareLocal("2026-10-30T11:00:00.000Z");
+    const share = ledgerSnapshot().share;
+    // the server's record is not known to be withdrawn: the control comes back
+    expect(share.standing).toBe("unknown");
+    // but the phone keeps the instant, so a note granted before it stays parked
+    expect(share.withdrawnAt).toBe("2026-10-30T11:00:00.000Z");
+  });
+
+  it("near miss: a withdrawal still waiting for the server says unsent", async () => {
+    await signedIn(503);
+    expect(await withdrawShareLocal("2026-10-30T11:00:00.000Z")).toBe("unsent");
+    expect(ledgerSnapshot().queue).toHaveLength(1);
   });
 });

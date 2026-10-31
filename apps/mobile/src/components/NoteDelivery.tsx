@@ -30,7 +30,7 @@ import { StyleSheet, View } from "react-native";
 import { AnnouncedText, useNews } from "@/components/Announced";
 import { Kicker } from "@/components/Kicker";
 import { AppText, Card, Hairline, PrimaryButton, SecondaryButton } from "@/components/Themed";
-import { shareView } from "@/lib/consent/ledger";
+import { shareView, type LoadedText } from "@/lib/consent/ledger";
 import {
   grantShareLocal,
   refreshLedgerFromServer,
@@ -38,12 +38,13 @@ import {
   useConsentLedger,
 } from "@/lib/consent/store";
 import { t, type MessageKey } from "@/lib/i18n";
-import type { RefusalReason, VisitIdentity } from "@/lib/intake/delivery/outbox";
+import { needsReshare, type RefusalReason, type VisitIdentity } from "@/lib/intake/delivery/outbox";
 import { notePutBody } from "@/lib/intake/delivery/payload";
 import {
   discardUndelivered,
   enqueueDelivery,
   reconfirmDelivery,
+  reshareDelivery,
   retryDelivery,
   useDelivery,
   useDeliveryHydrated,
@@ -99,6 +100,9 @@ export function NoteDelivery({
   const queuedNews = useNews(item?.stage === "queued");
   const share = shareView(ledger);
   const textStatus = share.text.status;
+  // INT-589: a delivered note whose share a later withdrawal took away
+  const reshareNeeded = needsReshare(item, ledger.share.withdrawnAt);
+  const shows = item?.stage !== "delivered" || reshareNeeded;
 
   useEffect(() => {
     seedLedgerForAccount(account.id, consents);
@@ -107,13 +111,77 @@ export function NoteDelivery({
   useEffect(() => {
     // the share text may not have loaded when the ledger was seeded (offline,
     // or a host that serves none yet): ask again whenever the card shows
-    if (textStatus !== "loaded") {
+    if (shows && textStatus !== "loaded") {
       void refreshLedgerFromServer();
     }
-  }, [textStatus]);
+  }, [shows, textStatus]);
 
-  if (!hydrated || item?.stage === "delivered") {
+  if (!hydrated || !shows) {
     return null;
+  }
+
+  if (reshareNeeded) {
+    // The same frozen note, sent again on a grant given FOR IT; the server
+    // recreates its share in that PUT. A delivered note is never reopened.
+    const reshareNow = () => {
+      const payload = notePutBody(note, account);
+      if (!payload.ok) {
+        setUnbuildable(true);
+        return;
+      }
+      const receipt = grantShareLocal(visitId);
+      if (receipt !== null) {
+        void reshareDelivery(visitId, payload.body, receipt);
+      }
+    };
+    return (
+      <Card>
+        <Kicker label={t("delivery.reshare.title")} />
+        <Hairline />
+        {declined ? (
+          <>
+            <AnnouncedText
+              tone="status"
+              role="body"
+              color="inkSoft"
+              message={t("delivery.reshare.declined")}
+            />
+            <SecondaryButton
+              label={t("delivery.consent.review")}
+              onPress={() => setDeclined(false)}
+            />
+          </>
+        ) : (
+          <>
+            <AnnouncedText tone="status" role="body" message={t("delivery.reshare.body")} />
+            {share.text.status === "loaded" ? (
+              <>
+                <ShareText text={share.text.text} />
+                {unbuildable ? (
+                  <AnnouncedText
+                    tone="error"
+                    role="body"
+                    color="amber"
+                    message={t("delivery.refused.invalid")}
+                  />
+                ) : null}
+                <View style={styles.actions}>
+                  <SecondaryButton label={t("consent.detail.grant")} onPress={reshareNow} />
+                  <SecondaryButton
+                    label={t("delivery.consent.decline")}
+                    onPress={() => setDeclined(true)}
+                  />
+                </View>
+              </>
+            ) : (
+              <AppText role="body" color="inkSoft">
+                {t("delivery.reshare.pending")}
+              </AppText>
+            )}
+          </>
+        )}
+      </Card>
+    );
   }
 
   const reopen = () => {
@@ -213,16 +281,7 @@ export function NoteDelivery({
           <AppText role="body" color="inkSoft">
             {t("delivery.consent.body")}
           </AppText>
-          {/* The legal copy: the docs/legal payload, verbatim (invariant 18). */}
-          <AppText role="body">{share.text.text.body}</AppText>
-          <View style={styles.binding}>
-            <AppText role="caption" color="inkFaint">
-              {t("consent.detail.version")}: {share.text.text.version}
-            </AppText>
-            <AppText role="caption" color="inkFaint">
-              {t("consent.detail.binding")}: {share.text.text.textHash.slice(0, 12)}
-            </AppText>
-          </View>
+          <ShareText text={share.text.text} />
           {unbuildable ? (
             <AnnouncedText
               tone="error"
@@ -254,6 +313,25 @@ export function NoteDelivery({
         </>
       )}
     </Card>
+  );
+}
+
+/** The served share text, with its version and binding: the docs/legal
+ * payload, verbatim (invariant 18). The first send and a re-share show it the
+ * same way. */
+function ShareText({ text }: { text: LoadedText }) {
+  return (
+    <>
+      <AppText role="body">{text.body}</AppText>
+      <View style={styles.binding}>
+        <AppText role="caption" color="inkFaint">
+          {t("consent.detail.version")}: {text.version}
+        </AppText>
+        <AppText role="caption" color="inkFaint">
+          {t("consent.detail.binding")}: {text.textHash.slice(0, 12)}
+        </AppText>
+      </View>
+    </>
   );
 }
 

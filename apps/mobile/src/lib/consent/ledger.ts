@@ -364,8 +364,14 @@ export function shiftQueue(state: LedgerState, count: number): LedgerState {
  * dropped — held at the head of the queue it would stall every op behind it,
  * a later withdrawal included (INT-587 legal review N5) — and a refused GRANT
  * is undone here so the patient is asked again: the phone must not count a
- * consent the server never recorded. A refused withdrawal changes nothing
- * locally; the withdrawal already stands on this phone.
+ * consent the server never recorded. A refused purpose withdrawal changes
+ * nothing locally; the withdrawal already stands on this phone.
+ *
+ * INT-589: a refused SHARE withdrawal is not done on the server, so the phone
+ * stops counting the share as withdrawn (`unknown`) and the control offers the
+ * withdrawal again. It keeps `withdrawnAt`, though, so a note granted before
+ * that instant stays parked: the patient asked for no more sharing, and the
+ * phone still holds to that.
  */
 export function dropRefusedHead(state: LedgerState): LedgerState {
   const head = state.queue[0];
@@ -374,6 +380,9 @@ export function dropRefusedHead(state: LedgerState): LedgerState {
   }
   const queue = state.queue.slice(1);
   if (head.kind !== "grant") {
+    if (head.scope === SHARE_SCOPE && state.share.standing === "withdrawn") {
+      return { ...state, share: { ...state.share, standing: "unknown" }, queue };
+    }
     return { ...state, queue };
   }
   if (head.scope === SHARE_SCOPE) {

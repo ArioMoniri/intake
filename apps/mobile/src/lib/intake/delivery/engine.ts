@@ -57,13 +57,26 @@ const RETRY = { kind: "transient", retryAfterMs: null } as const;
  * standing is `granted` again, because that later grant was given for another
  * note. The outbox also parks every unsent note the moment a withdrawal
  * happens (./store); this is the second lock on the same door.
+ *
+ * INT-589: the two are compared as instants (`Date.parse`), never as ISO
+ * strings, because one moment can be written with another offset and a string
+ * comparison then gets the order wrong. An instant that cannot be read fails
+ * closed: the note waits for a grant the phone can order.
  */
 function grantStands(item: DeliveryItem, deps: DeliveryDeps): boolean {
   if (item.grant === null || deps.shareStanding() === "withdrawn") {
     return false;
   }
   const withdrawnAt = deps.lastShareWithdrawal();
-  return withdrawnAt === null || item.grant.atIso > withdrawnAt;
+  const granted = Date.parse(item.grant.atIso);
+  if (!Number.isFinite(granted)) {
+    return false;
+  }
+  if (withdrawnAt === null) {
+    return true;
+  }
+  const withdrawn = Date.parse(withdrawnAt);
+  return Number.isFinite(withdrawn) && granted > withdrawn;
 }
 
 /**
