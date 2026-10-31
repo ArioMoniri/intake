@@ -47,6 +47,9 @@ function sentByPatient(): NoteState {
   return { ...answered(), status: "sent" };
 }
 
+/** A fixed "today" (Europe/Istanbul ISO date), so the upcoming/past split is deterministic. */
+const TODAY = "2026-10-31";
+
 const NONE_DELIVERED = (): boolean => false;
 const deliveredOnly =
   (...ids: string[]) =>
@@ -55,27 +58,32 @@ const deliveredOnly =
 
 describe("Bugün's focus comes from the note's real state, not the feed's null", () => {
   it("a feed visit with nothing on the phone asks the patient to prepare", () => {
-    const focus = todayFocus([feedVisit("v1")], {}, NONE_DELIVERED);
+    const focus = todayFocus([feedVisit("v1")], {}, NONE_DELIVERED, TODAY);
     expect(focus).toMatchObject({ kind: "prepare", status: null, cta: "visit.prepare" });
   });
 
   it("a feed visit with answers on the phone continues — the state build 7 never reached", () => {
-    const focus = todayFocus([feedVisit("v1")], { v1: answered() }, NONE_DELIVERED);
+    const focus = todayFocus([feedVisit("v1")], { v1: answered() }, NONE_DELIVERED, TODAY);
     expect(focus).toMatchObject({ kind: "continue", status: "draft", cta: "today.continueCta" });
   });
 
   it("near miss: a note the patient sent that the server has not confirmed is still a draft", () => {
-    const focus = todayFocus([feedVisit("v1")], { v1: sentByPatient() }, NONE_DELIVERED);
+    const focus = todayFocus([feedVisit("v1")], { v1: sentByPatient() }, NONE_DELIVERED, TODAY);
     expect(focus).toMatchObject({ kind: "continue", status: "draft" });
   });
 
   it("near miss: a confirmed delivery without the patient's send is not a sent note", () => {
-    const focus = todayFocus([feedVisit("v1")], { v1: answered() }, deliveredOnly("v1"));
+    const focus = todayFocus([feedVisit("v1")], { v1: answered() }, deliveredOnly("v1"), TODAY);
     expect(focus).toMatchObject({ kind: "continue", status: "draft" });
   });
 
   it("a note the server confirmed shows as sent, and the action opens the visit", () => {
-    const focus = todayFocus([feedVisit("v1")], { v1: sentByPatient() }, deliveredOnly("v1"));
+    const focus = todayFocus(
+      [feedVisit("v1")],
+      { v1: sentByPatient() },
+      deliveredOnly("v1"),
+      TODAY,
+    );
     expect(focus).toMatchObject({ kind: "sent", status: "sent", cta: "today.openCta" });
   });
 
@@ -84,31 +92,118 @@ describe("Bugün's focus comes from the note's real state, not the feed's null",
       [feedVisit("v1"), feedVisit("v2")],
       { v1: sentByPatient() },
       deliveredOnly("v1"),
+      TODAY,
     );
     expect(focus.kind).toBe("prepare");
     expect(focus.kind !== "none" && focus.visit.id).toBe("v2");
   });
 
   it("a delivered visit is still the next visit: Bugün never says there is none", () => {
-    const focus = todayFocus([feedVisit("v1")], { v1: sentByPatient() }, deliveredOnly("v1"));
+    const focus = todayFocus(
+      [feedVisit("v1")],
+      { v1: sentByPatient() },
+      deliveredOnly("v1"),
+      TODAY,
+    );
     expect(focus.kind).not.toBe("none");
   });
 
   it("keeps the dev fixtures' ladder: a draft continues, a filed visit is not today's", () => {
     const draft = { ...feedVisit("d1"), noteStatus: "draft" as const };
     const filed = { ...feedVisit("f1"), noteStatus: "filed" as const };
-    expect(todayFocus([filed, draft], {}, NONE_DELIVERED)).toMatchObject({
+    expect(todayFocus([filed, draft], {}, NONE_DELIVERED, TODAY)).toMatchObject({
       kind: "continue",
       status: "draft",
     });
-    expect(todayFocus([filed], {}, NONE_DELIVERED)).toEqual({ kind: "none" });
-    expect(todayFocus([], {}, NONE_DELIVERED)).toEqual({ kind: "none" });
+    expect(todayFocus([filed], {}, NONE_DELIVERED, TODAY)).toEqual({ kind: "none" });
+    expect(todayFocus([], {}, NONE_DELIVERED, TODAY)).toEqual({ kind: "none" });
   });
 });
 
-/** A duration or an approximate figure: what invariant 20 keeps out of copy. */
-const DURATION =
-  /(?:≈|~)\s*\d|\b\d+\s*(?:sn|sec|secs|seconds?|saniye|dk|dakika|minutes?|mins?)\b/iu;
+/*
+ * Legal review of #1013: "Sıradaki vizit" may not label a past visit. Only an
+ * upcoming visit can be the focus, by the rule Vizitlerim uses (splitVisits:
+ * dated today or later, or dateless). The soonest dated one comes first.
+ */
+describe("only an upcoming visit can be Bugün's 'Sıradaki vizit'", () => {
+  const dated = (id: string, date: string | null): VisitFixture => ({ ...feedVisit(id), date });
+
+  it("a past visit with nothing on the phone is never the next visit", () => {
+    expect(todayFocus([dated("old", "2026-10-30")], {}, NONE_DELIVERED, TODAY)).toEqual({
+      kind: "none",
+    });
+  });
+
+  it("a past visit with a draft is not the next visit either", () => {
+    const focus = todayFocus(
+      [dated("old", "2026-10-01"), dated("new", "2026-11-05")],
+      { old: answered() },
+      NONE_DELIVERED,
+      TODAY,
+    );
+    expect(focus).toMatchObject({ kind: "prepare" });
+    expect(focus.kind !== "none" && focus.visit.id).toBe("new");
+  });
+
+  it("a past visit whose note was delivered is not shown as the next visit", () => {
+    expect(
+      todayFocus(
+        [dated("old", "2026-10-30")],
+        { old: sentByPatient() },
+        deliveredOnly("old"),
+        TODAY,
+      ),
+    ).toEqual({ kind: "none" });
+  });
+
+  it("near miss: a visit dated today is still the next visit", () => {
+    expect(todayFocus([dated("now", TODAY)], {}, NONE_DELIVERED, TODAY).kind).toBe("prepare");
+  });
+
+  it("near miss: a dateless visit is upcoming, after every dated one", () => {
+    expect(todayFocus([dated("tbd", null)], {}, NONE_DELIVERED, TODAY).kind).toBe("prepare");
+    const focus = todayFocus(
+      [dated("tbd", null), dated("soon", "2026-11-02")],
+      {},
+      NONE_DELIVERED,
+      TODAY,
+    );
+    expect(focus.kind !== "none" && focus.visit.id).toBe("soon");
+  });
+
+  it("the soonest upcoming visit comes first, whatever order the feed sent", () => {
+    const focus = todayFocus(
+      [dated("later", "2026-11-20"), dated("sooner", "2026-11-04")],
+      {},
+      NONE_DELIVERED,
+      TODAY,
+    );
+    expect(focus.kind !== "none" && focus.visit.id).toBe("sooner");
+  });
+
+  it("the screen reads today from the injected clock, the way Vizitlerim does", () => {
+    const screen = read("src", "app", "(tabs)", "today.tsx");
+    expect(screen).toMatch(/export default function Today\(\{ clock = deviceClock \}/);
+    expect(screen).toContain("todayIso(clock)");
+    expect(screen).toMatch(/todayFocus\(visits, notes, [\s\S]*?, today\);/);
+  });
+});
+
+/**
+ * A duration or an approximate figure: what invariant 20 keeps out of copy.
+ * Legal review of #1013: spelled-out numbers count too ("üç dakika", "yarım
+ * saat", "a few minutes"), and so do hours.
+ */
+const NUMBER_WORD =
+  "bir|iki|üç|dört|beş|altı|yedi|sekiz|dokuz|on|yirmi|otuz|kırk|elli|yarım|birkaç|" +
+  "one|two|three|four|five|six|seven|eight|nine|ten|fifteen|twenty|thirty|a few|a couple of|half an?";
+/** Turkish units take case suffixes ("dakikada", "saatte"); English ones end the word. */
+const TIME_UNIT =
+  "(?:saniye|dakika|saat)\\p{L}*|(?:sn|dk)(?!\\p{L})|(?:seconds?|secs?|minutes?|mins?|hours?)(?!\\p{L})";
+const DURATION = new RegExp(
+  `(?:≈|~)\\s*\\d|\\b\\d+\\s*(?:${TIME_UNIT})|(?<!\\p{L})(?:${NUMBER_WORD})\\s+(?:${TIME_UNIT})`,
+  "iu",
+);
 
 describe("the copy carries no figure nobody measured (invariant 20)", () => {
   it("no catalogue line, in either language, puts a duration in patient copy", () => {
@@ -123,6 +218,33 @@ describe("the copy carries no figure nobody measured (invariant 20)", () => {
     expect("Yaklaşık 3 dakika sürer").toMatch(DURATION);
     expect(tr["visit.prepare"]).toBe("Muayeneye hazırlanın");
     expect(tr["visit.prepare"]).not.toMatch(DURATION);
+  });
+
+  it("near miss: a spelled-out duration is a duration too (legal review of #1013)", () => {
+    for (const line of [
+      "Muayeneye hazırlanın (üç dakika)",
+      "Yaklaşık beş dakikada biter",
+      "Yarım saat sürer",
+      "Birkaç dakikanızı alır",
+      "Takes about three minutes",
+      "a few minutes",
+      "Prepare in half an hour",
+      "2 saat",
+    ]) {
+      expect(line, line).toMatch(DURATION);
+    }
+  });
+
+  it("near miss: a number word that is not a duration is not caught", () => {
+    for (const line of [
+      "Bir veri notunuza ancak siz eklerseniz girer",
+      "Saat kaçta gideceğinizi ekleyin",
+      "One question at a time",
+      "Add a second visit",
+      "Bu vizitin hangi bölüm olduğunu seçin",
+    ]) {
+      expect(line, line).not.toMatch(DURATION);
+    }
   });
 
   it("the open action reads as a short siz button, tr first with an en mirror", () => {

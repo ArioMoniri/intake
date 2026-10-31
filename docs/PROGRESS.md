@@ -4696,5 +4696,9 @@
 - Invariants touched and still passing: 2, 5 (siz, tr first, PolicyGuard and i18n gate green); 16 (Sec-Row `mobile`); 17; 20 (the only duration in the catalogues is gone, guarded catalogue-wide).
 - Decisions / ADRs / `00_STATE.md` rows: none.
 - Blocked on: the legal reviewer's read of the copy.
+- Update (legal notes on #1013, 31 Oct):
+  - The duration guard now also catches spelled-out numbers and hours. Near misses: an article "bir", clock "saat", an ordinal "a second".
+  - "Sıradaki vizit" never labels a past visit: `todayFocus` takes the injected clock's date, keeps upcoming visits only (`splitVisits`), and orders them soonest first.
+  - Red 6 failed; green 24 and mobile 3173; 2 of 2 mutations killed. Evidence §7.
 - Next: INT-502 can restore the `bugun` store frame.
 - LOOP_STATUS: CONTINUE

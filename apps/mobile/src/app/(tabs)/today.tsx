@@ -19,17 +19,25 @@ import { useTabBarClearance } from "@/components/FloatingTabBar";
 import { Kicker } from "@/components/Kicker";
 import { AppText, Card, PrimaryButton, RAIL_EDGES, Screen } from "@/components/Themed";
 import { VisitCard } from "@/components/VisitCard";
+import { deviceClock, todayIso, type Clock } from "@/lib/clock";
 import { t } from "@/lib/i18n";
 import { useDeliveries } from "@/lib/intake/delivery/store";
 import { useSession } from "@/lib/session";
 import { todayFocus } from "@/lib/today";
 import { spacing } from "@/lib/theme";
 
-export default function Today() {
+interface TodayProps {
+  /** Where "today" comes from: the device's clock unless a test fixes one. */
+  readonly clock?: Clock;
+}
+
+export default function Today({ clock = deviceClock }: TodayProps) {
   const router = useRouter();
   const { visits, notes } = useSession();
   const deliveries = useDeliveries();
-  const focus = todayFocus(visits, notes, (id) => deliveries[id]?.stage === "delivered");
+  // Only an upcoming visit can be "Sıradaki vizit" (Europe/Istanbul date, INT-409).
+  const today = todayIso(clock);
+  const focus = todayFocus(visits, notes, (id) => deliveries[id]?.stage === "delivered", today);
 
   return (
     <Screen edges={RAIL_EDGES}>
