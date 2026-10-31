@@ -344,6 +344,11 @@
         "https://admin.${STAGING_HOSTNAME}/step-up/callback"
       ],
       "webOrigins": [],
+      "fullScopeAllowed": false,
+      "defaultClientScopes": [
+        "basic"
+      ],
+      "authenticationFlowBindingOverrides": {},
       "attributes": {
         "pkce.code.challenge.method": "S256"
       },

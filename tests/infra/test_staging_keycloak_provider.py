@@ -335,6 +335,10 @@ class FakeAdmin:
     def register_action(self) -> dict | None:
         return self.register
 
+    def binding(self) -> tuple[str, list]:
+        """The committed browser-flow binding (tests/infra/test_staging_staff_binding.py)."""
+        return sf.TOP_FLOW, [sf.Node(*node) for node in sf.OUTLINE]
+
     def apply(self, step) -> None:
         self.applied.append(step)
         if step.action == "add_provider":

@@ -56,7 +56,9 @@ re-authentication. There is no other path.**
    (no key is fetched at approval time), plus issuer, audience, expiry, `typ=ID`, `azp`, the
    ceremony's `nonce`, the caller's `sub` *and* `sid`, and `auth_time` no earlier than the
    ceremony's start less 30 s. It also requires `hwk` in `amr`, a well-formed `credential_id`, an
-   id-shaped `aaguid`, and a `jti` never spent before. **We verify `amr hwk` and a fresh
+   id-shaped `aaguid`, and a `jti` never spent before (remembered until the token's `exp` plus
+   the verifier's 300 s clock leeway, so a replay is refused for as long as the token would
+   verify). **We verify `amr hwk` and a fresh
    `auth_time` together. The `credential_id`/`aaguid` notes identify the key; they are not the
    freshness evidence.** Any failure refuses with a code. The cases include an unreachable token
    endpoint, a reused code or state, an unknown or expired ceremony, and a sub or sid mismatch.
@@ -71,12 +73,17 @@ re-authentication. There is no other path.**
    never the grant or a credential. `admin_step_up_total{stage,outcome}` counts every stage and
    refusal, and is the alert of the new tier-1 action `admin.four_eyes.step_up`.
 6. **The realm client reaches the host through the deploy path.** `admin-web-stepup` is a public
-   client with the standard flow only, PKCE S256, the console callback as its one redirect URI and
-   no web origins. Its three mappers put `aaguid`, `credential_id` and `amr` in the ID token only.
-   `infra/staging/keycloak/step_up_client.py` adds it when it is absent and verifies it when it is
-   present. Any difference is refused for a human to look at. The script never reads or writes a
-   flow or an execution. `deploy.sh` runs it after the staff flow settles, and `smoke.sh`
-   re-checks it read-only.
+   client with the standard flow only, PKCE S256, the console callback as its one redirect URI, no
+   web origins, `fullScopeAllowed` off, the one default client scope `basic` (`sub` and
+   `auth_time`), and **no per-client authentication-flow override**: the realm's staff browser
+   flow is the only flow it can run. Its three mappers put `aaguid`, `credential_id` and `amr` in
+   the ID token only. `infra/staging/keycloak/step_up_client.py` adds it when it is absent and,
+   when it is present, verifies every one of those properties — flags, redirect URIs, web origins,
+   the PKCE attribute, the default scopes, each mapper, and that
+   `authenticationFlowBindingOverrides` is absent or empty (a browser-flow override to a
+   password-only flow would turn the step-up into a password check). Any difference is refused for
+   a human to look at. The script never reads or writes a flow or an execution. `deploy.sh` runs
+   it after the staff flow settles, and `smoke.sh` re-checks it read-only.
 7. **The CSP widens by one origin.** `form-action` becomes `'self'` plus the configured Keycloak
    origin (`INTAKE_ADMIN_STEP_UP_ORIGIN`), because browsers hold a form's redirects to
    `form-action`. Nothing else in the CSP changes, and with no origin configured it stays
@@ -96,8 +103,13 @@ ceremony with one thing changed, including the pre-INT-563 unused-string approva
 console.
 
 The residual risk is stated, not hidden. The step-up proves the WebAuthn step ran in the fresh login
-only while the staff browser flow keeps it REQUIRED. If an operator made it optional in the live
-realm, a password-only re-authentication would carry the earlier assertion's notes and `hwk` (within
-its eight-hour reference age) with a fresh `auth_time`. `staff_flow check` holds the flow on every
-deploy and every smoke, and its failure is a deploy stop. Storage is process-local, like
+only while every staff login passes that REQUIRED step. If an operator made it optional, rebound the
+realm's browser flow, or added another way in beside it, a password-only re-authentication would
+carry the earlier assertion's notes and `hwk` (within its eight-hour reference age) with a fresh
+`auth_time`. `staff_flow check` holds that path on every deploy and every smoke, read-only:
+the realm's browser flow is `staff browser`; that flow is exactly the cookie or the forms; the
+forms are exactly the password then `staff second factor`, both REQUIRED; and inside the subflow
+the WebAuthn provider is REQUIRED with OTP disabled. The client's own flow override is held empty by
+`step_up_client.py`. Either check failing is a deploy stop. What neither holds is an administrator
+changing the realm between deploys; the next smoke run reports it. Storage is process-local, like
 `FourEyesService`, so a restart drops every ceremony and grant, which refuses rather than grants.

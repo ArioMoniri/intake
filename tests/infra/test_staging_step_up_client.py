@@ -149,11 +149,26 @@ class TestNearMisses:
                 "protocolMappers.amr",
             ),
             ("protocolMappers", [], "protocolMappers"),
+            # review B1: a per-client browser flow (a password-only one) is drift
+            (
+                "authenticationFlowBindingOverrides",
+                {"browser": "0b1c2d3e-password-only"},
+                "authenticationFlowBindingOverrides",
+            ),
+            ("authenticationFlowBindingOverrides", {"direct_grant": "x"}, "authenticationFlow"),
+            ("fullScopeAllowed", True, "fullScopeAllowed"),
+            ("fullScopeAllowed", _DROP, "fullScopeAllowed"),
+            ("defaultClientScopes", ["basic", "roles"], "defaultClientScopes"),
+            ("defaultClientScopes", _DROP, "defaultClientScopes"),
         ],
     )
     def test_one_difference_is_named(self, path: str, value: Any, named: str) -> None:
         found = SUC.differences(_changed(path, value), HOST)
         assert found and any(item.startswith(named) for item in found), found
+
+    def test_no_override_key_at_all_is_the_committed_state(self) -> None:
+        # Keycloak may omit an empty map from a client representation
+        assert SUC.differences(_changed("authenticationFlowBindingOverrides", _DROP), HOST) == []
 
     def test_an_extra_mapper_is_a_difference(self) -> None:
         client = _realm_client()

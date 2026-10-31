@@ -8,9 +8,12 @@ realm (``intake-realm.json``) declares it, but Keycloak imports a realm once: ``
 that client, and nothing else:
 
 - an absent client is **added**, whole, with its three mappers, in one ``POST /clients``;
-- a present client is **verified** against the committed one, field by field and mapper by
-  mapper. A difference is refused with its name and changed by nobody: a live client that
-  differs is either an operator's deliberate edit or an attack, and either way a human looks.
+- a present client is **verified** against the committed one: its flags (``fullScopeAllowed``
+  off included), redirect URIs, web origins, PKCE attribute, default client scopes, every
+  mapper, and **no per-client authentication-flow override** (a browser-flow override to a
+  password-only flow would make the step-up a password check). A difference is refused with
+  its name and changed by nobody: a live client that differs is either an operator's
+  deliberate edit or an attack, and either way a human looks.
 
 It never reads or writes an authentication flow or an execution. A ``PUT`` on the staff
 browser flow without each execution's priority zeroes them (deploy e19640d2); the step-up
@@ -51,7 +54,12 @@ FLAGS: Mapping[str, Any] = {
     "implicitFlowEnabled": False,
     "directAccessGrantsEnabled": False,
     "serviceAccountsEnabled": False,
+    # its tokens carry no realm role: the step-up reads none, and a role in an ID token
+    # is a claim nobody verified (INT-563 review)
+    "fullScopeAllowed": False,
 }
+#: The one client scope the step-up needs: Keycloak's `basic` (``sub`` and ``auth_time``).
+DEFAULT_SCOPES: tuple[str, ...] = ("basic",)
 ATTRIBUTES: Mapping[str, str] = {"pkce.code.challenge.method": "S256"}
 _HOSTNAME = re.compile(r"^(?=.{1,253}$)([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$")
 
@@ -122,6 +130,10 @@ def committed(hostname: str) -> dict[str, Any]:
         "webOrigins": [],
         "attributes": dict(ATTRIBUTES),
         "protocolMappers": [dict(mapper) for mapper in MAPPERS.values()],
+        "defaultClientScopes": list(DEFAULT_SCOPES),
+        # no per-client flow: the staff browser flow, whose WebAuthn step is REQUIRED,
+        # is the only one this client can run (INT-563 review B1)
+        "authenticationFlowBindingOverrides": {},
     }
 
 
@@ -133,6 +145,12 @@ def differences(live: Mapping[str, Any], hostname: str) -> list[str]:
         found.append("redirectUris")
     if list(live.get("webOrigins") or []) != []:
         found.append("webOrigins")
+    # review B1: a browser-flow override (a password-only flow) would let a stolen
+    # bearer plus a password approve; absent or empty is the only committed state
+    if dict(live.get("authenticationFlowBindingOverrides") or {}) != {}:
+        found.append("authenticationFlowBindingOverrides")
+    if sorted(live.get("defaultClientScopes") or []) != sorted(DEFAULT_SCOPES):
+        found.append("defaultClientScopes")
     attributes = live.get("attributes") or {}
     found += [f"attributes.{k}" for k, v in ATTRIBUTES.items() if attributes.get(k) != v]
     mappers = {m.get("name"): m for m in live.get("protocolMappers") or []}

@@ -69,8 +69,10 @@ Keycloak imports a realm once, so the committed `admin-web-stepup` client
 reaches a live realm through `infra/staging/keycloak/step_up_client.py`, run by
 `deploy.sh` (`ensure_step_up_client`) after the staff flow is checked and
 re-checked read-only by `smoke.sh`. It adds the client when it is absent and
-fails when a live client differs from the committed one; it never touches a
-flow. To check by hand:
+fails when a live client differs from the committed one — a per-client flow
+override, a role scope or an extra default scope included; it never touches a
+flow. `staff_flow check` also holds the realm's browser flow and the steps
+around the second factor. To check by hand:
 
 ```bash
 cd infra/staging && source lib.sh && step_up_client check

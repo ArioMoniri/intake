@@ -145,6 +145,11 @@ class TestNearMisses:
             (_login(auth_offset_s=-3600), StepUpNotFresh),
             # 31 s before the ceremony: just past the clock leeway
             (_login(auth_offset_s=-31), StepUpNotFresh),
+            # an auth_time from the future is no fresher: past the 30 s skew it is refused
+            (_login(auth_offset_s=31), StepUpNotFresh),
+            # the claim is an integer of seconds, and nothing else passes for one
+            (_login(overrides={"auth_time": True}), StepUpNotFresh),
+            (_login(overrides={"auth_time": 1_800_000_000.5}), StepUpNotFresh),
             (_login(overrides={"auth_time": None}), StepUpNotFresh),
             (_login(amr=("pwd",)), StepUpWithoutWebAuthn),
             (_login(amr=("pwd", "otp")), StepUpWithoutWebAuthn),
@@ -249,6 +254,29 @@ class TestNearMisses:
         assert first.action_id == ACTION
         with pytest.raises(StepUpReplayed):
             _complete((service, keycloak), fixed)
+
+    def test_a_replay_is_refused_for_as_long_as_the_token_would_verify(self, clock: Clock) -> None:
+        # the verifier accepts a token up to 300 s past its exp; the spent set
+        # must hold the jti at least that long, or the replay window reopens
+        service, keycloak = build_step_up(clock)
+        expiry = clock.epoch() + 300
+        fixed = _login(overrides={"jti": "one-token", "exp": expiry})
+        assert _complete((service, keycloak), fixed).action_id == ACTION
+        clock.advance(timedelta(seconds=300 + 299))
+        with pytest.raises(StepUpReplayed):
+            _complete((service, keycloak), fixed)
+
+    def test_a_code_from_another_ceremony_is_refused(
+        self, pair: tuple[StepUpService, RecordedKeycloak]
+    ) -> None:
+        # near miss: the caller's own live state, with the code Keycloak issued
+        # to another of their ceremonies — the PKCE verifier does not match
+        _, foreign_code = _ceremony(pair)
+        own_state, _ = _ceremony(pair)
+        with pytest.raises(StepUpExchangeFailed):
+            pair[0].complete(
+                subject=SUBJECT, session_id=SESSION, state=own_state, code=foreign_code
+            )
 
     def test_a_caller_holds_at_most_three_open_ceremonies(
         self, pair: tuple[StepUpService, RecordedKeycloak]
@@ -369,6 +397,11 @@ class TestTheCodeExchange:
             CONFIG, client=httpx.Client(transport=httpx.MockTransport(handler))
         )
 
+    def test_the_default_client_reads_no_proxy_or_netrc_from_the_environment(self) -> None:
+        # the code and verifier go to the configured endpoint and nowhere else:
+        # an HTTPS_PROXY or a netrc in the api's environment is not consulted
+        assert HttpTokenExchange(CONFIG).client.trust_env is False
+
     def test_it_posts_the_public_client_pkce_redemption(self) -> None:
         seen: list[httpx.Request] = []
 
@@ -428,6 +461,12 @@ class TestTheRealmClient:
         assert client["webOrigins"] == []
         assert all(uri.endswith("/step-up/callback") for uri in client["redirectUris"])
         assert not any("*" in uri for uri in client["redirectUris"])
+        # review B1: no per-client flow override — the staff browser flow, with
+        # its REQUIRED WebAuthn step, is the only flow this client can run
+        assert client.get("authenticationFlowBindingOverrides", {}) == {}
+        # its tokens carry only what the step-up reads: no role scope, one scope
+        assert client["fullScopeAllowed"] is False
+        assert client["defaultClientScopes"] == ["basic"]
 
     @pytest.mark.parametrize("name", sorted(REALMS))
     def test_its_claims_are_in_the_id_token_and_nowhere_else(self, name: str) -> None:

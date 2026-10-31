@@ -333,6 +333,11 @@
         "http://127.0.0.1:3000/step-up/callback"
       ],
       "webOrigins": [],
+      "fullScopeAllowed": false,
+      "defaultClientScopes": [
+        "basic"
+      ],
+      "authenticationFlowBindingOverrides": {},
       "attributes": {
         "pkce.code.challenge.method": "S256"
       },

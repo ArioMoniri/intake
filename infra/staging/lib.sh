@@ -863,7 +863,7 @@ staff_flow() {
 }
 
 ensure_staff_webauthn_notes() {
-  staff_flow apply || die "the live realm's second factor is not the committed one (session-notes provider REQUIRED, OTP disabled, webauthn-register enabled); staff sign-in stays refused"
+  staff_flow apply || die "the live realm's second factor is not the committed one (session-notes provider REQUIRED, OTP disabled, webauthn-register enabled, under the staff browser flow and nothing beside it); staff sign-in stays refused"
 }
 
 # INT-563 (ADR-043): the four-eyes step-up's public client. The committed realm

@@ -65,7 +65,7 @@ import httpx
 from cryptography.hazmat.primitives.asymmetric import rsa
 
 from intake_platform.admin.four_eyes import ActorBlock
-from intake_platform.admin.oidc import KeycloakClaimsVerifier
+from intake_platform.admin.oidc import CLOCK_LEEWAY, KeycloakClaimsVerifier
 from intake_platform.admin.principal import ClaimsRejected, is_credential_id, is_id_shaped
 from intake_platform.admin.second_factor import AMR_WEBAUTHN, authentication_methods
 
@@ -235,7 +235,11 @@ class HttpTokenExchange:
     no secret, the PKCE verifier is the proof (RFC 7636)."""
 
     config: StepUpConfig
-    client: httpx.Client = field(default_factory=lambda: httpx.Client(timeout=_TIMEOUT_S))
+    #: ``trust_env=False``: no ``HTTPS_PROXY`` or netrc from the api's environment
+    #: decides where the code and the verifier go (INT-563 review).
+    client: httpx.Client = field(
+        default_factory=lambda: httpx.Client(timeout=_TIMEOUT_S, trust_env=False)
+    )
 
     def __call__(self, *, code: str, verifier: str) -> str:
         try:
@@ -312,20 +316,22 @@ class StepUpService:
     clock: Callable[[], datetime] = _utc_now
     _ceremonies: dict[str, Ceremony] = field(default_factory=dict)
     _grants: dict[str, StepUpGrant] = field(default_factory=dict)
-    #: assertion ref -> when its token stops verifying; kept until then, so a
-    #: replay is refused for exactly as long as the token itself would pass
+    #: assertion ref -> when its token stops verifying (exp plus the verifier's
+    #: clock leeway); kept until then, so a replay is refused for as long as the
+    #: token itself would pass
     _spent: dict[str, datetime] = field(default_factory=dict)
 
     def _sweep(self, now: datetime) -> None:
+        # pop, not del: two requests sweeping at once must not raise on the same key
         for state, ceremony in list(self._ceremonies.items()):
             if now > ceremony.started_at + CEREMONY_TTL:
-                del self._ceremonies[state]
+                self._ceremonies.pop(state, None)
         for grant_id, grant in list(self._grants.items()):
             if now > grant.expires_at:
-                del self._grants[grant_id]
+                self._grants.pop(grant_id, None)
         for ref, until in list(self._spent.items()):
             if now > until:
-                del self._spent[ref]
+                self._spent.pop(ref, None)
 
     def _cap(self, subject: str, session_id: str) -> None:
         caller = (subject, session_id)
@@ -334,7 +340,7 @@ class StepUpService:
             key=lambda c: c.started_at,
         )
         for ceremony in mine[: max(0, len(mine) - _MAX_LIVE_PER_CALLER + 1)]:
-            del self._ceremonies[ceremony.state]
+            self._ceremonies.pop(ceremony.state, None)
 
     def begin(self, *, subject: str, session_id: str, action_id: str) -> tuple[Ceremony, str]:
         now = self.clock()
@@ -418,10 +424,12 @@ class StepUpService:
         if assertion_ref in self._spent:
             raise StepUpReplayed("that ID token was already spent")
         expiry = claims.get("exp")
+        # held while the verifier would still accept the token: exp plus its own
+        # clock leeway (INT-563 review), so the replay window never reopens
         until = (
-            datetime.fromtimestamp(expiry, UTC) + AUTH_TIME_LEEWAY
+            datetime.fromtimestamp(expiry, UTC) + CLOCK_LEEWAY
             if isinstance(expiry, int) and not isinstance(expiry, bool)
-            else now + CEREMONY_TTL
+            else now + CEREMONY_TTL + CLOCK_LEEWAY
         )
         self._spent[assertion_ref] = max(until, now + CEREMONY_TTL)
         return StepUpGrant(
