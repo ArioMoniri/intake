@@ -7687,3 +7687,27 @@
     - "The API's OpenBao policy grants read-only access to the path; the migration outcome is observable with ids only and catalogued; files/10 §9 and the threat-model residual are updated; tests first with near misses."
   tests: [tests/api/test_tokenization_key.py, tests/api/test_tokenization_probe.py, tests/infra/test_staging_tokenization_key.py, tests/infra/test_staging_compose.py, tests/infra/test_staging_netgsm.py, tests/api/test_previsit_output.py, tests/api/test_otp_netgsm_wiring.py]
   sec_row: "onboarding"
+- id: INT-599
+  epic: E13-infra
+  phase: P1
+  title: "admin-web runtime image carries no build/dev npm tooling, and the zod/deepmerge exception reasons say only what is true"
+  # GitHub #1019, 31 Oct 2026, from the INT-597 deps work. The osv/trivy reasons
+  # for the zod and deepmerge exceptions (INT-573) said no server runtime image
+  # installs npm packages, but infra/staging/Dockerfile.admin-web installed the
+  # workspace root's devDependencies and its runtime stage copied the builder's
+  # /app whole. The runtime stage now holds node, Next's standalone trace and the
+  # static assets; a builder-side guard holds the trace to admin-web's production
+  # closure. The corrected reasons are the owner's own commit of
+  # owner-599-exception-reasons.patch.
+  depends_on: [INT-421, INT-573]
+  labels: [area:infra, risk:security]
+  status: awaiting-human
+  evidence: docs/evidence/INT-599.md
+  acceptance:
+    - "infra/staging/Dockerfile.admin-web is a builder and a runtime stage; the runtime stage copies only apps/admin-web/.next/standalone and .next/static out of the builder, nothing from the build context, and its one command removes the node base image's npm, npx, corepack and Yarn 1; the server is the standalone server.js, non-root, with the same health check"
+    - "next.config.ts sets output: standalone; after next build, infra/staging/admin_web_trace_guard.sh fails the image build unless every package file in the trace sits in a pnpm store entry of admin-web's production closure (pnpm list --prod)"
+    - "tests/infra/test_admin_web_runtime_image.py proves statically, with near misses: the runtime stage's copies and command; the builder's lockfile closure holds no Expo package, zod 3.25.76 or deepmerge (the apps/mobile control holds all three); the production closure holds no devDependency; the guard refuses a devDependency, an inexact entry, a file outside a store entry and an empty list"
+    - "the admin-web vitest/e2e suites and the staging compose and admin-tier pins stay green; no image is built on the laptop"
+    - "the zod and deepmerge osv/trivy reasons say exactly where each package lives after the change, through the owner's own commit of owner-599-exception-reasons.patch, with their pins in tests/ci/test_security_gates.py; no exception is widened"
+  tests: [tests/infra/test_admin_web_runtime_image.py, tests/infra/test_staging_admin_tier.py, tests/infra/test_staging_compose.py, tests/ci/test_security_gates.py]
+  sec_row: "cicd"

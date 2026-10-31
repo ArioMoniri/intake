@@ -1,7 +1,18 @@
 # INT-421: the admin console image (apps/admin-web, Next.js). Multi-stage,
 # non-root, every base pinned by digest. The build context is the repository
 # root. Dockerfile.admin-web.dockerignore, which sits next to this file, sends
-# the pnpm workspace manifests and apps/admin-web only.
+# the pnpm workspace manifests, apps/admin-web and the INT-599 trace guard only.
+#
+# INT-599: the runtime stage carries what the server runs and nothing else:
+# node, Next's standalone output (server.js, the server build and the package
+# files its trace of the server reached) and the static assets. The build
+# tooling `next build` needs (typescript and the workspace root's
+# devDependencies) stays in the builder. Before the builder finishes,
+# admin_web_trace_guard.sh fails the build if the trace holds any package
+# outside admin-web's production dependency closure. The package managers the
+# node base image ships (npm with its bundled packages, npx, corepack and
+# Yarn 1) are removed from the runtime stage, so the trace's packages are its
+# only npm packages (tests/infra/test_admin_web_runtime_image.py).
 #
 # The console serves nothing without a signed-in Keycloak session. oauth2-proxy
 # stands in front of it (compose.yaml), and the API's INT-180 gate decides
@@ -19,21 +30,34 @@ WORKDIR /app
 COPY . /app
 # The lockfile is frozen. The filter installs admin-web's own dependency
 # closure plus the workspace root, which carries the typescript `next build`
-# needs.
+# needs. The production list is that closure without devDependencies, and the
+# guard holds the standalone trace to it.
 RUN corepack enable \
  && pnpm install --frozen-lockfile --filter "@intake/admin-web..." --filter intake \
- && pnpm --filter @intake/admin-web exec next build
+ && pnpm --filter @intake/admin-web exec next build \
+ && pnpm --filter "@intake/admin-web..." list --prod --parseable --depth Infinity > /tmp/admin-web-production.txt \
+ && sh infra/staging/admin_web_trace_guard.sh /tmp/admin-web-production.txt apps/admin-web/.next/standalone
 
 FROM node:24.21.0-trixie-slim@sha256:8ec5d7557396cfe32d21c3f9c13072355ceab22b584578ca4bb28af31120cffe AS runtime
 ENV NODE_ENV=production \
     NEXT_TELEMETRY_DISABLED=1 \
     PORT=3000 \
     HOSTNAME=0.0.0.0
-# root-owned, so the files are read-only to the service user
-COPY --from=builder /app /app
+# The base image's package managers are build tooling as well. `rm -r` without
+# -f fails the build if the base image's layout moves, so a new pin is read
+# before it ships.
+RUN rm -r /usr/local/lib/node_modules "/opt/yarn-v${YARN_VERSION}" \
+      /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack \
+      /usr/local/bin/yarn /usr/local/bin/yarnpkg
+# Root-owned, so the files are read-only to the service user. Only the
+# standalone output and the static assets leave the builder: no source, no
+# lockfile, no workspace install and no devDependency.
+COPY --from=builder /app/apps/admin-web/.next/standalone /app
+COPY --from=builder /app/apps/admin-web/.next/static /app/apps/admin-web/.next/static
 WORKDIR /app/apps/admin-web
 USER 10001:10001
 EXPOSE 3000
 HEALTHCHECK --interval=10s --timeout=3s --start-period=30s --retries=6 \
   CMD ["node", "-e", "fetch('http://127.0.0.1:3000/healthz').then(r=>process.exit(r.status===200?0:1),()=>process.exit(1))"]
-CMD ["node_modules/.bin/next", "start", "--port", "3000"]
+# Next's standalone server reads PORT and HOSTNAME from the environment above.
+CMD ["node", "server.js"]
