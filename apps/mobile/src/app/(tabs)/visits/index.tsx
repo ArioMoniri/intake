@@ -34,11 +34,55 @@ import {
 } from "@/lib/calendar";
 import { deviceClock, todayIso, type Clock } from "@/lib/clock";
 import { getLocale, t } from "@/lib/i18n";
+import { useDelivery } from "@/lib/intake/delivery/store";
+import { effectiveStatus } from "@/lib/intake/note";
 import { useSession, type VisitFixture } from "@/lib/session";
 import { spacing } from "@/lib/theme";
 import { splitVisits } from "@/lib/visits";
 
 type ViewMode = "list" | "calendar";
+
+/**
+ * A card's accessible name (INT-144). Wrapping the card in a Pressable merges
+ * its four lines into one element, and RN's derived name drops the status
+ * chip. Naming it explicitly keeps department, hospital, date AND ladder
+ * state in the one sentence a screen-reader user hears.
+ */
+function cardLabel(visit: VisitFixture, status: VisitFixture["noteStatus"]): string {
+  return joinParts(
+    visit.department,
+    visit.hospital,
+    formatVisitDate(visit.date, getLocale()),
+    status === null ? null : t(statusLabelKey(status)),
+  );
+}
+
+/**
+ * One visit in the list (INT-598). Its chip and its spoken name carry the
+ * note's real state, by the rule the visit detail and Bugün use
+ * (`effectiveStatus`): the draft on this phone, and a sent note only once the
+ * server confirmed it (INT-587). The feed's `noteStatus` alone is null for
+ * every hospital-feed visit. A row is its own component so it can read its
+ * own outbox item.
+ */
+function VisitRow({ visit }: { visit: VisitFixture }) {
+  const { notes } = useSession();
+  const note = notes[visit.id];
+  const delivered = useDelivery(visit.id)?.stage === "delivered";
+  const status = effectiveStatus(visit.noteStatus, note, delivered);
+  return (
+    <Link href={`/(tabs)/visits/${visit.id}`} asChild>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={cardLabel(visit, status)}
+        accessibilityHint={t("a11y.openHint")}
+        style={styles.cardTarget}
+      >
+        <VisitCard visit={visit} statusOverride={status} chevron />
+      </Pressable>
+    </Link>
+  );
+}
 
 interface VisitsProps {
   /** Where "today" comes from: the device's clock unless a test fixes one. */
@@ -66,32 +110,7 @@ export default function Visits({ clock = deviceClock }: VisitsProps) {
     { id: "calendar", label: t("visits.view.calendar") },
   ];
 
-  /**
-   * A card's accessible name (INT-144). Wrapping the card in a Pressable
-   * merges its four lines into one element, and RN's derived name drops the
-   * status chip; naming it explicitly keeps department, hospital, date AND
-   * ladder state in the one sentence a screen-reader user hears.
-   */
-  const cardLabel = (visit: VisitFixture): string =>
-    joinParts(
-      visit.department,
-      visit.hospital,
-      formatVisitDate(visit.date, getLocale()),
-      visit.noteStatus === null ? null : t(statusLabelKey(visit.noteStatus)),
-    );
-
-  const renderVisit = (visit: VisitFixture) => (
-    <Link key={visit.id} href={`/(tabs)/visits/${visit.id}`} asChild>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={cardLabel(visit)}
-        accessibilityHint={t("a11y.openHint")}
-        style={styles.cardTarget}
-      >
-        <VisitCard visit={visit} chevron />
-      </Pressable>
-    </Link>
-  );
+  const renderVisit = (visit: VisitFixture) => <VisitRow key={visit.id} visit={visit} />;
 
   return (
     <Screen edges={RAIL_EDGES}>

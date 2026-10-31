@@ -7687,3 +7687,22 @@
     - "The API's OpenBao policy grants read-only access to the path; the migration outcome is observable with ids only and catalogued; files/10 §9 and the threat-model residual are updated; tests first with near misses."
   tests: [tests/api/test_tokenization_key.py, tests/api/test_tokenization_probe.py, tests/infra/test_staging_tokenization_key.py, tests/infra/test_staging_compose.py, tests/infra/test_staging_netgsm.py, tests/api/test_previsit_output.py, tests/api/test_otp_netgsm_wiring.py]
   sec_row: "onboarding"
+- id: INT-598
+  epic: E08-mobile
+  phase: P2
+  title: "Vizitlerim list chips show the note's real state (effectiveStatus), not the feed's null noteStatus"
+  # GitHub #1015, 31 Oct 2026, found in INT-594 (#1007, PR #1013).
+  # visits/index.tsx read the raw noteStatus for each card's chip and spoken
+  # name; api.ts sets it null for every hospital-feed visit, so an OTP
+  # account's list never showed a status. Each row now resolves it with
+  # effectiveStatus against its own outbox item. No copy changes.
+  depends_on: [INT-587]
+  labels: [area:mobile]
+  status: done
+  evidence: docs/evidence/INT-598.md
+  acceptance:
+    - "each Vizitlerim row's chip and accessible name use effectiveStatus (the draft on the phone; sent only once the server confirmed it, INT-587), the same rule as the visit detail and Bugün, in the list and the calendar's day list"
+    - "tests with near misses: a note sent but not yet confirmed stays Taslak; a confirmed delivery without the patient's send is not Gönderildi; the raw feed value never decides what a row shows"
+    - "tr copy unchanged (the existing status.* keys)"
+  tests: [apps/mobile/e2e/visitsChips.spec.ts]
+  sec_row: "mobile"
