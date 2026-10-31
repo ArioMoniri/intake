@@ -67,9 +67,8 @@ export const tr = {
     "Bu cihazda güvenlik değişikliği görünüyor. Görüşme yazılı olarak devam eder.",
 
   "today.nextVisit": "Sıradaki vizit",
-  "today.prep": "Vizit hazırlığı",
-  "today.prepareCta": "Muayeneye hazırlanın (≈3 dk)",
   "today.continueCta": "Devam edin",
+  "today.openCta": "Viziti açın",
   "today.noVisit": "Planlanmış bir vizitiniz yok.",
   "today.addVisit": "Vizit ekleyin",
 

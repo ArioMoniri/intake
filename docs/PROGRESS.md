@@ -4685,3 +4685,21 @@
   - Tests first: red 4 vitest + 2 pytest; green brand 19, mobile 2972, legal + release 964.
 - Next: merge #995 (INT-587) before or with #1001, then TestFlight build 7.
 - LOOP_STATUS: CONTINUE
+
+### 2026-10-31T02:25:00+03:00 · INT-594 · done (PR open; legal review of the copy pending)
+- Goal: GitHub #1007, from the INT-502 captures on build 7. An OTP account's Bugün showed "Muayeneye hazırlanın (≈3 dk)" over a "%36 Vizit hazırlığı" gauge. It read the feed's always-null `noteStatus`, the ≈3 dk was never measured (invariant 20), and the gauge divided by questions the conditional flow may never ask.
+- Plan: a pure `todayFocus` over `effectiveStatus` (the draft on the phone, and INT-587's confirmed delivery): prepare, continue or sent, never hiding a delivered visit. `useDeliveries()` on the outbox. The duration and the gauge are removed. The new button "Viziti açın" goes on a delivered visit.
+- Tests: `src/lib/today.test.ts`, 15 tests.
+  - Near misses: a sent note the server has not confirmed stays a draft; a delivery without a send is not a sent note; the duration pattern bites on build 7's lines; the percent pattern sees the gauge's formatter.
+  - Red: 12 failed against today.tsx's rule lifted unchanged into today.ts. Green: mobile 155 files / 3164 tests; tsc 0; tests/release + tests/legal + PolicyGuard precision 1086; backlog and smoke pins at 387. 2 of 2 mutations killed.
+  - The ACR drops its citation of the removed gauge test, and the report is regenerated.
+- Invariants touched and still passing: 2, 5 (siz, tr first, PolicyGuard and i18n gate green); 16 (Sec-Row `mobile`); 17; 20 (the only duration in the catalogues is gone, guarded catalogue-wide).
+- Decisions / ADRs / `00_STATE.md` rows: none.
+- Blocked on: the legal reviewer's read of the copy.
+- Update (legal notes on #1013, 31 Oct):
+  - The duration guard now also catches spelled-out numbers and hours. Near misses: an article "bir", clock "saat", an ordinal "a second".
+  - "Sıradaki vizit" never labels a past visit: `todayFocus` takes the injected clock's date, keeps upcoming visits only (`splitVisits`), and orders them soonest first.
+  - Red 6 failed; green 24 and mobile 3173; 2 of 2 mutations killed. Evidence §7.
+- Update (legal boundary on #1013): a visit stays on Bugün for its whole day in Türkiye, whatever its hour. That was already the behaviour; 4 tests with TR/UTC near misses now pin it, and a mutation (exclusive day comparison) is killed. Keeping it through the 72 h link window would put "Sıradaki vizit" on a past visit, so that is offered as a follow-up with its own label. Evidence §8.
+- Next: INT-502 can restore the `bugun` store frame.
+- LOOP_STATUS: CONTINUE

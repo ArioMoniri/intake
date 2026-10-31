@@ -158,12 +158,11 @@ wcag:
       - "apps/mobile/e2e/a11y.spec.ts::every Pressable declares accessibilityLabel"
       - "apps/mobile/e2e/a11y.spec.ts::the send button is icon-only, so its name and disabled state are explicit"
       - "apps/mobile/e2e/a11y.spec.ts::the intake progress dots are decoration and are hidden from the reader"
-      - "apps/mobile/e2e/a11y.spec.ts::the prep gauge reports a value, not only a rendered arc"
     manual: [MC-01]
     remarks: >-
-      Glyphs sit inside a named control or are hidden as decoration. The one
-      graphical data display, the preparation gauge, exposes a progress value.
-      The app renders no image content (MC-01).
+      Glyphs sit inside a named control or are hidden as decoration. The app
+      renders no image content (MC-01). The preparation gauge, the one
+      graphical data display, was removed from Bugün in INT-594.
 
   - sc: "1.2.1"
     name: Audio-only and Video-only (Prerecorded)
@@ -1016,10 +1015,9 @@ en301549:
     name: Values
     status: Supports
     tests:
-      - "apps/mobile/e2e/a11y.spec.ts::the prep gauge reports a value, not only a rendered arc"
       - "apps/mobile/e2e/appearance.spec.ts::declares the platform role and the value"
       - "apps/mobile/e2e/a11y.spec.ts::a switch or checkbox declares its state, not just its role"
-    remarks: The gauge exposes its value, and every switch, checkbox and radio exposes its state.
+    remarks: Every switch, checkbox and radio exposes its state.
 
   - clause: "11.5.2.8"
     name: Label relationships

@@ -320,14 +320,6 @@ describe("chrome and content move together (the owner's report)", () => {
     // And it does grow — a well pinned at MIN_TAP is the defect, not the fix.
     expect(railWellSize(2.0, MIN_TAP)).toBeGreaterThan(railWellSize(1.0, MIN_TAP));
   });
-
-  it("the prep gauge's arc scales with the numeral it frames, and is capped to the screen", () => {
-    // A fixed 232 pt arc around a 112 pt numeral read as a broken ring.
-    const gauge = file("src/components/PrepGauge.tsx");
-    expect(gauge).toContain("scaledControl(BASE_SIZE, fontScale)");
-    expect(gauge).toContain("useWindowDimensions()");
-    expect(gauge).toContain("Math.min(");
-  });
 });
 
 /* ------------------------------------------------------------------ */
@@ -356,7 +348,7 @@ describe("00 §2 — a Turkish word never loses its suffix", () => {
     // shrinking the text (banned by 00 §2), so what is left is a copy decision.
     // This pins that the two banned levers stay unused on the display roles.
     const themed = file("src/components/Themed.tsx");
-    expect(themed).toContain('fontSize: scaledSize(role, fontScale)');
+    expect(themed).toContain("fontSize: scaledSize(role, fontScale)");
     expect(themed).not.toContain("adjustsFontSizeToFit");
     expect(themed).not.toContain("minimumFontScale");
   });
