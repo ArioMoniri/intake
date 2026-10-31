@@ -1322,12 +1322,14 @@ export const tr = {
   // INT-589 — "kim": share.tr.md'nin "Kimler görür" bölümü; hastane hiçbir
   // şey almaz. "Ne zamana kadar": sunucunun paylaşım süresi (share_lifetime).
   "review.consent.recipient": "Kim açabilir",
-  "review.consent.recipientValue": "Oluşturacağınız bağlantıyı ve açma kodunu gösterdiğiniz kişi.",
+  "review.consent.recipientValue": "Oluşturacağınız bağlantı ve açma kodu kimde olursa o kişi.",
   "review.consent.until": "Ne zamana kadar",
+  // Hukuk incelemesi (#1024): bağlantıyı tutan kişiye olmayan bir süre vaat
+  // edilmez. Bağlantı en geç randevu + 72 saatte kapanır; tarihsiz vizitin
+  // bağlantısı olmaz.
   "review.consent.untilValue":
-    "Paylaşım en geç randevunuzdan üç gün sonra kendiliğinden kapanır. Notu randevudan sonra gönderirseniz, gönderdiğiniz andan üç gün sonra kapanır.",
-  "review.consent.untilValueNoDate":
-    "Bu vizitin tarihi olmadığı için paylaşım, notu gönderdiğiniz andan üç gün sonra kendiliğinden kapanır.",
+    "Bağlantılar en geç randevunuzdan üç gün sonra kendiliğinden kapanır. Notu randevudan sonra gönderirseniz de bu süre uzamaz.",
+  "review.consent.untilValueNoDate": "Bu vizitin tarihi olmadığı için bağlantı oluşturulamaz.",
   // --- INT-137 · gönderimden sonra sorulan memnuniyet sorusu. 06 §2
   // `satisfaction` izni yoksa kart hiç görünmez ve hiçbir şey toplanmaz.
   // Ölçek rakamla değil sözcükle sorulur (invariant 22).
@@ -1466,6 +1468,9 @@ export const tr = {
     "Paylaşım onayınızı geri çektiğiniz için bu notun bağlantıları kapandı. Yeniden paylaşmak isterseniz, bu not için onayınızı yeniden verebilirsiniz.",
   "delivery.reshare.declined": "Bu not şu anda kimseyle paylaşılmıyor.",
   "delivery.reshare.pending": "Paylaşım metni hazır olduğunda bu notu yeniden paylaşabilirsiniz.",
+  "delivery.reshare.closed":
+    "Bu vizitin bağlantı süresi doldu, bu yüzden not yeniden paylaşılamaz.",
+  "delivery.reshare.noDate": "Bu vizitin tarihi olmadığı için bağlantı oluşturulamaz.",
   "delivery.status.title": "Gönderim durumu",
   // N5: "bağlantı" is also the Doctor Link; this line is about the server.
   "delivery.queued": "Notunuz gönderilmeyi bekliyor. Sunucuya ulaşılınca kendiliğinden gönderilir.",

@@ -4699,5 +4699,10 @@
 - Invariants touched and still passing: 2, 4, 5, 6, 16 (Sec-Row `review-send`), 17, 18.
 - Decisions / ADRs / `00_STATE.md` rows: none. The share window now runs from the appointment (02 §2b, share.tr.md); flagged for counsel in evidence §3.
 - Blocked on: the legal reviewer's read of the copy.
+- Update (legal review of #1024: one BLOCK, three notes):
+  - The two "Ne zamana kadar" lines now use the reviewer's text (links close at the latest three days after the visit; an undated visit has no link). `recipientValue` uses the reviewer's wording too.
+  - The re-share card is offered only while the link window is open (end of the visit day in Türkiye + 72 h), and says so otherwise.
+  - A landed withdrawal now marks delivered notes on the sealed outbox item, so the card survives a restart.
+  - Red 19, green 180 / mobile 3191. Evidence §8.
 - Next: merge after #1018 turns CI green.
 - LOOP_STATUS: CONTINUE

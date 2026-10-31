@@ -38,7 +38,13 @@ import {
   useConsentLedger,
 } from "@/lib/consent/store";
 import { t, type MessageKey } from "@/lib/i18n";
-import { needsReshare, type RefusalReason, type VisitIdentity } from "@/lib/intake/delivery/outbox";
+import { deviceClock } from "@/lib/clock";
+import {
+  linkWindow,
+  needsReshare,
+  type RefusalReason,
+  type VisitIdentity,
+} from "@/lib/intake/delivery/outbox";
 import { notePutBody } from "@/lib/intake/delivery/payload";
 import {
   discardUndelivered,
@@ -100,8 +106,9 @@ export function NoteDelivery({
   const queuedNews = useNews(item?.stage === "queued");
   const share = shareView(ledger);
   const textStatus = share.text.status;
-  // INT-589: a delivered note whose share a later withdrawal took away
-  const reshareNeeded = needsReshare(item, ledger.share.withdrawnAt);
+  // INT-589: a delivered note whose share a later, landed withdrawal took
+  // away. The mark is on the persisted item, so this survives a restart.
+  const reshareNeeded = needsReshare(item);
   const shows = item?.stage !== "delivered" || reshareNeeded;
 
   useEffect(() => {
@@ -120,7 +127,26 @@ export function NoteDelivery({
     return null;
   }
 
-  if (reshareNeeded) {
+  if (reshareNeeded && item !== null) {
+    // Worth offering only while a Doctor Link can still be issued (legal
+    // review of #1024): never for an undated visit, never past the window.
+    const linkState = linkWindow(item.visit.date, deviceClock().getTime());
+    if (linkState !== "open") {
+      return (
+        <Card>
+          <Kicker label={t("delivery.reshare.title")} />
+          <Hairline />
+          <AnnouncedText
+            tone="status"
+            role="body"
+            color="inkSoft"
+            message={
+              linkState === "no_date" ? t("delivery.reshare.noDate") : t("delivery.reshare.closed")
+            }
+          />
+        </Card>
+      );
+    }
     // The same frozen note, sent again on a grant given FOR IT; the server
     // recreates its share in that PUT. A delivered note is never reopened.
     const reshareNow = () => {

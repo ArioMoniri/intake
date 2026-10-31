@@ -21,6 +21,7 @@ import {
   flushConsentQueue,
   grantLocal,
   grantShareLocal,
+  landedShareWithdrawal,
   ledgerSeededFor,
   ledgerSnapshot,
   refreshLedgerFromServer,
@@ -285,12 +286,15 @@ describe("a withdrawal the server refuses is reported as not done (INT-589)", ()
     await signedIn(200);
     expect(await withdrawShareLocal("2026-10-30T11:00:00.000Z")).toBe("landed");
     expect(shareView(ledgerSnapshot()).standing).toBe("withdrawn");
+    // the outbox marks delivered notes off this, and only off a landed one
+    expect(landedShareWithdrawal()).toBe("2026-10-30T11:00:00.000Z");
   });
 
   it("a refused withdrawal says refused, never landed", async () => {
     await signedIn(409);
     expect(await withdrawShareLocal("2026-10-30T11:00:00.000Z")).toBe("refused");
     expect(ledgerSnapshot().queue).toEqual([]);
+    expect(landedShareWithdrawal()).toBeNull();
   });
 
   it("after a refusal the withdrawal is offered again, and unsent notes stay held", async () => {
@@ -307,5 +311,6 @@ describe("a withdrawal the server refuses is reported as not done (INT-589)", ()
     await signedIn(503);
     expect(await withdrawShareLocal("2026-10-30T11:00:00.000Z")).toBe("unsent");
     expect(ledgerSnapshot().queue).toHaveLength(1);
+    expect(landedShareWithdrawal()).toBeNull();
   });
 });

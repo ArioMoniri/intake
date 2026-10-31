@@ -53,7 +53,9 @@ describe("(1) re-share after a withdrawal, and a true notShared line", () => {
 
   it("NoteDelivery offers the re-share only when the note needs one, on a grant for it", () => {
     const card = DELIVERY();
-    expect(card).toContain("needsReshare(item, ledger.share.withdrawnAt)");
+    // the mark is on the persisted item, so the card survives a restart
+    expect(card).toContain("needsReshare(item)");
+    expect(card).not.toContain("ledger.share.withdrawnAt");
     expect(card).toContain("reshareDelivery(visitId, payload.body, receipt)");
     expect(card).toContain('t("delivery.reshare.body")');
     // the legal text is the served one, rendered the same way as for the first send
@@ -67,6 +69,31 @@ describe("(1) re-share after a withdrawal, and a true notShared line", () => {
     expect(reshareCard).not.toContain('t("delivery.consent.body")');
     expect(reshareCard).not.toContain('t("delivery.consent.pendingBody")');
     expect(reshareCard).not.toContain('t("delivery.edit")');
+  });
+
+  it("offers the re-share only while a link can still be issued (legal note)", () => {
+    const card = DELIVERY();
+    expect(card).toContain("linkWindow(item.visit.date, deviceClock().getTime())");
+    // the branch a closed or undated window takes says which, and offers no grant
+    const start = card.indexOf('linkState !== "open"');
+    expect(start).toBeGreaterThan(-1);
+    const closed = card.slice(start, card.indexOf("const reshareNow"));
+    expect(closed).toMatch(/linkState === "no_date"[\s\S]*?t\("delivery\.reshare\.noDate"\)/);
+    expect(closed).toContain('t("delivery.reshare.closed")');
+    // near miss: the grant button sits only in the open branch
+    expect(closed).not.toContain('t("consent.detail.grant")');
+    expect(tr["delivery.reshare.closed"]).toBe(
+      "Bu vizitin bağlantı süresi doldu, bu yüzden not yeniden paylaşılamaz.",
+    );
+    expect(tr["delivery.reshare.noDate"]).toBe(
+      "Bu vizitin tarihi olmadığı için bağlantı oluşturulamaz.",
+    );
+    expect(en["delivery.reshare.closed"]).toBe(
+      "This visit's link window has closed, so the note cannot be shared again.",
+    );
+    expect(en["delivery.reshare.noDate"]).toBe(
+      "This visit has no date, so no link can be created.",
+    );
   });
 
   it("the re-share copy is tr first, siz, with an en mirror", () => {
@@ -121,14 +148,29 @@ describe("(2) sign-out warns while a note is still on the phone", () => {
   });
 });
 
-describe("(3) 'until when' says what the server does", () => {
-  it("states the visit window, and the send window for a late send", () => {
+describe("(3) 'until when' says what the link holder can rely on", () => {
+  // Legal review of #1024 (BLOCK): the line is read by the patient as a
+  // promise to the person they show the link to. Links close at the latest
+  // 72 h after the visit whatever the send time, and an undated visit can have
+  // no link, so neither line may promise a window that does not exist.
+  it("states the link window, which a late send does not extend", () => {
     expect(tr["review.consent.untilValue"]).toBe(
-      "Paylaşım en geç randevunuzdan üç gün sonra kendiliğinden kapanır. Notu randevudan sonra gönderirseniz, gönderdiğiniz andan üç gün sonra kapanır.",
+      "Bağlantılar en geç randevunuzdan üç gün sonra kendiliğinden kapanır. Notu randevudan sonra gönderirseniz de bu süre uzamaz.",
+    );
+    expect(en["review.consent.untilValue"]).toBe(
+      "Links close by themselves at the latest three days after your appointment. Sending the note after the appointment does not extend this.",
     );
     expect(tr["review.consent.untilValueNoDate"]).toBe(
-      "Bu vizitin tarihi olmadığı için paylaşım, notu gönderdiğiniz andan üç gün sonra kendiliğinden kapanır.",
+      "Bu vizitin tarihi olmadığı için bağlantı oluşturulamaz.",
     );
+    expect(en["review.consent.untilValueNoDate"]).toBe(
+      "This visit has no date, so no link can be created.",
+    );
+    // near miss: the blocked wording promised a window from the send
+    for (const key of ["review.consent.untilValue", "review.consent.untilValueNoDate"] as const) {
+      expect(tr[key], key).not.toMatch(/gönderdiğiniz andan/);
+      expect(en[key], key).not.toMatch(/after you send/);
+    }
     for (const key of ["review.consent.untilValue", "review.consent.untilValueNoDate"] as const) {
       // a rule, never a computed instant (02 §2): no numeral in either language
       expect(tr[key], key).not.toMatch(/\d/);
@@ -161,7 +203,10 @@ describe("(4) 'who' names who can open the note, never a hospital", () => {
   it("the line matches share.tr.md's 'Kimler görür'", () => {
     expect(tr["review.consent.recipient"]).toBe("Kim açabilir");
     expect(tr["review.consent.recipientValue"]).toBe(
-      "Oluşturacağınız bağlantıyı ve açma kodunu gösterdiğiniz kişi.",
+      "Oluşturacağınız bağlantı ve açma kodu kimde olursa o kişi.",
+    );
+    expect(en["review.consent.recipientValue"]).toBe(
+      "Whoever has the link and opening code you create.",
     );
     const text = read("..", "..", "docs", "legal", "synthetic", "consents", "share.tr.md");
     expect(text).toMatch(/Bağlantıyı ve kodu kimde varsa, notunuzu o kişi açabilir/);

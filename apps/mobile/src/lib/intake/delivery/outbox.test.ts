@@ -13,6 +13,8 @@ import {
   backoffMs,
   holdForConsent,
   isDue,
+  linkWindow,
+  markShareWithdrawn,
   needsReshare,
   newItem,
   parseItem,
@@ -274,27 +276,49 @@ describe("re-share after a withdrawal", () => {
   const delivered = (at: number): DeliveryItem =>
     settle(queued(), { kind: "delivered", serverVisitId: "srv-1" }, at);
 
-  it("a note delivered BEFORE the withdrawal needs a re-share", () => {
-    const item = delivered(Date.parse("2026-10-29T10:00:00.000Z"));
-    expect(needsReshare(item, "2026-10-29T11:00:00.000Z")).toBe(true);
+  // The mark is on the item itself, which the sealed outbox persists, so the
+  // re-share survives a restart (the consent ledger is in-memory; legal note).
+  it("a note delivered BEFORE a landed withdrawal is marked, and needs a re-share", () => {
+    const item = markShareWithdrawn(
+      delivered(Date.parse("2026-10-29T10:00:00.000Z")),
+      "2026-10-29T11:00:00.000Z",
+    );
+    expect(item.shareWithdrawnAt).toBe("2026-10-29T11:00:00.000Z");
+    expect(needsReshare(item)).toBe(true);
   });
 
-  it("near miss: a note delivered AFTER the withdrawal does not", () => {
+  it("near miss: a note delivered AFTER the withdrawal is not marked", () => {
     const item = delivered(Date.parse("2026-10-29T12:00:00.000Z"));
-    expect(needsReshare(item, "2026-10-29T11:00:00.000Z")).toBe(false);
+    expect(markShareWithdrawn(item, "2026-10-29T11:00:00.000Z")).toBe(item);
+    expect(needsReshare(item)).toBe(false);
   });
 
-  it("near miss: no withdrawal, an undelivered note, or an unreadable instant: no re-share", () => {
-    expect(needsReshare(delivered(T0), null)).toBe(false);
-    expect(needsReshare(queued(), "2026-10-29T11:00:00.000Z")).toBe(false);
-    expect(needsReshare(null, "2026-10-29T11:00:00.000Z")).toBe(false);
-    expect(needsReshare(delivered(T0), "not-a-date")).toBe(false);
+  it("near miss: an undelivered note or an unreadable instant is never marked", () => {
+    const q = queued();
+    expect(markShareWithdrawn(q, "2026-10-29T11:00:00.000Z")).toBe(q);
+    const d = delivered(T0 - 1);
+    expect(markShareWithdrawn(d, "not-a-date")).toBe(d);
+    expect(needsReshare(null)).toBe(false);
+    expect(needsReshare(q)).toBe(false);
+  });
+
+  it("the mark survives the sealed round trip, and an unreadable one is dropped", () => {
+    const marked = markShareWithdrawn(delivered(T0), new Date(T0 + 1).toISOString());
+    const restored = parseItem(JSON.parse(JSON.stringify(marked)));
+    expect(restored?.shareWithdrawnAt).toBe(marked.shareWithdrawnAt);
+    expect(needsReshare(restored)).toBe(true);
+    const garbled = parseItem({ ...JSON.parse(JSON.stringify(marked)), shareWithdrawnAt: 5 });
+    expect(garbled?.shareWithdrawnAt).toBeUndefined();
+    // an item written before INT-589 carries no mark and reads back unmarked
+    const legacy = parseItem(JSON.parse(JSON.stringify(delivered(T0))));
+    expect(needsReshare(legacy)).toBe(false);
   });
 
   it("re-queues the delivered note with the fresh grant and the body again", () => {
-    const item = delivered(T0);
+    const item = markShareWithdrawn(delivered(T0), new Date(T0 + 1).toISOString());
     expect(item.body).toBeNull();
     const next = reshare(item, BODY, LATER_GRANT, T0 + 5);
+    expect(next.shareWithdrawnAt).toBeUndefined();
     expect(next.stage).toBe("queued");
     expect(next.body).toEqual(BODY);
     expect(next.grant).toEqual(LATER_GRANT);
@@ -308,6 +332,39 @@ describe("re-share after a withdrawal", () => {
   it("near miss: only a delivered note can be re-shared", () => {
     const item = queued();
     expect(reshare(item, BODY, LATER_GRANT, T0)).toBe(item);
+  });
+});
+
+/*
+ * INT-589 legal note: a re-share is only worth offering while a Doctor Link
+ * can still be issued. A link closes at the latest 72 h after the visit
+ * (files/02 §2b), and an undated visit cannot have one. The device holds the
+ * visit's DATE, not its hour, so "closed" is claimed only once it is closed
+ * whatever the hour was: 72 h after the END of the visit day in Türkiye.
+ */
+describe("the link window a re-share needs", () => {
+  const at = (iso: string): number => Date.parse(iso);
+
+  it("is open on the visit day and for three days after it", () => {
+    expect(linkWindow("2026-11-02", at("2026-11-02T08:00:00+03:00"))).toBe("open");
+    expect(linkWindow("2026-11-02", at("2026-11-05T23:59:00+03:00"))).toBe("open");
+    expect(linkWindow("2026-11-02", at("2026-10-20T08:00:00+03:00"))).toBe("open");
+  });
+
+  it("is closed once three days have passed after the end of the visit day", () => {
+    expect(linkWindow("2026-11-02", at("2026-11-06T00:00:01+03:00"))).toBe("closed");
+    expect(linkWindow("2026-11-02", at("2026-12-01T12:00:00+03:00"))).toBe("closed");
+  });
+
+  it("near miss: the day boundary is Türkiye's, not UTC's", () => {
+    // 2026-11-05T21:30Z is already 6 Nov 00:30 in Türkiye: closed there
+    expect(linkWindow("2026-11-02", at("2026-11-05T21:30:00Z"))).toBe("closed");
+    // and 2026-11-05T20:30Z is still 5 Nov 23:30 in Türkiye: open
+    expect(linkWindow("2026-11-02", at("2026-11-05T20:30:00Z"))).toBe("open");
+  });
+
+  it("an undated visit has no link window at all", () => {
+    expect(linkWindow(null, at("2026-11-02T08:00:00+03:00"))).toBe("no_date");
   });
 });
 

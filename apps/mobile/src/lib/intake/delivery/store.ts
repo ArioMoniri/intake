@@ -37,6 +37,7 @@ import { attemptDelivery, type DeliveryDeps } from "./engine";
 import {
   holdForConsent,
   isDue,
+  markShareWithdrawn,
   newItem,
   reconfirm,
   reopenable,
@@ -66,6 +67,7 @@ export interface DeliveryRuntime {
 let runtime: DeliveryRuntime | null = null;
 let unwatchConsent: (() => void) | null = null;
 let seenWithdrawal: string | null = null;
+let seenLanded: string | null = null;
 let account: string | null = null;
 let items: Readonly<Record<string, DeliveryItem>> = {};
 let hydrated = false;
@@ -111,7 +113,9 @@ function bindingOf(receipt: ShareGrantReceipt): ShareGrantBinding {
   return { version: receipt.version, textHash: receipt.textHash, atIso: receipt.atIso };
 }
 
-/** A new share withdrawal on this phone parks every unsent note at once. */
+/** A new share withdrawal on this phone parks every unsent note at once; once
+ * the server has taken it, every note delivered before it is marked as having
+ * lost its share (INT-589), on disk, so the re-share survives a restart. */
 function onConsentChange(): void {
   const rt = runtime;
   if (rt === null) {
@@ -121,6 +125,36 @@ function onConsentChange(): void {
   if (withdrawnAt !== null && withdrawnAt !== seenWithdrawal) {
     seenWithdrawal = withdrawnAt;
     void holdDeliveriesForConsent();
+  }
+  const landed = rt.deps.landedShareWithdrawal?.() ?? null;
+  if (landed !== null && landed !== seenLanded) {
+    seenLanded = landed;
+    void markDeliveredShares(landed);
+  }
+}
+
+async function markDeliveredShares(withdrawnAt: string): Promise<void> {
+  const marked: DeliveryItem[] = [];
+  const next: Record<string, DeliveryItem> = { ...items };
+  for (const item of Object.values(items)) {
+    const after = markShareWithdrawn(item, withdrawnAt);
+    if (after !== item) {
+      next[item.visitId] = after;
+      marked.push(after);
+    }
+  }
+  if (marked.length === 0) {
+    return;
+  }
+  const persistence = runtime?.persistence;
+  items = next;
+  notify();
+  for (const item of marked) {
+    try {
+      await persistence?.save(item);
+    } catch {
+      // the mark stands in memory; the item's next change persists it again
+    }
   }
 }
 
@@ -194,6 +228,7 @@ export async function startDelivery(accountId: string, rt: DeliveryRuntime): Pro
   // A withdrawal already on record parks older notes at their next attempt
   // (the engine's own check); only a NEW one parks everything at once.
   seenWithdrawal = rt.deps.lastShareWithdrawal();
+  seenLanded = rt.deps.landedShareWithdrawal?.() ?? null;
   unwatchConsent = rt.watchConsent?.(onConsentChange) ?? null;
   const gen = generation;
   let loaded: DeliveryItem[] = [];
@@ -214,6 +249,11 @@ export async function startDelivery(accountId: string, rt: DeliveryRuntime): Pro
   items = own;
   hydrated = true;
   notify();
+  // a withdrawal the server took before the outbox (re)started still marks
+  // the notes delivered before it
+  if (seenLanded !== null) {
+    await markDeliveredShares(seenLanded);
+  }
   await runDueDeliveries();
 }
 
@@ -223,6 +263,7 @@ export function stopDelivery(): void {
   unwatchConsent?.();
   unwatchConsent = null;
   seenWithdrawal = null;
+  seenLanded = null;
   cancelTimer?.();
   cancelTimer = null;
   runtime = null;

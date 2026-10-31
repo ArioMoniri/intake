@@ -274,6 +274,19 @@ export async function withdrawShareLocal(atIso?: string): Promise<WithdrawalOutc
   return clear ? "landed" : "unsent";
 }
 
+/**
+ * INT-589: the share withdrawal's instant once the server has taken it, else
+ * null. That is the moment its shares and links are gone server-side. Null
+ * while any withdrawal is still queued, and null after a refusal, which puts
+ * the standing back to `unknown`.
+ */
+export function landedShareWithdrawal(): string | null {
+  if (state.share.standing !== "withdrawn" || state.share.withdrawnAt === null) {
+    return null;
+  }
+  return state.queue.some((op) => op.kind === "withdraw") ? null : state.share.withdrawnAt;
+}
+
 /** Push every queued consent change; true once none is left on the phone. */
 export async function consentQueueClear(): Promise<boolean> {
   await flushConsentQueue();

@@ -42,6 +42,10 @@ export interface DeliveryDeps {
   shareStanding(): ShareStanding;
   /** When the share consent was last withdrawn on this phone, or null. */
   lastShareWithdrawal(): string | null;
+  /** INT-589: that withdrawal's instant once the server has taken it, else
+   * null. The outbox marks delivered notes off this one, never off a
+   * withdrawal still queued or refused. */
+  landedShareWithdrawal?(): string | null;
   /** Push every queued consent change; true once none is left on the phone. */
   flushConsent(): Promise<boolean>;
   resolveServerVisit(visit: VisitIdentity, visitId: string): Promise<ResolveResult>;

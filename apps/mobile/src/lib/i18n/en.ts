@@ -1246,13 +1246,11 @@ export const en: Record<MessageKey, string> = {
   "review.consent.sections": "Sections being shared",
   "review.consent.nothing": "No section is being shared right now.",
   "review.consent.recipient": "Who can open it",
-  "review.consent.recipientValue":
-    "The person you show the link and opening code to, once you create them.",
+  "review.consent.recipientValue": "Whoever has the link and opening code you create.",
   "review.consent.until": "Until when",
   "review.consent.untilValue":
-    "Sharing closes by itself at the latest three days after your appointment. If you send the note after the appointment, it closes three days after you send it.",
-  "review.consent.untilValueNoDate":
-    "This visit has no date, so sharing closes by itself three days after you send the note.",
+    "Links close by themselves at the latest three days after your appointment. Sending the note after the appointment does not extend this.",
+  "review.consent.untilValueNoDate": "This visit has no date, so no link can be created.",
   "csat.title": "How was this conversation?",
   "csat.optional": "This question is optional. Your note was sent whether you answer or not.",
   "csat.scoreGroup": "Rate the conversation",
@@ -1367,6 +1365,9 @@ export const en: Record<MessageKey, string> = {
     "You withdrew your sharing consent, so this note's links closed. If you want to share it again, you can give your consent again for this note.",
   "delivery.reshare.declined": "This note is not shared with anyone right now.",
   "delivery.reshare.pending": "You can share this note again once the sharing text is ready.",
+  "delivery.reshare.closed":
+    "This visit's link window has closed, so the note cannot be shared again.",
+  "delivery.reshare.noDate": "This visit has no date, so no link can be created.",
   "delivery.status.title": "Delivery status",
   "delivery.queued":
     "Your note is waiting to be sent. It goes on its own once the server can be reached.",
