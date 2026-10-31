@@ -4685,3 +4685,13 @@
   - Tests first: red 4 vitest + 2 pytest; green brand 19, mobile 2972, legal + release 964.
 - Next: merge #995 (INT-587) before or with #1001, then TestFlight build 7.
 - LOOP_STATUS: CONTINUE
+
+### 2026-10-31T02:50:00+03:00 · INT-598 · done (PR open)
+- Goal: GitHub #1015, found in INT-594. Vizitlerim's chips and the cards' spoken names read the raw `noteStatus`, which is null for every hospital-feed visit, so an OTP list never showed a status.
+- Plan: each row becomes a `VisitRow` that resolves `effectiveStatus` against its draft and its own outbox item, the same rule as the visit detail and Bugün. No copy changes.
+- Tests: `e2e/visitsChips.spec.ts`, 10 tests (near misses: sent-not-confirmed stays Taslak; delivery without a send is not Gönderildi; no raw `visit.noteStatus ===`). Red: 3 failed. Green: mobile 155 files / 3161 tests; tsc 0; backlog and smoke pins at 387. 1 of 1 mutation killed.
+- Invariants touched and still passing: 4, 5, 16 (Sec-Row `mobile`), 17.
+- Decisions / ADRs / `00_STATE.md` rows: none.
+- Blocked on: nothing.
+- Next: INT-589.
+- LOOP_STATUS: CONTINUE
