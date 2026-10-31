@@ -4700,5 +4700,6 @@
   - The duration guard now also catches spelled-out numbers and hours. Near misses: an article "bir", clock "saat", an ordinal "a second".
   - "Sıradaki vizit" never labels a past visit: `todayFocus` takes the injected clock's date, keeps upcoming visits only (`splitVisits`), and orders them soonest first.
   - Red 6 failed; green 24 and mobile 3173; 2 of 2 mutations killed. Evidence §7.
+- Update (legal boundary on #1013): a visit stays on Bugün for its whole day in Türkiye, whatever its hour. That was already the behaviour; 4 tests with TR/UTC near misses now pin it, and a mutation (exclusive day comparison) is killed. Keeping it through the 72 h link window would put "Sıradaki vizit" on a past visit, so that is offered as a follow-up with its own label. Evidence §8.
 - Next: INT-502 can restore the `bugun` store frame.
 - LOOP_STATUS: CONTINUE

@@ -17,6 +17,7 @@ import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { join, relative, sep } from "node:path";
 import { describe, expect, it } from "vitest";
 
+import { todayIso } from "./clock";
 import { en } from "./i18n/en";
 import { tr } from "./i18n/tr";
 import { emptyNoteState, type NoteState } from "./intake/note";
@@ -186,6 +187,56 @@ describe("only an upcoming visit can be Bugün's 'Sıradaki vizit'", () => {
     expect(screen).toMatch(/export default function Today\(\{ clock = deviceClock \}/);
     expect(screen).toContain("todayIso(clock)");
     expect(screen).toMatch(/todayFocus\(visits, notes, [\s\S]*?, today\);/);
+  });
+});
+
+/*
+ * Legal review of #1013, the boundary: the patient needs the visit on Bugün
+ * at the hospital, to show the Doctor Link. So "upcoming" is decided by the
+ * visit's DAY in Türkiye, never by its hour. A visit stays the focus until
+ * that day is over there, however long ago its appointment hour passed.
+ */
+describe("a visit stays on Bugün for its whole day in Türkiye", () => {
+  /** The feed puts the hour in the department line ("Kardiyoloji · 09:00"). */
+  const morning = (id: string, date: string): VisitFixture => ({
+    ...feedVisit(id),
+    department: "Kardiyoloji · 09:00",
+    date,
+  });
+  const istanbul = (iso: string): string => todayIso(() => new Date(iso));
+
+  it("after its 09:00 appointment, at 17:00 the same day, it is still the focus", () => {
+    const today = istanbul("2026-11-03T17:00:00+03:00");
+    expect(today).toBe("2026-11-03");
+    const v = morning("v", "2026-11-03");
+    expect(todayFocus([v], {}, NONE_DELIVERED, today).kind).toBe("prepare");
+    expect(todayFocus([v], { v: answered() }, NONE_DELIVERED, today).kind).toBe("continue");
+    // and the delivered note the patient shows at the hospital stays there too
+    expect(todayFocus([v], { v: sentByPatient() }, deliveredOnly("v"), today)).toMatchObject({
+      kind: "sent",
+      cta: "today.openCta",
+    });
+  });
+
+  it("at 23:59 in Türkiye it is still the focus, although UTC already says 20:59", () => {
+    const today = istanbul("2026-11-03T20:59:00Z");
+    expect(today).toBe("2026-11-03");
+    expect(todayFocus([morning("v", "2026-11-03")], {}, NONE_DELIVERED, today).kind).toBe(
+      "prepare",
+    );
+  });
+
+  it("near miss: at 00:30 in Türkiye the next day it is gone, although UTC still names its day", () => {
+    const today = istanbul("2026-11-03T21:30:00Z");
+    expect(today).toBe("2026-11-04");
+    expect(todayFocus([morning("v", "2026-11-03")], {}, NONE_DELIVERED, today)).toEqual({
+      kind: "none",
+    });
+  });
+
+  it("near miss: the hour in the department line is never read as a cut-off", () => {
+    const source = read("src", "lib", "today.ts");
+    expect(source).not.toMatch(/department|getHours|\.time\b/);
   });
 });
 
