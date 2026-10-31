@@ -13,12 +13,17 @@ import {
   backoffMs,
   holdForConsent,
   isDue,
+  linkWindow,
+  markShareWithdrawn,
+  needsReshare,
   newItem,
   parseItem,
   reconfirm,
   reopenable,
+  reshare,
   retryNow,
   settle,
+  unsentItems,
   type DeliveryItem,
 } from "./outbox";
 import type { NotePutBody } from "./payload";
@@ -258,5 +263,146 @@ describe("a stored item is validated before it is trusted", () => {
       expect(restored?.grant).toBeNull();
       expect(restored?.body).toEqual(BODY); // kept, not dropped
     }
+  });
+});
+
+/*
+ * INT-589 (1): after the patient withdraws the share consent, the server
+ * revokes the delivered note's share and links (consents.py), so the note can
+ * no longer be linked. A re-share is a fresh grant FOR THIS NOTE and the same
+ * frozen body sent again; the server recreates the share in that PUT.
+ */
+describe("re-share after a withdrawal", () => {
+  const delivered = (at: number): DeliveryItem =>
+    settle(queued(), { kind: "delivered", serverVisitId: "srv-1" }, at);
+
+  // The mark is on the item itself, which the sealed outbox persists, so the
+  // re-share survives a restart (the consent ledger is in-memory; legal note).
+  it("a note delivered BEFORE a landed withdrawal is marked, and needs a re-share", () => {
+    const item = markShareWithdrawn(
+      delivered(Date.parse("2026-10-29T10:00:00.000Z")),
+      "2026-10-29T11:00:00.000Z",
+    );
+    expect(item.shareWithdrawnAt).toBe("2026-10-29T11:00:00.000Z");
+    expect(needsReshare(item)).toBe(true);
+  });
+
+  it("near miss: a note delivered AFTER the withdrawal is not marked", () => {
+    const item = delivered(Date.parse("2026-10-29T12:00:00.000Z"));
+    expect(markShareWithdrawn(item, "2026-10-29T11:00:00.000Z")).toBe(item);
+    expect(needsReshare(item)).toBe(false);
+  });
+
+  it("near miss: an undelivered note or an unreadable instant is never marked", () => {
+    const q = queued();
+    expect(markShareWithdrawn(q, "2026-10-29T11:00:00.000Z")).toBe(q);
+    const d = delivered(T0 - 1);
+    expect(markShareWithdrawn(d, "not-a-date")).toBe(d);
+    expect(needsReshare(null)).toBe(false);
+    expect(needsReshare(q)).toBe(false);
+  });
+
+  it("the mark survives the sealed round trip, and an unreadable one is dropped", () => {
+    const marked = markShareWithdrawn(delivered(T0), new Date(T0 + 1).toISOString());
+    const restored = parseItem(JSON.parse(JSON.stringify(marked)));
+    expect(restored?.shareWithdrawnAt).toBe(marked.shareWithdrawnAt);
+    expect(needsReshare(restored)).toBe(true);
+    const garbled = parseItem({ ...JSON.parse(JSON.stringify(marked)), shareWithdrawnAt: 5 });
+    expect(garbled?.shareWithdrawnAt).toBeUndefined();
+    // an item written before INT-589 carries no mark and reads back unmarked
+    const legacy = parseItem(JSON.parse(JSON.stringify(delivered(T0))));
+    expect(needsReshare(legacy)).toBe(false);
+  });
+
+  it("re-queues the delivered note with the fresh grant and the body again", () => {
+    const item = markShareWithdrawn(delivered(T0), new Date(T0 + 1).toISOString());
+    expect(item.body).toBeNull();
+    const next = reshare(item, BODY, LATER_GRANT, T0 + 5);
+    expect(next.shareWithdrawnAt).toBeUndefined();
+    expect(next.stage).toBe("queued");
+    expect(next.body).toEqual(BODY);
+    expect(next.grant).toEqual(LATER_GRANT);
+    expect(next.deliveredAt).toBeNull();
+    expect(next.attempts).toBe(0);
+    expect(isDue(next, T0 + 5)).toBe(true);
+    // the server visit it reached is kept: the PUT goes to the same visit
+    expect(next.serverVisitId).toBe("srv-1");
+  });
+
+  it("near miss: only a delivered note can be re-shared", () => {
+    const item = queued();
+    expect(reshare(item, BODY, LATER_GRANT, T0)).toBe(item);
+  });
+});
+
+/*
+ * INT-589 legal note: a re-share is only worth offering while a Doctor Link
+ * can still be issued. A link closes at the latest 72 h after the visit
+ * (files/02 §2b), and an undated visit cannot have one. The device holds the
+ * visit's DATE, not its hour, and the server's note answer carries no close
+ * instant, so the window is anchored where the server's own fallback is: the
+ * START of the visit day in Türkiye + 72 h. That is never later than the
+ * server's link close (the appointment hour can only move it later), so the
+ * card never asks for consent to a share whose links are already dead.
+ */
+describe("the link window a re-share needs", () => {
+  const at = (iso: string): number => Date.parse(iso);
+
+  it("is open from before the visit until 72 h after the start of its day", () => {
+    expect(linkWindow("2026-11-02", at("2026-10-20T08:00:00+03:00"))).toBe("open");
+    expect(linkWindow("2026-11-02", at("2026-11-02T08:00:00+03:00"))).toBe("open");
+    expect(linkWindow("2026-11-02", at("2026-11-04T23:59:59+03:00"))).toBe("open");
+  });
+
+  it("is closed from 72 h after the start of the visit day", () => {
+    expect(linkWindow("2026-11-02", at("2026-11-05T00:00:00+03:00"))).toBe("closed");
+    expect(linkWindow("2026-11-02", at("2026-12-01T12:00:00+03:00"))).toBe("closed");
+  });
+
+  it("near miss: never later than the server's close, even for a midnight appointment", () => {
+    // the earliest the server can close a link for this visit: 00:00 + 72 h
+    const serverEarliestClose = at("2026-11-02T00:00:00+03:00") + 72 * 60 * 60 * 1_000;
+    expect(linkWindow("2026-11-02", serverEarliestClose - 1)).toBe("open");
+    expect(linkWindow("2026-11-02", serverEarliestClose)).toBe("closed");
+    // the end-of-day anchor the review replaced would still say open here
+    expect(linkWindow("2026-11-02", at("2026-11-05T12:00:00+03:00"))).toBe("closed");
+  });
+
+  it("near miss: the day boundary is Türkiye's, not UTC's", () => {
+    // 2026-11-04T21:30Z is already 5 Nov 00:30 in Türkiye: closed there
+    expect(linkWindow("2026-11-02", at("2026-11-04T21:30:00Z"))).toBe("closed");
+    // and 2026-11-04T20:30Z is still 4 Nov 23:30 in Türkiye: open
+    expect(linkWindow("2026-11-02", at("2026-11-04T20:30:00Z"))).toBe("open");
+  });
+
+  it("an undated visit has no link window at all", () => {
+    expect(linkWindow(null, at("2026-11-02T08:00:00+03:00"))).toBe("no_date");
+  });
+});
+
+/*
+ * INT-589 (2): sign-out shreds the outbox with the drafts. A note still on
+ * the phone — queued, refused or waiting for consent — is lost then, so the
+ * sign-out warns while there is one.
+ */
+describe("which notes a sign-out would lose", () => {
+  it("lists every note not yet delivered, and no delivered one", () => {
+    const items: Record<string, DeliveryItem> = {
+      a: queued(),
+      b: { ...queued(), visitId: "b", stage: "refused", refusal: "rejected" },
+      c: holdForConsent({ ...queued(), visitId: "c" }),
+      d: settle({ ...queued(), visitId: "d" }, { kind: "delivered", serverVisitId: "s" }, T0),
+    };
+    expect(
+      unsentItems(items)
+        .map((item) => item.visitId)
+        .sort(),
+    ).toEqual(["b", "c", "v-local-1"]);
+  });
+
+  it("near miss: an outbox of delivered notes loses nothing", () => {
+    const d = settle(queued(), { kind: "delivered", serverVisitId: "s" }, T0);
+    expect(unsentItems({ [d.visitId]: d })).toEqual([]);
+    expect(unsentItems({})).toEqual([]);
   });
 });

@@ -20,6 +20,7 @@ import { AppState, type NativeEventSubscription } from "react-native";
 import { authedFetch } from "@/lib/auth/api";
 import {
   consentQueueClear,
+  landedShareWithdrawal,
   lastShareWithdrawal,
   shareStanding,
   subscribeToLedger,
@@ -37,6 +38,7 @@ let foreground: NativeEventSubscription | null = null;
 const deps: DeliveryDeps = {
   shareStanding,
   lastShareWithdrawal,
+  landedShareWithdrawal,
   flushConsent: consentQueueClear,
   async resolveServerVisit(visit): Promise<ResolveResult> {
     try {

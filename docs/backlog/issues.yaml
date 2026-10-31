@@ -7687,3 +7687,26 @@
     - "The API's OpenBao policy grants read-only access to the path; the migration outcome is observable with ids only and catalogued; files/10 §9 and the threat-model residual are updated; tests first with near misses."
   tests: [tests/api/test_tokenization_key.py, tests/api/test_tokenization_probe.py, tests/infra/test_staging_tokenization_key.py, tests/infra/test_staging_compose.py, tests/infra/test_staging_netgsm.py, tests/api/test_previsit_output.py, tests/api/test_otp_netgsm_wiring.py]
   sec_row: "onboarding"
+- id: INT-589
+  epic: E08-mobile
+  phase: P2
+  title: "Note delivery follow-ups — re-share after withdrawal, sign-out warning for a queued note, share lifetime vs appointment, truthful link errors"
+  # GitHub #990, 29-30 Oct 2026, from the independent legal review of INT-587
+  # (#988) and its re-check. N1 (clinic_admin read path vs share.tr.md
+  # "Kimler görür") and N2 (switched-off sections uploaded in full) are for
+  # counsel and change no code here.
+  depends_on: [INT-587]
+  labels: [area:mobile, area:api]
+  status: done
+  evidence: docs/evidence/INT-589.md
+  acceptance:
+    - "after a share-consent withdrawal a delivered note can be shared again on a fresh grant given for that note, and shares.issue.error.notShared is true in every case"
+    - "sign-out warns while a note is still on the phone (queued, refused or waiting for consent) and lets the patient open it to send it or keep it by staying signed in"
+    - "the server share lives until the visit's window closes (visit instant + 72 h, the Doctor Link's anchor), never less than 72 h from the send, follows a reschedule and is never revived once revoked; review.consent.untilValue says so, with a line for an undated visit"
+    - "review.consent.recipient names who can open the note (the holder of the link and code the patient creates, share.tr.md), never the visit's hospital"
+    - "a share withdrawal the server refuses is shown as not done and offered again; notes granted before it stay parked"
+    - "the grant and the last withdrawal are compared as instants (Date.parse), and an unreadable instant fails closed"
+    - "TDD with near misses; tr copy first, siz, PolicyGuard and the i18n gate green; legal-reviewer on the copy"
+  tests: [tests/api/test_share_lifetime.py, apps/mobile/e2e/deliveryFollowups.spec.ts, apps/mobile/src/lib/intake/delivery/outbox.test.ts, apps/mobile/src/lib/intake/delivery/engine.test.ts, apps/mobile/src/lib/intake/delivery/consentBinding.test.ts, apps/mobile/src/lib/consent/store.test.ts, apps/mobile/src/lib/intake/share.test.ts]
+  legal: "KVKK-6"
+  sec_row: "review-send"

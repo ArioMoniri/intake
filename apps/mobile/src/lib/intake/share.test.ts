@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { buildNote, emptyNoteState, noteReducer, type NoteAccount, type NoteState } from "./note";
-import { SHARE_EXPIRY_ANCHOR, shareSummary } from "./share";
+import { SHARE_EXPIRY_ANCHOR, SHARE_OPENER, shareSummary } from "./share";
 
 const ACCOUNT: NoteAccount = { carriedFacts: [] };
 
@@ -15,20 +15,20 @@ function answered(): NoteState {
 
 describe("consent summary — what is shared", () => {
   it("names the sections that will actually be sent, in note order", () => {
-    const summary = shareSummary(answered(), ACCOUNT, null);
+    const summary = shareSummary(answered(), ACCOUNT);
     expect(summary.sections.length).toBeGreaterThan(0);
     expect(new Set(summary.sections).size).toBe(summary.sections.length);
   });
 
   it("drops a section the patient scoped off — the summary cannot promise more than the send", () => {
     const state = answered();
-    const before = shareSummary(state, ACCOUNT, null).sections;
+    const before = shareSummary(state, ACCOUNT).sections;
     const off = noteReducer(state, {
       type: "scope",
       sectionId: "chief_complaint",
       shared: false,
     });
-    const after = shareSummary(off, ACCOUNT, null).sections;
+    const after = shareSummary(off, ACCOUNT).sections;
     expect(after.length).toBe(before.length - 1);
   });
 
@@ -37,28 +37,30 @@ describe("consent summary — what is shared", () => {
     for (const section of buildNote(state.answers, ACCOUNT, null, [], {})) {
       state = noteReducer(state, { type: "scope", sectionId: section.id, shared: false });
     }
-    expect(shareSummary(state, ACCOUNT, null).sections).toEqual([]);
+    expect(shareSummary(state, ACCOUNT).sections).toEqual([]);
   });
 });
 
-describe("consent summary — with whom", () => {
-  it("names the visit's recipient when there is one", () => {
-    const summary = shareSummary(answered(), ACCOUNT, {
-      hospital: "Acıbadem Maslak",
-      department: "Kardiyoloji",
-    });
-    expect(summary.recipient).toEqual({ hospital: "Acıbadem Maslak", department: "Kardiyoloji" });
+describe("consent summary — with whom (INT-589)", () => {
+  // The visit's hospital receives nothing: no reader is registered for it.
+  // share.tr.md's "Kimler görür" is the truth — whoever holds the link and
+  // the code the patient creates and shows can open the note.
+  it("names who can open the note: the holder of the link the patient creates", () => {
+    expect(SHARE_OPENER).toBe("link_holder");
+    expect(shareSummary(answered(), ACCOUNT).opener).toBe("link_holder");
   });
 
-  it("leaves the recipient null rather than filling in a plausible one", () => {
-    expect(shareSummary(answered(), ACCOUNT, null).recipient).toBeNull();
+  it("near miss: the summary carries no hospital or department at all", () => {
+    const summary = shareSummary(answered(), ACCOUNT) as unknown as Record<string, unknown>;
+    expect(Object.keys(summary).sort()).toEqual(["expiryAnchor", "opener", "sections"]);
+    expect(JSON.stringify(summary)).not.toMatch(/hospital|department/);
   });
 });
 
 describe("consent summary — until when", () => {
   it("states the anchor 02 §2 pins, never issue time", () => {
     expect(SHARE_EXPIRY_ANCHOR).toBe("visit_datetime");
-    expect(shareSummary(answered(), ACCOUNT, null).expiryAnchor).toBe("visit_datetime");
+    expect(shareSummary(answered(), ACCOUNT).expiryAnchor).toBe("visit_datetime");
   });
 
   it("computes no clock of its own — the module reaches no Date at all", async () => {

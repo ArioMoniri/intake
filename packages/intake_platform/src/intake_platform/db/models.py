@@ -810,7 +810,8 @@ class Share(Base):
         nullable=False,
         info=inv(
             CAT_CONSENT,
-            "hard expiry of the share token (≤ 72 h default, 06 §3)",
+            "hard expiry of the share token: 72 h after the visit, never under 72 h "
+            "from the send (02 §2b, 06 §3, INT-589)",
             BASIS_HEALTH_CONSENT,
             RET_SHARE,
             REC_INTERNAL,

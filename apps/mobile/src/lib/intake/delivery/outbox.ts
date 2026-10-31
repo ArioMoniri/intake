@@ -23,6 +23,7 @@
  *   note's text is dropped from the item here: the server holds it now, and
  *   the phone keeps only what it needs to address the share.
  */
+import { isoDateIn } from "../../clock";
 import { isNotePutBody, type NotePutBody } from "./payload";
 
 export type DeliveryStage = "queued" | "awaiting_consent" | "refused" | "delivered";
@@ -77,6 +78,13 @@ export interface DeliveryItem {
   deliveredAt: number | null;
   /** This note's own share grant; null while parked for consent. */
   grant: ShareGrantBinding | null;
+  /**
+   * INT-589: when a share withdrawal that LANDED after this note's delivery
+   * took its share away (the server revokes every share and link then). Kept
+   * on the item, which the sealed outbox persists, so the re-share survives a
+   * restart; the consent ledger is in-memory. Absent while the share stands.
+   */
+  shareWithdrawnAt?: string;
 }
 
 export const BACKOFF = { baseMs: 2_000, capMs: 15 * 60 * 1_000 } as const;
@@ -210,6 +218,89 @@ export function reopenable(item: DeliveryItem | null): boolean {
   return item === null || item.stage === "awaiting_consent" || item.stage === "refused";
 }
 
+/**
+ * INT-589 (1): a share withdrawal the server took, `withdrawnAt`, removed this
+ * DELIVERED note's share if it came after the delivery (consents.py revokes
+ * every share and link). Instants are compared as instants; an unreadable one
+ * marks nothing.
+ */
+export function markShareWithdrawn(item: DeliveryItem, withdrawnAt: string): DeliveryItem {
+  if (item.stage !== "delivered" || item.deliveredAt === null) {
+    return item;
+  }
+  const withdrawn = Date.parse(withdrawnAt);
+  if (!Number.isFinite(withdrawn) || withdrawn <= item.deliveredAt) {
+    return item;
+  }
+  return { ...item, shareWithdrawnAt: withdrawnAt };
+}
+
+/** Whether a delivered note lost its share and can only be linked again
+ * after it is shared again. */
+export function needsReshare(item: DeliveryItem | null): boolean {
+  return item !== null && item.stage === "delivered" && item.shareWithdrawnAt !== undefined;
+}
+
+/** Where the link window stands for a visit on `visitDate` (ISO day). */
+export type LinkWindow = "open" | "closed" | "no_date";
+
+/**
+ * INT-589 legal note: a re-share is worth offering only while a Doctor Link
+ * can still be issued. A link closes at the latest 72 h after the visit
+ * (files/02 §2b), and an undated visit cannot have one (`visit_date_unknown`).
+ * The phone holds the visit's DATE and not its hour, and the server's note
+ * answer carries no close instant. So the window is anchored where the
+ * server's own fallback is: the START of the visit day in Türkiye + 72 h
+ * (legal review of #1024). That is never later than the server's link close,
+ * which the appointment hour can only move later, so the card never asks for
+ * consent to a share whose links are already dead.
+ *
+ * "now − 72 h falls on a day before the visit day" is exactly "now < start of
+ * the visit day + 72 h". Türkiye keeps one offset all year, so 72 h is three
+ * calendar days there.
+ */
+export function linkWindow(visitDate: string | null, now: number): LinkWindow {
+  if (visitDate === null) {
+    return "no_date";
+  }
+  return isoDateIn(new Date(now - LINK_WINDOW_MS)) < visitDate ? "open" : "closed";
+}
+
+const LINK_WINDOW_MS = 72 * 60 * 60 * 1_000;
+
+/**
+ * Share a delivered note again: the same frozen body, bound to a fresh grant
+ * given FOR THIS NOTE, queued as a send of its own. The server recreates the
+ * share in that PUT (notes.write_note). Only a delivered note is re-shared; a
+ * note still on its way is reconfirmed instead (`reconfirm`).
+ */
+export function reshare(
+  item: DeliveryItem,
+  body: NotePutBody,
+  grant: ShareGrantBinding,
+  now: number,
+): DeliveryItem {
+  if (item.stage !== "delivered") {
+    return item;
+  }
+  const { shareWithdrawnAt: _withdrawn, ...rest } = item;
+  return {
+    ...rest,
+    body,
+    stage: "queued",
+    attempts: 0,
+    nextAttemptAt: now,
+    refusal: null,
+    deliveredAt: null,
+    grant: { ...grant },
+  };
+}
+
+/** INT-589 (2): every note a sign-out would shred before it reached anyone. */
+export function unsentItems(items: Readonly<Record<string, DeliveryItem>>): DeliveryItem[] {
+  return Object.values(items).filter((item) => item.stage !== "delivered");
+}
+
 function isString(value: unknown): value is string {
   return typeof value === "string";
 }
@@ -305,6 +396,10 @@ export function parseItem(raw: unknown): DeliveryItem | null {
     deliveredAt: item.deliveredAt as number | null,
     grant: parseGrant(item.grant),
   };
+  // INT-589: only a delivered note carries the mark; anything unreadable is dropped
+  if (stage === "delivered" && isString(item.shareWithdrawnAt)) {
+    parsed.shareWithdrawnAt = item.shareWithdrawnAt;
+  }
   // A note that could still leave the phone but carries no valid grant of its
   // own comes back parked — kept, never sendable, never resurrected.
   if ((stage === "queued" || stage === "refused") && parsed.grant === null) {

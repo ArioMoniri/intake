@@ -37,9 +37,11 @@ import { attemptDelivery, type DeliveryDeps } from "./engine";
 import {
   holdForConsent,
   isDue,
+  markShareWithdrawn,
   newItem,
   reconfirm,
   reopenable,
+  reshare,
   retryNow,
   type DeliveryItem,
   type ShareGrantBinding,
@@ -65,6 +67,7 @@ export interface DeliveryRuntime {
 let runtime: DeliveryRuntime | null = null;
 let unwatchConsent: (() => void) | null = null;
 let seenWithdrawal: string | null = null;
+let seenLanded: string | null = null;
 let account: string | null = null;
 let items: Readonly<Record<string, DeliveryItem>> = {};
 let hydrated = false;
@@ -110,7 +113,9 @@ function bindingOf(receipt: ShareGrantReceipt): ShareGrantBinding {
   return { version: receipt.version, textHash: receipt.textHash, atIso: receipt.atIso };
 }
 
-/** A new share withdrawal on this phone parks every unsent note at once. */
+/** A new share withdrawal on this phone parks every unsent note at once; once
+ * the server has taken it, every note delivered before it is marked as having
+ * lost its share (INT-589), on disk, so the re-share survives a restart. */
 function onConsentChange(): void {
   const rt = runtime;
   if (rt === null) {
@@ -120,6 +125,36 @@ function onConsentChange(): void {
   if (withdrawnAt !== null && withdrawnAt !== seenWithdrawal) {
     seenWithdrawal = withdrawnAt;
     void holdDeliveriesForConsent();
+  }
+  const landed = rt.deps.landedShareWithdrawal?.() ?? null;
+  if (landed !== null && landed !== seenLanded) {
+    seenLanded = landed;
+    void markDeliveredShares(landed);
+  }
+}
+
+async function markDeliveredShares(withdrawnAt: string): Promise<void> {
+  const marked: DeliveryItem[] = [];
+  const next: Record<string, DeliveryItem> = { ...items };
+  for (const item of Object.values(items)) {
+    const after = markShareWithdrawn(item, withdrawnAt);
+    if (after !== item) {
+      next[item.visitId] = after;
+      marked.push(after);
+    }
+  }
+  if (marked.length === 0) {
+    return;
+  }
+  const persistence = runtime?.persistence;
+  items = next;
+  notify();
+  for (const item of marked) {
+    try {
+      await persistence?.save(item);
+    } catch {
+      // the mark stands in memory; the item's next change persists it again
+    }
   }
 }
 
@@ -193,6 +228,7 @@ export async function startDelivery(accountId: string, rt: DeliveryRuntime): Pro
   // A withdrawal already on record parks older notes at their next attempt
   // (the engine's own check); only a NEW one parks everything at once.
   seenWithdrawal = rt.deps.lastShareWithdrawal();
+  seenLanded = rt.deps.landedShareWithdrawal?.() ?? null;
   unwatchConsent = rt.watchConsent?.(onConsentChange) ?? null;
   const gen = generation;
   let loaded: DeliveryItem[] = [];
@@ -213,6 +249,11 @@ export async function startDelivery(accountId: string, rt: DeliveryRuntime): Pro
   items = own;
   hydrated = true;
   notify();
+  // a withdrawal the server took before the outbox (re)started still marks
+  // the notes delivered before it
+  if (seenLanded !== null) {
+    await markDeliveredShares(seenLanded);
+  }
   await runDueDeliveries();
 }
 
@@ -222,6 +263,7 @@ export function stopDelivery(): void {
   unwatchConsent?.();
   unwatchConsent = null;
   seenWithdrawal = null;
+  seenLanded = null;
   cancelTimer?.();
   cancelTimer = null;
   runtime = null;
@@ -271,6 +313,31 @@ export async function reconfirmDelivery(
     await commit(next);
   }
   await runDueDeliveries();
+}
+
+/**
+ * INT-589: share a delivered note again after a withdrawal took its share
+ * away. The patient agreed again FOR THIS NOTE, and the frozen body goes out
+ * once more bound to that grant. A receipt for another note, or a note that is
+ * not delivered, re-shares nothing (false).
+ */
+export async function reshareDelivery(
+  visitId: string,
+  body: NotePutBody,
+  receipt: ShareGrantReceipt,
+): Promise<boolean> {
+  const rt = runtime;
+  const item = items[visitId];
+  if (rt === null || item === undefined || !isReceiptFor(receipt, visitId)) {
+    return false;
+  }
+  const next = reshare(item, body, bindingOf(receipt), rt.now());
+  if (next === item) {
+    return false;
+  }
+  await commit(next);
+  await runDueDeliveries();
+  return true;
 }
 
 /** The patient's "Tekrar deneyin" on a refused item. */
@@ -385,6 +452,18 @@ export function useDelivery(visitId: string): DeliveryItem | null {
     () => deliveryOf(visitId),
     () => deliveryOf(visitId),
   );
+}
+
+/** Every item by visit id. Each change replaces the map, so one value is a
+ * stable snapshot until the next change. */
+export function allDeliveries(): Readonly<Record<string, DeliveryItem>> {
+  return items;
+}
+
+/** React binding: every visit's item at once. Bugün reads several visits
+ * (INT-594), and hooks cannot be called in a loop. */
+export function useDeliveries(): Readonly<Record<string, DeliveryItem>> {
+  return useSyncExternalStore(subscribeToDeliveries, allDeliveries, allDeliveries);
 }
 
 /** React binding: false until this account's outbox has been read from disk. */

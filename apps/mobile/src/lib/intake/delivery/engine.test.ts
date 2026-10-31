@@ -214,3 +214,40 @@ describe("an attempt never throws", () => {
     }
   });
 });
+
+/*
+ * INT-589 (legal re-check of INT-587): the grant and the withdrawal are
+ * instants, compared as instants (Date.parse), not as ISO strings. The same
+ * moment can carry another offset, and a string comparison then gets the
+ * order wrong.
+ */
+describe("the grant and the last withdrawal are compared as instants", () => {
+  it("a grant later in time stands although its string sorts first", async () => {
+    // grant 10:00Z; withdrawal 12:30 in Türkiye = 09:30Z, BEFORE the grant.
+    // As strings "…T10:00…Z" < "…T12:30…+03:00" read it the other way round.
+    const d = deps({ lastShareWithdrawal: () => "2026-10-29T12:30:00+03:00" });
+    const next = await attemptDelivery(item(), d, T0);
+    expect(d.calls).toEqual(["flush", "resolve", "put"]);
+    expect(next.stage).toBe("delivered");
+  });
+
+  it("near miss: a withdrawal later in time parks the note although its string sorts first", async () => {
+    // withdrawal 10:30Z written as "…T08:30…-02:00": after the 10:00Z grant
+    const d = deps({ lastShareWithdrawal: () => "2026-10-29T08:30:00-02:00" });
+    const next = await attemptDelivery(item(), d, T0);
+    expect(d.calls).toEqual([]);
+    expect(next.stage).toBe("awaiting_consent");
+  });
+
+  it("near miss: an unreadable instant fails closed — the note is parked", async () => {
+    for (const withdrawnAt of ["not-a-date", ""]) {
+      const d = deps({ lastShareWithdrawal: () => withdrawnAt });
+      const next = await attemptDelivery(item(), d, T0);
+      expect(d.calls, withdrawnAt).toEqual([]);
+      expect(next.stage).toBe("awaiting_consent");
+    }
+    const unreadableGrant = { ...item(), grant: { ...GRANT, atIso: "yesterday" } };
+    const d = deps({ lastShareWithdrawal: () => "2026-10-29T09:00:00.000Z" });
+    expect((await attemptDelivery(unreadableGrant, d, T0)).stage).toBe("awaiting_consent");
+  });
+});

@@ -67,7 +67,7 @@ import {
   useStackHeader,
   useTheme,
 } from "@/components/Themed";
-import { joinParts, withContext } from "@/lib/a11y/labels";
+import { withContext } from "@/lib/a11y/labels";
 import { verticalSlop } from "@/lib/a11y/target";
 import { useClinicalScreenPrivacy } from "@/lib/auth/screenPrivacy";
 import { asDeliveryKey } from "@/lib/dialogue/deliveryDeck";
@@ -175,11 +175,7 @@ function ReviewAndSend() {
     : [];
   // 02 §5.4's consent summary, derived from the same `sentSections` the send
   // path uses — one reading, so the summary and the send cannot disagree.
-  const summary = shareSummary(
-    note,
-    account,
-    visit === undefined ? null : { hospital: visit.hospital, department: visit.department },
-  );
+  const summary = shareSummary(note, account);
   // The ladder rung the note actually stands on (02 §5.1): a fixture already
   // viewed or filed keeps its rung rather than dropping back to "sent".
   const ladderStatus = effectiveStatus(visit?.noteStatus ?? null, note, delivered) ?? "sent";
@@ -413,26 +409,28 @@ function ReviewAndSend() {
                   </AppText>
                 ))
               )}
-              {summary.recipient === null ? null : (
-                <>
-                  <AppText role="caption" color="inkSoft">
-                    {t("review.consent.recipient")}
-                  </AppText>
-                  <AppText role="body">
-                    {joinParts(summary.recipient.hospital, summary.recipient.department)}
-                  </AppText>
-                </>
-              )}
+              {/* INT-589: who can open it, as share.tr.md says. The visit's
+                  clinic was named here and receives nothing. */}
+              <AppText role="caption" color="inkSoft">
+                {t("review.consent.recipient")}
+              </AppText>
+              <AppText role="body">{t("review.consent.recipientValue")}</AppText>
               <AppText role="caption" color="inkSoft">
                 {t("review.consent.until")}
               </AppText>
-              <AppText role="body">{t("review.consent.untilValue")}</AppText>
+              {/* INT-589: the server's share lifetime (share_lifetime.py) —
+                  the visit's window, or the send's for an undated visit. */}
+              <AppText role="body">
+                {t(visit?.date ? "review.consent.untilValue" : "review.consent.untilValueNoDate")}
+              </AppText>
             </Card>
           )}
           {/* INT-587: frozen but not yet confirmed — the share consent step
-              and where the note stands. It owns the consent and the outbox,
-              so this screen still reads neither. */}
-          {frozen && !delivered && visitId ? (
+              and where the note stands. INT-589: a delivered note is handed
+              over too, because it may need sharing again after a withdrawal;
+              NoteDelivery decides. It owns the consent and the outbox, so this
+              screen still reads neither. */}
+          {frozen && visitId ? (
             <NoteDelivery
               visitId={visitId}
               note={note}
