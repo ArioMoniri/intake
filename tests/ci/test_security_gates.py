@@ -1000,19 +1000,27 @@ FIXED_VERSIONS: dict[str, tuple[int, int, int]] = {
     "shell-quote": (1, 11, 0),  # GHSA-pqg4-j6r4-53mv (CVE-2026-102422)
     "compression": (1, 8, 2),  # GHSA-vc2v-76pw-4v95 (CVE-2026-87776)
     "source-map-js": (1, 2, 2),  # GHSA-68fv-2mgg-jv7q (CVE-2026-93749)
-    "next": (16, 3, 8),  # CVE-2026-94483 and six more GHSA records, all fixed in 16.3.8
+    "next": (16, 4, 5),  # INT-608: GHSA-mfr8-8qww-v76h and GHSA-vc7v-qv4w-wrv8, fixed in 16.4.5 (was 16.3.8)
     "http-cache-semantics": (4, 3, 0),  # GHSA-ch52-4w7c-c8xp (CVE-2026-93748), through 4.2.0
-    "node-forge": (1, 4, 1),  # INT-597: eleven GHSA records, all fixed in 1.4.1
+    "node-forge": (1, 4, 3),  # INT-597: eleven GHSA records fixed in 1.4.1; four more fixed in 1.4.3 (17 Nov 2026)
 }
 
 # INT-500: the one uv.lock advisory osv-scanner 2.5.1 reported beside the four
 # above. trivy 0.70.0 has no record of it, which is why only osv saw it.
 PYPI_FIXED_VERSIONS: dict[str, tuple[int, int, int]] = {
     "mako": (1, 4, 2),  # PYSEC-2026-4243 (GHSA-5639-2j2p-m4mx)
+    "opentelemetry-api": (1, 45, 2),  # GHSA-mf5v-w3w3-f6cg, fixed in 1.45.2
 }
 UV_LOCKFILE = REPO / "uv.lock"
 
 ADVISORY_IDS = (
+    "GHSA-mfr8-8qww-v76h",
+    "GHSA-vc7v-qv4w-wrv8",
+    "GHSA-6889-vf6x-f3g5",
+    "GHSA-6cv4-p8m7-4r25",
+    "GHSA-j8rw-jp99-435v",
+    "GHSA-w4xr-hqv8-ch44",
+    "GHSA-mf5v-w3w3-f6cg",
     "GHSA-5xrq-8626-4rwp",
     "GHSA-fx2h-pf6j-xcff",
     "GHSA-4w7w-66w2-5vf9",
@@ -1274,7 +1282,7 @@ OVERRIDE_FLOORS = {
     "compression@<1.8.2": "^1.8.2",
     "source-map-js@<1.2.2": "^1.2.2",
     "http-cache-semantics@<4.3.0": "^4.3.0",  # INT-501
-    "node-forge@<1.4.1": "^1.4.1",  # INT-597
+    "node-forge@<1.4.3": "^1.4.3",  # INT-597
 }
 
 
