@@ -1,0 +1,85 @@
+# INT-116 — the wellbeing engine's committed instrument content, Turkish.
+#
+# This file is the ONLY place instrument item text may come from, and every
+# string in an `instruments:` entry must appear verbatim in the committed
+# snapshot under packages/protocols/sources/ that the entry cites; the loader
+# (protocols.wellbeing.load_instrument_registry) refuses the whole file
+# otherwise. Nobody types an item in here from memory, from a website or from
+# a translation: an item reworded by anyone is no longer the instrument its
+# validation refers to (files/04 header, instrument fidelity).
+#
+# `instruments:` is EMPTY, and that is the fail-closed state, not a gap in it.
+#   - PHQ-2, PHQ-9, GAD-2 and GAD-7 are licence GO (files/04 header table), but
+#     no snapshot of the rights holder's Turkish text is committed, so there is
+#     nothing to quote verbatim (HUMAN_BLOCKERS HB-C26). Each refuses with
+#     `items_not_committed`. PHQ-2 and GAD-2 have NO Turkish validation at all;
+#     the PHQ-9 Turkish evidence is a reliability study only (files/04 header).
+#   - PHQ-9 additionally refuses until its item-nine crisis trigger is sourced
+#     and the crisis script is served: files/04 §4 says never to end on that
+#     item without the safety script, and the script's rule
+#     (rf.crisis_disclosure_signposting) is draft and blocked on HB-C8/HB-C17.
+#   - C-SSRS (HB-L2) and WHO-5 (HB-L3) are licence BLOCKED. The loader refuses
+#     an entry or a cut-off for any instrument whose licence is not GO, so their
+#     content cannot be committed here at all.
+#
+# `cutoffs:` names every cut-off the engine reads. None is sourced: no
+# committed snapshot states any of them, so each is `draft_needs_source` with
+# the one permitted pending form (CLAUDE.md invariant 17), and the engine
+# refuses to apply a draft cut-off rather than guessing a number.
+kind: instrument_registry
+locale: tr
+instruments: []
+cutoffs:
+  - id: cut.phq2_cascade_to_phq9
+    instrument: PHQ-2
+    kind: cascade
+    target: PHQ-9
+    status: draft_needs_source
+    threshold: 'TODO: the PHQ-2 total that schedules PHQ-9 requires clinical sign-off'
+    source_gap: >-
+      files/04 §4 states a cascade score, but no committed snapshot under
+      packages/protocols/sources/ states it, and PHQ-2 has no Turkish validation
+      at all (files/04 header), so no Turkish cut-off exists to quote. files/04
+      §4.2 also records that this cascade puts the suicide question behind two
+      thresholds. Owner: physician of record (HB-C26).
+  - id: cut.gad2_cascade_to_gad7
+    instrument: GAD-2
+    kind: cascade
+    target: GAD-7
+    status: draft_needs_source
+    threshold: 'TODO: the GAD-2 total that schedules GAD-7 requires clinical sign-off'
+    source_gap: >-
+      files/04 §4 states a cascade score, but no committed snapshot states it, and
+      GAD-2 has no Turkish validation at all (files/04 header). Owner: physician of
+      record (HB-C26).
+  - id: cut.phq9_item9_crisis_trigger
+    instrument: PHQ-9
+    kind: crisis_trigger
+    status: draft_needs_source
+    threshold: 'TODO: the PHQ-9 item-nine answer that opens the crisis script requires clinical sign-off'
+    source_gap: >-
+      files/04 §4 and 00 §2 use item nine as a trigger only, never as a suicide
+      screen, but no committed snapshot states the trigger and the item text itself
+      is not committed. While this is draft, PHQ-9 is not administered at all,
+      because files/04 §4 forbids ending on that item without the safety script.
+      Owner: physician of record plus counsel (HB-C26, HB-C8, HB-C17).
+  - id: cut.phq9_severity
+    instrument: PHQ-9
+    kind: severity
+    status: draft_needs_source
+    threshold: 'TODO: the PHQ-9 severity banding for Turkish adults requires clinical sign-off'
+    source_gap: >-
+      files/04 header: the PHQ-9 Turkish evidence is a reliability study only, with
+      no validated Turkish cut-off, so there is no Turkish severity band to quote.
+      Severity interpretation is also a device function (files/06 §0.3; INT-117).
+      Owner: physician of record (HB-C26).
+  - id: cut.gad7_severity
+    instrument: GAD-7
+    kind: severity
+    status: draft_needs_source
+    threshold: 'TODO: the GAD-7 Turkish cut-off requires clinical sign-off'
+    source_gap: >-
+      files/04 header records the Turkish cut-off from Konkan 2013 as 8, not the
+      original 10, but no verbatim snapshot of that study is committed, so the value
+      cannot be cited and is not written here. Severity interpretation is also a
+      device function (files/06 §0.3; INT-117). Owner: physician of record (HB-C26).

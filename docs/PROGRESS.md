@@ -1,5 +1,16 @@
 # PROGRESS — one entry per LOOP iteration (template in LOOP.md)
 
+### 2026-11-17T23:45:00+03:00 · INT-116 · awaiting-human (engine shipped, fails closed; committed locally, not pushed)
+- Goal: Sec-Row `wellbeing`. Acceptance, verbatim: "validated Turkish items verbatim; scoring deterministic; crisis path completion tested end-to-end; outputs never in patient summary".
+- Plan: `protocols.wellbeing`. It has a licence gate, a loader that admits item, option and timeframe text only verbatim from a committed snapshot, scoring as a sum of explicit option ids, and cut-offs that are sourced or else refused. The crisis path is built from the served consent-independent rule through `protocols.triage`. Outputs are clinician-only, and the patient view carries `status` only. `packages/protocols/instruments/tr/registry.yaml` ships with no instruments and five draft cut-offs.
+- Tests added (with the near-miss negative for any safety rule): `tests/protocols/test_wellbeing_engine.py` (96) and `tests/clinical/test_wellbeing_paths.py` (14). Each has near misses: one below a cut-off, the lowest crisis answer, a high answer on a non-crisis item, and a one-character item rewording. Red: ImportError at collection. Green: 110 passed, `protocols.wellbeing` 100 % line and branch.
+- Result (`make check` / `make safety` / `make security` summary): see docs/evidence/INT-116.md. check-ts green, `make safety` green. check-py: ruff, format and mypy are clean, the touched suites gave 2515 passed, and the full suite was not completed on this shared host. `make security` was not run.
+- Invariants touched and still passing: 1, 2, 6, 10, 17, 20.
+- Decisions / ADRs / `00_STATE.md` rows: none. New HUMAN_BLOCKERS row HB-C26.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): physician of record (Dr Efe Onganer) with the owner. "Which committed snapshot of the rights holder's Turkish PDF carries the PHQ-2, PHQ-9, GAD-2 and GAD-7 items and options verbatim, and which committed source states each cut-off — or that it is not used?" (HB-C26). PHQ-9 also needs the crisis script (HB-C8, HB-C17). C-SSRS and WHO-5 stay refused (HB-L2, HB-L3).
+- Next: INT-117 (`device_functions` gate) depends on this.
+- LOOP_STATUS: WAITING_HUMAN
+
 ### 2026-10-28T16:30:00+03:00 · INT-585 · done (PR open)
 - Goal: GitHub #984, Sec-Row `onboarding`. Record the owner's 28 Oct SMS decisions ("1Y 2Y 3Y 4Y 5Y") as D34-D38 in files/00_STATE.md §3, and the live Netgsm OTP confirmation in docs/evidence/INT-576.md.
 - Plan:
