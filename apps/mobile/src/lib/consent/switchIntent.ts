@@ -43,7 +43,31 @@ export interface WithdrawConfirmation {
   cancelKey: MessageKey;
 }
 
-/** An açık rıza purpose — a consent scope in the files/06 §2 sense. */
+/**
+ * The ONLY purpose ids allowed to default on (legal review round 1). They are
+ * default-on in the server registry this app mirrors (consent/registry.py);
+ * turning them off is a server and blueprint change waiting on counsel's
+ * lawful-basis answer (HB-L27). The list may only shrink.
+ */
+export const DEFAULT_ON_AWAITING_COUNSEL: readonly string[] = [
+  "learning:personal",
+  "learning:service_improvement",
+];
+
+/**
+ * Purpose ids that default on outside that list — read by ID, never by the
+ * basis label, so relabelling a purpose's basis cannot hide a pre-tick.
+ */
+export function defaultOnViolations(
+  purposes: readonly { id: string; defaultGranted: boolean }[],
+): string[] {
+  return purposes
+    .filter((p) => p.defaultGranted && !DEFAULT_ON_AWAITING_COUNSEL.includes(p.id))
+    .map((p) => p.id);
+}
+
+/** An açık rıza purpose — a consent scope in the files/06 §2 sense. Used for
+ * wording only (withdraw vs opt out); the default-on check reads ids. */
 export function isConsentScope(view: PurposeView): boolean {
   return view.basis === "explicit_consent";
 }

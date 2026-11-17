@@ -4713,3 +4713,8 @@
 - Blocked on: the legal-reviewer (D25 legal lane) must answer one question: is the first-run fix acceptable as built while the learning grounds remain open? See HB-L27 and the docs/backlog/blockers.md row.
 - Next: push, open the PR with `approval:human-legal`, and take device screenshots of the first run at 320 × 568 for the reviewer.
 - LOOP_STATUS: WAITING_HUMAN
+- Update (legal review round 1):
+  - Items 2–3 applied: the learning line is now neutral, with no basis claim, and a test shows withdrawal takes no more taps than grant.
+  - Item 4 was reworded rather than persisted, because persisting consent ops on the device is a new on-device data category.
+  - Item 1 is only partly done. The default-on check now reads purpose ids, with a shrink-only exception for the two learning ids. Seeding them OFF needs the server registry and files/06 §2 to change, which is a consent-semantics stop-and-ask, so it is left to the owner and counsel (HB-L27).
+  - Green run: mobile vitest 3190; release/legal/backlog pytest 1020.

@@ -420,7 +420,7 @@ describe("INT-603 acceptance 1 — the first-run copy and its rows agree", () =>
     expect(firstRow).toBeGreaterThan(hint);
     // the hint is no longer a footer read after the "Açık" it explains
     expect(list).not.toContain('footer={t("consent.group.learning.hint")}');
-    expect(tr["consent.group.learning.hint"]).toContain("hizmetin çalışması içindir ve açık gelir");
+    expect(tr["consent.group.learning.hint"]).not.toContain("hizmetin çalışması");
   });
 
   it("an opt-out row's switch is not announced as a consent", () => {
@@ -522,5 +522,50 @@ describe("INT-603 acceptance 3 — 'Devam edin' is reachable without scrolling a
     const edges = source.match(/edges=\{\[([^\]]*)\]\}/);
     expect(edges).not.toBeNull();
     expect(edges![1]).not.toContain('"bottom"');
+  });
+});
+
+describe("INT-603 legal review round 1, item 3 — withdrawal is no harder than grant", () => {
+  const list = () => read(SRC, "components", "ConsentList.tsx");
+  const confirm = () => read(SRC, "components", "WithdrawConfirm.tsx");
+  const detail = () => read(APP, "(tabs)/me/consents/[purpose].tsx");
+
+  // One step = one tap on one control, counted from the İzinleriniz list.
+  function stepsToGrant(): number {
+    // the switch (or the row) opens the text; one primary button grants,
+    // with no confirmation after it
+    expect(list()).toContain("onOpenDetail(id)");
+    expect(detail()).toMatch(
+      /<PrimaryButton label=\{t\("consent\.detail\.grant"\)\} onPress=\{onGrant\} \/>/,
+    );
+    expect(detail()).toMatch(/const onGrant = \(\) => \{\s*mirror\(grantLocal\(id\), true\);/);
+    return 2;
+  }
+
+  function stepsToWithdraw(): number {
+    // the switch opens the confirmation in place; its primary button withdraws
+    expect(list()).toContain("setConfirming(id)");
+    expect(confirm()).toMatch(
+      /<PrimaryButton label=\{t\(confirmation\.actionKey\)\} onPress=\{onConfirm\} \/>/,
+    );
+    expect(list()).toMatch(
+      /onConfirm=\{\(\) => \{\s*setConfirming\(null\);\s*onWithdraw\(confirmation\.id\);/,
+    );
+    return 2;
+  }
+
+  it("withdrawing from the list takes no more taps than granting", () => {
+    expect(stepsToWithdraw()).toBeLessThanOrEqual(stepsToGrant());
+  });
+
+  it("the confirm action is the primary button and cancel the secondary", () => {
+    expect(confirm()).toContain("<PrimaryButton label={t(confirmation.actionKey)}");
+    expect(confirm()).toContain("<SecondaryButton label={t(confirmation.cancelKey)}");
+    expect(confirm()).not.toContain("<PrimaryButton label={t(confirmation.cancelKey)}");
+  });
+
+  it("near miss: a second confirmation step would break the count", () => {
+    // the confirmation renders exactly one primary control
+    expect(confirm().match(/<PrimaryButton/g)?.length).toBe(1);
   });
 });

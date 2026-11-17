@@ -744,7 +744,7 @@ export const en: Record<MessageKey, string> = {
   "consent.group.purposes": "Other purposes",
   "consent.group.learning": "Learning",
   "consent.group.learning.hint":
-    "These two options exist so the service works and come switched on; you can turn them off at any time.",
+    "These two options come switched on; you can turn them off at any time.",
   "consent.lane.affect": "Mood cues from tone of voice",
   "consent.lane.linguistic": "Language cues from text",
   "consent.learning.personal": "Learning for you",
@@ -787,13 +787,15 @@ export const en: Record<MessageKey, string> = {
   "consent.detail.binding": "Text fingerprint",
   "consent.detail.grant": "I have read it and I accept",
   "consent.detail.withdraw": "Withdraw this permission",
-  "consent.detail.withdrawNote": "Withdrawal takes effect immediately.",
+  "consent.detail.withdrawNote":
+    "Takes effect on this device immediately and is sent at once while you are online.",
   "consent.detail.needsVoice":
     "This option can only be switched on while the voice session permission is on.",
   "consent.confirm.withdrawTitle": "Do you want to withdraw this consent?",
   "consent.confirm.optoutTitle": "Do you want to turn this option off?",
   "consent.confirm.stops": "This stops:",
-  "consent.confirm.optoutNote": "Turning it off takes effect immediately.",
+  "consent.confirm.optoutNote":
+    "Turning it off takes effect on this device immediately and is sent at once while you are online.",
   "consent.confirm.optoutAction": "Turn off",
   "consent.confirm.cancel": "Cancel",
   "consent.queue.note":

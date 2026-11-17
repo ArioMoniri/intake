@@ -771,10 +771,9 @@ export const tr = {
   "consent.group.voice.release": "Bu sürümde sesli görüşme yok; bu izinler kullanılmaz.",
   "consent.group.purposes": "Diğer amaçlar",
   "consent.group.learning": "Öğrenme",
-  // INT-603 (audit K1): unchanged, but now read BEFORE the two rows that come
-  // on, so the first-run promise above them is not seen to break.
-  "consent.group.learning.hint":
-    "Bu iki seçenek hizmetin çalışması içindir ve açık gelir; dilediğiniz an kapatabilirsiniz.",
+  // INT-603 (audit K1): read BEFORE the two rows that come on. Legal review
+  // round 1: it states no legal basis — that is counsel's (HB-L27).
+  "consent.group.learning.hint": "Bu iki seçenek açık gelir; dilediğiniz an kapatabilirsiniz.",
   "consent.lane.affect": "Ses tonundan duygu ipuçları",
   "consent.lane.linguistic": "Yazıdan dil ipuçları",
   "consent.learning.personal": "Sizin için öğrenme",
@@ -820,7 +819,10 @@ export const tr = {
   "consent.detail.binding": "Metin damgası",
   "consent.detail.grant": "Okudum, kabul ediyorum",
   "consent.detail.withdraw": "İzni geri çekin",
-  "consent.detail.withdrawNote": "Geri çekmek hemen geçerli olur.",
+  // INT-603 legal review round 1: true without a stored queue — the change
+  // holds on this phone at once and is sent at once while online.
+  "consent.detail.withdrawNote":
+    "Bu cihazda hemen geçerli olur; internete bağlıyken hemen gönderilir.",
   "consent.detail.needsVoice": "Bu seçenek yalnızca sesli görüşme izni açıkken açılabilir.",
   // INT-603 (audit K2): the one confirmation before a switch turns something
   // off. UI chrome only; "hemen geçerli olur" reuses consent.detail.withdrawNote
@@ -828,7 +830,8 @@ export const tr = {
   "consent.confirm.withdrawTitle": "Bu izni geri çekmek istiyor musunuz?",
   "consent.confirm.optoutTitle": "Bu seçeneği kapatmak istiyor musunuz?",
   "consent.confirm.stops": "Şunlar durur:",
-  "consent.confirm.optoutNote": "Kapatmak hemen geçerli olur.",
+  "consent.confirm.optoutNote":
+    "Kapatmak bu cihazda hemen geçerli olur; internete bağlıyken hemen gönderilir.",
   "consent.confirm.optoutAction": "Kapatın",
   "consent.confirm.cancel": "Vazgeçin",
   "consent.queue.note":

@@ -35,7 +35,14 @@ import {
   type TextEntry,
 } from "./ledger";
 import { PURPOSES } from "./purposes";
-import { isConsentScope, switchChecked, switchIntent, withdrawConfirmation } from "./switchIntent";
+import {
+  DEFAULT_ON_AWAITING_COUNSEL,
+  defaultOnViolations,
+  isConsentScope,
+  switchChecked,
+  switchIntent,
+  withdrawConfirmation,
+} from "./switchIntent";
 
 const loaded = (version: string, hash: string): TextEntry => ({
   status: "loaded",
@@ -57,7 +64,46 @@ function withVoiceAndAffect(): LedgerState {
   return state;
 }
 
-describe("acceptance 1 — no consent-scope row defaults on", () => {
+describe("acceptance 1 — no consent row defaults on, checked by purpose id", () => {
+  // Legal review round 1: the check reads purpose IDS, never the registry's
+  // basis label, so relabelling a basis cannot make it pass. The two learning
+  // rows are the one named exception — they are default-on in the SERVER
+  // registry (consent/registry.py) the app mirrors, and turning them off
+  // there is a server change waiting on counsel (HB-L27); the list may only
+  // shrink.
+  it("no purpose id defaults on outside the named, shrink-only exception", () => {
+    expect(defaultOnViolations(PURPOSES)).toEqual([]);
+    expect([...DEFAULT_ON_AWAITING_COUNSEL]).toEqual([
+      "learning:personal",
+      "learning:service_improvement",
+    ]);
+  });
+
+  it("near miss: any other id defaulting on fails, whatever its basis label says", () => {
+    const flipped = PURPOSES.map((p) =>
+      p.id === "research"
+        ? { ...p, defaultGranted: true, basis: "service_performance" as const }
+        : p,
+    );
+    expect(defaultOnViolations(flipped)).toEqual(["research"]);
+    const core = PURPOSES.map((p) =>
+      p.id === "core" ? { ...p, defaultGranted: true, basis: "deidentified_optout" as const } : p,
+    );
+    expect(defaultOnViolations(core)).toEqual(["core"]);
+  });
+
+  it("near miss: an unknown learning-like id is not covered by the exception", () => {
+    const extra = [...PURPOSES, { id: "learning:other", defaultGranted: true }];
+    expect(defaultOnViolations(extra)).toEqual(["learning:other"]);
+  });
+
+  it("the switches checked on a fresh ledger are, by id, only the named exception", () => {
+    const checked = viewOf(freshLedger())
+      .filter(switchChecked)
+      .map((v) => v.id);
+    expect(checked.every((id) => DEFAULT_ON_AWAITING_COUNSEL.includes(id))).toBe(true);
+  });
+
   it("a consent scope is exactly an açık rıza purpose", () => {
     const scopes = PURPOSES.filter((p) => p.basis === "explicit_consent").map((p) => p.id);
     expect(
@@ -213,23 +259,42 @@ describe("acceptance 4 — the confirmation copy is catalogue chrome, tr first w
     expect(tr["consent.confirm.withdrawTitle"]).toBe("Bu izni geri çekmek istiyor musunuz?");
     expect(tr["consent.confirm.optoutTitle"]).toBe("Bu seçeneği kapatmak istiyor musunuz?");
     expect(tr["consent.confirm.stops"]).toBe("Şunlar durur:");
-    expect(tr["consent.confirm.optoutNote"]).toBe("Kapatmak hemen geçerli olur.");
+    expect(tr["consent.confirm.optoutNote"]).toBe(
+      "Kapatmak bu cihazda hemen geçerli olur; internete bağlıyken hemen gönderilir.",
+    );
     expect(tr["consent.confirm.optoutAction"]).toBe("Kapatın");
     expect(tr["consent.confirm.cancel"]).toBe("Vazgeçin");
     for (const key of KEYS) {
       expect(tr[key], key).not.toMatch(/\b(sen|senin|sana)\b/i);
-      expect(tr[key].length, key).toBeLessThanOrEqual(80);
+      expect(tr[key].length, key).toBeLessThanOrEqual(90);
     }
   });
 
-  it("the learning rows are explained by the existing catalogue fact, not a new legal claim", () => {
+  it("the learning line states no legal basis (legal review round 1, item 2)", () => {
     // whether the learning grounds hold for health data is the open HB-L27
-    // question, so the list states only what the catalogue already said
+    // question, so the line says only what the screen shows
     expect(tr["consent.group.learning.hint"]).toBe(
-      "Bu iki seçenek hizmetin çalışması içindir ve açık gelir; dilediğiniz an kapatabilirsiniz.",
+      "Bu iki seçenek açık gelir; dilediğiniz an kapatabilirsiniz.",
     );
     expect(en["consent.group.learning.hint"]).toBe(
-      "These two options exist so the service works and come switched on; you can turn them off at any time.",
+      "These two options come switched on; you can turn them off at any time.",
+    );
+    for (const text of [tr["consent.group.learning.hint"], en["consent.group.learning.hint"]]) {
+      expect(text).not.toMatch(/hizmet|service|çalışma|works/i);
+    }
+  });
+
+  it("the immediacy lines claim only what is true without a stored queue (item 4)", () => {
+    // the consent queue is in memory (store.ts); persisting it is a new
+    // on-device data category, a stop-and-ask, so the copy says what holds now
+    for (const key of ["consent.detail.withdrawNote", "consent.confirm.optoutNote"] as const) {
+      expect(tr[key].toLocaleLowerCase("tr"), key).toContain("bu cihazda hemen");
+      expect(tr[key], key).toContain("internete bağlıyken");
+      expect(en[key], key).toContain("on this device");
+      expect(en[key], key).toContain("while you are online");
+    }
+    expect(tr["consent.detail.withdrawNote"]).toBe(
+      "Bu cihazda hemen geçerli olur; internete bağlıyken hemen gönderilir.",
     );
   });
 });
