@@ -1,0 +1,31 @@
+issue: INT-502
+captured_on: '2026-10-31'
+device: iPhone 17 Pro Max
+runtime: iOS 26.5
+locale: tr
+app_sha: 690a16bb739e9847b199a6d3eb08c418a4c87788
+api: capture API on the synthetic host (INT-502), dev delivery adapter, no SMS
+data_class: synthetic
+app_state:
+  voice: 'off'
+  start_mode: typed
+resolved:
+- INT-587
+- INT-588
+captures:
+- file: 02-konusma.png
+  sha256: 009c76c2fc6c76c08d368de5121dd66220fa975057c19660f6fc6457ab8d26ec
+  appearance: light
+  route: /visits/{visit}/intake
+- file: 03-tek-soru.png
+  sha256: 3097f4e7c48fb71768438f122e61b7f0a6bd9c73d84fc3a901b349801f1ae0d3
+  appearance: light
+  route: /visits/{visit}/intake
+- file: 04-not.png
+  sha256: 28f2fe0db69ca162491f91208e0fa1642f93725a2412172c123bede060a2f663
+  appearance: light
+  route: /visits/{visit}/review
+- file: 05-verileriniz.png
+  sha256: 25971bba7d114a4eb492b01d5c3258f761d052618290718c783a30b342be2415
+  appearance: light
+  route: /me/data

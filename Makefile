@@ -369,6 +369,37 @@ asc-draft:
 	@test -n "$(EAS_JSON)" || { echo "asc-draft: set EAS_JSON=<your eas.json that holds ascApiKeyPath>"; exit 2; }
 	uv run python scripts/store/asc_listing.py --apply --eas-json "$(EAS_JSON)"
 
+# INT-502: the App Store header and screenshots, from the real app on the iOS
+# simulator, with synthetic patients only (docs/store/asc/frames.yaml).
+#   asc-capture-api-up/-down  a throwaway dev API on the synthetic host's loopback
+#                             (infra/staging/capture_api_host.sh); asc-capture-forward
+#                             holds the SSM port forward to the Mac's :8000 open
+#   asc-capture               one locale's captures, with provenance
+#   asc-frames                every frame and the header from the served captions only
+#   asc-frames-preview        the same from any caption file, written outside the repo
+.PHONY: asc-capture-api-up asc-capture-api-down asc-capture-forward asc-capture asc-frames asc-frames-preview
+asc-capture-api-up:
+	@test -n "$(PORT)" || { echo "asc-capture-api-up: set PORT=<1024-65535>"; exit 2; }
+	scripts/store/capture_api.sh up "$(PORT)"
+
+asc-capture-api-down:
+	scripts/store/capture_api.sh down
+
+asc-capture-forward:
+	@test -n "$(PORT)" || { echo "asc-capture-forward: set PORT=<the port of asc-capture-api-up>"; exit 2; }
+	scripts/store/capture_api.sh forward "$(PORT)"
+
+asc-capture:
+	@test -n "$(LOCALE)" -a -n "$(APP_SHA)" || { echo "asc-capture: set LOCALE=tr (the one locale with frames) and APP_SHA=<40-hex sha of the build>"; exit 2; }
+	uv run python scripts/store/capture_frames.py --locale "$(LOCALE)" --app-sha "$(APP_SHA)" --api-label "capture API on the synthetic host (INT-502), dev delivery adapter, no SMS" $(if $(VISIT),--visit "$(VISIT)",)
+
+asc-frames:
+	uv run python scripts/store/render_frames.py --export
+
+asc-frames-preview:
+	@test -n "$(CAPTIONS)" -a -n "$(CAPTURES)" -a -n "$(OUT)" || { echo "asc-frames-preview: set CAPTIONS=, CAPTURES= and OUT= (outside the repo)"; exit 2; }
+	uv run python scripts/store/render_frames.py --preview --captions "$(CAPTIONS)" --captures "$(CAPTURES)" --out "$(OUT)"
+
 # INT-023: local observability stack — compose profile `obs` (Prometheus,
 # Grafana, Loki, Tempo, OTel collector, Unleash, Keycloak, GlitchTip).
 # Dev tier only: loopback ports, dev-only credentials overridable via env.

@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**389 issues.** By phase: P0 184 · P1 150 · P2 48 · P3 7. By status: awaiting-human 39 · doing 7 · done 267 · todo 75 · withdrawn 1.
+**389 issues.** By phase: P0 184 · P1 150 · P2 48 · P3 7. By status: awaiting-human 39 · doing 8 · done 267 · todo 74 · withdrawn 1.
 
 ## P0
 
@@ -334,7 +334,7 @@
 | INT-443 | ElevenLabs as the hosted TTS provider, default on the synthetic AWS host (v2 delivery profiles) | E05-voice | INT-442, INT-428, INT-424, INT-326 | area:voice, risk:security | awaiting-human |
 | INT-482 | Store listing readiness: EAS metadata, privacy labels / data safety answers, review notes, as Önvizit | E08-mobile | INT-224, INT-421 | area:mobile | done |
 | INT-495 | App Store listing for Önvizit, filled in App Store Connect as an editable draft | E08-mobile | INT-482 | area:mobile | done |
-| INT-502 | Capture the App Store header and screenshots from the merged design stack and upload them to App Store Connect | E08-mobile | INT-495 | area:mobile | todo |
+| INT-502 | Capture the App Store header and screenshots from the merged design stack and upload them to App Store Connect | E08-mobile | INT-495 | area:mobile | doing |
 | INT-528 | Netgsm OTP SMS adapter behind the INT-329 SMS port, recorded fixtures only, fail-closed until the owner's credentials land | E01-platform | INT-329, INT-358 | area:api, risk:security, risk:legal | done |
 | INT-573 | next, certifi and filelock lifted past the 27 Oct 2026 advisories, so the vulnerabilities gate is green without an exception | E13-infra | INT-501 | area:security | done |
 | INT-574 | test_the_red_never_waits_on_the_inbox_store is deterministic — no wall-clock budget under shared-runner load | E13-infra | INT-475 | area:api | done |

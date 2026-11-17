@@ -7323,13 +7323,16 @@
   # GitHub #856, split from INT-495. Waits for the design stack to merge
   # (#792, #797, #801, #806, #808, #842 lens orb, #843 progress capsule) and a
   # build machine with disk for an iOS release build.
+  # Acceptance amended 29 Oct 2026 by the orchestrator (INT-502 handback): a
+  # Release build cannot reach the loopback capture API or sign in on a
+  # simulator, so a development build is allowed under the must-not-show guard.
   depends_on: [INT-495]
   labels: [area:mobile]
-  status: todo
+  status: doing
   acceptance:
-    - "the product page header at 3840×1646 (21:9) and iPhone screenshots for the large (1320×2868) and medium (1206×2622) groups, light and dark, Turkish and English, captured from a release-equivalent build with simulated patients only (no development-client chrome, development fixture, demo or mock label), listed in docs/store/asc/assets.yaml and passing scripts/store/asc_assets.py"
+    - "the product page header at 3840×1646 (21:9) and iPhone screenshots for the large (1320×2868) and medium (1206×2622) groups, light and dark, Turkish and English, captured from the real app with simulated patients only: a Release build where it can reach the capture API, otherwise a development build with no development-client chrome visible in any frame; a synthetic OTP account, never the dev fixture; no demo or mock label (docs/store/asc/frames.yaml must_not_show), listed in docs/store/asc/assets.yaml and passing scripts/store/asc_assets.py"
     - "uploaded through the App Asset Library (reserve, put, commit, place, order) by the INT-495 writer, dry run by default and live only by the owner's own command after their explicit yes; never Submit for Review or Release"
-  tests: [tests/legal/test_asc_listing.py]
+  tests: [tests/legal/test_asc_listing.py, tests/legal/test_asc_frames.py, tests/infra/test_capture_api_host.py]
   legal: "STORE"
   sec_row: "mobile"
 - id: INT-550
