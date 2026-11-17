@@ -169,7 +169,11 @@ def _coerce_set(slot: Slot, raw: Any, members: tuple[str, ...]) -> SlotValue | F
 
     A bare member is a set of one. The set binds exactly as named or not at
     all: ``protocols.choices.bind_choice_set`` refuses the exclusive "yok"
-    beside a site rather than trim either, so the step is asked again. One
+    beside a site rather than trim either. The refusal is flagged
+    ``EXCLUSIVE_CONFLICT`` and the named members travel in
+    ``ExtractionResult.conflicted``; ``ExtractionHandler`` then asks the step
+    again, and once the clarify budget is spent binds the named members as the
+    union, so a named site always reaches triage. One
     member binds as that member, so every existing reading of the slot holds;
     several bind as the list, which triage reads as the files/12 §7.3 union.
     """
@@ -205,6 +209,7 @@ def parse_extraction(
 
     updates: list[SlotUpdate] = []
     flags: list[ExtractionFlag] = []
+    conflicted: list[tuple[str, tuple[str, ...]]] = []
     # Sorted, so the result of one completion does not depend on the order the
     # model happened to emit its keys in — a replayed session must reconcile
     # identically (files/13 §9.2, the fold).
@@ -218,6 +223,8 @@ def parse_extraction(
         )
         if reason is not None:
             flags.append(ExtractionFlag(ref=ref, reason=reason))
+            if reason is FlagReason.EXCLUSIVE_CONFLICT:
+                conflicted.append((ref, tuple(raw_slots[ref][VALUE_KEY])))
     return ExtractionResult(
         step_id=step_id,
         slot_updates=tuple(updates),
@@ -225,6 +232,7 @@ def parse_extraction(
         clarification_needed=clarification_needed,
         flags=tuple(flags),
         declared=frozenset(slots),
+        conflicted=tuple(conflicted),
     )
 
 

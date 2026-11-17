@@ -133,6 +133,11 @@ class ExtractionResult:
     flags: tuple[ExtractionFlag, ...] = field(default=())
     #: The refs the step declared (INT-540): the slots :meth:`outcome_of` reads.
     declared: frozenset[str] = field(default=frozenset())
+    #: INT-604: each multi-select slot refused with ``EXCLUSIVE_CONFLICT``, with
+    #: the members the model named, in order. Not bound here; the handler asks
+    #: the step again and, the clarify budget spent, binds them as the union so
+    #: no named site is ever dropped. Held in memory only, never in a repr.
+    conflicted: tuple[tuple[str, tuple[str, ...]], ...] = field(default=())
 
     #: The cap, as a ``ClassVar`` — which ``dataclasses`` excludes from the
     #: field set, so it is not a constructor argument either. A plain string

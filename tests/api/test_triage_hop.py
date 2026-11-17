@@ -646,16 +646,38 @@ def test_near_miss_a_set_of_members_is_evaluated(harness: ApiHarness) -> None:
     assert body["kind"] == "red_trigger"
 
 
-def test_the_widest_set_the_hop_admits_is_inside_the_red_budget(harness: ApiHarness) -> None:
+def test_the_widest_set_the_hop_admits_is_inside_the_red_budget(
+    harness: ApiHarness, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """Both slots the served rule reads, each at the boundary's 64-member limit:
-    4096 worlds, the engine's cap, evaluated in full and inside the budget."""
+    4096 worlds, the engine's cap, evaluated in full. Deterministic first: the
+    number of worlds evaluated (every ``evaluate_node`` call is counted) is at
+    most the cap per served rule. Wall-clock time only as a p95 over several
+    requests, with the RED budget as headroom (INT-604 runtime review round 1)."""
+    from protocols.triage import engine
+
+    count = [0]
+    real = engine.evaluate_node
+
+    def counting(*args: Any, **kwargs: Any) -> Any:
+        count[0] += 1
+        return real(*args, **kwargs)
+
+    monkeypatch.setattr(engine, "evaluate_node", counting)
     wide = {
         "ziyaret.basvuru_nedeni": [f"sentetik_{i}" for i in range(63)] + ["sentetik_yasamsal"],
         "sure_dakika": [f"2026-08-{day:02d}" for day in range(1, 30)]
         + [f"sentetik_{i}" for i in range(35)],
     }
-    started = time.perf_counter()
     body = _evaluate(harness, wide)
-    elapsed_ms = (time.perf_counter() - started) * 1000
     assert body["kind"] == "red_trigger"
-    assert elapsed_ms < RED_BUDGET_MS, f"{elapsed_ms:.1f} ms"
+    served = load_life_threat_set(SIGNED, allow_fixture_snapshots=True).rules
+    assert 0 < count[0] <= engine.MAX_CONTESTED_WORLDS * len(served)
+    monkeypatch.setattr(engine, "evaluate_node", real)
+    samples = []
+    for _ in range(5):
+        started = time.perf_counter()
+        _evaluate(harness, wide)
+        samples.append((time.perf_counter() - started) * 1000)
+    p95 = sorted(samples)[-1]
+    assert p95 < RED_BUDGET_MS, f"p95 {p95:.1f} ms"

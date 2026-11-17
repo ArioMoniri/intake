@@ -228,6 +228,8 @@ class ExtractSlotsHandler:
             self._apply(context, call)
         if unclear is not None and not clarified:
             self._clarify(context, unclear)
+        if outcome.result is not None:
+            self._settle_conflicts(context, outcome.result.conflicted)
         if self.verifier is not None:
             self.verifier.request_verification(request, data)
         return StateEffect()
@@ -267,6 +269,30 @@ class ExtractSlotsHandler:
         engine = context.engine
         step = context.request.step_id
         engine.apply_extraction(step if step in engine.follow_ups else anchor, {}, True)
+
+    @staticmethod
+    def _settle_conflicts(
+        context: StateContext, conflicted: tuple[tuple[str, tuple[str, ...]], ...]
+    ) -> None:
+        """A multi-select set refused for "yok" beside a site (INT-604, ADR-043).
+
+        Never dropped: the step is asked again through the engine's clarify path
+        (its verbatim ``follow_up_tr``, invariant 10). With the budget spent the
+        named members bind as they were named, and triage reads them as the
+        files/12 §7.3 union, as the hop does, so a named "kol" always reaches the
+        rules engine (invariant 1). This runs in Layer B; the Talker awaits none
+        of it (invariant 9).
+        """
+        engine = context.engine
+        for ref, named in conflicted:
+            if engine.state_of(ref) is not AnswerState.ASKED_PENDING:
+                continue  # bound or settled meanwhile: nothing to ask again
+            if any(engine.origin_of(step) == ref for step in engine.follow_ups):
+                continue  # a follow-up for it is already queued
+            if engine.can_clarify(ref):
+                engine.apply_extraction(ref, {}, True)
+            else:
+                engine.apply_extraction(ref, {ref: list(named)})
 
     def _apply(self, context: StateContext, call: dict[str, Any]) -> None:
         """Bind the extraction, each anchor's choice replaced by its CD-05 day."""

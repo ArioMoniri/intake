@@ -125,3 +125,83 @@ def test_confidence_is_kept_for_a_set() -> None:
         raw=raw, slots={RADIATION: _radiation_slot()}, valuesets=_members(), step_id=RADIATION
     )
     assert result.slot_updates[0].confidence == Decimal("0.75")
+
+
+# --- runtime review round 1: a refused set never drops a symptom ------------------
+
+
+_RADIATION_SAID = (dict(int518.TRANSCRIPTS)[RADIATION], "Koluma yayılıyor.")
+
+
+class _Sequenced(int518.AnswerTable):
+    """The model's radiation answers in order, one per Work that declares it."""
+
+    def __init__(self, radiation: list[object]) -> None:
+        super().__init__(int518._model_answers("başka bir his", "yok"))
+        self.radiation = list(radiation)
+
+    def complete(self, call):  # type: ignore[no-untyped-def]
+        # Only the radiation question and its follow-up are answered about the
+        # spread; every other Work's words carry no radiation answer.
+        self.answers.pop(RADIATION, None)
+        if call.data.text in _RADIATION_SAID and self.radiation:
+            self.answers[RADIATION] = self.radiation.pop(0)  # type: ignore[assignment]
+        return super().complete(call)
+
+
+def _answer_follow_up(rig: live.Rig) -> str:
+    """Speak the queued follow-up and send the patient's next answer to it."""
+    [follow_up] = rig.stack.engine.follow_ups
+    rig.stack.session.ask_ledger.note_asked(follow_up)
+    rig.stack.session.submit_utterance(follow_up, "Koluma yayılıyor.")
+    rig.stack.agent.run_pending()
+    return follow_up
+
+
+@pytest.mark.parametrize("profile", list(VoiceProfile))
+def test_golden_a_refused_set_is_asked_again_and_the_second_answer_fires(
+    profile: VoiceProfile,
+) -> None:
+    gateway = _Sequenced([["kol", "yok"], "kol"])
+    rig = live._rig(profile, {}, gateway=gateway)
+    live._drive(rig)
+    engine = rig.stack.engine
+    # refused, not dropped: the step is pending and its follow-up is queued
+    assert engine.state_of(RADIATION) is AnswerState.ASKED_PENDING
+    assert len(engine.follow_ups) == 1
+    assert rig.clinic.notifications == []
+    _answer_follow_up(rig)
+    assert engine.value_of(RADIATION) == "kol"
+    assert [n.rule_ids for n in rig.clinic.notifications] == [(K2,)]
+    live._turn(rig)
+    assert [m.rule_id for m in rig.channel.published] == [K2]
+
+
+@pytest.mark.parametrize("profile", list(VoiceProfile))
+def test_golden_with_the_clarify_budget_spent_the_named_sites_reach_triage_whole(
+    profile: VoiceProfile,
+) -> None:
+    gateway = _Sequenced([["kol", "yok"], ["kol", "yok"], ["kol", "yok"]])
+    rig = live._rig(profile, {}, gateway=gateway)
+    live._drive(rig)
+    engine = rig.stack.engine
+    while engine.follow_ups:
+        _answer_follow_up(rig)
+    # never a bare UNCLEAR: every named site is bound, and triage reads the union
+    assert engine.state_of(RADIATION) is AnswerState.ASKED_PRESENT
+    assert engine.value_of(RADIATION) == ["kol", "yok"]
+    assert rig.triage.context(engine).answers[RADIATION].values == ("kol", "yok")
+    assert [n.rule_ids for n in rig.clinic.notifications] == [(K2,)]
+    live._turn(rig)
+    assert [m.rule_id for m in rig.channel.published] == [K2]
+
+
+@pytest.mark.parametrize("profile", list(VoiceProfile))
+def test_near_miss_yok_alone_binds_and_fires_nothing(profile: VoiceProfile) -> None:
+    rig = live._rig(profile, {}, gateway=_Sequenced([["yok"]]))
+    live._drive(rig)
+    assert rig.stack.engine.value_of(RADIATION) == "yok"
+    assert rig.stack.engine.follow_ups == ()
+    live._turn(rig)
+    assert rig.clinic.notifications == []
+    assert rig.channel.published == []
