@@ -1,0 +1,16 @@
+# guideline_id: TR-ACIL-TEBLIG-DEG-2024
+# title: Yataklı Sağlık Tesislerinde Acil Servis Hizmetlerinin Uygulama Usul ve Esasları Hakkında Tebliğde Değişiklik Yapılmasına Dair Tebliğ (MADDE 1, the amended MADDE 4(1)(r))
+# publisher: T.C. Sağlık Bakanlığı, Resmî Gazete
+# version_or_date: RG 11/10/2024 sayı 32689 (amends the Tebliğ of RG 13/9/2022 sayı 31952)
+# url: https://www.resmigazete.gov.tr/eskiler/2024/10/20241011-3.htm
+# retrieved_on: 2026-10-02
+# retrieval: curl with browser UA; HTML (windows-1254) text-extracted; HTML source line wraps collapsed to single spaces as a browser renders them
+# scope: verbatim excerpt of the title, MADDE 1 (lead-in) and the replacement text of MADDE 4(1)(r); nothing paraphrased or edited. '[...]' marks an omission between excerpts.
+---
+YATAKLI SAĞLIK TESİSLERİNDE ACİL SERVİS HİZMETLERİNİN
+UYGULAMA USUL VE ESASLARI HAKKINDA TEBLİĞDE
+DEĞİŞİKLİK YAPILMASINA DAİR TEBLİĞ
+[...]
+MADDE 1- 13/9/2022 tarihli ve 31952 sayılı Resmî Gazete’de yayımlanan Yataklı Sağlık Tesislerinde Acil Servis Hizmetlerinin Uygulama Usul ve Esasları Hakkında Tebliğin 4 üncü maddesinin birinci fıkrasının (n) ve (r) bentleri aşağıdaki şekilde değiştirilmiştir.
+[...]
+“r) Sağlık Komuta Kontrol Merkezi (SKKM): İllerde 112 acil çağrı merkezi bünyesinde acil sağlık çağrılarının karşılandığı ve ambulansların sevk ve idare edildiği birimi,”

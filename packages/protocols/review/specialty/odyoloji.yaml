@@ -1,0 +1,127 @@
+# REVIEW QUEUE — QUESTIONS authored; NOT servable. Promoted to L1 only by the
+# physician of record's sign-off (HB-C1).
+# generated-by: scripts/dev/gen_specialty_packs.py from docs/evidence/proposals/odyoloji.md
+# (guideline-sourced; reviewed per docs/evidence/verification/). Symptom-capture
+# prompts only (inv 2/10) — not diagnosis, not triage. Acuity is EK-4 law +
+# physician of record; never fabricated. RED/life-threat stays in
+# base.life_threat (inv 7).
+kind: pack
+id: specialty.odyoloji
+layer: specialty
+version: 0.3.0
+schema_version: 2
+maturity: L0
+status: questions-authored; awaiting physician-of-record sign-off (HB-C1); not servable
+language: tr
+title_tr: Odyoloji ön görüşme protokolü
+extends: cluster.sensory
+visit_types:
+- first
+- followup
+- preop
+- report
+- pregnancy_followup
+- chronic_review
+- post_discharge
+- screening
+- second_opinion
+- teleconsult
+sections:
+  ziyaret_baglami:
+    slots:
+      basvuru_nedeni:
+        type: string
+        required: true
+        ask_tr:
+          tr: Bugün odyoloji, yani işitme polikliniğine gelme nedeninizi kısaca anlatır mısınız?
+        follow_up_tr:
+          tr: Sizi hekime getiren en önemli şikâyetiniz nedir?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.reason_for_encounter.v1 recorded in docs/evidence/proposals/odyoloji.md'
+      sikayet_suresi:
+        type: duration
+        required: false
+        ask_tr:
+          tr: Bu şikâyetiniz ne zamandır var?
+        follow_up_tr:
+          tr: Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; no candidate archetype recorded in docs/evidence/proposals/odyoloji.md'
+  sorular:
+    slots:
+      konusmayi_anlamada_zorluk:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Konuşulanları, özellikle kalabalık ya da gürültülü ortamlarda anlamakta zorlanıyor musunuz?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/odyoloji.md'
+      tek_kulakta_daha_az_duyma:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Bir kulağınız diğerine göre daha az mı duyuyor?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/odyoloji.md'
+      kulak_cinlamasi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Kulağınızda çınlama ya da uğultu gibi bir ses duyuyor musunuz?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/odyoloji.md'
+      bas_donmesi_dengesizlik:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Baş dönmesi ya da dengesizlik yaşıyor musunuz?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/odyoloji.md'
+      kulak_akintisi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Kulağınızdan akıntı geliyor mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/odyoloji.md'
+      kulak_agrisi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Kulağınızda ağrı var mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/odyoloji.md'
+      yuksek_sese_maruziyet:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: İşte ya da günlük hayatta uzun süre çok gürültülü ortamlarda bulunduğunuz oldu mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/odyoloji.md'
+      isitme_cihazi_kullanimi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Şu anda işitme cihazı kullanıyor musunuz?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/odyoloji.md'
+      ailede_isitme_kaybi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Ailenizde işitme kaybı olan biri var mı?
+        delivery: text_first
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; no candidate archetype recorded in docs/evidence/proposals/odyoloji.md'
+      kulaga_evde_uygulama:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Kulağınıza evde yağ ya da başka bir şey koyduğunuz oldu mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/odyoloji.md'
+      uzun_sureli_hastane_ilac_tedavisi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Daha önce hastanede yatarak uzun süre ilaç tedavisi aldınız mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/odyoloji.md'
+red_flags:
+- id: rf.odyoloji_l0_taslak
+  label_tr: Odyoloji ön görüşme protokolü — branşa özgü kırmızı bayrak taslağı (klinik onay bekliyor)
+  when: 'TODO: odyoloji branch-specific red-flag trigger requires clinical sign-off'
+  tense: ever
+  tense_anchor: sikayet_suresi
+  level: YESIL
+  route: EXPEDITE
+  notify_clinic: never
+  status: draft_needs_source
+  source_gap: 'Trigger, EK-4 level and route await clinical sign-off (invariant 17 pending-value literal). Guideline-sourced candidates recorded in docs/evidence/proposals/odyoloji.md; acuity bound by EK-4 law (RG 13/9/2022 sayı 31952), snapshot absent. RED/life-threat stays in base.life_threat (invariant 7). Owner: physician of record (HB-C1, HB-C2, HB-C7).'

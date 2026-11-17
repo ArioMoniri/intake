@@ -1,0 +1,125 @@
+# REVIEW QUEUE — QUESTIONS authored; NOT servable. Promoted to L1 only by the
+# physician of record's sign-off (HB-C1).
+# generated-by: scripts/dev/gen_specialty_packs.py from docs/evidence/proposals/cluster_allied_and_reports.md
+# (guideline-sourced; reviewed per docs/evidence/verification/). Symptom-capture
+# prompts only (inv 2/10) — not diagnosis, not triage. Acuity is EK-4 law +
+# physician of record; never fabricated. RED/life-threat stays in
+# base.life_threat (inv 7).
+kind: pack
+id: cluster.allied_and_reports
+layer: cluster
+version: 0.3.0
+schema_version: 2
+maturity: L0
+status: questions-authored; awaiting physician-of-record sign-off (HB-C1); not servable
+language: tr
+title_tr: Destek Hizmetleri ve Raporlar
+extends: base.intake
+visit_types:
+- first
+- followup
+- report
+sections:
+  ziyaret_baglami:
+    slots:
+      basvuru_nedeni:
+        type: string
+        required: true
+        ask_tr:
+          tr: Bugünkü randevunuzun konusu nedir?
+        follow_up_tr:
+          tr: Bugünkü randevunuzun sebebini kısaca anlatır mısınız?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.reason_for_encounter.v1 recorded in docs/evidence/proposals/cluster_allied_and_reports.md'
+      sikayet_suresi:
+        type: duration
+        required: false
+        ask_tr:
+          tr: Bu konu ne zamandır devam ediyor?
+        follow_up_tr:
+          tr: Hafta, ay ya da yıl olarak yaklaşık söyleyebilir misiniz?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; no candidate archetype recorded in docs/evidence/proposals/cluster_allied_and_reports.md'
+  sorular:
+    slots:
+      rapor_icin_basvuru:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Bu randevuyu bir sağlık raporu almak için mi aldınız?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.reason_for_encounter.v1 recorded in docs/evidence/proposals/cluster_allied_and_reports.md'
+      rapor_amaci:
+        type: string
+        required: false
+        ask_tr:
+          tr: Bu raporun hangi amaçla istendiğini kısaca söyler misiniz?
+        ask_if: rapor_icin_basvuru == true
+        delivery: text_first
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; no candidate archetype recorded in docs/evidence/proposals/cluster_allied_and_reports.md'
+      kurum_sevk_yazisi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Raporu isteyen kurumun verdiği bir sevk yazısı ya da form elinizde var mı?
+        ask_if: rapor_icin_basvuru == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/cluster_allied_and_reports.md'
+      kisisel_saglik_bilgi_formu:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: e-Devlet üzerinden kişisel sağlık bilgi formunu doldurdunuz mu?
+        ask_if: rapor_icin_basvuru == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/cluster_allied_and_reports.md'
+      onceki_tibbi_belgeler:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Bu konuyla ilgili hastane çıkış belgesi, eski rapor ya da tahlil sonucunuz var mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/cluster_allied_and_reports.md'
+      guncel_saglik_sikayeti:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Şu anda sizi rahatsız eden bir sağlık şikâyetiniz var mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/cluster_allied_and_reports.md'
+      duzenli_takip:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Düzenli olarak takip edildiğiniz bir hastane bölümü var mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.problem_diagnosis.v1 recorded in docs/evidence/proposals/cluster_allied_and_reports.md'
+      takip_bolumleri:
+        type: string
+        required: false
+        ask_tr:
+          tr: Hangi bölümlerde takip edildiğinizi söyler misiniz?
+        ask_if: duzenli_takip == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/cluster_allied_and_reports.md'
+      gunluk_islerde_yardim:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Günlük işlerinizi yaparken başka birinin yardımına ihtiyaç duyuyor musunuz?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/cluster_allied_and_reports.md'
+      yardimci_arac:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Baston, yürüteç ya da tekerlekli sandalye gibi bir araç kullanıyor musunuz?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/cluster_allied_and_reports.md'
+      yardimci_arac_turu:
+        type: string
+        required: false
+        ask_tr:
+          tr: Hangi aracı kullandığınızı söyleyebilir misiniz?
+        ask_if: yardimci_arac == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/cluster_allied_and_reports.md'
+red_flags:
+- id: rf.cluster_allied_and_reports_l0_taslak
+  label_tr: Destek Hizmetleri ve Raporlar — kümeye özgü kırmızı bayrak taslağı (klinik onay bekliyor)
+  when: 'TODO: cluster_allied_and_reports branch-specific red-flag trigger requires clinical sign-off'
+  tense: ever
+  tense_anchor: sikayet_suresi
+  level: YESIL
+  route: EXPEDITE
+  notify_clinic: never
+  status: draft_needs_source
+  source_gap: 'Trigger, EK-4 level and route await clinical sign-off (invariant 17 pending-value literal). Guideline-sourced candidates recorded in docs/evidence/proposals/cluster_allied_and_reports.md; acuity bound by EK-4 law (RG 13/9/2022 sayı 31952), snapshot absent. RED/life-threat stays in base.life_threat (invariant 7). Owner: physician of record (HB-C1, HB-C2, HB-C7).'

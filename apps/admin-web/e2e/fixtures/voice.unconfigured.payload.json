@@ -1,0 +1,137 @@
+{
+  "schema": "intake.admin.voice.v1",
+  "generated_at": "2026-09-26T16:00:00Z",
+  "profiles": [
+    "residency_tr",
+    "typed"
+  ],
+  "reason_classes": [
+    "rollout_expansion",
+    "rollout_rollback",
+    "incident_mitigation",
+    "experiment_start",
+    "experiment_end",
+    "config_correction",
+    "study_enablement"
+  ],
+  "sources": {
+    "prometheus": "unconfigured",
+    "controls": "unconfigured"
+  },
+  "control_catalogue": [
+    {
+      "control": "kill_switch_engage",
+      "dangerous_action_id": "admin.voice.kill_switch.engage",
+      "route": "POST /admin/voice/kill-switch",
+      "tier": 1,
+      "direction": "safe",
+      "actor_roles": [
+        "clinical_lead",
+        "platform_owner",
+        "sre_oncall"
+      ],
+      "approver_roles": []
+    },
+    {
+      "control": "kill_switch_release",
+      "dangerous_action_id": "admin.voice.kill_switch.release",
+      "route": "POST /admin/voice/kill-switch/release",
+      "tier": 2,
+      "direction": "dangerous",
+      "actor_roles": [
+        "clinical_lead",
+        "platform_owner"
+      ],
+      "approver_roles": [
+        "clinical_lead",
+        "platform_owner",
+        "qms_owner"
+      ]
+    },
+    {
+      "control": "default_profile",
+      "dangerous_action_id": "admin.voice.profile.switch",
+      "route": "PUT /admin/voice/profile/{tenant}",
+      "tier": 2,
+      "direction": "dangerous",
+      "actor_roles": [
+        "clinical_lead",
+        "platform_owner"
+      ],
+      "approver_roles": [
+        "clinical_lead",
+        "platform_owner",
+        "qms_owner"
+      ]
+    },
+    {
+      "control": "canary",
+      "dangerous_action_id": "admin.voice.canary.set",
+      "route": "PUT /admin/voice/canary/{tenant}",
+      "tier": 2,
+      "direction": "dangerous",
+      "actor_roles": [
+        "clinical_lead",
+        "platform_owner"
+      ],
+      "approver_roles": [
+        "clinical_lead",
+        "platform_owner",
+        "qms_owner"
+      ],
+      "weight_bounds": {
+        "min": 0,
+        "max": 100
+      }
+    }
+  ],
+  "tiles": {
+    "controls": {
+      "state": "unknown",
+      "reason": "voice_control_unconfigured",
+      "tenants": []
+    },
+    "pending": {
+      "state": "ok",
+      "reason": null,
+      "actions": []
+    },
+    "sessions": {
+      "state": "unknown",
+      "reason": "prometheus_unconfigured",
+      "window": "24h",
+      "rows": []
+    },
+    "kill_switch_activity": {
+      "state": "unknown",
+      "reason": "prometheus_unconfigured",
+      "window": "24h",
+      "inflight": [],
+      "read_failures": []
+    },
+    "turn_latency": {
+      "state": "unknown",
+      "reason": "prometheus_unconfigured",
+      "metric_id": "voice.round_trip_ms",
+      "window": "24h",
+      "rows": []
+    },
+    "speech_errors": {
+      "state": "unknown",
+      "reason": "prometheus_unconfigured",
+      "window": "24h",
+      "rows": []
+    },
+    "failovers": {
+      "state": "unknown",
+      "reason": "prometheus_unconfigured",
+      "window": "24h",
+      "rows": []
+    },
+    "breakers": {
+      "state": "unknown",
+      "reason": "prometheus_unconfigured",
+      "rows": []
+    }
+  }
+}

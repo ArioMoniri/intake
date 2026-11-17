@@ -1,0 +1,4 @@
+# INT-378: `make keycloak-provider` copies the provider jar here only after it matches
+# ../webauthn-session-notes.sha256; infra/docker-compose.obs.yml mounts this directory at
+# /opt/keycloak/providers. The jar is a build output, never committed.
+*.jar

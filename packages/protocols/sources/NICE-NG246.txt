@@ -1,0 +1,47 @@
+# guideline_id: NICE-NG246
+# title: Overweight and obesity management
+# publisher: National Institute for Health and Care Excellence (NICE)
+# version_or_date: NICE guideline NG246; published 14 January 2025; last updated 08 January 2026; minor changes February 2025, March 2025, April 2025, March 2026 and September 2026 (Update information)
+# url: https://www.nice.org.uk/guidance/ng246/chapter/Discussing-results-and-referral
+# url_update_information: https://www.nice.org.uk/guidance/ng246/chapter/Update-information ; https://www.nice.org.uk/guidance/ng246/chapter/General-principles-of-care
+# retrieved_on: 2026-10-03
+# retrieval: curl with a browser user-agent (HTTP 200 on every page); HTML (utf-8) tags stripped, entities decoded, runs of spaces collapsed, one line per HTML block; characters kept as served (including U+2011 non-breaking hyphens and U+2013 dashes)
+# scope: verbatim excerpt of the chapter header and recommendation 1.11.7 (Discussing results and referral), recommendation 1.1.1 to its third bullet (General principles of care), then the Update information entries naming the guidelines NG246 replaces and the list of minor changes since publication; nothing paraphrased or edited. '[...]' marks an omission between excerpts.
+---
+Overweight and obesity management
+NICE guideline
+Reference number: NG246
+Published:
+14 January 2025
+Last updated:
+08 January 2026
+[...]
+1.11.7
+Discuss any previous or ongoing overweight and obesity management interventions or attempts, including:
+acknowledging any progress the person has already made
+their positive or negative experiences with interventions
+any barriers, or concerns, they may have about making changes and meeting their personal goals
+any cultural and social context or assumptions about health and diet, and the impact of deviating from these to improve their health. [2025]
+[...]
+1.1 General principles for all ages
+See the visual summary on the principles of care .
+Discussion, communication and follow up
+1.1.1
+Before or during any discussions, think about the wider determinants and the context of overweight and obesity. These include:
+general health and current comorbidities
+weight-related comorbidities, including family history of weight-related comorbidities
+weight history and previous experiences of managing overweight or obesity
+[...]
+Update information
+January 2026 : We have amended recommendations 1.10.5, 1.10.10 and 1.10.11 and the corresponding rationale sections to clarify that waist-to-height ratios should only be used to classify the degree of central adiposity in children and young people aged 5 years and over.
+January 2025: This guideline updates and replaces NICE's guidelines on:
+Preventing excess weight gain (NG7, published March 2015).
+Obesity: identification, assessment and management (CG189, published November 2014)
+[...]
+Minor changes since publication
+September 2026 : In the section on key components for interventions, we replaced a reference to Department of Health and Social Care advice on weight management with a reference to an NHS Better Health webpage. We also removed a reference to the UK government's standard evaluation framework for weight management interventions, which has since been withdrawn, in the section on data to collect.
+September 2026: Non-alcoholic fatty liver disease has been renamed as metabolic dysfunction-associated steatotic liver disease. We updated the sections on surgical interventions, dietary approaches, and discussing results and referral for adults, to reflect this.
+March 2026: We have removed or replaced references to some Public Health England documents that have been withdrawn.
+April 2025: We changed the term 'UKVRN registered nutritionist administered by the Association for Nutrition' to 'registered nutritionist' in the sections on behavioural overweight and obesity management interventions for children and young people , dietary approaches , and on planning and commissioning interventions for all ages , and for children and young people .
+March 2025: We added links to the NHS BMI calculator for adults and the NHS calculator for measuring waist-to-height ratio in children and young people aged 5 years and over to the section on identifying and assessing overweight, obesity and central adiposity .
+February 2025: We have changed references to weight-loss medicines to say weight-management medicines in the section on medicines and surgery .

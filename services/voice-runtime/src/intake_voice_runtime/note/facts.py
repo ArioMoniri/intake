@@ -30,6 +30,7 @@ from __future__ import annotations
 
 import datetime
 import enum
+import re
 from collections.abc import Mapping
 from dataclasses import KW_ONLY, dataclass, field
 from types import MappingProxyType
@@ -51,6 +52,11 @@ __all__ = [
     "TranslatedText",
     "TranslatorUnidentified",
 ]
+
+
+#: ``intake_platform.records.index.item_ref_of``'s shape. Spelled here rather
+#: than imported so the note's span type keeps no dependency on the index.
+_ITEM_REF: Final = re.compile(r"ri_[0-9a-f]{32}")
 
 
 class AttributionRefused(ValueError):
@@ -135,6 +141,10 @@ class SourceSpan:
     page: int | None = None
     bbox: tuple[float, float, float, float] | None = None
     asserted_at: datetime.date | None = None
+    #: The confirmed record item a document span cites (INT-123) — the id the
+    #: record index derives from the item's source box, so a clinician's "where
+    #: did this line come from?" resolves to one item, not just to a page.
+    item_ref: str | None = None
 
     @classmethod
     def utterance(cls, *, work_id: str, char_start: int, char_end: int) -> SourceSpan:
@@ -153,11 +163,20 @@ class SourceSpan:
         document_ref: str,
         page: int | None = None,
         bbox: tuple[float, float, float, float] | None = None,
+        item_ref: str | None = None,
     ) -> SourceSpan:
-        """files/03 §4.6's Provenance: the stored document, a page and a box."""
+        """files/03 §4.6's Provenance: the stored document, a page and a box —
+        and, for a retrieved record item, the item's id (INT-123)."""
         if page is not None and page < 1:
             raise ValueError("page numbers are 1-based")
-        return cls(kind=SourceKind.DOCUMENT, ref=document_ref, page=page, bbox=bbox)
+        if item_ref is not None and not _ITEM_REF.fullmatch(item_ref):
+            raise ValueError(
+                "an item ref is the record index's derived id (ri_ + 32 hex), never a "
+                "line of the document (invariant 6)"
+            )
+        return cls(
+            kind=SourceKind.DOCUMENT, ref=document_ref, page=page, bbox=bbox, item_ref=item_ref
+        )
 
     @classmethod
     def earlier_visit(cls, *, visit_ref: str, asserted_at: datetime.date) -> SourceSpan:
@@ -181,6 +200,8 @@ class SourceSpan:
                 parts.append(f"p{self.page}")
             if self.bbox is not None:
                 parts.append(",".join(f"{value:g}" for value in self.bbox))
+            if self.item_ref is not None:
+                parts.append(self.item_ref)
             return ":".join(parts)
         if self.kind is SourceKind.EARLIER_VISIT:
             return f"{self.kind.value}:{self.ref}:{self.asserted_at}"

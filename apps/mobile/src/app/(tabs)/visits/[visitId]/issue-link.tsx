@@ -34,6 +34,7 @@ import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
 import { ScrollView, StyleSheet, TextInput, View } from "react-native";
 
+import { AnnouncedText } from "@/components/Announced";
 import { useTabBarClearance } from "@/components/FloatingTabBar";
 import { GuidanceBlock } from "@/components/GuidanceBlock";
 import { Kicker } from "@/components/Kicker";
@@ -48,9 +49,13 @@ import {
   useTheme,
 } from "@/components/Themed";
 import { useClinicalScreenPrivacy } from "@/lib/auth/screenPrivacy";
+import { shareStanding } from "@/lib/consent/store";
 import { t, type MessageKey } from "@/lib/i18n";
+import { serverVisitIdOf } from "@/lib/intake/delivery/store";
 import { issueDoctorLink, type IssueFailure, type IssuedCredential } from "@/lib/shares/issue";
 import { formatShareMoment } from "@/lib/shares/links";
+import { issueStepUp } from "@/lib/shares/sessionStepUp";
+import { authorizeIssue } from "@/lib/shares/stepUp";
 import { fonts, radius, scaledSize, spacing } from "@/lib/theme";
 
 /** Pushed screen: the stack header owns the top inset. */
@@ -64,6 +69,8 @@ const ERROR_KEY: Record<IssueFailure, MessageKey> = {
   limited: "shares.issue.error.limited",
   unavailable: "shares.issue.error.unavailable",
   unreachable: "shares.issue.error.unreachable",
+  consent: "shares.issue.error.consent",
+  session: "shares.issue.error.session",
 };
 
 export default function IssueDoctorLink() {
@@ -74,7 +81,9 @@ export default function IssueDoctorLink() {
   const fontScale = useFontScale();
   const tabBarClearance = useTabBarClearance();
   const { visitId } = useLocalSearchParams<{ visitId: string }>();
-  const visit = visitId ?? "";
+  // INT-587: a link hangs off the SERVER visit the note was delivered to; a
+  // local or hospital-feed id is not one, a fixture's id is used as it is.
+  const visit = serverVisitIdOf(visitId ?? "") ?? visitId ?? "";
 
   const [recipient, setRecipient] = useState("");
   const [busy, setBusy] = useState(false);
@@ -85,7 +94,16 @@ export default function IssueDoctorLink() {
   const create = async () => {
     setBusy(true);
     setError(null);
-    const result = await issueDoctorLink(visit, recipient);
+    // INT-587: the typed step-up seam (D36). Today the OTP session tier; a
+    // passkey once INT-582 lands. A share consent withdrawn on this phone
+    // refuses here, before any network — a revoked grant stops the link.
+    const authority = await authorizeIssue(shareStanding(), issueStepUp);
+    if (!authority.ok) {
+      setBusy(false);
+      setError(authority.reason);
+      return;
+    }
+    const result = await issueDoctorLink(visit, recipient, authority.proof);
     setBusy(false);
     if (result.ok) {
       setCredential(result.credential);
@@ -110,6 +128,9 @@ export default function IssueDoctorLink() {
       <ScrollView
         contentContainerStyle={[styles.content, { paddingBottom: tabBarClearance }]}
         keyboardShouldPersistTaps="handled"
+        // SC 1.3.4 (INT-360): the recipient field scrolls clear of the
+        // keyboard, which takes about half of a landscape window.
+        automaticallyAdjustKeyboardInsets
       >
         <AppText role="hero" heading style={styles.heroLine}>
           {t("shares.issue.title")}
@@ -146,12 +167,10 @@ export default function IssueDoctorLink() {
               disabled={busy}
             />
             {error !== null ? (
-              // The colour is the sighted redundancy; `live` is the signal
-              // (SC 1.4.1 / SC 3.3.1) — this screen never carries an error by
-              // colour alone.
-              <AppText role="body" color="amber" live="assertive">
-                {t(ERROR_KEY[error])}
-              </AppText>
+              // The colour is the sighted redundancy; the announcement is the
+              // signal (SC 1.4.1 / SC 3.3.1), on both platforms — it had only
+              // the Android live region until INT-362, so VoiceOver was silent.
+              <AnnouncedText tone="error" role="body" color="amber" message={t(ERROR_KEY[error])} />
             ) : null}
           </Card>
         ) : (

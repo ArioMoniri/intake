@@ -62,6 +62,11 @@ UNLEASH_TIMEOUT_SECONDS: Final[float] = 0.2
 #:   anywhere in files/. This is the flag lock; the type lock (an abstract
 #:   IysConsentRecord with no concrete subclass) is what makes the send
 #:   unwritable rather than merely refused.
+#: - delta_session_offer — INT-407: files/02 §2b offers a rescheduled patient a
+#:   short delta session, and no clinically reviewed ``tr`` string for that
+#:   offer exists. Patient copy is not an engineer's to write, so the offer
+#:   stays shut until the string is reviewed and the flag opened through the
+#:   four-eyes gate.
 SAFETY_FLAG_DEFAULTS: Final[Mapping[str, bool]] = MappingProxyType(
     {
         "device_functions": False,
@@ -70,6 +75,7 @@ SAFETY_FLAG_DEFAULTS: Final[Mapping[str, bool]] = MappingProxyType(
         "satisfaction_prompts": False,
         "guardian_link": False,
         "commercial_messaging": False,
+        "delta_session_offer": False,
     }
 )
 

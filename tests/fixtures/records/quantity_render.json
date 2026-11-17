@@ -1,0 +1,13 @@
+{
+  "about": "INT-385: how one clinical quantity is written, per display locale. Both renderers are held to this one table: tests/records/test_quantity_render.py holds intake_platform.records.quantity_atom to it, and apps/mobile/src/lib/records/extraction.test.ts holds the app's formatQuantity (lib/health/format.ts) to it, so the server and the app cannot drift apart. INT-386 holds the server's four text renderers to the same rows in the same test file: the typed profile's rail (typed.render.render_measure and numeric_rail), the clinician note (note.composer._measure_line), the patient summary (summary.builder._measure_text) and the FHIR document narrative (clinical_schemas.mappers.document._measure_line). The decimal separator is the locale's (tr: comma, en: full stop). Digits are never grouped (useGrouping:false). Number and unit are one atom, joined by U+00A0 NO-BREAK SPACE (CLAUDE.md invariant 22). The four magnitudes are the ones INT-385 names (12.5, 12500, 0.05, 1,5). They are arbitrary test magnitudes, not reference values, and no figure is computed over them (invariant 20). `value` is the magnitude the way JSON and Decimal carry it, with a full stop. It is data, not a rendering.",
+  "rows": [
+    { "value": "12.5", "unit": "mg/dL", "locale": "tr", "atom": "12,5 mg/dL" },
+    { "value": "12.5", "unit": "mg/dL", "locale": "en", "atom": "12.5 mg/dL" },
+    { "value": "12500", "unit": "U/L", "locale": "tr", "atom": "12500 U/L" },
+    { "value": "12500", "unit": "U/L", "locale": "en", "atom": "12500 U/L" },
+    { "value": "0.05", "unit": "mg/L", "locale": "tr", "atom": "0,05 mg/L" },
+    { "value": "0.05", "unit": "mg/L", "locale": "en", "atom": "0.05 mg/L" },
+    { "value": "1.5", "unit": "mmol/L", "locale": "tr", "atom": "1,5 mmol/L" },
+    { "value": "1.5", "unit": "mmol/L", "locale": "en", "atom": "1.5 mmol/L" }
+  ]
+}

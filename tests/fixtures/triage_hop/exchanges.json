@@ -1,0 +1,105 @@
+{
+  "_comment": "SENTETİK TEST VERİSİ (INT-446, INT-475). Recorded /v1/triage/evaluate exchanges over tests/fixtures/protocols/compile/life_threat_signed.yaml, and recorded /v1/triage/red-location answers. tests/api/test_triage_hop.py asserts each evaluate response IS the route's output, and tests/api/test_red_notify.py does the same for each location answer; apps/mobile/e2e/red.spec.ts replays both. No clinical meaning.",
+  "exchanges": [
+    {
+      "name": "red_remote",
+      "request": {
+        "session_id": "visit-e2e",
+        "visit_id": "visit-e2e",
+        "location": "REMOTE",
+        "reference_time": "2026-08-29T07:00:00.000Z",
+        "answers": { "sure_dakika": "2026-08-29", "ziyaret.basvuru_nedeni": "sentetik_yasamsal" }
+      },
+      "response": {
+        "kind": "red_trigger",
+        "ruleId": "rf.sentetik_yasamsal",
+        "register": "ALERT",
+        "location": "REMOTE",
+        "scriptId": "rf.sentetik_yasamsal.remote"
+      }
+    },
+    {
+      "name": "red_on_site",
+      "request": {
+        "session_id": "visit-e2e",
+        "visit_id": "visit-e2e",
+        "location": "ON_SITE",
+        "reference_time": "2026-08-29T07:00:00.000Z",
+        "answers": { "sure_dakika": "2026-08-29", "ziyaret.basvuru_nedeni": "sentetik_yasamsal" }
+      },
+      "response": {
+        "kind": "red_trigger",
+        "ruleId": "rf.sentetik_yasamsal",
+        "register": "ALERT",
+        "location": "ON_SITE",
+        "scriptId": "rf.sentetik_yasamsal.on_site"
+      }
+    },
+    {
+      "name": "red_unknown",
+      "request": {
+        "session_id": "visit-e2e",
+        "visit_id": "visit-e2e",
+        "location": "UNKNOWN",
+        "reference_time": "2026-08-29T07:00:00.000Z",
+        "answers": { "sure_dakika": "2026-08-29", "ziyaret.basvuru_nedeni": "sentetik_yasamsal" }
+      },
+      "response": {
+        "kind": "red_trigger",
+        "ruleId": "rf.sentetik_yasamsal",
+        "register": "ALERT",
+        "location": "UNKNOWN",
+        "scriptId": "rf.sentetik_yasamsal.unknown"
+      }
+    },
+    {
+      "name": "near_miss_value",
+      "request": {
+        "session_id": "visit-e2e",
+        "visit_id": "visit-e2e",
+        "location": "REMOTE",
+        "reference_time": "2026-08-29T07:00:00.000Z",
+        "answers": {
+          "sure_dakika": "2026-08-29",
+          "ziyaret.basvuru_nedeni": "sentetik_yasamsal_degil"
+        }
+      },
+      "response": { "kind": "triage_level", "level": "GREEN" }
+    },
+    {
+      "name": "near_miss_undated",
+      "request": {
+        "session_id": "visit-e2e",
+        "visit_id": "visit-e2e",
+        "location": "REMOTE",
+        "reference_time": "2026-08-29T07:00:00.000Z",
+        "answers": { "ziyaret.basvuru_nedeni": "sentetik_yasamsal" }
+      },
+      "response": { "kind": "triage_level", "level": "GREEN" }
+    }
+  ],
+  "locationAnswers": [
+    {
+      "name": "answer_on_site",
+      "request": {
+        "session_id": "visit-e2e",
+        "visit_id": "visit-e2e",
+        "rule_id": "rf.sentetik_yasamsal",
+        "location": "ON_SITE"
+      },
+      "status": 202,
+      "response": { "kind": "red_location", "staffNotified": true }
+    },
+    {
+      "name": "answer_remote",
+      "request": {
+        "session_id": "visit-e2e",
+        "visit_id": "visit-e2e",
+        "rule_id": "rf.sentetik_yasamsal",
+        "location": "REMOTE"
+      },
+      "status": 202,
+      "response": { "kind": "red_location", "staffNotified": false }
+    }
+  ]
+}

@@ -33,9 +33,10 @@ import json
 from collections.abc import Iterable, Mapping, Sequence
 from decimal import Decimal
 
-from clinical_schemas.common import FrozenModel, JsonValue
+from clinical_schemas.common import FrozenModel, JsonValue, encode_json_value
 from clinical_schemas.triage import (
     CandidateFlag,
+    EvidenceSlot,
     LlmCandidateTriage,
     RedLocation,
     RedRegister,
@@ -66,6 +67,7 @@ __all__ = [
     "evaluate_triage",
     "rule_truth",
     "when_truth",
+    "winning_red_rule",
     "with_candidates",
 ]
 
@@ -221,17 +223,18 @@ def evaluate_triage(
             ek4=EK4Level.YESIL,
         )
     ek4 = fired[0].level
-    rule_fires = tuple(RuleFire(id=rule.id, evidence=_evidence(rule, context)) for rule in fired)
+    rule_fires = tuple(_rule_fire(rule, context) for rule in fired)
     level = _triage_level(ek4)
     if level is not TriageLevel.RED:
         return TriageEvaluation(result=RulesTriageResult(level=level, rules=rule_fires), ek4=ek4)
-    winner = _winning_red(fired, ek4)
+    winner = winning_red_rule(fired)
     return TriageEvaluation(
         result=RulesTriageResult(
             level=TriageLevel.RED,
             rules=rule_fires,
             register=_required_register(winner),
             location=location,
+            red_rule_id=winner.id,
         ),
         ek4=ek4,
         action=_resolved_action(winner, location),
@@ -263,6 +266,26 @@ def _triage_level(ek4: EK4Level) -> TriageLevel:
     if ek4 is EK4Level.YESIL:
         return TriageLevel.GREEN
     return TriageLevel.YELLOW
+
+
+def winning_red_rule(fired: Sequence[RedFlagRule]) -> RedFlagRule:
+    """The one rule whose register and script a RED delivers (INT-453).
+
+    Public so a consumer that holds the fired rules — the voice runtime's RED
+    path choosing which pre-positioned script to trigger — asks the engine
+    rather than re-deciding: a second copy of this tie-break is how a register
+    and a script from two different rules would end up on one screen. The
+    order of ``RulesTriageResult.rules`` (severity, then id) is NOT this
+    order, so its first entry is not the winner whenever two RED rules of
+    equal acuity fire with different registers.
+
+    Raises :class:`TriageEngineError` when no RED-level rule is among them.
+    """
+    reds = [rule for rule in fired if rule.level.is_red]
+    if not reds:
+        raise TriageEngineError("no KIRMIZI rule among the fired rules — nothing to deliver")
+    top = max(reds, key=lambda rule: rule.level.severity).level
+    return _winning_red(reds, top)
 
 
 def _winning_red(fired: Sequence[RedFlagRule], ek4: EK4Level) -> RedFlagRule:
@@ -303,22 +326,44 @@ def _resolved_action(rule: RedFlagRule, location: RedLocation) -> LocationAction
     return rule.action.unknown
 
 
-def _evidence(rule: RedFlagRule, context: TriageContext) -> str:
-    """Deterministic 'which slot values satisfied the rule' text
-    (files/04 §5 triage.rules.evidence): every referenced slot with a
-    usable value, sorted, all carried values joined."""
+def _rule_fire(rule: RedFlagRule, context: TriageContext) -> RuleFire:
+    """Deterministic 'which slot values satisfied the rule' (files/04 §5
+    triage.rules.evidence): every referenced slot with a usable value, sorted,
+    all carried values kept.
+
+    One reading, recorded twice. ``evidence_slots`` holds the parts, numbers as
+    numbers with the slot's declared unit, and each reader's line is written
+    from them by the surface that knows the reader (CLAUDE.md invariant 22;
+    INT-404). ``evidence`` is the engine's own text of the same reading,
+    unchanged by INT-404. Nothing here writes a line for a reader.
+    """
     refs = sorted(referenced_slots(parse_when(rule.when)) | {rule.tense_anchor})
-    parts: list[str] = []
+    parts: list[EvidenceSlot] = []
     for ref in refs:
         values = context.candidate_values(ref)
         if values is not None:
-            rendered = "|".join(_render_value(value) for value in values)
-            parts.append(f"{ref}={rendered}")
-    return "; ".join(parts)
+            parts.append(
+                EvidenceSlot(
+                    slot=ref,
+                    # The carrier's validator decodes the wire form, so the
+                    # values go in encoded: a patient's string that begins
+                    # with the decimal tag stays that string (INT-309).
+                    values=tuple(encode_json_value(value) for value in values),
+                    unit=context.units.get(ref),
+                )
+            )
+    return RuleFire(id=rule.id, evidence=_evidence(parts), evidence_slots=tuple(parts))
+
+
+def _evidence(parts: Sequence[EvidenceSlot]) -> str:
+    return "; ".join(
+        f"{part.slot}={'|'.join(_render_value(value) for value in part.values)}" for part in parts
+    )
 
 
 def _render_value(value: JsonValue) -> str:
-    """One carried value as evidence text, exactly and without grouping.
+    """One carried value as the engine's evidence text, exactly and without
+    grouping. This is not a reader's line (see :func:`_rule_fire`).
 
     ``json`` has no ``Decimal`` (INT-303), and the clinical numeric carrier
     is ``Decimal`` (files/13 §9.5). Rendering it through ``float`` would put

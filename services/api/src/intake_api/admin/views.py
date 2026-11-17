@@ -35,7 +35,7 @@ from intake_platform.compliance import (
 from intake_platform.compliance.audit_search import AuditSearchRow
 from intake_probes.console import BenchmarkKind, BenchmarkPlan, BenchmarkResult, ModelsModule
 
-from intake_api.admin.models_source import PROBE_CLIENTS_ENV
+from intake_api.admin.models_source import PROBE_CLIENTS_ENV, ProbeSweep
 
 __all__ = [
     "action_registry_view",
@@ -155,15 +155,23 @@ _QUALITY_LANE_DISABLED = (
 )
 
 
-def models_module_view(module: ModelsModule) -> dict[str, Any]:
+def models_module_view(module: ModelsModule, sweep: ProbeSweep) -> dict[str, Any]:
     """The `GET /admin/models` body.
 
     Every field is projected from ``observability/registry.yaml`` or from the
     INT-022 release gate's own verdict. Nothing here is a second opinion about
     either, and nothing here is patient-shaped: the rows are component ids,
     host strings, licence strings, probe ids and integers (invariant 6).
+
+    ``probe_results`` says whether the gate saw a sweep at all (INT-377): a
+    sweep that is unconfigured, missing or refused is ``unknown`` with its
+    code, and the gate then blocks on every fallback it cannot see.
     """
     return {
+        "probe_results": {
+            "state": "ok" if sweep.readable else "unknown",
+            "reason": sweep.reason,
+        },
         "release": {
             "blocked": module.release.blocked,
             "reasons": [

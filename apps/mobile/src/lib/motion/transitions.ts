@@ -66,6 +66,8 @@ const LEGAL_ROUTES: ReadonlySet<string> = new Set([
   "(auth)/consent",
   "(tabs)/me/consents/index",
   "(tabs)/me/consents/[purpose]",
+  // INT-587: Review & send renders the share consent text at the send.
+  "(tabs)/visits/[visitId]/review",
 ]);
 
 const INTAKE_ROUTES: ReadonlySet<string> = new Set(["(tabs)/visits/[visitId]/intake"]);

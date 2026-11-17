@@ -108,6 +108,8 @@ class SpanKind(StrEnum):
     NOTE_DRAFT = "note_draft"
     SUMMARY = "summary"
     INSTRUMENT_SCORE = "instrument_score"
+    #: INT-430 / ADR-036: one draw of the council verifier.
+    VERIFICATION = "verification"
 
 
 class SpanOutcome(StrEnum):

@@ -230,9 +230,208 @@ def test_backlog_parses_and_is_complete() -> None:
     # latency harness) + INT-320 (embeddable white-label integration, ADR-029)
     # + INT-321 (mobile intake mode chooser up front) + INT-322 (embed intake
     # mode bound inside the signed launch ticket) + INT-323 (department-dynamic
-    # previsit routing) + INT-317 (previsit output store + hospital
-    # read-back, from int-demo); grows only with a stated reason.
-    assert len(ids) == 281, f"expected 175 blueprint + 106 added issues, got {len(ids)}"
+    # previsit routing); grows only with a stated reason.
+    # previsit routing) + INT-372 (INT-354 slice S5, the visit-card chevron);
+    # grows only with a stated reason.
+    # previsit routing) + INT-370 (INT-354 slice S3, the visits calendar);
+    # previsit routing) + INT-317 (previsit output store + hospital read-back,
+    # filed on int-demo and carried to main by INT-354); grows only with a
+    # stated reason.
+    # previsit routing) ... + INT-376 (Frankfurt host move, split out of
+    # INT-352; the full list is in tests/backlog/test_schema.py); grows only
+    # with a stated reason.
+    # previsit routing) + INT-318 (Acıbadem read source and /v1/visits/sync,
+    # INT-354 slice S2); grows only with a stated reason.
+    # previsit routing) + INT-377 (probe-results file fails closed on the
+    # admin console, found by INT-181); grows only with a stated reason.
+    # + INT-380 (INT-121 clause 3, the corpus score, awaiting-human) + INT-381
+    # (INT-124's on-hardware latency and live smoke, gpu), both split out by
+    # INT-124's PR; grows only with a stated reason.
+    # + INT-385 (record quantities render with the locale's decimal separator,
+    # found by INT-124's PR as GitHub #635); grows only with a stated reason.
+    # previsit routing) + INT-373 (the Keycloak realm emits the admin
+    # console's claims, found by INT-365); grows only with a stated reason.
+    # previsit routing) + INT-392 (a session with a previsit output can be
+    # deleted again, found on check-integration); grows only with a stated reason.
+    # deleted again, found on check-integration) + INT-393 (a patient who issued
+    # a Doctor Link can be erased, found by INT-392); grows only with a stated reason.
+    # + INT-391 (the console accepts every valid WebAuthn credential id, found
+    # by INT-378's PR as GitHub #646); grows only with a stated reason.
+    # found by INT-124's PR as GitHub #635) + INT-386 (the typed rail, note,
+    # summary and FHIR narrative quantities, INT-385's follow-up, GitHub #638);
+    # grows only with a stated reason.
+    # + INT-387 (the accessibility conformance report re-rated after the
+    # INT-361..363 fixes, found by INT-360's PR as GitHub #640); grows only
+    # with a stated reason.
+    # + INT-397 (the three status lines INT-362 left silent are announced, found
+    # by INT-387's MC-26 as GitHub #659); grows only with a stated reason.
+    # + INT-390 (Keycloak upgrade and realm import, found by INT-378); grows
+    # only with a stated reason.
+    # + INT-396 (backlog status reconciliation and drift guard, GitHub #655);
+    # grows only with a stated reason.
+    # + INT-405 (the backlog sync pages past 500 issues and keeps issue state
+    # in step with rows, found by INT-396, GitHub #675); grows only with a
+    # stated reason.
+    # + INT-398..400 (split out of INT-122 by its own PR, #663: the document
+    # engine, the real samples, the on-device date-order defect); grows only
+    # with a stated reason.
+    # + INT-401 (console rollback, split out of INT-187) + INT-409 (Vizitlerim
+    # reads today from the device clock instead of a date pinned in every
+    # build, found by INT-179's close-out as GitHub #688); grows only with a
+    # + INT-401 (console rollback, split out of INT-187) + INT-410 (release
+    # bundles carry no synthetic seed accounts, audit F30, found by INT-179's
+    # close-out as GitHub #689); grows only with a stated reason.
+    # summary and FHIR narrative quantities, INT-385's follow-up, GitHub #638)
+    # + INT-404 (triage rule evidence lines in the reader's locale, INT-386's
+    # finding, GitHub #673); grows only with a stated reason.
+    # ... + INT-382 (a suppress_slot in any layer that removes a slot a
+    # red-flag rule reads is refused; H-1 of the PR #628 verification).
+    # + INT-415 (ElevenLabs delivery profiles per question context and the
+    # on-prem TTS wiring guide, owner request, GitHub #706); grows only with a
+    # stated reason.
+    # + INT-429 (the vulnerabilities gate: dependency upgrades and a time-boxed
+    # node-forge exception, owner decision, GitHub #727); grows only with a
+    # stated reason.
+    # + INT-431 (the embed sample's JWT fixture is built at runtime, found
+    # merging main into #481, GitHub #733); grows only with a stated reason.
+    # + INT-395 (DSAR erasure and export cover every patient-deletable table,
+    # found by INT-393); grows only with a stated reason.
+    # + INT-406 (RED acknowledgement: the clinic Safety inbox and its SLA page,
+    # invariant 49, found unowned by INT-020's PR as GitHub #681); grows only
+    # with a stated reason.
+    # + INT-426 (CI on AWS: the gate runner over S3 + SSM with the aws-ci
+    # commit status, owner request, GitHub #721); grows only with a stated
+    # reason.
+    # + INT-407 (the files/02 §2b visit lifecycle state machine — a RED visit
+    # cannot silently move; found by INT-406's PR as GitHub #684); grows only
+    # with a stated reason.
+    # + INT-432 (the clinical decisions register under owner decision D18,
+    # GitHub #735); grows only with a stated reason.
+    # + INT-378 (the Keycloak WebAuthn session-notes provider, GitHub #621) and
+    # INT-389 (its TOTP clause, an owner decision, GitHub #644); grows only with
+    # a stated reason.
+    # + INT-448 (the #642 sign-off packet items under D18, GitHub #759); grows
+    # only with a stated reason.
+    # + INT-414 (conversational delivery around verbatim questions, stacked on
+    # INT-415, owner request, GitHub #705); grows only with a stated reason.
+    # + INT-447 (INT-414's 48 delivery lines verified under owner decision D18,
+    # GitHub #758); grows only with a stated reason.
+    # + INT-449 (Turkish voice casting, owner request, GitHub #762); grows only
+    # with a stated reason.
+    # + INT-421 (production release: the admin tier on the AWS host, GitHub #713);
+    # grows only with a stated reason.
+    # + INT-463 (all CI jobs on the AWS self-hosted runner, owner order of
+    # 3 Oct 2026, GitHub #790); grows only with a stated reason.
+    # + INT-467 (that runner as a pool of three isolated runners, GitHub #799).
+    # + INT-500 (lockfile advisories upgraded so the vulnerabilities gate stops
+    # blocking every merge, GitHub #851); grows only with a stated reason.
+    # + INT-460 (a second admin approver on the synthetic host is a second
+    # Keycloak user, not a dev bearer; owner request, GitHub #785); grows only
+    # with a stated reason.
+    # + INT-453 (the voice-runtime RED path triggers the winning rule's own
+    # script, found by INT-446, GitHub #767); grows only with a stated reason.
+    # + INT-446 (RED end to end in the app — the rules-engine hop on both lanes
+    # and the RED screen mounted, found by INT-440, GitHub #756); grows only
+    # with a stated reason.
+    # + INT-465 (the generic RED active from CD-24, and the synthetic host's red
+    # rule set signed with a synthetic-only test key, D23, GitHub #794); grows
+    # only with a stated reason.
+    # + INT-524 (a pull request's superseded CI runs are cancelled, so the
+    # runner pool builds only current heads, GitHub #890); grows only with a
+    # stated reason.
+    # + INT-501 (http-cache-semantics lifted before its osv exception expires,
+    # GitHub #853) and INT-508 (node-forge and braces: no upstream fix, split
+    # from INT-501, GitHub #865); grows only with a stated reason.
+    # + INT-424 (ElevenLabs delivery profiles v2 and the expressive-model ADR
+    # proposal, owner request, GitHub #719); grows only with a stated reason.
+    # + INT-430 (the agent council, reshaped into a post-bind verifier by the
+    # medical and AI/ML challenger reviews, owner request, GitHub #732); grows
+    # only with a stated reason.
+    # + INT-428 (hosted model lanes for the synthetic deployment, ADR-035,
+    # GitHub #724); grows only with a stated reason.
+    # + INT-475 (a hop RED reaches the clinic Safety inbox and the device's
+    # location answer reaches the server, INT-465 finding 6, GitHub #814);
+    # grows only with a stated reason.
+    # + INT-485 (the admin oauth2-proxy logs no staff email or client IP,
+    # invariant 6, GitHub #830); grows only with a stated reason.
+    # + INT-518 (live extraction gets the committed value table so code slots
+    # bind, GitHub #884); grows only with a stated reason.
+    # + INT-521 (the live session evaluates triage on every bound answer, so a
+    # RED fires from the conversation, GitHub #887); grows only with a stated
+    # reason.
+    # + INT-522 (chest_pain.onset_at binds from its closed-choice answer by
+    # CD-05, so the K2 tense anchor is known live, GitHub #888); grows only with
+    # a stated reason.
+    # + INT-538 (one laptop command creates a staff user on the synthetic
+    # host, owner order, GitHub #906); grows only with a stated reason.
+    # + INT-442 (the synthetic host's egress forward proxy, split from INT-428,
+    # GitHub #752); grows only with a stated reason.
+    # + INT-428 (hosted model lanes for the synthetic deployment, ADR-035,
+    # GitHub #724); grows only with a stated reason.
+    # + INT-442 (the synthetic host's egress forward proxy, split from INT-428,
+    # GitHub #752); grows only with a stated reason.
+    # + INT-424 (ElevenLabs delivery profiles v2 and the expressive-model ADR
+    # proposal, owner request, GitHub #719); grows only with a stated reason.
+    # + INT-443 (ElevenLabs as the synthetic host's hosted TTS, split from
+    # INT-428, GitHub #753); grows only with a stated reason.
+    # + INT-449 (Turkish voice casting, owner request, GitHub #762); grows only
+    # with a stated reason.
+    # + INT-540 (the onset anchor always resolves — CD-04's UNCLEAR states, a
+    # defined clarification_needed, the session's close — so K2 cannot stay
+    # silent, GitHub #913); grows only with a stated reason.
+    # + INT-531 (a RED evaluated between turns reaches the patient within the
+    # 300 ms budget, INT-521 residual 1, GitHub #898); grows only with a
+    # stated reason.
+    # + INT-544 (a pull request clears CI in under 20 minutes on the
+    # intake-aws-ci pool, owner order, GitHub #919); grows only with a stated
+    # reason.
+    # + INT-550 (a new staff user enrols a passkey after the password step,
+    # found on the synthetic host, GitHub #930); grows only with a stated reason.
+    # + INT-528 (the Netgsm OTP SMS adapter behind the INT-329 port, after the
+    # owner's vendor decision on INT-358, GitHub #895); grows only with a
+    # stated reason.
+    # + INT-573 (next/certifi/filelock lifted past the 27 Oct advisories, GitHub #965)
+    # + INT-450 (admin-web UI upgrade with the owner-listed component libraries,
+    # licence-checked, owner request, GitHub #763); grows only with a stated
+    # reason.
+    # + INT-459 (admin-web premium redesign: Apple-native shell, glass on
+    # chrome only; owner request, GitHub #783); grows only with a stated reason.
+    # + INT-574 (the RED-never-waits test is deterministic under runner load,
+    # GitHub #967); grows only with a stated reason.
+    # + INT-576 (the Netgsm adapter parses the live success shape and never
+    # retries an unreadable 200, from the owner's real send, GitHub #971);
+    # grows only with a stated reason.
+    # + INT-420 (Önvizit everywhere: the owner's rebrand finished on main, with
+    # a guard against the old name, GitHub #712); grows only with a stated reason.
+    # + INT-560 (the operability registry page tells the truth about the host
+    # it runs on, owner request, GitHub #948); grows only with a stated reason.
+    # + INT-529 (synthetic-scope consent texts, marked sentetik test metni and
+    # loaded only on the synthetic host, GitHub #896); grows only with a stated
+    # reason.
+    # + INT-537 (the app grants the core consent that visits and notes require,
+    # INT-529 finding F2, GitHub #904); grows only with a stated reason.
+    # + INT-586 (opentelemetry-api past GHSA-ccrj-gw8r-854m, GitHub #986).
+    # + INT-590 (decode-uri-component past CVE-2026-118664, GitHub #991).
+    # + INT-559 (the app's voice lane never writes patient audio to a file —
+    # invariant 3 with no dev exception, from the INT-536 legal review,
+    # GitHub #947); grows only with a stated reason.
+    # + INT-536 (consent-screen copy true for the host and matching the consent
+    # texts, GitHub #903); grows only with a stated reason.
+    # + INT-585 (the owner's 28 Oct SMS decisions recorded as D34-D38, owner in
+    # chat, GitHub #984); grows only with a stated reason.
+    # + INT-587 (the note reaches the clinician from a release build: note-sync
+    # client, in-app share consent, Doctor Link from the app, GitHub #988);
+    # grows only with a stated reason.
+    # + INT-588 (patient copy is true in the no-voice release build, GitHub
+    # #989); grows only with a stated reason.
+    # + INT-591 (a release build offers no voice consent it cannot use, GitHub
+    # #993); grows only with a stated reason.
+    # + INT-592 (a truthful NSHealthUpdateUsageDescription so App Store
+    # processing accepts the iOS build, ITMS-90683, GitHub #1000); grows only
+    # with a stated reason.
+    # + INT-584 (the phone-tokenization key moves into OpenBao with the same key
+    # material, owner decision D38, GitHub #983); grows only with a stated reason.
+    assert len(ids) == 386, f"expected 175 blueprint + 211 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 

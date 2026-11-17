@@ -1,0 +1,89 @@
+# REVIEW QUEUE — QUESTIONS authored; NOT servable. Promoted to L1 only by the
+# physician of record's sign-off (HB-C1).
+# generated-by: scripts/dev/gen_specialty_packs.py from docs/evidence/proposals/saglik_kurulu.md
+# (guideline-sourced; reviewed per docs/evidence/verification/). Symptom-capture
+# prompts only (inv 2/10) — not diagnosis, not triage. Acuity is EK-4 law +
+# physician of record; never fabricated. RED/life-threat stays in
+# base.life_threat (inv 7).
+kind: pack
+id: specialty.saglik_kurulu
+layer: specialty
+version: 0.3.0
+schema_version: 2
+maturity: L0
+status: questions-authored; awaiting physician-of-record sign-off (HB-C1); not servable
+language: tr
+title_tr: Sağlık Kurulu ön görüşme protokolü
+extends: cluster.allied_and_reports
+visit_types:
+- report
+sections:
+  ziyaret_baglami:
+    slots:
+      basvuru_nedeni:
+        type: string
+        required: true
+        ask_tr:
+          tr: Kurulda değerlendirilecek sağlık sorunlarınız nedir?
+        follow_up_tr:
+          tr: Bugünkü randevunuzun sebebini kısaca anlatır mısınız?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.reason_for_encounter.v1 recorded in docs/evidence/proposals/saglik_kurulu.md'
+      sikayet_suresi:
+        type: duration
+        required: false
+        ask_tr:
+          tr: Bu şikâyetiniz ne zamandır var?
+        follow_up_tr:
+          tr: Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; no candidate archetype recorded in docs/evidence/proposals/saglik_kurulu.md'
+  sorular:
+    slots:
+      rapor_amaci:
+        type: string
+        required: false
+        ask_tr:
+          tr: Bu raporun hangi amaçla istendiğini kısaca söyler misiniz?
+        delivery: text_first
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; no candidate archetype recorded in docs/evidence/proposals/saglik_kurulu.md'
+      onceki_tibbi_belgeler:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Bu sorunlarla ilgili hastane çıkış belgesi, eski rapor ya da tahlil sonucunuz var mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/saglik_kurulu.md'
+      duzenli_takip:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Bu sağlık sorunları için düzenli olarak takip edildiğiniz bir hastane bölümü var mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.problem_diagnosis.v1 recorded in docs/evidence/proposals/saglik_kurulu.md'
+      takip_bolumleri:
+        type: string
+        required: false
+        ask_tr:
+          tr: Hangi bölümlerde takip edildiğinizi söyler misiniz?
+        ask_if: duzenli_takip == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/saglik_kurulu.md'
+      ilgili_hastane_yatisi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Bu sağlık sorunları nedeniyle hastanede yattığınız oldu mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/saglik_kurulu.md'
+      gunluk_islerde_yardim:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Günlük işlerinizi yaparken başka birinin yardımına ihtiyaç duyuyor musunuz?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/saglik_kurulu.md'
+red_flags:
+- id: rf.saglik_kurulu_l0_taslak
+  label_tr: Sağlık Kurulu ön görüşme protokolü — branşa özgü kırmızı bayrak taslağı (klinik onay bekliyor)
+  when: 'TODO: saglik_kurulu branch-specific red-flag trigger requires clinical sign-off'
+  tense: ever
+  tense_anchor: sikayet_suresi
+  level: YESIL
+  route: EXPEDITE
+  notify_clinic: never
+  status: draft_needs_source
+  source_gap: 'Trigger, EK-4 level and route await clinical sign-off (invariant 17 pending-value literal). Guideline-sourced candidates recorded in docs/evidence/proposals/saglik_kurulu.md; acuity bound by EK-4 law (RG 13/9/2022 sayı 31952), snapshot absent. RED/life-threat stays in base.life_threat (invariant 7). Owner: physician of record (HB-C1, HB-C2, HB-C7).'

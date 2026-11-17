@@ -1,0 +1,137 @@
+# REVIEW QUEUE — QUESTIONS authored; NOT servable. Promoted to L1 only by the
+# physician of record's sign-off (HB-C1).
+# generated-by: scripts/dev/gen_specialty_packs.py from docs/evidence/proposals/ureme_endokrinolojisi_ve_infertilite.md
+# (guideline-sourced; reviewed per docs/evidence/verification/). Symptom-capture
+# prompts only (inv 2/10) — not diagnosis, not triage. Acuity is EK-4 law +
+# physician of record; never fabricated. RED/life-threat stays in
+# base.life_threat (inv 7).
+kind: pack
+id: specialty.ureme_endokrinolojisi_ve_infertilite
+layer: specialty
+version: 0.3.0
+schema_version: 2
+maturity: L0
+status: questions-authored; awaiting physician-of-record sign-off (HB-C1); not servable
+language: tr
+title_tr: Üreme Endokrinolojisi ve İnfertilite ön görüşme protokolü
+extends: cluster.womens_health
+visit_types:
+- first
+- followup
+- preop
+- report
+- pregnancy_followup
+- chronic_review
+- post_discharge
+- screening
+- second_opinion
+- teleconsult
+sections:
+  ziyaret_baglami:
+    slots:
+      basvuru_nedeni:
+        type: string
+        required: true
+        ask_tr:
+          tr: Bugün bu polikliniğe gelirken en çok konuşmak istediğiniz konu nedir?
+        follow_up_tr:
+          tr: Bugünkü randevunuzun sebebini kısaca anlatır mısınız?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.reason_for_encounter.v1 recorded in docs/evidence/proposals/ureme_endokrinolojisi_ve_infertilite.md'
+      sikayet_suresi:
+        type: duration
+        required: false
+        ask_tr:
+          tr: Ne zamandır korunmadan gebe kalmayı deniyorsunuz?
+        follow_up_tr:
+          tr: Ay ya da yıl olarak yaklaşık söyleyebilir misiniz?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; no candidate archetype recorded in docs/evidence/proposals/ureme_endokrinolojisi_ve_infertilite.md'
+  sorular:
+    slots:
+      adet_duzenli:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Adetleriniz genellikle her ay düzenli olarak geliyor mu?
+        delivery: text_first
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/ureme_endokrinolojisi_ve_infertilite.md'
+      agrili_adet:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Adet dönemlerinizde günlük işlerinizi zorlaştıran ağrılar oluyor mu?
+        delivery: text_first
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/ureme_endokrinolojisi_ve_infertilite.md'
+      iliski_sirasinda_agri:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Cinsel ilişki sırasında ya da sonrasında derin bir ağrı hissediyor musunuz?
+        delivery: text_first
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/ureme_endokrinolojisi_ve_infertilite.md'
+      killanma_artisi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Yüzünüzde ya da vücudunuzda istenmeyen kıllanmada artış fark ettiniz mi?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/ureme_endokrinolojisi_ve_infertilite.md'
+      memeden_sut_gelmesi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Emzirmediğiniz ve hamile olmadığınız halde memenizden süt geliyor mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/ureme_endokrinolojisi_ve_infertilite.md'
+      onceki_gebelik:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Daha önce hiç hamile kaldınız mı?
+        delivery: text_first
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/ureme_endokrinolojisi_ve_infertilite.md'
+      dusuk_ya_da_dis_gebelik:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Gebeliklerinizden herhangi biri düşük ya da dış gebelikle sonuçlandı mı?
+        ask_if: onceki_gebelik == true
+        delivery: text_first
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/ureme_endokrinolojisi_ve_infertilite.md'
+      pelvik_iltihap:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Daha önce rahim, tüp ya da yumurtalıklarınızda iltihap geçirdiniz mi?
+        delivery: text_first
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.problem_diagnosis.v1 recorded in docs/evidence/proposals/ureme_endokrinolojisi_ve_infertilite.md'
+      onceki_tedavi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Daha önce gebe kalmak için bir tedavi gördünüz mü?
+        delivery: text_first
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/ureme_endokrinolojisi_ve_infertilite.md'
+      onceki_tedavi_aciklama:
+        type: string
+        required: false
+        ask_tr:
+          tr: Hangi tedavileri gördüğünüzü kısaca anlatır mısınız?
+        ask_if: onceki_tedavi == true
+        delivery: text_first
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/ureme_endokrinolojisi_ve_infertilite.md'
+      partner_sperm_tahlili:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Eşinize ya da partnerinize daha önce sperm tahlili yapıldı mı?
+        delivery: text_first
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/ureme_endokrinolojisi_ve_infertilite.md'
+red_flags:
+- id: rf.ureme_endokrinolojisi_ve_infertilite_l0_taslak
+  label_tr: Üreme Endokrinolojisi ve İnfertilite ön görüşme protokolü — branşa özgü kırmızı bayrak taslağı (klinik onay bekliyor)
+  when: 'TODO: ureme_endokrinolojisi_ve_infertilite branch-specific red-flag trigger requires clinical sign-off'
+  tense: ever
+  tense_anchor: sikayet_suresi
+  level: YESIL
+  route: EXPEDITE
+  notify_clinic: never
+  status: draft_needs_source
+  source_gap: 'Trigger, EK-4 level and route await clinical sign-off (invariant 17 pending-value literal). Guideline-sourced candidates recorded in docs/evidence/proposals/ureme_endokrinolojisi_ve_infertilite.md; acuity bound by EK-4 law (RG 13/9/2022 sayı 31952), snapshot absent. RED/life-threat stays in base.life_threat (invariant 7). Owner: physician of record (HB-C1, HB-C2, HB-C7).'

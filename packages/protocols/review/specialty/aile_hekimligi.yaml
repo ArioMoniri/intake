@@ -1,0 +1,108 @@
+# REVIEW QUEUE — QUESTIONS authored; NOT servable. Promoted to L1 only by the
+# physician of record's sign-off (HB-C1).
+# generated-by: scripts/dev/gen_specialty_packs.py from docs/evidence/proposals/aile_hekimligi.md
+# (guideline-sourced; reviewed per docs/evidence/verification/). Symptom-capture
+# prompts only (inv 2/10) — not diagnosis, not triage. Acuity is EK-4 law +
+# physician of record; never fabricated. RED/life-threat stays in
+# base.life_threat (inv 7).
+kind: pack
+id: specialty.aile_hekimligi
+layer: specialty
+version: 0.3.0
+schema_version: 2
+maturity: L0
+status: questions-authored; awaiting physician-of-record sign-off (HB-C1); not servable
+language: tr
+title_tr: Aile Hekimliği ön görüşme protokolü
+extends: cluster.medical
+visit_types:
+- first
+- followup
+- preop
+- report
+- pregnancy_followup
+- chronic_review
+- post_discharge
+- screening
+- second_opinion
+- teleconsult
+sections:
+  ziyaret_baglami:
+    slots:
+      basvuru_nedeni:
+        type: string
+        required: true
+        ask_tr:
+          tr: Bugünkü görüşmede sizi en çok rahatsız eden konu nedir?
+        follow_up_tr:
+          tr: Bugünkü randevunuzun sebebini kısaca anlatır mısınız?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.reason_for_encounter.v1 recorded in docs/evidence/proposals/aile_hekimligi.md'
+      sikayet_suresi:
+        type: duration
+        required: false
+        ask_tr:
+          tr: Bu şikâyetiniz ne zamandır var?
+        follow_up_tr:
+          tr: Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; no candidate archetype recorded in docs/evidence/proposals/aile_hekimligi.md'
+  sorular:
+    slots:
+      son_gunlerde_ates:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Son günlerde ateşiniz oldu mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/aile_hekimligi.md'
+      istemsiz_kilo_kaybi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Son aylarda, beslenmenizde bir değişiklik olmadığı hâlde, istemeden kilo verdiniz mi?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/aile_hekimligi.md'
+      balgamda_kan:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Öksürürken balgamınızda ya da tükürüğünüzde kan fark ettiniz mi?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/aile_hekimligi.md'
+      yutma_guclugu:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Yemek ya da içecekleri yutarken takılma veya zorlanma yaşıyor musunuz?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/aile_hekimligi.md'
+      diskida_kan:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Dışkınızda ya da tuvalete gittikten sonra kan fark ettiniz mi?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/aile_hekimligi.md'
+      yeni_sislik_sertlik:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Vücudunuzda nedenini bilmediğiniz yeni bir şişlik ya da sertlik fark ettiniz mi?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/aile_hekimligi.md'
+      menopoz_sonrasi_kanama:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Adet dönemleriniz tamamen sona erdikten sonra herhangi bir kanamanız oldu mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/aile_hekimligi.md'
+      suregelen_hastalik:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Şeker hastalığı ya da yüksek tansiyon gibi süregelen bir hastalığınız var mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.problem_diagnosis.v1 recorded in docs/evidence/proposals/aile_hekimligi.md'
+red_flags:
+- id: rf.aile_hekimligi_l0_taslak
+  label_tr: Aile Hekimliği ön görüşme protokolü — branşa özgü kırmızı bayrak taslağı (klinik onay bekliyor)
+  when: 'TODO: aile_hekimligi branch-specific red-flag trigger requires clinical sign-off'
+  tense: ever
+  tense_anchor: sikayet_suresi
+  level: YESIL
+  route: EXPEDITE
+  notify_clinic: never
+  status: draft_needs_source
+  source_gap: 'Trigger, EK-4 level and route await clinical sign-off (invariant 17 pending-value literal). Guideline-sourced candidates recorded in docs/evidence/proposals/aile_hekimligi.md; acuity bound by EK-4 law (RG 13/9/2022 sayı 31952), snapshot absent. RED/life-threat stays in base.life_threat (invariant 7). Owner: physician of record (HB-C1, HB-C2, HB-C7).'

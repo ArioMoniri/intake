@@ -1,7 +1,8 @@
 /**
  * Typed boundary for the production voice transport (INT-103): the mobile
  * half of the LiveKit streaming session that supersedes the dev-tier
- * record→upload→transcribe loop in lib/voice.ts.
+ * capture→upload→transcribe loop in lib/voice.ts (itself file-less since
+ * INT-559: lib/capture).
  *
  * INVARIANT 3 IS THE LOAD-BEARING RULE OF THIS WHOLE DIRECTORY. The patient's
  * microphone is published as a live WebRTC track and nothing else. No module
@@ -102,7 +103,9 @@ export type SessionFailure =
   | "platform_unsupported"
   | "token_unavailable"
   | "connect_failed"
-  | "reconnect_exhausted";
+  | "reconnect_exhausted"
+  /** INT-465: the catalog cannot say CD-24's generic RED, so the session does not begin. */
+  | "red_copy_missing";
 
 // --- per-turn network quality (the acceptance's RTT/jitter/loss) -------------
 

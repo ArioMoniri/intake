@@ -1,0 +1,127 @@
+# REVIEW QUEUE — QUESTIONS authored; NOT servable. Promoted to L1 only by the
+# physician of record's sign-off (HB-C1).
+# generated-by: scripts/dev/gen_specialty_packs.py from docs/evidence/proposals/tibbi_ekoloji_ve_hidroklimatoloji.md
+# (guideline-sourced; reviewed per docs/evidence/verification/). Symptom-capture
+# prompts only (inv 2/10) — not diagnosis, not triage. Acuity is EK-4 law +
+# physician of record; never fabricated. RED/life-threat stays in
+# base.life_threat (inv 7).
+kind: pack
+id: specialty.tibbi_ekoloji_ve_hidroklimatoloji
+layer: specialty
+version: 0.3.0
+schema_version: 2
+maturity: L0
+status: questions-authored; awaiting physician-of-record sign-off (HB-C1); not servable
+language: tr
+title_tr: Tıbbi Ekoloji ve Hidroklimatoloji ön görüşme protokolü
+extends: cluster.medical
+visit_types:
+- first
+- followup
+- preop
+- report
+- pregnancy_followup
+- chronic_review
+- post_discharge
+- screening
+- second_opinion
+- teleconsult
+sections:
+  ziyaret_baglami:
+    slots:
+      basvuru_nedeni:
+        type: string
+        required: true
+        ask_tr:
+          tr: Bugün tıbbi ekoloji ve hidroklimatoloji polikliniğine gelme nedeninizi kısaca anlatır mısınız?
+        follow_up_tr:
+          tr: Sizi hekime getiren en önemli şikâyetiniz nedir?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.reason_for_encounter.v1 recorded in docs/evidence/proposals/tibbi_ekoloji_ve_hidroklimatoloji.md'
+      sikayet_suresi:
+        type: duration
+        required: false
+        ask_tr:
+          tr: Bu şikâyetiniz ne zamandır var?
+        follow_up_tr:
+          tr: Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; no candidate archetype recorded in docs/evidence/proposals/tibbi_ekoloji_ve_hidroklimatoloji.md'
+  sorular:
+    slots:
+      onceki_kaplica_kuru:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Daha önce bir kaplıcada kür programına katıldınız mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/tibbi_ekoloji_ve_hidroklimatoloji.md'
+      onceki_kurde_sorun:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Önceki kür sırasında ya da sonrasında halsizlik, yorgunluk veya başka bir sorun yaşadınız mı?
+        ask_if: onceki_kaplica_kuru == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.adverse_reaction_risk.v1 recorded in docs/evidence/proposals/tibbi_ekoloji_ve_hidroklimatoloji.md'
+      uzun_sureli_kas_eklem_agrisi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Eklemlerinizde, belinizde ya da kaslarınızda uzun süredir devam eden ağrı var mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/tibbi_ekoloji_ve_hidroklimatoloji.md'
+      uzun_sureli_cilt_sorunu:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Cildinizde uzun süredir devam eden kaşıntı, döküntü ya da pullanma var mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/tibbi_ekoloji_ve_hidroklimatoloji.md'
+      son_gunlerde_ates:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Son günlerde ateşiniz oldu mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/tibbi_ekoloji_ve_hidroklimatoloji.md'
+      kalp_akciger_hastaligi_oykusu:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Size daha önce kalp ya da akciğer hastalığı olduğu söylendi mi?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.problem_diagnosis.v1 recorded in docs/evidence/proposals/tibbi_ekoloji_ve_hidroklimatoloji.md'
+      yuksek_tansiyon_oykusu:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Size daha önce yüksek tansiyon olduğu söylendi mi?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.problem_diagnosis.v1 recorded in docs/evidence/proposals/tibbi_ekoloji_ve_hidroklimatoloji.md'
+      damar_pihti_varis_oykusu:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Size daha önce damarlarınızda pıhtı ya da varis sorunu olduğu söylendi mi?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.problem_diagnosis.v1 recorded in docs/evidence/proposals/tibbi_ekoloji_ve_hidroklimatoloji.md'
+      kansizlik_oykusu:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Size daha önce kansızlık olduğu söylendi mi?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.problem_diagnosis.v1 recorded in docs/evidence/proposals/tibbi_ekoloji_ve_hidroklimatoloji.md'
+      diyabet_tanisi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Size daha önce şeker hastalığı tanısı konuldu mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.problem_diagnosis.v1 recorded in docs/evidence/proposals/tibbi_ekoloji_ve_hidroklimatoloji.md'
+      kanser_oykusu:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Size daha önce kanser tanısı konuldu mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.problem_diagnosis.v1 recorded in docs/evidence/proposals/tibbi_ekoloji_ve_hidroklimatoloji.md'
+red_flags:
+- id: rf.tibbi_ekoloji_ve_hidroklimatoloji_l0_taslak
+  label_tr: Tıbbi Ekoloji ve Hidroklimatoloji ön görüşme protokolü — branşa özgü kırmızı bayrak taslağı (klinik onay bekliyor)
+  when: 'TODO: tibbi_ekoloji_ve_hidroklimatoloji branch-specific red-flag trigger requires clinical sign-off'
+  tense: ever
+  tense_anchor: sikayet_suresi
+  level: YESIL
+  route: EXPEDITE
+  notify_clinic: never
+  status: draft_needs_source
+  source_gap: 'Trigger, EK-4 level and route await clinical sign-off (invariant 17 pending-value literal). Guideline-sourced candidates recorded in docs/evidence/proposals/tibbi_ekoloji_ve_hidroklimatoloji.md; acuity bound by EK-4 law (RG 13/9/2022 sayı 31952), snapshot absent. RED/life-threat stays in base.life_threat (invariant 7). Owner: physician of record (HB-C1, HB-C2, HB-C7).'

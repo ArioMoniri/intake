@@ -29,8 +29,10 @@ is an availability control on a safety control.
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
+from pathlib import Path
 
 import pytest
+import yaml
 from intake_platform.admin import (
     DANGEROUS_ACTIONS,
     ActionDirection,
@@ -46,9 +48,11 @@ from intake_platform.admin.flag_governance import (
     ChangeReasonMissing,
     ChangeReasonTooShort,
     ClinicalSemanticSurface,
+    DeviceFunctionsPreconditionUnmet,
     FlagChangeReason,
     FlagGovernanceRefused,
     FlagGovernor,
+    GenericRedPrecondition,
     NotASafetyFlag,
     SafetyKeyInGenericStore,
     build_flag_change_justification,
@@ -65,6 +69,7 @@ from intake_platform.admin.four_eyes import (
 )
 from intake_platform.admin.roles import AdminRole
 from intake_platform.flags import SAFETY_FLAG_DEFAULTS
+from protocols.generic_red import generic_red_refusals, load_generic_red
 
 T0 = datetime(2026, 9, 4, 9, 0, tzinfo=UTC)
 CHANGE_TTL = timedelta(minutes=15)
@@ -372,3 +377,78 @@ class TestRefusalsCarryStableCodes:
         assert len(codes) == 5
         assert all(code.startswith("flag_") for code in codes)
         assert all(issubclass(cls, FlagGovernanceRefused) for cls in (SafetyKeyInGenericStore,))
+
+
+class TestDeviceFunctionsNeedsAServableGenericRed:
+    """INT-453: device_functions shows RED on the patient's device, and a RED
+    whose own script is missing is shown as the generic escalation. While that
+    copy is absent or draft_needs_source (CD-24), the flag cannot be enabled,
+    so a blank generic never reaches a live tenant."""
+
+    REPO = Path(__file__).resolve().parents[2]
+    COMMITTED = REPO / "packages" / "protocols" / "generic" / "generic_red.yaml"
+
+    @classmethod
+    def draft(cls, tmp_path: Path) -> Path:
+        """The committed CD-24 copy, set back to draft_needs_source (INT-465)."""
+        doc = yaml.safe_load(cls.COMMITTED.read_text(encoding="utf-8"))
+        doc["status"] = "draft_needs_source"
+        doc["source_gap"] = "sentetik: the register row is withdrawn"
+        path = tmp_path / "generic_draft.yaml"
+        path.write_text(yaml.safe_dump(doc, allow_unicode=True, sort_keys=False), encoding="utf-8")
+        return path
+
+    @staticmethod
+    def precondition(path: Path) -> GenericRedPrecondition:
+        return lambda: generic_red_refusals(load_generic_red(path))
+
+    def _open(self, gov: FlagGovernor, key: str = "device_functions") -> object:
+        return gov.open_enable(key=key, actor=ACTOR, justification=justification(), ttl=CHANGE_TTL)
+
+    def test_nothing_wired_refuses(self) -> None:
+        gov = governor()
+        with pytest.raises(DeviceFunctionsPreconditionUnmet) as caught:
+            self._open(gov)
+        assert caught.value.code == "flag_device_functions_generic_red_unservable"
+        assert gov.effective_safety("device_functions") is False
+
+    def test_a_draft_generic_copy_refuses(self, tmp_path: Path) -> None:
+        gov = FlagGovernor(
+            FourEyesService(clock=Clock()),
+            generic_red_precondition=self.precondition(self.draft(tmp_path)),
+        )
+        with pytest.raises(DeviceFunctionsPreconditionUnmet):
+            self._open(gov)
+
+    def test_a_servable_generic_lets_the_two_key_ceremony_complete(self) -> None:
+        """Near miss: the same ceremony with the active CD-24 copy (INT-465) succeeds."""
+        gov = FlagGovernor(
+            FourEyesService(clock=Clock()),
+            generic_red_precondition=self.precondition(self.COMMITTED),
+        )
+        pending = gov.open_enable(
+            key="device_functions", actor=ACTOR, justification=justification(), ttl=CHANGE_TTL
+        )
+        assert gov.approve_enable(pending.id, approver=APPROVER, assertion_id="assn-1") is True
+        assert gov.effective_safety("device_functions") is True
+
+    def test_copy_withdrawn_between_the_two_keys_refuses_the_flip(self) -> None:
+        servable = {"now": True}
+        gov = FlagGovernor(
+            FourEyesService(clock=Clock()),
+            generic_red_precondition=lambda: () if servable["now"] else ("generic_red_absent",),
+        )
+        pending = gov.open_enable(
+            key="device_functions", actor=ACTOR, justification=justification(), ttl=CHANGE_TTL
+        )
+        servable["now"] = False
+        with pytest.raises(DeviceFunctionsPreconditionUnmet):
+            gov.approve_enable(pending.id, approver=APPROVER, assertion_id="assn-1")
+        assert gov.effective_safety("device_functions") is False
+
+    def test_other_safety_flags_do_not_read_the_generic_red(self) -> None:
+        gov = governor()  # nothing wired; learning_apply is unaffected
+        pending = gov.open_enable(
+            key="learning_apply", actor=ACTOR, justification=justification(), ttl=CHANGE_TTL
+        )
+        assert gov.approve_enable(pending.id, approver=APPROVER, assertion_id="assn-1") is True

@@ -1,6 +1,6 @@
-# Vizite embed — sample partner app (INT-320 follow-up)
+# Önvizit embed — sample partner app (INT-320 follow-up)
 
-A **synthetic, dev-tier** sample that shows another app embedding Vizite's
+A **synthetic, dev-tier** sample that shows another app embedding Önvizit's
 _Start pre-visit_ button and launching the branded intake end to end, over the
 real signed launch-ticket handshake (ADR-029). It turns the built mechanism
 (`packages/embed-sdk`, `services/api` `/embed/v1/*`, `infra/tenants/embed_registry.yaml`)
@@ -16,9 +16,9 @@ brand-use permission — no engineer can supply those (see
 ## The path this demonstrates
 
 ```
-  browser (partner page)            partner backend (this app)         Vizite API
-  --------------------              --------------------------         ----------
-  [ Ön muayeneyi başlat ]  ──POST──▶  POST /vizite/ticket
+  browser (partner page)            partner backend (this app)         Önvizit API
+  --------------------              --------------------------         -----------
+  [ Ön muayeneyi başlat ]  ──POST──▶  POST /onvizit/ticket
    @intake/embed-sdk                    handleTicketRequest ──POST──▶  POST /embed/v1/launch-tickets
    (holds NO secret)                    (holds the credential)          (mints a signed ticket)
         ▲                                     │
@@ -28,8 +28,8 @@ brand-use permission — no engineer can supply those (see
                                                               POST /embed/v1/consent → the hash-bound consent to show
 ```
 
-The button holds no Vizite secret: it calls this app's **own** backend, which is
-the only place the credential lives, and it opens **only** an `https` Vizite URL.
+The button holds no Önvizit secret: it calls this app's **own** backend, which is
+the only place the credential lives, and it opens **only** an `https` Önvizit URL.
 The tenant is bound inside the ticket signature, so a ticket can never cross
 tenants; the ticket rides in the URL fragment, so it never reaches an access
 log; and no clinical or personal value crosses the handshake in either direction.
@@ -43,7 +43,7 @@ apps/embed-sample-partner/
   public/styles.css
   src/partnerBackend.ts       the tested core: mint a ticket server-to-server
   src/partnerBackend.test.ts  the fixture-backed proof of the handshake
-  src/browser/main.ts         renders the SDK button, wires it to /vizite/ticket
+  src/browser/main.ts         renders the SDK button, wires it to /onvizit/ticket
   tsconfig.node.json          → dist/partnerBackend.js  (the server imports this)
   tsconfig.web.json           → dist/web/main.js        (the browser glue)
   tsconfig.vendor.json        → dist/web/vendor/index.js (the SDK, browser-loadable)
@@ -55,7 +55,7 @@ through the import map in `index.html`, which points at the vendored SDK file.
 
 ## Run the proof (no infra needed)
 
-The handshake is proven by a fixture-backed test that stands a recorded Vizite
+The handshake is proven by a fixture-backed test that stands a recorded Önvizit
 response in for the live endpoint:
 
 ```bash
@@ -75,11 +75,11 @@ key) is proven by `tests/embed/test_router.py`.
 A live run additionally needs infra that this PR does not stand up. These steps
 are the **operator's**:
 
-1. **A reachable Vizite dev API with the embed surface configured.** The API
+1. **A reachable Önvizit dev API with the embed surface configured.** The API
    fails closed (503 on every `/embed` route) unless it is started with a launch
    base URL and an OpenBao-backed signing-key resolver:
 
-   | env (on the Vizite API) | value |
+   | env (on the Önvizit API) | value |
    | --- | --- |
    | `INTAKE_DEV_TOKEN_ADMIN` | the admin bearer (the partner-backend credential, dev tier) |
    | `INTAKE_DEV_TOKEN_PATIENT` | the patient bearer (the rest of the dev tier) |
@@ -102,7 +102,7 @@ are the **operator's**:
    to run against `INTAKE_ENV=prod`, and never prints the key. This is the
    operator's step because it writes a secret to a running secrets store.
 
-3. **The consent step.** `POST /embed/v1/consent` renders from Vizite's own
+3. **The consent step.** `POST /embed/v1/consent` renders from Önvizit's own
    `docs/legal`-bound flow and fails closed until the texts exist. The
    counsel-vetted tenant consent tree is a human blocker (HB-L27, via INT-210);
    for local dev the API reads dev-only sample texts from its dev legal tree
@@ -112,8 +112,8 @@ are the **operator's**:
 4. **Start the sample and open it:**
 
    ```bash
-   VIZITE_ADMIN_TOKEN="$INTAKE_DEV_TOKEN_ADMIN" \
-   VIZITE_API_BASE="http://127.0.0.1:8000" \
+   ONVIZIT_ADMIN_TOKEN="$INTAKE_DEV_TOKEN_ADMIN" \
+   ONVIZIT_API_BASE="http://127.0.0.1:8000" \
    pnpm --filter @intake/embed-sample-partner dev
    # → http://localhost:4123  — click “Ön muayeneyi başlat”
    ```
@@ -121,8 +121,8 @@ are the **operator's**:
    | env (on this sample app) | default | meaning |
    | --- | --- | --- |
    | `PARTNER_PORT` | `4123` | where this sample listens |
-   | `VIZITE_API_BASE` | `http://127.0.0.1:8000` | the dev Vizite API base |
-   | `VIZITE_ADMIN_TOKEN` | _(empty)_ | the admin bearer; without it a tap returns `500 partner_backend_unconfigured` |
+   | `ONVIZIT_API_BASE` | `http://127.0.0.1:8000` | the dev Önvizit API base |
+   | `ONVIZIT_ADMIN_TOKEN` | _(empty)_ | the admin bearer; without it a tap returns `500 partner_backend_unconfigured` |
    | `EMBED_TENANT_ID` | `0b6f9d2e-1111-5aaa-8bbb-000000000001` | the `dev-partner-alpha` row |
 
 Until the API + OpenBao are up and the key is seeded, the page loads and a tap

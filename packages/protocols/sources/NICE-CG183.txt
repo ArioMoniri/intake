@@ -1,0 +1,38 @@
+# guideline_id: NICE-CG183
+# title: Drug allergy: diagnosis and management
+# publisher: National Institute for Health and Care Excellence (NICE)
+# version_or_date: Clinical guideline CG183; published 03 September 2014; minor change November 2018 (Update information)
+# url: https://www.nice.org.uk/guidance/cg183/chapter/Recommendations
+# url_update_information: https://www.nice.org.uk/guidance/cg183/chapter/Update-information
+# retrieved_on: 2026-10-03
+# retrieval: curl with a browser user-agent (HTTP 200 on every page); HTML (utf-8) tags stripped, entities decoded, runs of spaces collapsed, one line per HTML block; characters kept as served (including U+2011 non-breaking hyphens and U+2013 dashes)
+# scope: verbatim excerpt of the page header, recommendations 1.2.1 to 1.2.2 and 1.2.5 to 1.2.6, then the Update information list; nothing paraphrased or edited. '[...]' marks an omission between excerpts.
+---
+Drug allergy: diagnosis and management
+Clinical guideline
+Reference number: CG183
+Published:
+03 September 2014
+[...]
+1.2 Documenting and sharing information with other healthcare professionals
+Recording drug allergy status
+1.2.1
+Document people's drug allergy status in their medical records using 1 of the following:
+'drug allergy'
+'none known'
+'unable to ascertain' (document it as soon as the information is available).
+1.2.2
+If drug allergy status has been documented, record all of the following at a minimum:
+the drug name
+the signs, symptoms and severity of the reaction (see recommendation 1.1.1)
+the date when the reaction occurred.
+Documenting new suspected drug allergic reactions
+[...]
+1.2.5
+Ensure that drug allergy status is documented separately from adverse drug reactions and that it is clearly visible to all healthcare professionals who are prescribing drugs.
+1.2.6
+Check a person's drug allergy status and confirm it with them (or their family members or carers as appropriate) before prescribing, dispensing or administering any drug (see also recommendation 1.3.4). Update the person's medical records or inform their GP if there is a change in drug allergy status.
+[...]
+Update information
+Minor changes since publication
+November 2018: After a surveillance review, a link to other NICE guidance was updated as the original guidance had been replaced.

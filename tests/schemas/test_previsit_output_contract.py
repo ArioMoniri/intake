@@ -9,7 +9,7 @@ rule the next serving path will not inherit.
   of them is ``LlmCandidateTriage``. An LLM judgement has one home in this
   document (``llm_candidates``) and no way into the routing level.
 - **invariant 22** — a magnitude and its unit are one object, and the
-  magnitude rides the shared ``JsonValue`` carrier (INT-309/ADR-029) rather
+  magnitude rides the shared ``JsonValue`` carrier (INT-309/ADR-030) rather
   than a second encoding invented here.
 - **invariant 6** — no field of this document can carry a direct identifier.
   The hospital's own ``patient_number`` is what the REQUEST names; it is

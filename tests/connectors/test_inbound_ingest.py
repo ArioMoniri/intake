@@ -11,6 +11,8 @@ for the push.
 
 from __future__ import annotations
 
+from dataclasses import fields
+
 import pytest
 from inbound_harness import SOURCE_ID, TENANT, inbound_source, oru_bytes, registry_of
 from intake_connectors import ConsentDenied, ConsentVerdict
@@ -71,9 +73,20 @@ def test_ingest_writes_an_audit_entry_naming_ids_only() -> None:
     build_ingest(store=store).ingest(request(), message())
     actions = [entry.action for entry in store.entries()]
     assert "connector.inbound_ingested" in actions
+    # The clinical values planted in the ORU (patient surname DENEME in PID-5,
+    # glucose 95 in OBX-5) must not reach the audit. A leak lands in a
+    # content/ref field — exactly the ones audit._require_ref_shaped guards —
+    # never in system-generated metadata: entry_hash/prev_hash are SHA-256
+    # digests, timestamp_utc is the clock and seq a counter, each of which
+    # contains a 2-digit sentinel like "95" by chance often enough that a
+    # repr()-wide match was flaky (~1-in-3 of runs). Scan the ref fields only.
+    system_generated = {"entry_hash", "prev_hash", "timestamp_utc", "seq"}
     for entry in store.entries():
-        assert "DENEME" not in repr(entry)
-        assert "95" not in repr(entry)
+        refs = " ".join(
+            str(getattr(entry, f.name)) for f in fields(entry) if f.name not in system_generated
+        )
+        assert "DENEME" not in refs, entry
+        assert "95" not in refs, entry
 
 
 def test_ingest_refuses_when_consent_does_not_stand() -> None:

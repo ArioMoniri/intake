@@ -4,7 +4,8 @@
  * same layered İzinleriniz list, so the structure is disclosed once, in
  * context, with nothing pre-ticked and nothing blocking: "Devam edin" is
  * always available, because optional purposes never gate the core service
- * (02 §7 — declining everything lands in a working product).
+ * (02 §7). `core` itself (INT-537) is listed here like the rest and asked
+ * again in context, at the first visit, where it is needed.
  *
  * While docs/legal/consents has no texts (INT-210), every explicit purpose
  * here shows "Metin hazırlanıyor" and cannot be granted; the screen's job
@@ -18,12 +19,7 @@ import { ConsentList } from "@/components/ConsentList";
 import { AppText, PrimaryButton, Screen } from "@/components/Themed";
 import { viewOf } from "@/lib/consent/ledger";
 import { purposeDef, purposeParam, type PurposeId } from "@/lib/consent/purposes";
-import {
-  grantLocal,
-  seedLedgerForAccount,
-  useConsentLedger,
-  withdrawLocal,
-} from "@/lib/consent/store";
+import { seedLedgerForAccount, useConsentLedger, withdrawLocal } from "@/lib/consent/store";
 import { t } from "@/lib/i18n";
 import { useSession } from "@/lib/session";
 import { spacing } from "@/lib/theme";
@@ -45,27 +41,27 @@ export default function FirstRunConsent() {
   const views = viewOf(ledger);
 
   const openDetail = (id: PurposeId) => {
-    // The focused detail screen is the shared route; the account exists, so the
-    // shell is reachable and back returns here. Grant happens inline, though.
+    // Layer 2 is the shared detail route; the account exists, so the shell
+    // is reachable and back returns here.
     router.push(`/(tabs)/me/consents/${purposeParam(id)}`);
   };
 
-  // Mirror a ledger change into the legacy session gate in the same handler.
-  const mirror = (flipped: readonly PurposeId[], on: boolean) => {
-    for (const scope of flipped) {
-      const key = purposeDef(scope)?.sessionKey;
-      if (key !== null && key !== undefined && key !== "core") {
-        setConsent(key, on);
-      }
+  const onToggle = (id: PurposeId) => {
+    const view = views.find((v) => v.id === id);
+    if (view === undefined) {
+      return;
     }
-  };
-
-  const onGrant = (id: PurposeId) => {
-    mirror(grantLocal(id), true);
-  };
-
-  const onWithdraw = (id: PurposeId) => {
-    mirror(withdrawLocal(id), false);
+    if (view.withdrawable) {
+      const flipped = withdrawLocal(id);
+      for (const scope of flipped) {
+        const key = purposeDef(scope)?.sessionKey;
+        if (key !== null && key !== undefined) {
+          setConsent(key, false);
+        }
+      }
+      return;
+    }
+    openDetail(id);
   };
 
   return (
@@ -82,13 +78,7 @@ export default function FirstRunConsent() {
         <AppText role="body" color="inkSoft">
           {t("consent.firstRun.body")}
         </AppText>
-        <ConsentList
-          views={views}
-          texts={ledger.texts}
-          onGrant={onGrant}
-          onWithdraw={onWithdraw}
-          onOpenDetail={openDetail}
-        />
+        <ConsentList views={views} onOpenDetail={openDetail} onToggle={onToggle} />
         <PrimaryButton
           label={t("consent.firstRun.continue")}
           onPress={() => router.replace("/(tabs)/today")}

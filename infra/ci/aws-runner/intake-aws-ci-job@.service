@@ -1,0 +1,58 @@
+# INT-463, INT-467 — one ephemeral run of runner %i of the intake-aws-ci pool.
+# cycle.sh %i registers it with --ephemeral, then starts this unit and waits.
+# The runner takes exactly one job, exits, and cycle.sh wipes everything it left.
+#
+# Jobs run as ghrunner%i with no new privileges and no capability in the host's
+# namespaces. The root file system is read-only to them (ProtectSystem=strict),
+# so a job cannot fill the root disk. /opt is an empty read-only tmpfs apart
+# from this runner's tree, home (with the workspace in home/work, as on GitHub's
+# runners) and temp on the NVMe volume, so no other runner's tree is visible;
+# /home, /root and every staging path are inaccessible. guard.sh adds the ACL
+# and egress denials before every job.
+#
+# The job runs in its rootless daemon's detached network namespace, which
+# cycle.sh attaches at /run/netns/intake-aws-ci-%i: a port its containers
+# publish on 127.0.0.1 is reachable from the job and exists nowhere else, so
+# runners never collide on one. The namespace's only uplink is slirp4netns, a
+# host process of ghrunner%i, so the owner-match egress chain still applies; its
+# resolver is slirp4netns's forwarder.
+#
+# INT-544: the runner's cache seed ($CI_ROOT/seed, root-owned, seed.sh) is bound
+# read-only, if it exists. A job copies what it needs into its own temp
+# (scripts/ci/ci_seed.sh); nothing a job does can reach the seed itself.
+[Unit]
+Description=One ephemeral job of intake-aws-ci Actions runner %i (INT-463, INT-467)
+After=network-online.target intake-aws-ci-dockerd@%i.service
+Wants=intake-aws-ci-dockerd@%i.service
+PartOf=intake-aws-ci-runner@%i.service
+RequiresMountsFor=/opt/dlami/nvme
+
+[Service]
+Type=simple
+User=ghrunner%i
+Group=ghrunner%i
+Slice=intake-aws-ci.slice
+Environment=HOME=/opt/dlami/nvme/intake-aws-ci-%i/home
+Environment=TMPDIR=/tmp
+Environment=LANG=C.UTF-8
+Environment=DOCKER_HOST=unix:///run/intake-aws-ci-%i/docker.sock
+Environment=PATH=/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin
+WorkingDirectory=/opt/dlami/nvme/intake-aws-ci-%i/runner
+ExecStart=/opt/dlami/nvme/intake-aws-ci-%i/runner/run.sh
+Restart=no
+TimeoutStopSec=120
+KillMode=control-group
+OOMScoreAdjust=500
+NoNewPrivileges=yes
+NetworkNamespacePath=/run/netns/intake-aws-ci-%i
+ProtectSystem=strict
+ProtectHome=yes
+TemporaryFileSystem=/opt:ro
+BindPaths=/opt/dlami/nvme/intake-aws-ci-%i/runner
+BindPaths=/opt/dlami/nvme/intake-aws-ci-%i/home
+BindPaths=/opt/dlami/nvme/intake-aws-ci-%i/tmp:/tmp
+BindPaths=/opt/dlami/nvme/intake-aws-ci-%i/tmp:/var/tmp
+BindReadOnlyPaths=/usr/local/lib/intake-aws-ci-runner/resolv.conf:/etc/resolv.conf
+BindReadOnlyPaths=-/opt/dlami/nvme/intake-aws-ci-%i/seed
+ReadWritePaths=-/run/intake-aws-ci-%i
+InaccessiblePaths=-/etc/intake-staging -/etc/intake-aws-ci-runner -/var/lib/intake-ci -/var/lib/docker -/var/lib/containerd -/var/lib/amazon -/var/log/amazon -/var/lib/cloud -/run/containerd -/run/docker.sock

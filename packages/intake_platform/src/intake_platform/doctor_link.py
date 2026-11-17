@@ -63,6 +63,7 @@ __all__ = [
     "normalise_recipient",
     "token_fingerprint",
     "token_matches",
+    "visit_instant",
 ]
 
 #: files/10 §2: "128-bit random token". Written as the bit count because that
@@ -137,6 +138,22 @@ def _tz() -> ZoneInfo:
         ) from exc
 
 
+def visit_instant(schedule: VisitSchedule) -> dt.datetime:
+    """The visit's instant in Türkiye, as an aware UTC instant.
+
+    The appointment itself where the schedule records an hour; otherwise the
+    START of the visit date — never later than the appointment, so every clock
+    anchored here (the Doctor Link expiry, the T-24h confirm, the INT-407
+    ``missed`` guard) can only run early, never late.
+
+    The zone is applied here and only here: a :class:`VisitTime` is a civil
+    time in the visit's own calendar, so combining it with the visit's date
+    under ``Europe/Istanbul`` is the one place the two halves become an instant.
+    """
+    anchor = schedule.time.at if schedule.time is not None else dt.time.min
+    return dt.datetime.combine(schedule.date, anchor, tzinfo=_tz()).astimezone(UTC)
+
+
 def link_expires_at(schedule: VisitSchedule) -> dt.datetime:
     """``the visit's instant in Türkiye + 72 h``, as an aware UTC instant.
 
@@ -147,15 +164,9 @@ def link_expires_at(schedule: VisitSchedule) -> dt.datetime:
     lengthen it. The module docstring carries the reasoning;
     ``test_the_fallback_is_never_later_than_the_true_appointment`` in
     ``tests/clinician/test_doctor_link.py`` asserts that direction for every
-    minute of the day.
-
-    The zone is applied here and only here: a :class:`VisitTime` is a civil
-    time in the visit's own calendar, so combining it with the visit's date
-    under ``Europe/Istanbul`` is the one place the two halves become an instant.
+    minute of the day. The instant itself is :func:`visit_instant`.
     """
-    anchor = schedule.time.at if schedule.time is not None else dt.time.min
-    start = dt.datetime.combine(schedule.date, anchor, tzinfo=_tz())
-    return (start + DOCTOR_LINK_TTL).astimezone(UTC)
+    return visit_instant(schedule) + DOCTOR_LINK_TTL
 
 
 def normalise_recipient(raw: str) -> str:

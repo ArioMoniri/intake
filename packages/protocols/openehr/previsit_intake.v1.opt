@@ -37,7 +37,7 @@
       composition archetype at all.
     - The remaining ids are transcribed from files/03 §7 and have NOT been
       reconciled against a CKM revision here; that reconciliation, and any
-      resulting `.vN` bump, belongs to INT-032 (EHRbase export tier, P3).
+      resulting `.vN` bump, belongs to HUMAN_BLOCKERS HB-C12(a).
       Re-authoring in Archetype Designer changes this file's sha256, which
       forces a new questionnaire_definition version and makes the binding
       table diff the review surface (files/12 §8.1).
@@ -45,7 +45,40 @@
     - `CLUSTER.provenance` is named in files/03 §7 but is ABSENT here: a
       CLUSTER is not a CONTENT_ITEM, so it cannot sit under `content`, and no
       committed source states which structure hosts it. Adding it would
-      require an invented at-code path. Deferred to INT-032.
+      require an invented at-code path. Deferred to HB-C12(a).
+
+  SCHEMA CONFORMANCE (INT-257). This file validates against the openEHR OPT
+  1.4 schema, ITS-XML tag Release-1.0.2 `components/ALL/Template.xsd`, which
+  tests/protocols/test_opt_schema.py runs offline against a vendored,
+  digest-pinned copy. That schema makes `occurrences` and `node_id` mandatory
+  on every C_OBJECT, `existence` on every C_ATTRIBUTE and `cardinality` on a
+  C_MULTIPLE_ATTRIBUTE; the INT-041 file carried none of the last three and
+  `occurrences` on the root only, and EHRbase 2.35.1 refused it with HTTP 500
+  (INT-032). Every value below is read off a source, none is chosen:
+
+    - root `occurrences` 1..1, both ends included: a template has one root.
+      `upper_included` is now explicit — without it the interval [1,1) is
+      empty.
+    - `content` `existence` 0..1: RM 1.0.2 `COMPOSITION.content` is `0..1`.
+    - `content` `cardinality` {0..*; ordered; non-unique}: the RM type is
+      `List<CONTENT_ITEM>`, and ADL 1.4 §5.3.4.1 defines a logical list as
+      ordered with non-unique membership.
+    - each content root `occurrences` 0..* (`upper_included` absent, as an
+      unbounded upper requires): how often an entry archetype may sit in
+      `content` is stated by the COMPOSITION archetype's content constraint,
+      and `openEHR-EHR-COMPOSITION.intake_previsit.v1` is local and
+      unauthored (HB-C12). The entry archetypes state no occurrences for their
+      own root. The RM bounds `content` by nothing, and 0..* is that bound
+      and nothing tighter; a tighter interval is a modelling decision HB-C12
+      owns.
+    - every `node_id` is present and EMPTY. A non-empty node id must be a term
+      code defined in the terminology the template carries (AOM 1.4
+      §4.2.3.1), and this template carries no archetype terminology until
+      HB-C12 authors it. EHRbase's OPT parser looks every non-blank node id up
+      in that terminology and dereferences the miss, so the archetype root
+      code without its term definition is an upload failure, not a nicety;
+      the roots are addressed by `archetype_id`, which is what the AQL path
+      `/content[<archetype_id>]` names.
 -->
 <template xmlns="http://schemas.openehr.org/v1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <language>
@@ -75,73 +108,156 @@
     <rm_type_name>COMPOSITION</rm_type_name>
     <occurrences>
       <lower_included>true</lower_included>
+      <upper_included>true</upper_included>
       <lower_unbounded>false</lower_unbounded>
       <upper_unbounded>false</upper_unbounded>
       <lower>1</lower>
       <upper>1</upper>
     </occurrences>
-    <archetype_id>
-      <value>openEHR-EHR-COMPOSITION.intake_previsit.v1</value>
-    </archetype_id>
-    <template_id>
-      <value>previsit_intake.v1</value>
-    </template_id>
+    <node_id/>
     <attributes xsi:type="C_MULTIPLE_ATTRIBUTE">
       <rm_attribute_name>content</rm_attribute_name>
+      <existence>
+        <lower_included>true</lower_included>
+        <upper_included>true</upper_included>
+        <lower_unbounded>false</lower_unbounded>
+        <upper_unbounded>false</upper_unbounded>
+        <lower>0</lower>
+        <upper>1</upper>
+      </existence>
       <children xsi:type="C_ARCHETYPE_ROOT">
         <rm_type_name>EVALUATION</rm_type_name>
+        <occurrences>
+          <lower_included>true</lower_included>
+          <lower_unbounded>false</lower_unbounded>
+          <upper_unbounded>true</upper_unbounded>
+          <lower>0</lower>
+        </occurrences>
+        <node_id/>
         <archetype_id>
           <value>openEHR-EHR-EVALUATION.reason_for_encounter.v1</value>
         </archetype_id>
       </children>
       <children xsi:type="C_ARCHETYPE_ROOT">
         <rm_type_name>OBSERVATION</rm_type_name>
+        <occurrences>
+          <lower_included>true</lower_included>
+          <lower_unbounded>false</lower_unbounded>
+          <upper_unbounded>true</upper_unbounded>
+          <lower>0</lower>
+        </occurrences>
+        <node_id/>
         <archetype_id>
           <value>openEHR-EHR-OBSERVATION.story.v1</value>
         </archetype_id>
       </children>
       <children xsi:type="C_ARCHETYPE_ROOT">
         <rm_type_name>OBSERVATION</rm_type_name>
+        <occurrences>
+          <lower_included>true</lower_included>
+          <lower_unbounded>false</lower_unbounded>
+          <upper_unbounded>true</upper_unbounded>
+          <lower>0</lower>
+        </occurrences>
+        <node_id/>
         <archetype_id>
           <value>openEHR-EHR-OBSERVATION.symptom_sign.v1</value>
         </archetype_id>
       </children>
       <children xsi:type="C_ARCHETYPE_ROOT">
         <rm_type_name>EVALUATION</rm_type_name>
+        <occurrences>
+          <lower_included>true</lower_included>
+          <lower_unbounded>false</lower_unbounded>
+          <upper_unbounded>true</upper_unbounded>
+          <lower>0</lower>
+        </occurrences>
+        <node_id/>
         <archetype_id>
           <value>openEHR-EHR-EVALUATION.problem_diagnosis.v1</value>
         </archetype_id>
       </children>
       <children xsi:type="C_ARCHETYPE_ROOT">
         <rm_type_name>ACTION</rm_type_name>
+        <occurrences>
+          <lower_included>true</lower_included>
+          <lower_unbounded>false</lower_unbounded>
+          <upper_unbounded>true</upper_unbounded>
+          <lower>0</lower>
+        </occurrences>
+        <node_id/>
         <archetype_id>
           <value>openEHR-EHR-ACTION.medication.v1</value>
         </archetype_id>
       </children>
       <children xsi:type="C_ARCHETYPE_ROOT">
         <rm_type_name>EVALUATION</rm_type_name>
+        <occurrences>
+          <lower_included>true</lower_included>
+          <lower_unbounded>false</lower_unbounded>
+          <upper_unbounded>true</upper_unbounded>
+          <lower>0</lower>
+        </occurrences>
+        <node_id/>
         <archetype_id>
           <value>openEHR-EHR-EVALUATION.adverse_reaction_risk.v1</value>
         </archetype_id>
       </children>
       <children xsi:type="C_ARCHETYPE_ROOT">
         <rm_type_name>OBSERVATION</rm_type_name>
+        <occurrences>
+          <lower_included>true</lower_included>
+          <lower_unbounded>false</lower_unbounded>
+          <upper_unbounded>true</upper_unbounded>
+          <lower>0</lower>
+        </occurrences>
+        <node_id/>
         <archetype_id>
           <value>openEHR-EHR-OBSERVATION.phq9.v1</value>
         </archetype_id>
       </children>
       <children xsi:type="C_ARCHETYPE_ROOT">
         <rm_type_name>OBSERVATION</rm_type_name>
+        <occurrences>
+          <lower_included>true</lower_included>
+          <lower_unbounded>false</lower_unbounded>
+          <upper_unbounded>true</upper_unbounded>
+          <lower>0</lower>
+        </occurrences>
+        <node_id/>
         <archetype_id>
           <value>openEHR-EHR-OBSERVATION.gad7.v1</value>
         </archetype_id>
       </children>
       <children xsi:type="C_ARCHETYPE_ROOT">
         <rm_type_name>EVALUATION</rm_type_name>
+        <occurrences>
+          <lower_included>true</lower_included>
+          <lower_unbounded>false</lower_unbounded>
+          <upper_unbounded>true</upper_unbounded>
+          <lower>0</lower>
+        </occurrences>
+        <node_id/>
         <archetype_id>
           <value>openEHR-EHR-EVALUATION.triage_outcome.v1</value>
         </archetype_id>
       </children>
+      <cardinality>
+        <is_ordered>true</is_ordered>
+        <is_unique>false</is_unique>
+        <interval>
+          <lower_included>true</lower_included>
+          <lower_unbounded>false</lower_unbounded>
+          <upper_unbounded>true</upper_unbounded>
+          <lower>0</lower>
+        </interval>
+      </cardinality>
     </attributes>
+    <archetype_id>
+      <value>openEHR-EHR-COMPOSITION.intake_previsit.v1</value>
+    </archetype_id>
+    <template_id>
+      <value>previsit_intake.v1</value>
+    </template_id>
   </definition>
 </template>

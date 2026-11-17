@@ -80,9 +80,7 @@ export function questionAsideTr(question: IntakeQuestion): string | null {
   // the way the question is ASKED — files/13 §5.3's "branch, don't
   // enumerate", one step further along.
   if (isOpenAsk(question)) {
-    // The open-question invitation is shown once at the start of the flow,
-    // not repeated under every question (it read as noise on each turn).
-    return null;
+    return trText("dialogue.openInvite");
   }
   const options = question.options ?? [];
   if (options.length === 0 || options.length > MAX_SPOKEN_OPTION_HINTS) {

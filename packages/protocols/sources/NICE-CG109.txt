@@ -1,0 +1,34 @@
+# guideline_id: NICE-CG109
+# title: Transient loss of consciousness ('blackouts') in over 16s
+# publisher: National Institute for Health and Care Excellence (NICE)
+# version_or_date: Clinical guideline CG109; published 25 August 2010; last updated 21 November 2023 (Update information: recommendation 1.1.4.2 wording clarified September 2014)
+# url: https://www.nice.org.uk/guidance/cg109/chapter/Recommendations ; https://www.nice.org.uk/guidance/cg109/chapter/Update-information
+# retrieved_on: 2026-10-03
+# retrieval: curl with a browser user-agent (HTTP 200); HTML (utf-8) text-extracted with a block-level parser: tags stripped, entities decoded, one line per HTML block, whitespace runs collapsed to single spaces, non-breaking spaces (U+00A0) rendered as plain spaces, non-breaking hyphens (U+2011) kept as served, blank lines dropped
+# scope: verbatim excerpt of the page header, recommendations 1.1.4.1-1.1.4.2 and 1.3.2.1-1.3.2.2, and one Update information entry; nothing paraphrased or edited; omissions marked [...]
+---
+Reference number: CG109
+Published: 25 August 2010
+Last updated: 21 November 2023
+[...]
+1.1.4 Making a judgement based on initial assessment
+Red flags: people requiring urgent assessment and treatment
+1.1.4.1
+If TLoC is secondary to a condition that requires immediate action, use clinical judgement to determine appropriate management and the urgency of treatment.
+1.1.4.2
+Refer urgently for cardiovascular assessment, with the referral reviewed and prioritised by an appropriate specialist within 24 hours, anyone with TLoC who also has any of the following:
+an ECG abnormality (see recommendations 1.1.2.2 and 1.1.2.3)
+heart failure (history or physical signs)
+TLoC during exertion
+family history of sudden cardiac death in people aged younger than 40 years and/or an inherited cardiac condition
+new or unexplained breathlessness
+a heart murmur.
+Consider referring within 24 hours for cardiovascular assessment, as above, anyone aged older than 65 years who has experienced TLoC without prodromal symptoms.
+[...]
+1.3.2 Diagnostic tests for different types of syncope
+1.3.2.1
+Use the person's history to distinguish people whose exercise-induced syncope occurred during exercise (when a cardiac arrhythmic cause is probable) from those whose syncope occurred shortly after stopping exercise (when a vasovagal cause is more likely).
+1.3.2.2
+For people who have experienced syncope during exercise, offer urgent (within 7 days) exercise testing, unless there is a possible contraindication (such as suspected aortic stenosis or hypertrophic cardiomyopathy requiring initial assessment by imaging). Advise the person to refrain from exercise until informed otherwise following further assessment.
+[...]
+September 2014: The wording of recommendation 1.1.4.2 was clarified.

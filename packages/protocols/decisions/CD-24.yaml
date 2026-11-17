@@ -1,0 +1,302 @@
+kind: clinical_decision
+id: CD-24
+title: "Generic RED escalation copy (base.generic_red.remote / on_site / unknown)"
+question: "When a RED fires but its own pre-positioned script cannot be addressed (more than one rule fired with none named, or the pack holds no script for the named RED at that location), what does the device show and say under REMOTE, ON_SITE and UNKNOWN, given that the copy must be correct for any adult RED of either EK-4 KIRMIZI category and may not name a condition? Under UNKNOWN, is 112 shown before the location question or only after it? And which register delivers the generic: always ALERT, or the engine result's own register?"
+decision: "The generic copy states the action and the service, never the patient's condition, so it holds for any KIRMIZI rule whichever register delivers it. Register: the generic trigger carries the engine result's own register rather than a fixed ALERT, because CLAUDE.md invariant 21 permits no default register and the base.life_threat schema refuses ALERT for distress_sensitive, subject_is_child and consent-independent crisis rules; register decides how the patient is told and location decides what they are told to do (files/02 §5.3). ALERT delivers the scripts below with the ALERT presentation; CALM delivers the same scripts with no alarm colour, soft speech, no alert sound and no attention-grabbing interrupt; DEFERRED_CLINICIAN never reaches the device. What a SILENT generic should say, and which register applies when the fired rules declare different registers, stay draft_needs_source; meanwhile a SILENT generic shows the same text in the flow of the session with no audio, and mixed sets take the most restrictive register present (SILENT over CALM over ALERT), never ALERT when any fired rule is CALM or SILENT. REMOTE: primary CALL_112, show112 true; 'Hemen 112 Acil Çağrı Merkezi'ni arayın.' (the Tebliğ names the 112 acil çağrı merkezi as the place emergency health calls are answered and ambulances dispatched, and files/04 §4.1 fixes 112 as the national emergency number); one do-not, 'Randevuyu beklemeyin.' (EK-4 takes KIRMIZI Kategori 1 in without waiting and Kategori 2 within ten minutes, so waiting for a booked appointment contradicts both); and a why line that says only that the answers call for assessment without waiting and that patients brought by a 112 ambulance are not kept waiting for a separate priority order (Tebliğ MADDE 8(5), with triage defined in MADDE 4(1)(p) as the determination of medical priority). ON_SITE: primary GO_TO_IN_HOUSE_ACIL, show112 false, notify_staff_immediate true; the exemplar action line with the tenant location segment, 'Randevuyu beklemeyin' and 'Görevlilere haber verildi'; two do-nots, 'Poliklinik sırasında beklemeyin.' and 'Tek başınıza gitmeyin; bir görevliden yardım isteyin.' (MADDE 8(3): a walk-in patient judged to be in danger of life is taken to the area escorted by health personnel, a service fact that holds for any KIRMIZI condition, and notify_staff_immediate already summons staff); and a why line that says priority is set at the acil servis entrance and the most urgent patients are taken in without waiting (MADDE 8(3), EK-4 Kategori 1). No 112 appears anywhere in the ON_SITE script. UNKNOWN: exactly one question, 'Şu anda hastanede misiniz?', branching on_yes ON_SITE, on_no REMOTE, on_no_answer REMOTE. Verdict on UNKNOWN: ask first; the 112 affordance appears only after 'hayır' or no answer, because showing it first is a guess that the patient is at home, and files/02 §5.3 and files/04 §8.1 rule 7 forbid resolving UNKNOWN by guessing. The 112 numeral is written as a bare token followed by a space so the compiler expands it to 'yüz on iki'; the exemplar's \"**112**'yi\" form is refused by the expander (finding G1). Under REMOTE the generic do-nots that the chest-pain exemplars carry (not driving oneself, not being alone, not eating or drinking) are not generalised: the only retrieved source for transport and accompaniment outside the hospital is the head-injury guideline, and no retrieved source states any of them for every KIRMIZI condition. Under ON_SITE the escort line is adopted from MADDE 8(3). What stays draft_needs_source: whether to add such generic do-nots, the wait before an unanswered location question resolves to REMOTE, the SILENT copy, and the register for a fired set with mixed registers."
+status: active
+scope: simulated_patient_stress_testing
+scope_note: "Owner decision D18 (2 Oct 2026): agent-only sign-off, for simulated-patient stress testing only. A licensed physician's review is required before any real patient."
+question_origin: "INT-453 (PR #773): services/voice-runtime talker/red_path.py publishes a generic red_trigger (register ALERT, scriptId base.generic_red.{remote,on_site,unknown}) when a RED's own script cannot be addressed; the device catalog entry for that scriptId has no copy."
+author_role: "emergency medicine and internal medicine/cardiology physician (agent)"
+inference_disclosure: "Every sentence is this author's B1 Turkish rendering of a service fact, not a quotation. 'öncelik sırası' (REMOTE) and 'önceliği … belirlenir' (ON_SITE) render the Tebliğ's triyaj through its own definition (tıbbi önceliklerin belirlenmesi) to avoid unexplained jargon; 'ayrıca … bekletilmez' renders 'ayrıca triyaj uygulaması yapılmaz' as its consequence for the patient. 'Randevuyu beklemeyin' and 'Poliklinik sırasında beklemeyin' are the author's reading of EK-4's KIRMIZI timing as a prohibition on waiting for a booked slot, and 'Tek başınıza gitmeyin; bir görevliden yardım isteyin' is the author's reading of MADDE 8(3)'s escort by health personnel as a do-not. The copy is worded without a grammatical subject for the patient ('Verilen cevaplara göre …', 'Randevuyu …') so that it also reads correctly in a proxy session, except the files/02 location question, which is kept verbatim. Suppressing the attention-grabbing interrupt for every CALM generic is the author's reading of files/04 §8.1 rule 6: the generic cannot tell a distress_sensitive CALM rule from another CALM rule, and suppression is the only choice that never breaks rule 6. The most-restrictive ordering for mixed registers (SILENT over CALM over ALERT) is the author's meanwhile rule, not a source's."
+sources:
+  - kind: guideline
+    guideline_id: TR-EK4-2022
+    title: "Yataklı Sağlık Tesislerinde Acil Servis Hizmetlerinin Uygulama Usul ve Esasları Hakkında Tebliğ, EK-4"
+    version_or_date: "RG 13/9/2022 sayı 31952 (EK-4 unchanged by RG 13/5/2023 sayı 32189 and RG 11/10/2024 sayı 32689)"
+    url: "https://www.resmigazete.gov.tr/eskiler/2022/09/20220913-5-1.pdf"
+    retrieved_on: 2026-10-02
+    quote: "Kategori 1: Hayatı tehdit eden ve hızlı agresif yaklaşım ve acil olarak eş zamanlı değerlendirme ve tedavi gerektiren durumlar. Bu durumlarda hasta hiç bekletilmeden kırmızı alana alınır."
+    snapshot: packages/protocols/sources/TR-EK4-2022.txt
+    supports: "scripts.base.generic_red.remote.do_nots_tr, scripts.base.generic_red.on_site.why_tr"
+  - kind: guideline
+    guideline_id: TR-EK4-2022
+    title: "Yataklı Sağlık Tesislerinde Acil Servis Hizmetlerinin Uygulama Usul ve Esasları Hakkında Tebliğ, EK-4"
+    version_or_date: "RG 13/9/2022 sayı 31952"
+    url: "https://www.resmigazete.gov.tr/eskiler/2022/09/20220913-5-1.pdf"
+    retrieved_on: 2026-10-02
+    quote: "Kategori 2: Hayatı tehdit etme olasılığı yüksek olan ve 10 dakika içerisinde değerlendirilip tedavi edilmesi gerekli durumlar."
+    snapshot: packages/protocols/sources/TR-EK4-2022.txt
+    supports: "scripts.base.generic_red.remote.do_nots_tr, scripts.base.generic_red.on_site.do_nots_tr, why_tr first sentence of both"
+  - kind: guideline
+    guideline_id: TR-EK4-2022
+    title: "Yataklı Sağlık Tesislerinde Acil Servis Hizmetlerinin Uygulama Usul ve Esasları Hakkında Tebliğ (MADDE 8(5))"
+    version_or_date: "RG 13/9/2022 sayı 31952 (MADDE 8(1)-(5) unchanged by the 2023 and 2024 amendments)"
+    url: "https://www.resmigazete.gov.tr/eskiler/2022/09/20220913-5.htm"
+    retrieved_on: 2026-10-02
+    quote: "(5) 112 acil ambulanslarıyla sağlık tesisine getirilen hastalara ayrıca triyaj uygulaması yapılmaz."
+    snapshot: packages/protocols/sources/TR-EK4-2022.txt
+    supports: "scripts.base.generic_red.remote.why_tr second sentence"
+  - kind: guideline
+    guideline_id: TR-EK4-2022
+    title: "Yataklı Sağlık Tesislerinde Acil Servis Hizmetlerinin Uygulama Usul ve Esasları Hakkında Tebliğ (MADDE 4(1)(p))"
+    version_or_date: "RG 13/9/2022 sayı 31952"
+    url: "https://www.resmigazete.gov.tr/eskiler/2022/09/20220913-5.htm"
+    retrieved_on: 2026-10-02
+    quote: "tıbbi önceliklerinin ve yönlendirilecekleri tedavi birimlerinin belirlenmesi işlemini"
+    snapshot: packages/protocols/sources/TR-EK4-2022.txt
+    supports: "'öncelik sırası' and 'önceliği … belirlenir' as the plain rendering of triyaj in both why_tr lines"
+  - kind: guideline
+    guideline_id: TR-EK4-2022
+    title: "Yataklı Sağlık Tesislerinde Acil Servis Hizmetlerinin Uygulama Usul ve Esasları Hakkında Tebliğ (MADDE 8(3))"
+    version_or_date: "RG 13/9/2022 sayı 31952"
+    url: "https://www.resmigazete.gov.tr/eskiler/2022/09/20220913-5.htm"
+    retrieved_on: 2026-10-02
+    quote: "ayaktan hasta girişlerinde, mümkün olması halinde kayıt ve triyaj işleminin aynı anda yapılması esastır"
+    snapshot: packages/protocols/sources/TR-EK4-2022.txt
+    supports: "scripts.base.generic_red.on_site.why_tr ('önceliği girişte belirlenir')"
+  - kind: guideline
+    guideline_id: TR-EK4-2022
+    title: "Yataklı Sağlık Tesislerinde Acil Servis Hizmetlerinin Uygulama Usul ve Esasları Hakkında Tebliğ (MADDE 8(3))"
+    version_or_date: "RG 13/9/2022 sayı 31952"
+    url: "https://www.resmigazete.gov.tr/eskiler/2022/09/20220913-5.htm"
+    retrieved_on: 2026-10-02
+    quote: "Ayaktan başvurduğu halde hayati tehlikesi olduğu değerlendirilen hastalar için kayıt ve triyaj işlemi yapılmaksızın sağlık personeli eşliğinde uygun görülen alana yönlendirilir."
+    snapshot: packages/protocols/sources/TR-EK4-2022.txt
+    supports: "scripts.base.generic_red.on_site.do_nots_tr ('Tek başınıza gitmeyin; bir görevliden yardım isteyin.')"
+  - kind: guideline
+    guideline_id: TR-ACIL-TEBLIG-DEG-2024
+    title: "Yataklı Sağlık Tesislerinde Acil Servis Hizmetlerinin Uygulama Usul ve Esasları Hakkında Tebliğde Değişiklik Yapılmasına Dair Tebliğ"
+    version_or_date: "RG 11/10/2024 sayı 32689"
+    url: "https://www.resmigazete.gov.tr/eskiler/2024/10/20241011-3.htm"
+    retrieved_on: 2026-10-02
+    quote: "İllerde 112 acil çağrı merkezi bünyesinde acil sağlık çağrılarının karşılandığı ve ambulansların sevk ve idare edildiği birimi"
+    snapshot: packages/protocols/sources/TR-ACIL-TEBLIG-DEG-2024.txt
+    supports: "scripts.base.generic_red.remote.action_tr ('112 Acil Çağrı Merkezi')"
+spec_basis:
+  - file: files/04_CLINICAL_PROTOCOLS.md
+    section: "§4.1 Turkish crisis resources (the closed number table)"
+    quote: "single national emergency number since 1 Feb 2018; psychiatric emergencies including suicide risk are in remit"
+    supports: "the 112 number in scripts.base.generic_red.remote (docs/legal/strings.yaml does not exist in this repository)"
+  - file: files/02_PRODUCT_SPEC.md
+    section: "§5.3 Axis 2, register table (ALERT row)"
+    quote: "Default for adults where alarm aids action."
+    supports: "register_policy.per_register.ALERT"
+  - file: files/protocols/base.life_threat.yaml
+    section: "RULE SCHEMA, register"
+    quote: "path are each REFUSED in the ALERT register."
+    supports: "register_policy.rejected_option (an always-ALERT generic would deliver a refused register for these rules)"
+  - file: CLAUDE.md
+    section: "Non-negotiable invariant 21"
+    quote: "are required fields with no permitted default"
+    supports: "register_policy.verdict (an always-ALERT generic is a default register)"
+  - file: files/02_PRODUCT_SPEC.md
+    section: "§5.3 Binding authoring rule"
+    quote: "A default would be chosen once, by an engineer, for all future rules — which is how the paediatric airway case gets an alarm."
+    supports: "register_policy.rejected_option"
+  - file: files/02_PRODUCT_SPEC.md
+    section: "§5.3 Axis 3"
+    quote: "register decides *how* the patient is told, location decides *what they are told to do*"
+    supports: "register_policy.per_register (the same scripts under every register that reaches the device)"
+  - file: files/02_PRODUCT_SPEC.md
+    section: "§5.3 Axis 2, register table (CALM row)"
+    quote: "Spoken softly, no alert sound"
+    supports: "register_policy.per_register.CALM"
+  - file: files/02_PRODUCT_SPEC.md
+    section: "§5.3 Worked CALM text"
+    quote: "Worked `CALM` text — paediatric airway, `REMOTE`, addressed to the carer."
+    supports: "register_policy.per_register.CALM (the CALM REMOTE action is the 112 call too)"
+  - file: files/04_CLINICAL_PROTOCOLS.md
+    section: "§8.1 rule 6"
+    quote: "that rule must not run the normal attention-grabbing interrupt at all"
+    supports: "register_policy.per_register.CALM.attention_interrupt"
+  - file: files/protocols/base.life_threat.yaml
+    section: "RULE SCHEMA, distress_sensitive"
+    quote: "true where alarm is the harm"
+    supports: "register_policy.per_register.CALM.attention_interrupt"
+  - file: files/02_PRODUCT_SPEC.md
+    section: "§5.3 Axis 2, register table (SILENT row)"
+    quote: "the guidance appears in the flow of the session"
+    supports: "register_policy.per_register.SILENT.meanwhile"
+  - file: files/02_PRODUCT_SPEC.md
+    section: "§5.3 Axis 2, register table (SILENT row)"
+    quote: "No audio, ever"
+    supports: "register_policy.per_register.SILENT.meanwhile"
+  - file: files/02_PRODUCT_SPEC.md
+    section: "§5.3 Axis 2, register table (SILENT row)"
+    quote: "any session where third-party presence is detected"
+    supports: "register_policy.multiple_rules_fired.meanwhile (a SILENT condition can belong to the whole session)"
+  - file: files/02_PRODUCT_SPEC.md
+    section: "§5.3 Axis 2, register table (DEFERRED_CLINICIAN row)"
+    quote: "Finding routes to the clinician only"
+    supports: "register_policy.per_register.DEFERRED_CLINICIAN"
+  - file: files/02_PRODUCT_SPEC.md
+    section: "§5.3 Axis 3, location table (REMOTE row)"
+    quote: "with the address rendered as selectable text"
+    supports: "remote_secondary_action"
+  - file: files/02_PRODUCT_SPEC.md
+    section: "§5.3 Axis 3, location table (ON_SITE row)"
+    quote: "Direct them to the hospital's acil servis red area now, and notify staff in the same action."
+    supports: "scripts.base.generic_red.on_site.primary, notify_staff_immediate"
+  - file: files/02_PRODUCT_SPEC.md
+    section: "§5.3 What the ON_SITE text must contain"
+    quote: "is therefore promoted from an optional button to an automatic action"
+    supports: "scripts.base.generic_red.on_site.action_tr ('Görevlilere haber verildi.')"
+  - file: files/02_PRODUCT_SPEC.md
+    section: "§5.3 What the ON_SITE text must contain"
+    quote: "is the sentence that changes behaviour; without it the alert is a mood."
+    supports: "scripts.base.generic_red.on_site.action_tr ('Randevuyu beklemeyin.')"
+  - file: files/02_PRODUCT_SPEC.md
+    section: "§5.3 What the ON_SITE text must contain"
+    quote: "Not de-emphasised, not below the fold — absent."
+    supports: "scripts.base.generic_red.on_site (no 112 in text, numbers or codes)"
+  - file: CLAUDE.md
+    section: "Non-negotiable invariant 21"
+    quote: "Under ON_SITE the 112 affordance is absent, not de-emphasised."
+    supports: "scripts.base.generic_red.on_site.show112, unknown_location_verdict"
+  - file: files/02_PRODUCT_SPEC.md
+    section: "§5.3 The EMERGENCY_NOW persuasion line is location-specific"
+    quote: "Both are statements about the service rather than about the patient's condition, so both are safe in every register."
+    supports: "why_tr of both scripts (service facts, no condition)"
+  - file: files/protocols/base.life_threat.yaml
+    section: "rf.chest_pain_cardiac_features, action.ON_SITE.action_tr (exemplar 1)"
+    quote: "Acil Servis'e gidin[ — {{tenant.acil_location_tr}}]."
+    supports: "scripts.base.generic_red.on_site.action_tr (the tenant segment, dropped when unset)"
+  - file: files/02_PRODUCT_SPEC.md
+    section: "§5.3 Axis 3, location table (UNKNOWN row)"
+    quote: "Never guess: a guess is wrong in one of the two directions above, and both of those are harms."
+    supports: "scripts.base.generic_red.unknown, unknown_location_verdict"
+  - file: files/04_CLINICAL_PROTOCOLS.md
+    section: "§8.1 rule 7"
+    quote: "It is never resolved by guessing"
+    supports: "unknown_location_verdict"
+  - file: files/04_CLINICAL_PROTOCOLS.md
+    section: "§8.1 rule 6"
+    quote: "Action scripts carry the do-nots."
+    supports: "do_nots_tr is non-empty in both action scripts"
+  - file: CLAUDE.md
+    section: "Clinical content rules, patient copy"
+    quote: "Invert inside RED, where the bare imperative plural (Tutun · Arayın · Bakmayın) is correct because ambiguity is the harm."
+    supports: "imperative mood of every action and do-not line"
+  - file: services/voice-runtime/src/intake_voice_runtime/talker/red_path.py
+    section: "REGISTER_DELIVERY (files/02 §5.3 Axis 2)"
+    quote: "Cancel the agent's outbound audio and stop asking"
+    supports: "register_policy.per_register.SILENT.meanwhile and register_policy.multiple_rules_fired.meanwhile (delivery floor: intake stops)"
+  - file: files/03_ARCHITECTURE.md
+    section: "§4.6 triage levels"
+    quote: "**Kırmızı (RED)** = preempt, stop intake, 112/Acil, notify clinic"
+    supports: "delivery floor (intake stops on every RED that reaches the device)"
+  - file: packages/protocols/src/protocols/compile/tr_orthography.py
+    section: "_expand_number refusal message"
+    quote: "no Turkish expansion is defined for this numeric form"
+    supports: "numeral_form (finding G1)"
+value:
+  scripts:
+    base:
+      generic_red:
+        remote:
+          primary: CALL_112
+          show112: true
+          action_tr: "Hemen 112 Acil Çağrı Merkezi'ni arayın."
+          do_nots_tr:
+            - "Randevuyu beklemeyin."
+          why_tr: "Verilen cevaplara göre beklemeden değerlendirme gerekiyor. 112 ambulansıyla getirilen hastalar, acil serviste ayrıca öncelik sırası için bekletilmez."
+        on_site:
+          primary: GO_TO_IN_HOUSE_ACIL
+          show112: false
+          notify_staff_immediate: true
+          action_tr: "**Acil Servis'e gidin[ — {{tenant.acil_location_tr}}].** Randevuyu beklemeyin. Görevlilere haber verildi."
+          do_nots_tr:
+            - "Poliklinik sırasında beklemeyin."
+            - "Tek başınıza gitmeyin; bir görevliden yardım isteyin."
+          why_tr: "Verilen cevaplara göre beklemeden değerlendirme gerekiyor. Acil serviste hastaların önceliği girişte belirlenir ve en öncelikli hastalar bekletilmeden içeri alınır."
+        unknown:
+          ask_one_tr: "Şu anda hastanede misiniz?"
+          on_yes: ON_SITE
+          on_no: REMOTE
+          on_no_answer: REMOTE
+  unknown_location_verdict:
+    verdict: ask_first
+    statement: "Under UNKNOWN the location question is shown and spoken first, with no 112 affordance on screen; the REMOTE script, including the 112 affordance, appears only after 'hayır' or no answer, and the ON_SITE script after 'evet'. Showing 112 before the answer would resolve UNKNOWN by guessing REMOTE, which can send a patient who is already in the hospital out of it."
+    cost: "one question, the price files/04 §8.1 rule 7 names"
+  remote_secondary_action: NEAREST_ACIL_ADDRESS_AS_TEXT
+  numeral_form: "112 is authored as a bare token followed by a space (never with an apostrophe suffix or bold markers touching it), so the compiler expands it to 'yüz on iki' for speech while the screen keeps the digits"
+  register_policy:
+    verdict: carry_engine_register
+    statement: "The generic red_trigger carries the register of the engine result that produced it; it is never fixed at ALERT. The scripts above are the content for every register that reaches the device; the register changes only how they are presented and spoken."
+    rejected_option: "always_alert (GENERIC_RED_REGISTER = ALERT): it is a default register chosen once by an engineer, which invariant 21 forbids, and it would deliver ALERT for rules whose register the base.life_threat schema refuses as ALERT (distress_sensitive, subject_is_child, the consent-independent crisis path)"
+    per_register:
+      ALERT:
+        presentation: "red header, full-screen takeover, prominent primary action (112 under REMOTE, the named acil servis under ON_SITE), spoken with urgent prosody, alert sound"
+        copy: "scripts.base.generic_red.{remote,on_site,unknown}"
+        status: active
+      CALM:
+        presentation: "no red and no alarm colour (amber-neutral), action first then explanation, the do-not list shown, spoken softly, no alert sound"
+        attention_interrupt: suppressed
+        copy: "scripts.base.generic_red.{remote,on_site,unknown}, unchanged; the 112 call stays the REMOTE action, as in the worked CALM text"
+        limitation: "a generic cannot supply the condition-specific do-nots a distress_sensitive or paediatric rule carries; those belong to the rule's own script, which the compiler requires for all three locations"
+        status: active
+      SILENT:
+        copy: "TODO: the generic copy for a SILENT RED (safeguarding, text_only, crisis or third-party-present session) requires clinical sign-off"
+        meanwhile: "screen only: the generic action text for the resolved location (and under UNKNOWN the location question) appears in the flow of the session with no headline, no colour change, no takeover and no audio ever; ON_SITE still carries no 112; the clinic notification fires. A SILENT generic is never left without words. Delivery floor: intake stops when the generic fires (no further question is asked or spoken, as red_path REGISTER_DELIVERY stops_intake does for every device-triggering register), so the guidance is the last thing in the flow; and when SILENT is chosen over a co-fired ALERT or CALM rule, the clinic notification states that a time-critical RED was delivered silently."
+        status: draft_needs_source
+        source_gap: "files/02 §5.3 defines how SILENT is presented but no retrieved source states what guidance a safeguarding, crisis or third-party-present RED should carry when its own script is unknown; the crisis path itself is blocked on the files/04 §4.2 escalation policy (HB-C8)."
+      DEFERRED_CLINICIAN:
+        device: "never triggers the device; the finding routes to the clinician only"
+        status: active
+    multiple_rules_fired:
+      value: "TODO: the register of a generic RED whose fired rules declare different registers requires clinical sign-off"
+      meanwhile: "the most restrictive register present among the fired device-triggering rules: SILENT over CALM over ALERT; DEFERRED_CLINICIAN members are not counted; never ALERT when any fired rule is CALM or SILENT. When every fired rule declares the same register, that register is carried (per_register). Delivery floor: intake stops when the generic fires (no further question is asked or spoken, as red_path REGISTER_DELIVERY stops_intake does for every device-triggering register), so the guidance is the last thing in the flow; and when SILENT is chosen over a co-fired ALERT or CALM rule, the clinic notification states that a time-critical RED was delivered silently."
+      status: draft_needs_source
+      source_gap: "files/02 §5.3 and the base.life_threat schema state each rule's register and when ALERT is refused, but no source states how to combine different registers in one delivery; the ordering in meanwhile is the author's, chosen so that no rule receives a register its own declaration refuses."
+  no_answer_wait:
+    applies_to: "scripts.base.generic_red.unknown.on_no_answer"
+    value: "TODO: the wait before an unanswered location question resolves to REMOTE requires clinical sign-off"
+    status: draft_needs_source
+    source_gap: "files/02 §5.3 and files/04 §8.1 rule 7 fix the branch (REMOTE) but state no wait; EK-4's only time figure is the ten-minute KIRMIZI Kategori 2 target, which is not a question timeout. Any number here would be invented."
+  candidate_generic_do_nots:
+    applies_to: "scripts.base.generic_red.remote"
+    considered: ["Kendi aracınızla yola çıkmayın.", "Tek başınıza kalmayın.", "Bir şey yiyip içmeyin."]
+    adopted: false
+    decision_on_adding: "TODO: whether the generic RED scripts carry a driving, accompaniment or nil-by-mouth do-not requires clinical sign-off"
+    status: draft_needs_source
+    source_gap: "These three come from the chest-pain exemplars and are considered here for the REMOTE script only. Outside the hospital, the only retrieved source on transport and accompaniment is NICE NG232 1.2.6-1.2.7, which is head-injury specific and permits being driven in a car when accompanied; no retrieved source states any of the three for every KIRMIZI condition outside the hospital, and a nil-by-mouth line is condition-specific by nature. On site, accompaniment is sourced (Tebliğ MADDE 8(3), escort by health personnel) and is adopted in the ON_SITE script."
+  findings:
+    - id: G1
+      finding: "Exemplar 1's REMOTE action_tr \"Hemen **112**'yi arayın.\" is refused by protocols.compile.tr_orthography.expand_tr (TrExpansionError on the token \"**112**'yi\", and equally on \"112'yi\"), so it cannot be compiled into a spoken clip. The generic avoids the form; the exemplar itself is not changed here."
+      spec_file: packages/protocols/src/protocols/compile/tr_orthography.py
+      quote: "no Turkish expansion is defined for this numeric form"
+    - id: G2
+      finding: "INT-453's red_path.py publishes the generic red_trigger with a fixed register (GENERIC_RED_REGISTER = ALERT) regardless of which rules fired. If any fired rule is distress_sensitive, subject_is_child or the consent-independent crisis path, the base.life_threat schema refuses ALERT for that rule. CD-24 decides the generic carries the engine result's register (register_policy); the constant should go."
+      spec_file: files/protocols/base.life_threat.yaml
+      quote: "path are each REFUSED in the ALERT register."
+    - id: G4
+      finding: "Most-restrictive-wins can under-alert an ALERT-worthy RED in a voice-led session: when an ALERT rule co-fires with a CALM or SILENT rule, the time-critical action is delivered softly or silently. The delivery floor (intake stops, the guidance is last in the flow, and the clinic notification states a silent delivery) limits but does not remove this. The mixed-register value is a physician decision before any real patient."
+      spec_file: files/02_PRODUCT_SPEC.md
+      quote: "Default for adults where alarm aids action."
+    - id: G3
+      finding: "docs/legal/strings.yaml, which files/04 §4.1 names as the home of crisis numbers, does not exist in this repository; the 112 number here rests on the files/04 §4.1 table and on the Tebliğ text."
+      spec_file: files/04_CLINICAL_PROTOCOLS.md
+      quote: "single national emergency number since 1 Feb 2018; psychiatric emergencies including suicide risk are in remit"
+value_status:
+  scripts: active
+  unknown_location_verdict: active
+  remote_secondary_action: active
+  numeral_form: active
+  register_policy.verdict: active
+  register_policy.statement: active
+  register_policy.rejected_option: active
+  register_policy.per_register.ALERT: active
+  register_policy.per_register.CALM: active
+  register_policy.per_register.SILENT: draft_needs_source
+  register_policy.per_register.DEFERRED_CLINICIAN: active
+  register_policy.multiple_rules_fired: draft_needs_source
+  no_answer_wait: draft_needs_source
+  candidate_generic_do_nots: draft_needs_source
+  findings: active
+fail_closed_while_draft: "Intake stops whenever the generic fires, so its guidance is the last thing in the flow. While the SILENT copy is draft a SILENT generic shows the generic text in the flow of the session with no audio, never nothing, and a SILENT choice over a co-fired ALERT or CALM rule is stated in the clinic notification; while the mixed-register case is draft the most restrictive register present is used and ALERT is never used when any fired rule is CALM or SILENT; the clinic notification fires in every case. While no_answer_wait is draft, whatever wait the device uses is an unsigned engineering value and is recorded as such; on expiry the branch is always REMOTE, never silence."
+verifier:
+  verdict: agree
+  role: "independent clinical verifier (agent; EM/IM/paediatrics)"
+  verified_on: 2026-10-03
+  notes: "Independent verification: round 1 agree_with_changes (on-site escort do-not from MADDE 8(3); delivery floor for SILENT and mixed registers; finding G4); round 2 agree. Every quote re-checked against the live source; the verifier saw only the committed output and the sources, never the authors' reasoning. Scope D18: simulated-patient stress testing only; a licensed physician's review is required before any real patient."

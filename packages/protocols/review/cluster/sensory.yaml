@@ -1,0 +1,169 @@
+# REVIEW QUEUE — QUESTIONS authored; NOT servable. Promoted to L1 only by the
+# physician of record's sign-off (HB-C1).
+# generated-by: scripts/dev/gen_specialty_packs.py from docs/evidence/proposals/cluster_sensory.md
+# (guideline-sourced; reviewed per docs/evidence/verification/). Symptom-capture
+# prompts only (inv 2/10) — not diagnosis, not triage. Acuity is EK-4 law +
+# physician of record; never fabricated. RED/life-threat stays in
+# base.life_threat (inv 7).
+kind: pack
+id: cluster.sensory
+layer: cluster
+version: 0.3.0
+schema_version: 2
+maturity: L0
+status: questions-authored; awaiting physician-of-record sign-off (HB-C1); not servable
+language: tr
+title_tr: Göz ve Kulak Burun Boğaz
+extends: base.intake
+visit_types:
+- first
+- followup
+- report
+sections:
+  ziyaret_baglami:
+    slots:
+      basvuru_nedeni:
+        type: string
+        required: true
+        ask_tr:
+          tr: Bugün gözünüz, kulağınız, burnunuz ya da boğazınızla ilgili hangi sorun için geldiniz?
+        follow_up_tr:
+          tr: Sizi hekime getiren en önemli şikâyetiniz nedir?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.reason_for_encounter.v1 recorded in docs/evidence/proposals/cluster_sensory.md'
+      sikayet_suresi:
+        type: duration
+        required: false
+        ask_tr:
+          tr: Bu şikâyetiniz ne zamandır var?
+        follow_up_tr:
+          tr: Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; no candidate archetype recorded in docs/evidence/proposals/cluster_sensory.md'
+  sorular:
+    slots:
+      gorme_degisikligi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Görmenizde yeni bir azalma ya da değişiklik oldu mu?
+        follow_up_tr:
+          tr: Gelip geçse bile görmenizde bulanıklık ya da kararma oldu mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/cluster_sensory.md'
+      ani_gorme_degisikligi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Görmenizdeki bu değişiklik birden mi başladı?
+        ask_if: gorme_degisikligi == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/cluster_sensory.md'
+      tek_goz_gorme_degisikligi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Bu değişiklik yalnızca bir gözünüzde mi?
+        ask_if: gorme_degisikligi == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/cluster_sensory.md'
+      goz_agrisi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Gözünüzde ya da göz çevresinde ağrı var mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/cluster_sensory.md'
+      goz_kizarikligi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Gözünüzde yeni bir kızarıklık var mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/cluster_sensory.md'
+      isik_cevresinde_halka:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Işıkların çevresinde renkli halkalar görüyor musunuz?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/cluster_sensory.md'
+      kontakt_lens:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Kontakt lens kullanıyor musunuz?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/cluster_sensory.md'
+      isik_cakmasi_ucusan_cisim:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Gözünüzün önünde yeni ışık çakmaları ya da uçuşan noktalar gördünüz mü?
+        follow_up_tr:
+          tr: Gözünüzün önünde ışık çakması ya da sinek gibi uçuşan şekiller oluyor mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/cluster_sensory.md'
+      isitme_azalmasi_tikaniklik:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Son zamanlarda işitmenizde azalma ya da kulağınızda tıkanıklık hissi oldu mu?
+        follow_up_tr:
+          tr: Eskisinden daha az duyuyor ya da kulağınızda dolgunluk hissediyor musunuz?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/cluster_sensory.md'
+      ani_isitme_azalmasi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: İşitmenizdeki bu değişiklik birden mi başladı?
+        ask_if: isitme_azalmasi_tikaniklik == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/cluster_sensory.md'
+      donme_hissi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Son zamanlarda kendinizin ya da çevrenizin döndüğü hissini yaşadınız mı?
+        follow_up_tr:
+          tr: Hareket etmediğiniz hâlde dönme ya da sallanma hissi oldu mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/cluster_sensory.md'
+      burun_kanamasi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Son zamanlarda burnunuz kanadı mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/cluster_sensory.md'
+      tek_taraftan_burun_kanamasi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Burnunuz hep aynı taraftan mı kanıyor?
+        ask_if: burun_kanamasi == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/cluster_sensory.md'
+      yutma_guclugu:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Yutarken lokmanın ya da içeceğin takıldığını hissediyor musunuz?
+        follow_up_tr:
+          tr: Yemek boğazınızda ya da göğsünüzde kalıyor gibi oluyor mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/cluster_sensory.md'
+      yutarken_agri:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Yutarken ağrı oluyor mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/cluster_sensory.md'
+      boyunda_sislik:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Boynunuzda yeni fark ettiğiniz bir şişlik ya da sertlik var mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/cluster_sensory.md'
+      ses_kisikligi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Sesinizde geçmeyen bir kısıklık var mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/cluster_sensory.md'
+red_flags:
+- id: rf.cluster_sensory_l0_taslak
+  label_tr: Göz ve Kulak Burun Boğaz — kümeye özgü kırmızı bayrak taslağı (klinik onay bekliyor)
+  when: 'TODO: cluster_sensory branch-specific red-flag trigger requires clinical sign-off'
+  tense: ever
+  tense_anchor: sikayet_suresi
+  level: YESIL
+  route: EXPEDITE
+  notify_clinic: never
+  status: draft_needs_source
+  source_gap: 'Trigger, EK-4 level and route await clinical sign-off (invariant 17 pending-value literal). Guideline-sourced candidates recorded in docs/evidence/proposals/cluster_sensory.md; acuity bound by EK-4 law (RG 13/9/2022 sayı 31952), snapshot absent. RED/life-threat stays in base.life_threat (invariant 7). Owner: physician of record (HB-C1, HB-C2, HB-C7).'

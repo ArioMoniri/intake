@@ -75,11 +75,23 @@ describe("grant — fail closed without a text, hash-bound with one", () => {
     ]);
   });
 
-  it("core is information: grant and withdraw both refuse", () => {
-    const state = applyTexts(freshLedger(), { core: text("v1", "c") });
+  it("core is açık rıza like the rest: no text, no grant (INT-537)", () => {
+    const state = freshLedger();
     expect(grant(state, "core", NOW).flipped).toEqual([]);
-    expect(withdraw(state, "core", NOW).flipped).toEqual([]);
-    expect(view(state, "core").display).toBe("info");
+    expect(view(state, "core").display).toBe("pending_text");
+    expect(view(state, "core").grantable).toBe(false);
+  });
+
+  it("core binds the version and hash of its loaded text and queues the op (INT-537)", () => {
+    const state = applyTexts(freshLedger(), { core: text("v1", "c") });
+    expect(view(state, "core").grantable).toBe(true);
+    const result = grant(state, "core", NOW);
+    expect(result.flipped).toEqual(["core"]);
+    expect(view(result.state, "core").display).toBe("on");
+    expect(view(result.state, "core").allowed).toBe(true);
+    expect(result.state.queue).toEqual([
+      { kind: "grant", scope: "core", version: "v1", textHash: "c".repeat(64), atIso: NOW },
+    ]);
   });
 
   it("lane:affect rides the voice stream: not grantable while voice is off", () => {
@@ -127,6 +139,55 @@ describe("withdraw — instant, cascading, one queued op for the root", () => {
     expect(result.state.queue).toEqual([
       { kind: "withdraw", scope: "learning:service_improvement", atIso: NOW },
     ]);
+  });
+
+  it("core withdrawal drags every explicit grant down, one op for the root (INT-537)", () => {
+    // the server's dependents_of("core") is every other purpose: its cascade
+    // revokes the live rows and writes the opt-out of each default-on one
+    let state = applyTexts(grantedVoiceStack(), {
+      core: text("v1", "c"),
+      documents: text("v1", "d"),
+    });
+    state = grant(state, "core", NOW).state;
+    state = grant(state, "documents", NOW).state;
+    const result = withdraw(state, "core", NOW);
+    const fallen = [
+      "core",
+      "voice",
+      "lane:affect",
+      "lane:linguistic",
+      "documents",
+      "learning:personal",
+      "learning:service_improvement",
+    ];
+    expect(result.flipped).toEqual(fallen);
+    for (const id of fallen) {
+      expect(view(result.state, id).allowed, id).toBe(false);
+    }
+    const withdrawals = result.state.queue.filter((op) => op.kind === "withdraw");
+    expect(withdrawals).toEqual([{ kind: "withdraw", scope: "core", atIso: NOW }]);
+  });
+
+  it("core withdrawal turns the default-on learning purposes off too, as the server does", () => {
+    // INT-537 legal review B1: the core text says every other permission
+    // closes with it, and the server writes each learning purpose's opt-out
+    let state = applyTexts(freshLedger(), { core: text("v1", "c") });
+    state = grant(state, "core", NOW).state;
+    const result = withdraw(state, "core", NOW);
+    expect(result.flipped).toEqual(["core", "learning:personal", "learning:service_improvement"]);
+    expect(view(result.state, "learning:personal").display).toBe("off");
+    expect(view(result.state, "learning:service_improvement").display).toBe("off");
+    // a re-grant of core re-enables nothing it took down
+    const regranted = grant(result.state, "core", NOW).state;
+    expect(view(regranted, "core").allowed).toBe(true);
+    expect(view(regranted, "learning:personal").allowed).toBe(false);
+    expect(view(regranted, "learning:service_improvement").allowed).toBe(false);
+  });
+
+  it("withdrawing voice leaves the learning purposes on (near miss: only core reaches them)", () => {
+    const result = withdraw(grantedVoiceStack(), "voice", NOW);
+    expect(view(result.state, "learning:personal").allowed).toBe(true);
+    expect(view(result.state, "learning:service_improvement").allowed).toBe(true);
   });
 
   it("re-enabling an opted-out learning purpose needs a text like any grant", () => {

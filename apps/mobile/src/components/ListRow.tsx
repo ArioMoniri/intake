@@ -11,11 +11,12 @@
  */
 import { type ReactNode } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
-import { SymbolView } from "expo-symbols";
 
+import { Icon } from "@/components/Icon";
 import { AppText, Hairline, useScheme, useTheme } from "@/components/Themed";
 import { withContext } from "@/lib/a11y/labels";
-import { palette, radius, shadow, spacing } from "@/lib/theme";
+import type { SymbolKey } from "@/lib/symbols";
+import { motion, palette, radius, shadow, spacing } from "@/lib/theme";
 
 /** Action name for the row's nested trailing control. */
 const SECONDARY_ACTION = "secondary";
@@ -64,19 +65,12 @@ interface ListRowProps {
   label: string;
   /** Quiet caption under the label (dates, notes). */
   sublabel?: string;
-  /** Leading 36 pt tonal icon well (SF Symbol name) — Oura's row anchor. */
-  icon?: string;
+  /** Leading 36 pt tonal icon well (a symbol registry row) — Oura's row anchor. */
+  icon?: SymbolKey;
   /** Trailing element: a value chip, pill group — rendered as-is. */
   trailing?: ReactNode;
   /** "›" affordance; set it ONLY on rows that navigate. */
   chevron?: boolean;
-  /**
-   * Accordion disclosure (INT consent UX): pass a boolean to make the row an
-   * expander rather than a navigator. It swaps the "›" for a "⌄ / ⌃" glyph and
-   * declares `accessibilityState.expanded`, so a screen-reader user hears the
-   * row is collapsed or open. Left undefined the row behaves exactly as before.
-   */
-  expanded?: boolean;
   /** Nested child row (INT-132 lane sub-toggles): indented text column. */
   inset?: boolean;
   onPress?: () => void;
@@ -117,7 +111,6 @@ export function ListRow({
   icon,
   trailing,
   chevron = false,
-  expanded,
   inset = false,
   onPress,
   hint,
@@ -129,7 +122,7 @@ export function ListRow({
     <>
       {icon ? (
         <View style={[styles.iconWell, { backgroundColor: theme.surfaceRaised }]}>
-          <SymbolView name={icon as never} size={17} tintColor={theme.inkSoft} />
+          <Icon name={icon} size={17} tintColor={theme.inkSoft} />
         </View>
       ) : null}
       <View style={styles.labels}>
@@ -143,15 +136,7 @@ export function ListRow({
         ) : null}
       </View>
       {trailing ?? null}
-      {expanded !== undefined ? (
-        <SymbolView
-          name={expanded ? "chevron.up" : "chevron.down"}
-          size={13}
-          tintColor={theme.inkFaint}
-        />
-      ) : chevron ? (
-        <SymbolView name="chevron.right" size={13} tintColor={theme.inkFaint} />
-      ) : null}
+      {chevron ? <Icon name="chevron.right" size={13} tintColor={theme.inkFaint} /> : null}
     </>
   );
   if (onPress) {
@@ -160,7 +145,6 @@ export function ListRow({
         accessibilityRole="button"
         accessibilityLabel={withContext(label, labelContext, sublabel)}
         accessibilityHint={hint}
-        accessibilityState={expanded === undefined ? undefined : { expanded }}
         accessibilityActions={
           secondaryAction ? [{ name: SECONDARY_ACTION, label: secondaryAction.label }] : undefined
         }
@@ -177,7 +161,7 @@ export function ListRow({
         style={({ pressed }) => [
           styles.row,
           inset ? styles.rowInset : null,
-          { opacity: pressed ? 0.7 : 1 },
+          { opacity: pressed ? motion.press.rowOpacity : 1 },
         ]}
       >
         {body}

@@ -16,14 +16,15 @@ import { useRouter } from "expo-router";
 import { useEffect } from "react";
 import { ScrollView, StyleSheet } from "react-native";
 
+import { AnnouncedText, useNews } from "@/components/Announced";
 import { ConsentList } from "@/components/ConsentList";
 import { useTabBarClearance } from "@/components/FloatingTabBar";
 import { AppText, RAIL_EDGES, Screen } from "@/components/Themed";
 import { purposeDef, purposeParam, type PurposeId } from "@/lib/consent/purposes";
 import {
-  grantLocal,
   seedLedgerForAccount,
   useConsentLedger,
+  useConsentOutbox,
   withdrawLocal,
 } from "@/lib/consent/store";
 import { viewOf } from "@/lib/consent/ledger";
@@ -35,6 +36,10 @@ export default function Consents() {
   const router = useRouter();
   const { account, consents, setConsent } = useSession();
   const ledger = useConsentLedger();
+  // INT-397 (SC 4.1.3): the queue note is announced when a change made here
+  // could not reach the server, and shown without a word on every visit.
+  const outbox = useConsentOutbox();
+  const queuedNews = useNews(outbox === "held");
   // Hoisted above the early return: hooks run in the same order every render.
   const tabBarClearance = useTabBarClearance();
 
@@ -53,26 +58,24 @@ export default function Consents() {
     router.push(`/(tabs)/me/consents/${purposeParam(id)}`);
   };
 
-  // Mirror a ledger change into the legacy session gate in the SAME handler, so
-  // the existing visibleTabs gate (wellbeing) reacts before the next frame.
-  const mirror = (flipped: readonly PurposeId[], on: boolean) => {
-    for (const scope of flipped) {
-      const key = purposeDef(scope)?.sessionKey;
-      if (key !== null && key !== undefined && key !== "core") {
-        setConsent(key, on);
-      }
+  const onToggle = (id: PurposeId) => {
+    const view = views.find((v) => v.id === id);
+    if (view === undefined) {
+      return;
     }
-  };
-
-  // Grant happens inline, beneath the loaded, hash-bound text (invariant 4).
-  // The ledger fails closed itself — a missing text grants nothing.
-  const onGrant = (id: PurposeId) => {
-    mirror(grantLocal(id), true);
-  };
-
-  // Withdrawal is instant and cascading; one tap on the row's pill.
-  const onWithdraw = (id: PurposeId) => {
-    mirror(withdrawLocal(id), false);
+    if (view.withdrawable) {
+      // Instant: ledger + session gate flip in this same handler.
+      const flipped = withdrawLocal(id);
+      for (const scope of flipped) {
+        const key = purposeDef(scope)?.sessionKey;
+        if (key !== null && key !== undefined) {
+          setConsent(key, false);
+        }
+      }
+      return;
+    }
+    // OFF / pending / stale → the decision belongs next to the text.
+    openDetail(id);
   };
 
   return (
@@ -84,17 +87,15 @@ export default function Consents() {
         <AppText role="body" color="inkSoft">
           {t("consent.entry.sub")}
         </AppText>
-        <ConsentList
-          views={views}
-          texts={ledger.texts}
-          onGrant={onGrant}
-          onWithdraw={onWithdraw}
-          onOpenDetail={openDetail}
-        />
+        <ConsentList views={views} onOpenDetail={openDetail} onToggle={onToggle} />
         {ledger.queue.length > 0 ? (
-          <AppText role="caption" color="inkFaint">
-            {t("consent.queue.note")}
-          </AppText>
+          <AnnouncedText
+            tone="status"
+            news={queuedNews}
+            role="caption"
+            color="inkFaint"
+            message={t("consent.queue.note")}
+          />
         ) : null}
       </ScrollView>
     </Screen>

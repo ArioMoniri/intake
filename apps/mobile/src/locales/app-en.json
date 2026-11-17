@@ -1,5 +1,7 @@
 {
   "CFBundleDisplayName": "Önvizit",
   "NSMicrophoneUsageDescription": "Microphone access is needed so what you describe during a voice visit can reach your clinician. No audio recording is kept.",
-  "NSCameraUsageDescription": "Camera access is needed so you can photograph your reports and test results and add them to your visit. The photo is kept only as a document you uploaded."
+  "NSCameraUsageDescription": "Camera access is needed so you can photograph your reports and test results and add them to your visit. The photo is kept only as a document you uploaded.",
+  "NSHealthShareUsageDescription": "Önvizit only reads your step, resting heart rate and sleep data. It shows them on this phone. They enter your note only if you add them, and they go with the note if you send it.",
+  "NSHealthUpdateUsageDescription": "Önvizit never writes any data to the Health app and does not change your data there. It asks only for permission to read."
 }

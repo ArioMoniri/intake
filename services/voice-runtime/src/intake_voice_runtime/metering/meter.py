@@ -39,7 +39,7 @@ from typing import Final
 
 from intake_voice_runtime.metering.components import ChargeClass, MeteredComponent
 from intake_voice_runtime.metering.ledger import Admission, SessionLedger
-from intake_voice_runtime.metrics import VOICE_TTS_CHARS
+from intake_voice_runtime.metrics import VOICE_SESSIONS_METERED, VOICE_TTS_CHARS
 from intake_voice_runtime.profiles import VoiceProfile
 
 __all__ = ["UNKNOWN_LABEL", "SELF_HOSTED", "SessionMeter", "TurnLabels"]
@@ -76,6 +76,15 @@ class TurnLabels:
             "vendor": SELF_HOSTED,
         }
 
+    def session_labels(self) -> dict[str, str]:
+        """The per-session label set: the per-turn set minus ``vendor``.
+
+        A session is not served by a vendor; its turns are. INT-190's
+        ``voice_sessions_metered_total`` carries this set so the cost module can
+        divide a per-turn quantity by the sessions in the same slice.
+        """
+        return {"tenant": self.tenant, "profile": self.profile.value, "branch": self.branch}
+
 
 @dataclass
 class SessionMeter:
@@ -89,6 +98,20 @@ class SessionMeter:
 
     ledger: SessionLedger
     labels: TurnLabels = field(default_factory=TurnLabels)
+    _session_counted: bool = field(default=False, init=False, repr=False)
+
+    def count_session(self) -> None:
+        """Count this meter's session once in ``voice_sessions_metered_total``.
+
+        Called by the composition root when it builds a session around this
+        meter (INT-190). It is the denominator of the cost module's per-session
+        figure, so a second call — a meter composed twice — must not count a
+        second session.
+        """
+        if self._session_counted:
+            return
+        self._session_counted = True
+        VOICE_SESSIONS_METERED.labels(**self.labels.session_labels()).inc()
 
     def admits(self, component: MeteredComponent, charge_class: ChargeClass) -> Admission:
         return self.ledger.admits(component, charge_class)

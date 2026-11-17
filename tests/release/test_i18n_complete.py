@@ -138,6 +138,13 @@ HARDCODED_EXEMPT = {
         "A Turkish character class inside the MHRS-message parser's regex. It "
         "is matched against text the patient pastes and is never rendered."
     ),
+    "lib/taxonomy/turkishDates.ts": (
+        "INT-400: the twelve Turkish month names and the I/İ fold of the "
+        "server's `turkish_dates.TURKISH_MONTHS` and `fold_tr`, ported so the "
+        "device reads a pasted date by the server's rule. They are matched "
+        "against what a message printed and are never rendered. The server "
+        "module creates no tr key for the same table, for the same reason."
+    ),
 }
 
 #: Instructional prose and form labels carrying the SHORT imperative (`-in`)
@@ -187,6 +194,7 @@ PROSE_REGISTER_FINDINGS = frozenset(
         "companion.speaker.footer",
         "consent.entry.sub",
         "consent.stale.body",
+        "dialogue.entryBody",
         "dialogue.listeningHint",
         "dialogue.speakingHint",
         "records.needVisit.body",
@@ -205,14 +213,11 @@ PROSE_REGISTER_FINDINGS = frozenset(
         "kiosk.lock.body",
         "kiosk.pin.hint",
         "shares.issue.recipient.hint",
-        # INT-354 (int-demo consolidation): the visits-calendar day hint and
-        # the dialogue finish hint came from int-demo, written before this
-        # gate existed, in the same "…için iki kez dokunun." form as every
-        # sibling a11y hint above. Recorded, not rewritten, for the same
-        # reason. `dialogue.entryBody` left the set in the same merge: the
-        # warm opener ("Ben Önvizit; … anlatabilirsiniz") carries no short
-        # imperative. Awaiting clinical-reviewer register decision.
-        "a11y.dialogue.finishHint",
+        # INT-370 (INT-354 slice S3, int-demo 148a7dbd): the visits-calendar
+        # day hint, written before this gate existed, in the same "…için iki
+        # kez dokunun." form as every sibling a11y hint above. Recorded, not
+        # rewritten, for the same reason (build-source dea9bb8a recorded it
+        # first). Awaiting clinical-reviewer register decision.
         "a11y.visits.dayHint",
     }
 )
@@ -221,7 +226,11 @@ PROSE_REGISTER_FINDINGS = frozenset(
 #: imported rather than restated so there is one number). Flagged, not
 #: rewritten: this is the product's own description line and splitting it is a
 #: copy decision.
-B1_LENGTH_FINDINGS = frozenset({"welcome.body"})
+#:
+#: INT-588 struck the one entry, ``welcome.body``. It was not rewritten for
+#: length: its "sesli ya da yazılı olarak" clause was false in a release build,
+#: which has no voice, and removing it brought the sentence to 12 words.
+B1_LENGTH_FINDINGS: frozenset[str] = frozenset()
 
 #: What the canonical guard — the one invariant 2 names — says about the
 #: catalogue. Every entry here is a **guard defect, not a copy defect**: the
@@ -237,22 +246,15 @@ B1_LENGTH_FINDINGS = frozenset({"welcome.body"})
 #:   treatment — ``bırakın``/``kullanın`` anchored to the clinical sense, here
 #:               used of a date field, an app version and the service itself.
 #:   diagnosis — ``\btanı\s+koy`` matches the *negated* disclaimer
-#:               "Vizite tanı koymaz", which is the sentence that exists to deny
+#:               "Önvizit tanı koymaz", which is the sentence that exists to deny
 #:               diagnosis.
 #:   multi_question — one question whose subject is set off by a comma.
 #:   jargon    — the length arm of the same check; see B1_LENGTH_FINDINGS.
-POLICYGUARD_FINDINGS: frozenset[tuple[str, str]] = frozenset(
-    {
-        # The ONLY survivor of INT-248, and the one entry that may be a real
-        # copy finding rather than a guard artefact: INT-253's B1 audit
-        # independently flagged this same string as the catalogue's single
-        # over-length sentence (17 words against a 15-word bound). Two
-        # different checks disliking one string is a signal, not noise.
-        # Left recorded for the copy owner; not rewritten here, because
-        # welcome copy is product voice and this issue is guard precision.
-        ("jargon", "welcome.body"),
-    }
-)
+POLICYGUARD_FINDINGS: frozenset[tuple[str, str]] = frozenset()
+# INT-588 struck the last pair, ("jargon", "welcome.body"): the survivor of
+# INT-248 that INT-253's B1 audit had also flagged (17 words against a 15-word
+# bound). Its voice clause was false in a release build, and without it the
+# sentence is 12 words, so the length arm no longer fires.
 # INT-248 emptied this. All 22 recorded pairs were guard false positives, and
 # fixing the guard's Turkish morphology resolved every one — including
 # ("diagnosis", "app.disclaimer"), which was the sentence that exists to

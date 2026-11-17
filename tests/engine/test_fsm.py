@@ -39,7 +39,7 @@ from decimal import Decimal
 from pathlib import Path
 
 import pytest
-from clinical_schemas.common import JsonValue
+from clinical_schemas.common import FrozenModel, JsonValue
 from clinical_schemas.overlay import LearnedFact, LearnedFactSource, PatientOverlay
 from clinical_schemas.session import AnswerState
 from intake_voice_runtime.clinical_agent import (
@@ -58,6 +58,7 @@ from protocols.compile.resolve import ResolvedProtocol, ResolvedSection, Resolve
 from protocols.dsl import Slot
 from protocols.triage.expr import Truth
 from protocols.types import Delivery, SlotType
+from protocols.valuesets import ValueSetTable
 
 NOW = datetime.datetime(2026, 8, 30, 9, 0, tzinfo=datetime.UTC)
 HASH = "0" * 64
@@ -246,15 +247,25 @@ class TestNoLlmInside:
 
     def test_the_engine_has_no_seam_a_model_could_be_handed_through(self) -> None:
         # A port parameter is how a model gets in. The engine takes the
-        # resolved document, the session clock and the patient's confirmed
-        # facts — three values, no callables, no adapters.
+        # resolved document, the session clock, the patient's confirmed facts,
+        # the committed value-set table its gates are re-checked against
+        # (INT-518) and a per-step clarification bound read from a decision
+        # (INT-540, CD-04) — five values, no callables, no adapters.
         params = inspect.signature(IntakeEngine.__init__).parameters
         assert set(params) == {
             "self",
             "protocol",
             "reference_time",
             "overlay_facts",
+            "valuesets",
+            "clarification_bounds",
         }
+        # the table is pack content: a frozen model of strings, not a port
+        assert params["valuesets"].annotation == "ValueSetTable"
+        # the bounds are numbers by step id, not a port
+        assert params["clarification_bounds"].annotation == "Mapping[str, int] | None"
+        assert issubclass(ValueSetTable, FrozenModel)
+        assert set(ValueSetTable.model_fields) == {"kind", "valuesets"}
 
     def test_apply_extraction_takes_values_not_a_model(self) -> None:
         params = inspect.signature(IntakeEngine.apply_extraction).parameters

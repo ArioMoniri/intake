@@ -61,8 +61,11 @@ def claims(**overrides: Any) -> dict[str, Any]:
         "org": "org:intake",
         "tenant": "tenant-a",
         "aaguid": "00000000-0000-0000-0000-000000000000",
-        "credential_id": "cred-clinical-lead-1",
+        "credential_id": "cred-clinical-lead-00001",
         "realm_access": {"roles": ["clinical_lead"]},
+        # INT-365: the realm's password and WebAuthn references (a
+        # clinical_lead reaches patient content, so OTP would be refused)
+        "amr": ["pwd", "hwk"],
         "exp": NOW + 600,
         "nbf": NOW - 10,
     }
@@ -127,6 +130,19 @@ class TestHappyPath:
 
     def test_a_token_inside_the_skew_window_is_accepted(self) -> None:
         assert verifier(clock=lambda: NOW + 700).verify(token())
+
+    def test_the_longest_webauthn_credential_id_passes_verification_and_the_console(
+        self,
+    ) -> None:
+        # INT-391: 1023 bytes, WebAuthn Level 3's ceiling, is 1364 base64url
+        # characters, and '_' first is a byte of 0xFC or above. The signed
+        # token must stay under the verifier's parse cap.
+        longest = _b64(b"\xfc" + bytes(range(256)) * 3 + bytes(254))
+        assert (len(longest), longest[0]) == (1364, "_")
+        signed = token(claims(credential_id=longest))
+        assert len(signed) < 8192
+        principal = principal_from_claims(verifier().verify(signed), source_ip="192.0.2.10")
+        assert principal.credential_id == longest
 
 
 class TestNegatives:

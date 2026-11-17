@@ -17,9 +17,10 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
-import { SymbolView } from "expo-symbols";
 
+import { AnnouncedText, useNews } from "@/components/Announced";
 import { useTabBarClearance } from "@/components/FloatingTabBar";
+import { Icon } from "@/components/Icon";
 import { Kicker } from "@/components/Kicker";
 import {
   AppText,
@@ -30,12 +31,14 @@ import {
   SecondaryButton,
   useTheme,
 } from "@/components/Themed";
+import { consentActions, currentBuildMode } from "@/lib/buildCopy";
 import { viewOf } from "@/lib/consent/ledger";
 import { purposeDef, purposeFromParam, type PurposeId } from "@/lib/consent/purposes";
 import {
   grantLocal,
   seedLedgerForAccount,
   useConsentLedger,
+  useConsentOutbox,
   withdrawLocal,
 } from "@/lib/consent/store";
 import { verticalSlop } from "@/lib/a11y/target";
@@ -49,6 +52,10 @@ export default function ConsentDetail() {
   const params = useLocalSearchParams<{ purpose?: string }>();
   const { account, consents, setConsent } = useSession();
   const ledger = useConsentLedger();
+  // INT-397 (SC 4.1.3): the queue note is announced when a grant or withdrawal
+  // made here could not reach the server, and shown without a word otherwise.
+  const outbox = useConsentOutbox();
+  const queuedNews = useNews(outbox === "held");
   // Hoisted above the early return: hooks run in the same order every render.
   const tabBarClearance = useTabBarClearance();
 
@@ -64,12 +71,15 @@ export default function ConsentDetail() {
   }
   const def = purposeDef(id)!;
   const view = viewOf(ledger).find((v) => v.id === id)!;
+  // INT-591: what this build offers — no voice consent where voice cannot
+  // run, while a standing grant keeps its withdraw control.
+  const actions = consentActions(view, currentBuildMode());
   const entry = ledger.texts[id];
 
   const mirror = (scopes: readonly PurposeId[], on: boolean) => {
     for (const scope of scopes) {
       const key = purposeDef(scope)?.sessionKey;
-      if (key !== null && key !== undefined && key !== "core") {
+      if (key !== null && key !== undefined) {
         setConsent(key, on);
       }
     }
@@ -93,7 +103,7 @@ export default function ConsentDetail() {
           onPress={() => router.back()}
           style={styles.backRow}
         >
-          <SymbolView name="chevron.left" size={15} tintColor={theme.inkSoft} />
+          <Icon name="chevron.left" size={15} tintColor={theme.inkSoft} />
           <AppText role="label" color="inkSoft">
             {t("me.consents")}
           </AppText>
@@ -142,15 +152,19 @@ export default function ConsentDetail() {
           </Card>
         )}
 
-        {view.grantable ? (
+        {actions.grant ? (
           <PrimaryButton label={t("consent.detail.grant")} onPress={onGrant} />
         ) : null}
-        {id === "lane:affect" && !view.grantable && !view.withdrawable ? (
+        {actions.note !== null ? (
+          <AppText role="caption" color="inkFaint">
+            {t(actions.note)}
+          </AppText>
+        ) : id === "lane:affect" && !view.grantable && !view.withdrawable ? (
           <AppText role="caption" color="inkFaint">
             {t("consent.detail.needsVoice")}
           </AppText>
         ) : null}
-        {view.withdrawable ? (
+        {actions.withdraw ? (
           <View style={styles.block}>
             <SecondaryButton label={t("consent.detail.withdraw")} onPress={onWithdraw} />
             <AppText role="caption" color="inkFaint">
@@ -159,9 +173,13 @@ export default function ConsentDetail() {
           </View>
         ) : null}
         {ledger.queue.length > 0 ? (
-          <AppText role="caption" color="inkFaint">
-            {t("consent.queue.note")}
-          </AppText>
+          <AnnouncedText
+            tone="status"
+            news={queuedNews}
+            role="caption"
+            color="inkFaint"
+            message={t("consent.queue.note")}
+          />
         ) : null}
       </ScrollView>
     </Screen>

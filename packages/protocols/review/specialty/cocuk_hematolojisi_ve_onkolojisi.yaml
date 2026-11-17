@@ -1,0 +1,133 @@
+# REVIEW QUEUE — QUESTIONS authored; NOT servable. Promoted to L1 only by the
+# physician of record's sign-off (HB-C1).
+# generated-by: scripts/dev/gen_specialty_packs.py from docs/evidence/proposals/cocuk_hematolojisi_ve_onkolojisi.md
+# (guideline-sourced; reviewed per docs/evidence/verification/). Symptom-capture
+# prompts only (inv 2/10) — not diagnosis, not triage. Acuity is EK-4 law +
+# physician of record; never fabricated. RED/life-threat stays in
+# base.life_threat (inv 7).
+kind: pack
+id: specialty.cocuk_hematolojisi_ve_onkolojisi
+layer: specialty
+version: 0.3.0
+schema_version: 2
+maturity: L0
+status: questions-authored; awaiting physician-of-record sign-off (HB-C1); not servable
+language: tr
+title_tr: Çocuk Hematolojisi ve Onkolojisi ön görüşme protokolü
+extends: cluster.child_health
+visit_types:
+- first
+- followup
+- preop
+- report
+- pregnancy_followup
+- chronic_review
+- post_discharge
+- screening
+- second_opinion
+- teleconsult
+sections:
+  ziyaret_baglami:
+    slots:
+      basvuru_nedeni:
+        type: string
+        required: true
+        ask_tr:
+          tr: Bugün çocuğunuzla ilgili sizi en çok düşündüren konu nedir?
+        follow_up_tr:
+          tr: Bugünkü randevunuzun sebebini kısaca anlatır mısınız?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.reason_for_encounter.v1 recorded in docs/evidence/proposals/cocuk_hematolojisi_ve_onkolojisi.md'
+      sikayet_suresi:
+        type: duration
+        required: false
+        ask_tr:
+          tr: Bu şikâyetiniz ne zamandır var?
+        follow_up_tr:
+          tr: Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; no candidate archetype recorded in docs/evidence/proposals/cocuk_hematolojisi_ve_onkolojisi.md'
+  sorular:
+    slots:
+      nedensiz_morluk:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Çocuğunuzun vücudunda nedeni belli olmayan morluklar fark ettiniz mi?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/cocuk_hematolojisi_ve_onkolojisi.md'
+      burun_dis_eti_kanamasi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Çocuğunuzda nedeni belli olmayan burun ya da diş eti kanaması oldu mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/cocuk_hematolojisi_ve_onkolojisi.md'
+      ciltte_kirmizi_mor_nokta:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Çocuğunuzun cildinde iğne başı büyüklüğünde kırmızı ya da mor noktalar fark ettiniz mi?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/cocuk_hematolojisi_ve_onkolojisi.md'
+      solukluk:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Çocuğunuz son zamanlarda her zamankinden solgun görünüyor mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/cocuk_hematolojisi_ve_onkolojisi.md'
+      gecmeyen_yorgunluk:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Çocuğunuz son zamanlarda geçmeyen bir yorgunluk yaşıyor mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/cocuk_hematolojisi_ve_onkolojisi.md'
+      uzun_ates_sik_enfeksiyon:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Çocuğunuzda nedeni açıklanamayan, uzun süren ateş ya da sık tekrarlayan enfeksiyonlar oldu mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/cocuk_hematolojisi_ve_onkolojisi.md'
+      kemik_agrisi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Çocuğunuz geçmeyen ya da nedeni belli olmayan bir kemik ağrısından yakınıyor mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/cocuk_hematolojisi_ve_onkolojisi.md'
+      boyun_koltuk_kasik_sislik:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Çocuğunuzun boynunda, koltuk altında ya da kasığında geçmeyen bir şişlik fark ettiniz mi?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/cocuk_hematolojisi_ve_onkolojisi.md'
+      karinda_sislik_sertlik:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Çocuğunuzun karnında şişlik ya da elinize gelen bir sertlik fark ettiniz mi?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/cocuk_hematolojisi_ve_onkolojisi.md'
+      goz_bebegi_beyaz_parlama:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Çocuğunuzun fotoğraflarında göz bebeğinin beyaz parladığını fark ettiniz mi?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/cocuk_hematolojisi_ve_onkolojisi.md'
+      onceki_ciddi_tani:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Çocuğunuza daha önce kanla ilgili ya da başka ciddi bir hastalık tanısı kondu mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.problem_diagnosis.v1 recorded in docs/evidence/proposals/cocuk_hematolojisi_ve_onkolojisi.md'
+      duzenli_tedavi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Çocuğunuz şu anda bu hastalık için düzenli bir tedavi görüyor mu?
+        ask_if: onceki_ciddi_tani == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.problem_diagnosis.v1 recorded in docs/evidence/proposals/cocuk_hematolojisi_ve_onkolojisi.md'
+red_flags:
+- id: rf.cocuk_hematolojisi_ve_onkolojisi_l0_taslak
+  label_tr: Çocuk Hematolojisi ve Onkolojisi ön görüşme protokolü — branşa özgü kırmızı bayrak taslağı (klinik onay bekliyor)
+  when: 'TODO: cocuk_hematolojisi_ve_onkolojisi branch-specific red-flag trigger requires clinical sign-off'
+  tense: ever
+  tense_anchor: sikayet_suresi
+  level: YESIL
+  route: EXPEDITE
+  notify_clinic: never
+  status: draft_needs_source
+  source_gap: 'Trigger, EK-4 level and route await clinical sign-off (invariant 17 pending-value literal). Guideline-sourced candidates recorded in docs/evidence/proposals/cocuk_hematolojisi_ve_onkolojisi.md; acuity bound by EK-4 law (RG 13/9/2022 sayı 31952), snapshot absent. RED/life-threat stays in base.life_threat (invariant 7). Owner: physician of record (HB-C1, HB-C2, HB-C7).'

@@ -1,0 +1,276 @@
+{
+  "schema": "intake.admin.voice.v1",
+  "generated_at": "2026-09-26T16:00:00Z",
+  "profiles": [
+    "residency_tr",
+    "typed"
+  ],
+  "reason_classes": [
+    "rollout_expansion",
+    "rollout_rollback",
+    "incident_mitigation",
+    "experiment_start",
+    "experiment_end",
+    "config_correction",
+    "study_enablement"
+  ],
+  "sources": {
+    "prometheus": "ok",
+    "controls": "ok"
+  },
+  "control_catalogue": [
+    {
+      "control": "kill_switch_engage",
+      "dangerous_action_id": "admin.voice.kill_switch.engage",
+      "route": "POST /admin/voice/kill-switch",
+      "tier": 1,
+      "direction": "safe",
+      "actor_roles": [
+        "clinical_lead",
+        "platform_owner",
+        "sre_oncall"
+      ],
+      "approver_roles": []
+    },
+    {
+      "control": "kill_switch_release",
+      "dangerous_action_id": "admin.voice.kill_switch.release",
+      "route": "POST /admin/voice/kill-switch/release",
+      "tier": 2,
+      "direction": "dangerous",
+      "actor_roles": [
+        "clinical_lead",
+        "platform_owner"
+      ],
+      "approver_roles": [
+        "clinical_lead",
+        "platform_owner",
+        "qms_owner"
+      ]
+    },
+    {
+      "control": "default_profile",
+      "dangerous_action_id": "admin.voice.profile.switch",
+      "route": "PUT /admin/voice/profile/{tenant}",
+      "tier": 2,
+      "direction": "dangerous",
+      "actor_roles": [
+        "clinical_lead",
+        "platform_owner"
+      ],
+      "approver_roles": [
+        "clinical_lead",
+        "platform_owner",
+        "qms_owner"
+      ]
+    },
+    {
+      "control": "canary",
+      "dangerous_action_id": "admin.voice.canary.set",
+      "route": "PUT /admin/voice/canary/{tenant}",
+      "tier": 2,
+      "direction": "dangerous",
+      "actor_roles": [
+        "clinical_lead",
+        "platform_owner"
+      ],
+      "approver_roles": [
+        "clinical_lead",
+        "platform_owner",
+        "qms_owner"
+      ],
+      "weight_bounds": {
+        "min": 0,
+        "max": 100
+      }
+    }
+  ],
+  "tiles": {
+    "controls": {
+      "state": "ok",
+      "reason": null,
+      "tenants": [
+        {
+          "tenant_id": "tenant-a",
+          "kill_switch": true,
+          "default_profile": "residency_tr",
+          "canary_profile": null,
+          "canary_weight": 0,
+          "effective_profile": "typed",
+          "revision": 3,
+          "changed_at": "2026-09-26T15:42:00+00:00",
+          "changed_by": "kc-sub-sre-oncall-1",
+          "approved_by": null,
+          "last_change": "kill_switch_engage"
+        },
+        {
+          "tenant_id": "tenant-b",
+          "kill_switch": false,
+          "default_profile": "residency_tr",
+          "canary_profile": null,
+          "canary_weight": 0,
+          "effective_profile": "residency_tr",
+          "revision": 2,
+          "changed_at": "2026-09-25T09:10:00+00:00",
+          "changed_by": "kc-sub-clinical-lead-1",
+          "approved_by": "kc-sub-qms-owner-1",
+          "last_change": "default_profile"
+        },
+        {
+          "tenant_id": "tenant-c",
+          "kill_switch": false,
+          "default_profile": "typed",
+          "canary_profile": "residency_tr",
+          "canary_weight": 10,
+          "effective_profile": "typed",
+          "revision": 1,
+          "changed_at": "2026-09-26T08:00:00+00:00",
+          "changed_by": "kc-sub-platform-owner-1",
+          "approved_by": "kc-sub-clinical-lead-2",
+          "last_change": "canary"
+        }
+      ]
+    },
+    "pending": {
+      "state": "ok",
+      "reason": null,
+      "actions": [
+        {
+          "action_id": "01jbq0voicerecordedprofile01",
+          "dangerous_action_id": "admin.voice.profile.switch",
+          "tier": 2,
+          "tenant_id": "tenant-d",
+          "control": "default_profile",
+          "profile": "residency_tr",
+          "weight": null,
+          "requested_role": "clinical_lead",
+          "created_at": "2026-09-26T15:56:00+00:00",
+          "expires_at": "2026-09-26T16:11:00+00:00"
+        }
+      ]
+    },
+    "sessions": {
+      "state": "ok",
+      "reason": null,
+      "window": "24h",
+      "rows": [
+        {
+          "profile": "residency_tr",
+          "reason": "canary",
+          "sessions": 37
+        },
+        {
+          "profile": "residency_tr",
+          "reason": "default",
+          "sessions": 412
+        },
+        {
+          "profile": "typed",
+          "reason": "control_unreadable",
+          "sessions": 2
+        },
+        {
+          "profile": "typed",
+          "reason": "default",
+          "sessions": 96
+        },
+        {
+          "profile": "typed",
+          "reason": "kill_switch",
+          "sessions": 58
+        }
+      ]
+    },
+    "kill_switch_activity": {
+      "state": "ok",
+      "reason": null,
+      "window": "24h",
+      "inflight": [
+        {
+          "outcome": "not_armed",
+          "count": 0
+        },
+        {
+          "outcome": "switched",
+          "count": 14
+        }
+      ],
+      "read_failures": [
+        {
+          "phase": "poll",
+          "count": 5
+        },
+        {
+          "phase": "start",
+          "count": 2
+        }
+      ]
+    },
+    "turn_latency": {
+      "state": "unknown",
+      "reason": "no_series",
+      "metric_id": "voice.round_trip_ms",
+      "window": "24h",
+      "rows": []
+    },
+    "speech_errors": {
+      "state": "ok",
+      "reason": null,
+      "window": "24h",
+      "rows": [
+        {
+          "component": "freya-tts",
+          "kind": "tts",
+          "calls": 38,
+          "failures": 0,
+          "error_ratio": 0.0
+        },
+        {
+          "component": "voxcpm2-tts",
+          "kind": "tts",
+          "calls": 5161,
+          "failures": 41,
+          "error_ratio": 0.0079
+        },
+        {
+          "component": "whisper-tr-medical",
+          "kind": "asr",
+          "calls": 4882,
+          "failures": 12,
+          "error_ratio": 0.0025
+        }
+      ]
+    },
+    "failovers": {
+      "state": "ok",
+      "reason": null,
+      "window": "24h",
+      "rows": [
+        {
+          "from_component": "freya-tts",
+          "to_component": "typed",
+          "count": 2
+        },
+        {
+          "from_component": "voxcpm2-tts",
+          "to_component": "freya-tts",
+          "count": 9
+        }
+      ]
+    },
+    "breakers": {
+      "state": "ok",
+      "reason": null,
+      "rows": [
+        {
+          "component": "freya-tts",
+          "state": "half_open"
+        },
+        {
+          "component": "voxcpm2-tts",
+          "state": "closed"
+        }
+      ]
+    }
+  }
+}

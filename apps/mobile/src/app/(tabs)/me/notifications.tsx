@@ -18,6 +18,7 @@
 import { useEffect } from "react";
 import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 
+import { AnnouncedText, useNews } from "@/components/Announced";
 import { useTabBarClearance } from "@/components/FloatingTabBar";
 import { GuidanceBlock } from "@/components/GuidanceBlock";
 import { Kicker } from "@/components/Kicker";
@@ -82,7 +83,11 @@ function TonalPill({
 
 export default function Notifications() {
   const { account } = useSession();
-  const { prefs, pending } = useNotificationPrefs();
+  const { prefs, save } = useNotificationPrefs();
+  // INT-397 (SC 4.1.3): the "not saved yet" line is shown while a change is
+  // on its way and after one fails, as before; only a failure that happens
+  // in front of the patient is announced, as an error, once per failure.
+  const failedNews = useNews(save === "failed");
   const accountId = account?.id ?? null;
 
   useEffect(() => {
@@ -166,11 +171,15 @@ export default function Notifications() {
         <AppText role="caption" color="inkSoft">
           {t("notifications.transactionalOnly")}
         </AppText>
-        {pending ? (
-          <AppText role="caption" color="inkSoft">
-            {t("notifications.pending")}
-          </AppText>
-        ) : null}
+        {save === "idle" ? null : (
+          <AnnouncedText
+            tone={save === "failed" ? "error" : "status"}
+            news={failedNews}
+            role="caption"
+            color="inkSoft"
+            message={t("notifications.pending")}
+          />
+        )}
       </ScrollView>
     </Screen>
   );

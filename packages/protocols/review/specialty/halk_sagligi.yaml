@@ -1,0 +1,117 @@
+# REVIEW QUEUE — QUESTIONS authored; NOT servable. Promoted to L1 only by the
+# physician of record's sign-off (HB-C1).
+# generated-by: scripts/dev/gen_specialty_packs.py from docs/evidence/proposals/halk_sagligi.md
+# (guideline-sourced; reviewed per docs/evidence/verification/). Symptom-capture
+# prompts only (inv 2/10) — not diagnosis, not triage. Acuity is EK-4 law +
+# physician of record; never fabricated. RED/life-threat stays in
+# base.life_threat (inv 7).
+kind: pack
+id: specialty.halk_sagligi
+layer: specialty
+version: 0.3.0
+schema_version: 2
+maturity: L0
+status: questions-authored; awaiting physician-of-record sign-off (HB-C1); not servable
+language: tr
+title_tr: Halk Sağlığı ön görüşme protokolü
+extends: cluster.medical
+visit_types:
+- first
+- followup
+- preop
+- report
+- pregnancy_followup
+- chronic_review
+- post_discharge
+- screening
+- second_opinion
+- teleconsult
+sections:
+  ziyaret_baglami:
+    slots:
+      basvuru_nedeni:
+        type: string
+        required: true
+        ask_tr:
+          tr: Bugün halk sağlığı polikliniğine gelme nedeniniz nedir?
+        follow_up_tr:
+          tr: Bugünkü randevunuzun sebebini kısaca anlatır mısınız?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.reason_for_encounter.v1 recorded in docs/evidence/proposals/halk_sagligi.md'
+      sikayet_suresi:
+        type: duration
+        required: false
+        ask_tr:
+          tr: Bu şikâyetiniz ne zamandır var?
+        follow_up_tr:
+          tr: Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; no candidate archetype recorded in docs/evidence/proposals/halk_sagligi.md'
+  sorular:
+    slots:
+      kanser_taramasi_oykusu:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Daha önce hiç kanser taraması yaptırdınız mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/halk_sagligi.md'
+      yapilan_taramalar:
+        type: string
+        required: false
+        ask_tr:
+          tr: Hangi taramaları yaptırdığınızı kısaca anlatır mısınız?
+        ask_if: kanser_taramasi_oykusu == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/halk_sagligi.md'
+      ailede_kalin_bagirsak_kanseri:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Anne, baba ya da kardeşlerinizde kalın bağırsak kanseri ya da polip olan var mı?
+        delivery: text_first
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; no candidate archetype recorded in docs/evidence/proposals/halk_sagligi.md'
+      eriskin_tetanoz_asisi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Yetişkin olduktan sonra tetanoz aşısı oldunuz mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/halk_sagligi.md'
+      duzenli_fiziksel_aktivite:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Nefesinizi biraz hızlandıran yürüyüş gibi hareketleri düzenli olarak yapıyor musunuz?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/halk_sagligi.md'
+      gunluk_sebze_meyve:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Her gün sebze ve meyve yiyor musunuz?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/halk_sagligi.md'
+      sekerli_icecek:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Kola, gazoz gibi şekerli içecekleri sık içer misiniz?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/halk_sagligi.md'
+      hayvan_isirma_tirmalama:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Son zamanlarda sizi bir hayvan ısırdı ya da tırmaladı mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/halk_sagligi.md'
+      evde_verem_temasi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Birlikte yaşadığınız biri son zamanlarda verem tanısı aldı mı?
+        delivery: text_first
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; no candidate archetype recorded in docs/evidence/proposals/halk_sagligi.md'
+red_flags:
+- id: rf.halk_sagligi_l0_taslak
+  label_tr: Halk Sağlığı ön görüşme protokolü — branşa özgü kırmızı bayrak taslağı (klinik onay bekliyor)
+  when: 'TODO: halk_sagligi branch-specific red-flag trigger requires clinical sign-off'
+  tense: ever
+  tense_anchor: sikayet_suresi
+  level: YESIL
+  route: EXPEDITE
+  notify_clinic: never
+  status: draft_needs_source
+  source_gap: 'Trigger, EK-4 level and route await clinical sign-off (invariant 17 pending-value literal). Guideline-sourced candidates recorded in docs/evidence/proposals/halk_sagligi.md; acuity bound by EK-4 law (RG 13/9/2022 sayı 31952), snapshot absent. RED/life-threat stays in base.life_threat (invariant 7). Owner: physician of record (HB-C1, HB-C2, HB-C7).'

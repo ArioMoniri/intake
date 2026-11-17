@@ -1,0 +1,150 @@
+# REVIEW QUEUE — QUESTIONS authored; NOT servable. Promoted to L1 only by the
+# physician of record's sign-off (HB-C1).
+# generated-by: scripts/dev/gen_specialty_packs.py from docs/evidence/proposals/fiziksel_tip_ve_rehabilitasyon.md
+# (guideline-sourced; reviewed per docs/evidence/verification/). Symptom-capture
+# prompts only (inv 2/10) — not diagnosis, not triage. Acuity is EK-4 law +
+# physician of record; never fabricated. RED/life-threat stays in
+# base.life_threat (inv 7).
+kind: pack
+id: specialty.fiziksel_tip_ve_rehabilitasyon
+layer: specialty
+version: 0.3.0
+schema_version: 2
+maturity: L0
+status: questions-authored; awaiting physician-of-record sign-off (HB-C1); not servable
+language: tr
+title_tr: Fiziksel Tıp ve Rehabilitasyon ön görüşme protokolü
+extends: cluster.medical
+visit_types:
+- first
+- followup
+- preop
+- report
+- pregnancy_followup
+- chronic_review
+- post_discharge
+- screening
+- second_opinion
+- teleconsult
+sections:
+  ziyaret_baglami:
+    slots:
+      basvuru_nedeni:
+        type: string
+        required: true
+        ask_tr:
+          tr: Bugün fiziksel tıp ve rehabilitasyon bölümüne gelme nedeninizi kendi cümlelerinizle kısaca anlatır mısınız?
+        follow_up_tr:
+          tr: Sizi hekime getiren en önemli şikâyetiniz nedir?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.reason_for_encounter.v1 recorded in docs/evidence/proposals/fiziksel_tip_ve_rehabilitasyon.md'
+      sikayet_suresi:
+        type: duration
+        required: false
+        ask_tr:
+          tr: Bu şikâyetiniz ne zamandır var?
+        follow_up_tr:
+          tr: Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; no candidate archetype recorded in docs/evidence/proposals/fiziksel_tip_ve_rehabilitasyon.md'
+  sorular:
+    slots:
+      soru_1:
+        type: string
+        required: false
+        ask_tr:
+          tr: Şikâyetinizin nasıl başladığını kendi sözlerinizle anlatır mısınız?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/fiziksel_tip_ve_rehabilitasyon.md'
+      soru_2:
+        type: string
+        required: false
+        ask_tr:
+          tr: Ağrıyı ya da kısıtlılığı en çok vücudunuzun hangi bölgesinde hissediyorsunuz?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/fiziksel_tip_ve_rehabilitasyon.md'
+      soru_3:
+        type: string
+        required: false
+        ask_tr:
+          tr: Bu durum günlük işlerinizi, yürümenizi ya da kendinize bakmanızı ne ölçüde etkiliyor?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/fiziksel_tip_ve_rehabilitasyon.md'
+      gece_istirahat_agrisi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Ağrınız geceleri ya da dinlenirken de sürüyor mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/fiziksel_tip_ve_rehabilitasyon.md'
+      uykuyu_bolen_agri:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Ağrınız uykunuzu bölüyor mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/fiziksel_tip_ve_rehabilitasyon.md'
+      ates_var_mi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Son zamanlarda ateşiniz oldu mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/fiziksel_tip_ve_rehabilitasyon.md'
+      istemsiz_kilo_kaybi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Son zamanlarda istemediğiniz halde kilo kaybettiniz mi?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/fiziksel_tip_ve_rehabilitasyon.md'
+      genel_halsizlik:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Son zamanlarda kendinizi genel olarak halsiz hissettiniz mi?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/fiziksel_tip_ve_rehabilitasyon.md'
+      kanser_ya_da_onemli_hastalik:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Daha önce kanser ya da başka önemli bir hastalık tanısı aldınız mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.problem_diagnosis.v1 recorded in docs/evidence/proposals/fiziksel_tip_ve_rehabilitasyon.md'
+      idrar_diski_kontrol_degisimi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Son günlerde idrarınızı başlatmakta zorlanma ya da idrar veya dışkı kontrolünüzde yeni bir değişiklik oldu mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; no candidate archetype recorded in docs/evidence/proposals/fiziksel_tip_ve_rehabilitasyon.md'
+      makat_uyusmasi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Oturduğunuz bölgede, bacaklarınızın arasında ya da kalça çevrenizde uyuşma veya his kaybı fark ettiniz mi?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; no candidate archetype recorded in docs/evidence/proposals/fiziksel_tip_ve_rehabilitasyon.md'
+      bacaklarda_ilerleyen_guc_kaybi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Bacaklarınızda giderek artan bir güçsüzlük ya da her iki bacağınızda birden uyuşma hissediyor musunuz?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; no candidate archetype recorded in docs/evidence/proposals/fiziksel_tip_ve_rehabilitasyon.md'
+      onceki_tani:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Şu anki şikâyetinizle ilgili daha önce bir tanı aldınız mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.problem_diagnosis.v1 recorded in docs/evidence/proposals/fiziksel_tip_ve_rehabilitasyon.md'
+      onceki_tedavi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Bu şikâyet için daha önce fizik tedavi, enjeksiyon veya ameliyat gibi bir tedavi gördünüz mü?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.problem_diagnosis.v1 recorded in docs/evidence/proposals/fiziksel_tip_ve_rehabilitasyon.md'
+      duzenli_ilac:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Şu anda düzenli olarak kullandığınız ilaçlar var mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype ACTION.medication.v1 recorded in docs/evidence/proposals/fiziksel_tip_ve_rehabilitasyon.md'
+red_flags:
+- id: rf.fiziksel_tip_ve_rehabilitasyon_l0_taslak
+  label_tr: Fiziksel Tıp ve Rehabilitasyon ön görüşme protokolü — branşa özgü kırmızı bayrak taslağı (klinik onay bekliyor)
+  when: 'TODO: fiziksel_tip_ve_rehabilitasyon branch-specific red-flag trigger requires clinical sign-off'
+  tense: ever
+  tense_anchor: sikayet_suresi
+  level: YESIL
+  route: EXPEDITE
+  notify_clinic: never
+  status: draft_needs_source
+  source_gap: 'Trigger, EK-4 level and route await clinical sign-off (invariant 17 pending-value literal). Guideline-sourced candidates recorded in docs/evidence/proposals/fiziksel_tip_ve_rehabilitasyon.md; acuity bound by EK-4 law (RG 13/9/2022 sayı 31952), snapshot absent. RED/life-threat stays in base.life_threat (invariant 7). Owner: physician of record (HB-C1, HB-C2, HB-C7).'

@@ -512,7 +512,9 @@ def test_a_gate_naming_an_unknown_slot_is_refused(
     life_threat: LifeThreatSet, template: OperationalTemplate
 ) -> None:
     """A gate on a slot the resolved protocol does not declare would produce
-    a Questionnaire whose enableWhen points at nothing."""
+    a Questionnaire whose enableWhen points at nothing — and an engine whose
+    gate reads Unknown forever. Since INT-355 the resolver refuses it with its
+    own code, before any emitter runs."""
     pack = _pack(sections={"ziyaret": Section(slots={"birinci": _slot(ask_if="yok.slot == 'x'")})})
     with pytest.raises(CompileError) as excinfo:
         compile_bundle(
@@ -522,7 +524,9 @@ def test_a_gate_naming_an_unknown_slot_is_refused(
             template=template,
             voice=VOICE,
         )
-    assert RefusalCode.GATE_NOT_PROJECTABLE in tuple(r.code for r in excinfo.value.refusals)
+    assert [(r.code, r.subject) for r in excinfo.value.refusals] == [
+        (RefusalCode.GATE_REF_UNKNOWN, "ziyaret.birinci")
+    ]
 
 
 def test_ask_if_and_skip_if_with_different_behaviours_are_refused(
@@ -871,7 +875,7 @@ def test_the_crisis_path_is_refused_until_the_escalation_policy_exists(
     rule["register"] = "SILENT"
     probe = tmp_path / "crisis.yaml"
     probe.write_text(yaml.safe_dump(raw, allow_unicode=True, sort_keys=False), encoding="utf-8")
-    crisis = load_life_threat_set(probe)
+    crisis = load_life_threat_set(probe, allow_fixture_snapshots=True)
     with pytest.raises(CompileError) as caught:
         resolve_protocol(
             pack_id="specialty.olmayan",
@@ -915,7 +919,7 @@ def test_an_open_clinician_question_keeps_a_rule_out_of_a_served_pack(
         resolve_protocol(
             pack_id="specialty.olmayan",
             registry=PackRegistry(),
-            life_threat=load_life_threat_set(probe),
+            life_threat=load_life_threat_set(probe, allow_fixture_snapshots=True),
             template=template,
         )
     codes = {r.code for r in caught.value.refusals}

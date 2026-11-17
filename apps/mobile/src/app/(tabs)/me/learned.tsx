@@ -20,6 +20,7 @@
 import { useEffect } from "react";
 import { ScrollView, StyleSheet } from "react-native";
 
+import { AnnouncedText } from "@/components/Announced";
 import { useTabBarClearance } from "@/components/FloatingTabBar";
 import { GuidanceBlock } from "@/components/GuidanceBlock";
 import { LearnedLedger } from "@/components/LearnedLedger";
@@ -74,9 +75,14 @@ export default function Learned() {
           onForget={(id) => void forgetFact(id)}
         />
         {unsaved ? (
-          <AppText role="caption" color="inkSoft">
-            {t("learned.unsaved")}
-          </AppText>
+          // SC 3.3.1: the change the patient just made did not reach their
+          // record — announced as an error on both platforms (INT-362).
+          <AnnouncedText
+            tone="error"
+            role="caption"
+            color="inkSoft"
+            message={t("learned.unsaved")}
+          />
         ) : null}
       </ScrollView>
     </Screen>

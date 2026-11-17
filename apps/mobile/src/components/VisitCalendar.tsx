@@ -25,8 +25,8 @@
  */
 import { useMemo } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
-import { SymbolView } from "expo-symbols";
 
+import { Icon } from "@/components/Icon";
 import { AppText, Card, useFontScale, useTheme } from "@/components/Themed";
 import { joinParts } from "@/lib/a11y/labels";
 import { MIN_TAP } from "@/lib/a11y/target";
@@ -42,7 +42,7 @@ import {
 } from "@/lib/calendar";
 import { getLocale, t } from "@/lib/i18n";
 import { isLargeText } from "@/lib/prefs/appearance";
-import { radius, spacing, tracking, type ThemeColors } from "@/lib/theme";
+import { motion, radius, spacing, tracking, type ThemeColors } from "@/lib/theme";
 
 interface VisitCalendarProps {
   /** The visits to mark; a dateless visit marks no day (lib/calendar.ts). */
@@ -162,9 +162,12 @@ function NavButton({
       accessibilityRole="button"
       accessibilityLabel={label}
       onPress={onPress}
-      style={({ pressed }) => [styles.navButton, { opacity: pressed ? 0.6 : 1 }]}
+      style={({ pressed }) => [
+        styles.navButton,
+        { opacity: pressed ? motion.press.rowOpacity : 1 },
+      ]}
     >
-      <SymbolView name={glyph} size={18} tintColor={tint} />
+      <Icon name={glyph} size={18} tintColor={tint} />
     </Pressable>
   );
 }
@@ -208,7 +211,7 @@ function DayCell({
       accessibilityHint={t("a11y.visits.dayHint")}
       accessibilityState={{ selected }}
       onPress={() => onSelect(cell.iso)}
-      style={({ pressed }) => [styles.cell, { opacity: pressed ? 0.6 : 1 }]}
+      style={({ pressed }) => [styles.cell, { opacity: pressed ? motion.press.rowOpacity : 1 }]}
     >
       <View
         style={[
@@ -259,7 +262,7 @@ function AgendaRow({
         styles.agendaRow,
         {
           backgroundColor: selected ? theme.cta : theme.surfaceRaised,
-          opacity: pressed ? 0.85 : 1,
+          opacity: pressed ? motion.press.opacity : 1,
         },
       ]}
     >

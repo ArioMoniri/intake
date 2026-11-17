@@ -90,7 +90,7 @@ def test_launch_response_carries_mode() -> None:
     resp = LaunchResponse(
         tenant_id=DEV_TENANT,
         theme=ThemeOut(
-            display_name="Vizite Dev Partner",
+            display_name="Önvizit Dev Partner",
             locale="tr",
             primary_color="#0B5FFF",
             accent_color="#00303C",
@@ -202,7 +202,7 @@ def _registry(tmp_path: Any, *, allowed_modes: object = _UNSET) -> TenantEmbedRe
         "legal_root": "docs/legal/embed/dev-partner-alpha",
         "device_functions": False,
         "theme": {
-            "display_name": "Vizite Dev Partner",
+            "display_name": "Önvizit Dev Partner",
             "locale": "tr",
             "primary_color": "#0B5FFF",
             "accent_color": "#00303C",

@@ -1,5 +1,2232 @@
 # PROGRESS — one entry per LOOP iteration (template in LOOP.md)
 
+### 2026-10-28T16:30:00+03:00 · INT-585 · done (PR open)
+- Goal: GitHub #984, Sec-Row `onboarding`. Record the owner's 28 Oct SMS decisions ("1Y 2Y 3Y 4Y 5Y") as D34-D38 in files/00_STATE.md §3, and the live Netgsm OTP confirmation in docs/evidence/INT-576.md.
+- Plan:
+  - D34 iOS OTP autofill domain (INT-580), D35 push new-device notice (INT-583), D36 patient passkeys and step-up (INT-582), D37 SMS spend cap (INT-577), D38 tokenization key into OpenBao with the same material (INT-584).
+  - No HUMAN_BLOCKERS row matched these questions, so none closes.
+- Tests added (with the near-miss negative for any safety rule):
+  - `tests/docs/test_state_decisions.py`: each row present once, with the owner's date, its fact and its issue; near miss: a row that names no issue is refused.
+- Result (`make check` / `make safety` / `make security` summary):
+  - Red run: 1 failed (D34 missing). Green run: 2 passed. tests/backlog + tests/smoke/test_make_check.py green at 373.
+  - make safety: not affected (no protocol, triage or runtime change).
+- Next: the five decisions are carried out by INT-580, INT-583, INT-582, INT-577 and INT-584.
+### 2026-10-30T19:00:00+03:00 · INT-588 · consent.health.hint made true with INT-587 (legal, for build 7)
+- Goal: the legal reviewer (on #1001) found that `consent.health.hint` says the Health data "hiçbir yere gönderilmez". With INT-587, a line the patient adds travels with a sent note, so the hint is false. This blocks build 7.
+- Plan: replace tr and en with the reviewer's text verbatim, and pin it beside the other release-copy truths.
+- Tests added (with the near-miss negative for any safety rule):
+  - `buildCopy.test.ts`: both strings pinned exactly.
+  - Near miss: the "sent nowhere" pattern catches the old tr and en lines, and matches neither new one.
+  - The hint is not a delivery claim.
+  - Red: 2 failed. Green: mobile 153 files / 3134 tests.
+- Result (`make check` / `make safety` / `make security` summary): typecheck clean; `tests/release` + `tests/legal` 957 passed with no new i18n or PolicyGuard finding; claims scan clean; evidence §11.
+- Invariants touched and still passing: 2, 5, 18.
+- Decisions / ADRs / `00_STATE.md` rows: none.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): nothing.
+- Next: carry into INT-591 (merged there; INT-591's own tests re-run green on the merged tree).
+- LOOP_STATUS: CONTINUE
+### 2026-10-30T14:10:00+03:00 · INT-591 · done (committed locally, stacked on INT-588; push frozen)
+- Goal: GitHub #993, P1, Sec-Row `mobile`, the legal lane's recommendation from the INT-588 review: in a release build İzinleriniz must not offer the voice and lane:affect consents (KVKK m.4), while a standing grant stays withdrawable.
+- Plan: `consentActions` and `voiceGroupNoteKey` in `apps/mobile/src/lib/buildCopy.ts`; the detail screen and the consent list read them; one new line, "Bu sürümde sesli görüşme yok; bu izinler kullanılmaz."
+- Tests added (with the near-miss negative for any safety rule): `buildCopy.consent.test.ts` (no grant in release; near misses: standing grants withdrawable, dev and other purposes unchanged) and source pins in `e2e/releaseCopy.spec.ts`. Red: 2 files, 10 failed. Green: mobile 145 files / 3036 tests. Mutation 2/2 killed.
+- Result (`make check` / `make safety` / `make security` summary): typecheck clean; `make check-i18n` and PolicyGuard green; backlog pins at 377; files/11 regenerated.
+- Invariants touched and still passing: 2, 4, 5, 18.
+- Decisions / ADRs / `00_STATE.md` rows: none.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): nothing.
+- Next: push the stack (INT-587, INT-588, INT-591) when the freeze lifts.
+- LOOP_STATUS: CONTINUE
+
+### 2026-10-30T13:50:00+03:00 · INT-588 · legal re-check BLOCK fixed (committed locally; push frozen)
+- Goal: the legal re-check of 7f2c0ffa blocked on `consent.who.laneLinguistic`, which named the doctor as the recipient with no served text behind it (HB-C17).
+- Plan: the reviewer's exact wording; the affect row keeps the text's "bir değerlendirme olarak"; a KVKK-10 pin that a "who" row names a recipient only where a served text exists.
+- Tests added (with the near-miss negative for any safety rule): `buildCopy.test.ts` recipient pin over every purpose (near miss: core's row, with a text, names the doctor). Red: 3 failed. Green: mobile 144 files / 3026 tests.
+- Result (`make check` / `make safety` / `make security` summary): typecheck clean; `make check-i18n` and PolicyGuard green; evidence §9.
+- Invariants touched and still passing: 2, 5, 18.
+- Decisions / ADRs / `00_STATE.md` rows: none.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): nothing.
+- Next: INT-591 on top.
+- LOOP_STATUS: CONTINUE
+
+### 2026-10-30T10:30:00+03:00 · INT-588 · done (rebased onto INT-587's legal-review fix; committed locally; push frozen)
+- Goal: GitHub #989, P1, Sec-Row `mobile`, from the store-listing legal review (B6). Make every patient string true for the build it ships in: a release build has no voice (`__DEV__` gates the lane and dictation; INT-421 strips the lanes), and two consent rows contradicted the served texts (KVKK-10).
+- Plan: one pure module, `apps/mobile/src/lib/buildCopy.ts`, for the lines whose dev truth differs (open-answer hint, start-mode chooser, companion text-only effect); plain catalogue edits for the lines whose voice clause was never needed (welcome, integrity warning, companion footer); the voice and affect rows aligned with voice.tr.md and lane.affect.tr.md; `review.sentInfo`'s second sentence pointed at the access log. Sweep of 15 release-visible strings in docs/evidence/INT-588.md §2.
+- Tests added (with the near-miss negative for any safety rule): `src/lib/buildCopy.test.ts` (release resolution has no voice clause; near misses: the dev variant does, the typed invitation survives; delivery claims pinned to gated surfaces; consent rows read against the served texts) and `e2e/releaseCopy.spec.ts` (screens use the helper on the facts that draw the button). Red: 2 files, 4 tests failed. 6/6 mutations killed, one after strengthening the spec.
+- Result (`make check` / `make safety` / `make security` summary): mobile 143 files / 2999 tests at first commit, and 144 files / 3021 tests after the rebase onto INT-587 62643b93; typecheck clean; `make check-i18n` and PolicyGuard green with the welcome line's two records struck; backlog pins at 376. Full check-py fan-out left to CI (no Python source change). `make safety` untouched.
+- Invariants touched and still passing: 2, 5, 18, 20.
+- Decisions / ADRs / `00_STATE.md` rows: none.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): nothing. Legal lane: the two consent rows and the companion footer. Owner: the linguistic row (its text is HB-C17), voice purposes in a no-voice build, and the ladder rungs with no data source (evidence §2).
+- Next: push both when the freeze lifts; open INT-587's PR first, then this one on top.
+- LOOP_STATUS: CONTINUE
+
+### 2026-10-30T10:00:00+03:00 · INT-587 · legal review round 1 fixed (committed locally; push frozen)
+- Goal: the independent legal review returned B1 (a share consent given for one note could release another after a withdrawal — KVKK m.4/5/6) and notes N3, N5.
+- Plan: the outbox subscribes to the consent ledger and parks every queued and refused note on any share withdrawal (core included); each note is bound to the receipt given for it, sealed with it, and released only by a receipt for that note; the engine refuses a grant older than the last withdrawal; refused consent ops are dropped and re-asked (N5); "Şimdi değil" beside the grant with equal weight (N3).
+- Tests added (with the near-miss negative for any safety rule): `consentBinding.test.ts` (a)(b)(c) over the real consent store with a restart from disk; near miss: a `documents` withdrawal parks nothing. Red: 6 files, 18 tests failed, including the review's scenario. Green: mobile 142 files / 2996 tests. Mutation 5/5 killed.
+- Result (`make check` / `make safety` / `make security` summary): mobile suite, typecheck, `make check-i18n` and PolicyGuard green; details in docs/evidence/INT-587.md §8.
+- Invariants touched and still passing: 4, 6, 18.
+- Decisions / ADRs / `00_STATE.md` rows: none.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): nothing; the reviewer re-verifies on this head.
+- Next: rebase INT-588 onto this head.
+- LOOP_STATUS: CONTINUE
+
+### 2026-10-29T02:20:00+03:00 · INT-587 · done (committed locally; push frozen for the build-6 wave)
+- Goal: GitHub #988, P1, from the store-listing legal review (B4). In a release build the patient's note never reached a clinician: "Gönder" only changed local state, no client called `PUT /v1/visits/{id}/note`, the app could not grant `share:previsit_note`, and Review & send said "gönderildi" on no evidence. Sec-Row: the issue names `sharing`, which is no files/10 §9 row; the work is the Review & send row, so `review-send`.
+- Plan:
+  - A note-sync client (`apps/mobile/src/lib/intake/delivery/`): payload from `buildNote` within the server's `NotePut` bounds; an outbox state machine (queued with capped backoff and Retry-After, never dropped; awaiting_consent; refused for a 4xx, retried only by the patient; delivered, terminal); a transport that counts only a confirmed `sent` as delivered; an attempt that flushes the consent queue first; sealed persistence through the INT-142 draft backend; a store restored from disk at sign-in; native wiring behind a lazy import.
+  - The share consent: the loader reads the served share text; a ledger slot grants it against that text at every send and returns the receipt the outbox requires; the share centre withdraws it.
+  - Review & send: `frozen` and `sent` split; `NoteDelivery` owns the confirm step and the status; only a delivery opens the "gönderildi" branch.
+  - Doctor Link: the server visit id, and a typed step-up seam (OTP session tier; INT-582's passkey later).
+  - No server code change.
+- Tests added (with the near-miss negative for any safety rule): 11 new or extended files (docs/evidence/INT-587.md §3). Near misses: no share without the grant (receipt-less enqueue refused; 403 on the share scope parks the note; the API refuses and writes nothing); a revoked grant stops the link (local refusal before network; server revokes shares, an earlier code opens nothing); offline send queues and survives a restart (memory killed, restored from sealed bytes, delivered on reconnect); a server 4xx is surfaced and not retried forever; no PHI in logs (console spied through every failure mode). Red: 10 files failed, 13 tests failed. 9/9 mutations killed.
+- Result (`make check` / `make safety` / `make security` summary): `make check-ts` exit 0 (mobile 2974 tests); `make check-i18n` 236 passed; `make check-py-static` clean; the API, backlog, smoke, release, legal and security subsets pass; the full check-py pytest result is in the evidence. No container ran (owner rule of 29 Oct). `make safety` untouched.
+- Invariants touched and still passing: 2, 4, 5, 6, 14, 17, 18.
+- Decisions / ADRs / `00_STATE.md` rows: none. The motion class of Review & send is now `legal`, because it renders the share text.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): nothing. Legal lane: review the confirm-step rendering. Owner: re-sharing after a withdrawal and a sign-out warning for a queued note are not built (evidence §7).
+- Next: push when the freeze lifts, open the PR (`Sec-Row: review-send`, `Closes #988`), legal review.
+### 2026-10-29T00:40:00+03:00 · INT-584 · done (PR open; the merge-queue deploy runs the move, then the owner's probe)
+- Goal: GitHub #983, P1, Sec-Row `onboarding`, owner decision D38 (28 Oct 2026). The phone-tokenization key moves from the synthetic host's env file into OpenBao now, with the same key material, so no pseudonym changes. INT-581 recorded the env-file key as an open residual.
+- Plan:
+  - API: `intake_api.tokenization_key` reads OpenBao `secret/api/tokenization` (field `key`) through `SecretsProvider`, with the API's own token, and nowhere else.
+    - `ApiSettings.from_env` stops reading `INTAKE_TOKENIZATION_KEY`; a stray value is named and ignored.
+    - Absent, unreadable and malformed give the OTP tier and the previsit read-back a `503` with `reason: tokenization_key_<state>`.
+    - The key is the hex text's UTF-8 bytes, exactly as before (never hex-decoded).
+    - Dev: the OpenBao dev server, seeded once with a random key; file-dev alone takes a process-local key.
+    - `tokenization_key_state{state,origin}` is catalogued.
+  - Host: `infra/staging/tokenization_key.sh`, run by `deploy.sh` before the API starts (and by `init.sh --init`):
+    1. write the env value with check-and-set, on stdin;
+    2. read it back with the API's token;
+    3. prove equality by a key check value (HMAC of a fixed label) and by the pseudonym of a fixed synthetic number, fingerprinted before and compared after through `intake_api.tokenization_probe`;
+    4. only then remove the env copy.
+    A different key in OpenBao is a loud `CONFLICT` with both kept. A deploy never mints a key. `--probe` prints `equal` or `differ` only.
+  - compose and the env template drop the variable. The API policy gains `read` on the one document.
+- Tests added (with the near-miss negative for any safety rule):
+  - `tests/api/test_tokenization_key.py` (37). Near misses: a key in the environment with OpenBao empty stays shut; a hex-decoded or one-character-off key forks the pseudonym; file-dev outside dev still reads OpenBao; with a key present, the OTP 503 names no key reason.
+  - `tests/api/test_tokenization_probe.py` (20). Near misses: one character off and another key id say `differ`.
+  - `tests/infra/test_staging_tokenization_key.py` (28): the real script over stand-ins, and the real probe module. Near misses: a one-character conflict is refused with both kept; a stale record keeps the env copy; a denied grant keeps the env copy.
+  - Updated: the staging compose, netgsm, previsit-output and netgsm-wiring tests, and the harness.
+  - Red: collection errors (`intake_api.tokenization_key` missing); 33 failed, 338 passed, 19 errors on the infra and previsit set. Green: 445 passed.
+- Result (`make check` / `make safety` / `make security` summary):
+  - ruff and format clean; mypy --strict clean (597 files); shellcheck -x clean.
+  - Whole Python suite in shards: 13147 passed, 0 failed.
+  - Catalogue gates 39 passed. no_placeholders, phi_scan, claims_scan and vendor-calls OK. gitleaks found no leaks.
+  - Pins moved from 372 to 373, and files/11 regenerated. `make safety` is untouched.
+- Invariants touched and still passing:
+  - 6: no key, pseudonym or number in any output, log or argv, tested;
+  - 13: one new series, catalogued live;
+  - 14: the secret comes only from OpenBao;
+  - 16: Sec-Row `onboarding`, with the files/10 §9 row and the threat-model `identifiers` bound updated;
+  - 17: no placeholders, never a literal key.
+- Decisions / ADRs / `00_STATE.md` rows: D38, recorded on `int-585-owner-sms-decisions`; none minted here. The policy file was edited in place: no CODEOWNERS file and no hook-protected entry cover it. LOOP.md's "never touch OpenBao policies" is flagged to the coordinator, with D38 as the owner's approval.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): nothing. After the merge-queue deploy, the owner or the queue runs `tokenization_key.sh --probe` over SSM and expects `equal`.
+- Next: merge; reconcile with #978 and the INT-577/579/581 stack (union of the policy grants, test sets and the §9 row; strike INT-581's residual sentence once both land).
+- LOOP_STATUS: CONTINUE
+
+### 2026-10-28T10:30:00+03:00 · INT-576 · done (PR open; deploy and the owner's retry pending)
+- Goal: GitHub #971, P0 on the build-6 path, Sec-Row `onboarding`. The owner's real OTP send on the synthetic host logged `refusal=- reason=malformed_response http_status=200 vendor_code=-`, yet the SMS arrived after both tries. Only `otp_netgsm.py`'s response parsing was wrong; the request, credentials, header, IP allow-list and sms-egress proxy work.
+- Plan:
+  - Settle the shape from primary sources, each snapshotted verbatim with URL, date and sha256 in `tests/fixtures/netgsm/sources/`:
+    - Netgsm's documentation (OTP SMS, REST v2 and XML);
+    - the official JS SDK `@netgsm/sms` 1.1.11;
+    - the PHP OTP package the documentation links;
+    - `netgsm-sms` 1.1.2, which has no OTP method at all.
+  - The documentation's sample puts the job id in `jobid`. The JS SDK's `OtpSmsResponse` and its integration test against `/sms/rest/v2/otp` put it in `jobId`. INT-528 read `jobid` only, and replaying the SDK shape reproduces the owner's log line exactly.
+  - Accept both REST v2 shapes: code `00` and exactly one digit-string job id under `jobid` or `jobId`.
+  - Map every documented OTP code, adding 80 (`send_limit_exceeded`) and 101.
+  - Any other 2xx is `unparseable_response`, `accepted_without_job_id` or `unknown_vendor_code`, with port reason `malformed_response`, and is never retried.
+  - Add `OtpDeliveryError.retryable` (False for `malformed_response`, `timeout` and `vendor_unavailable`).
+  - The owner's check prints `unconfirmed` (exit 3), never "not sent", for those.
+  - Add the opt-in structure-only diagnostic `netgsm_test_otp.sh --shape`. It was needed: the documentation and the SDK disagree, and no source is a live capture.
+  - The wire request and the sms-egress allow-list are unchanged.
+- Tests added (with the near-miss negative for any safety rule):
+  - `tests/api/test_otp_netgsm_answer.py` (new):
+    - 17 unreadable-2xx near misses: plain `00 <id>`, the XML endpoint's answer, an HTML page, empty, a JSON array, no code, a non-digit code, JSON deeper than the decoder, 00 without a job id, a non-digit job id, a numeric job id, an empty job id, both spellings, `jobID`, and the codes 99, `0` and `01` at 200;
+    - each is sent exactly once and is not retryable;
+    - the fixture against the snapshots;
+    - the code union derived from the snapshots;
+    - the retryable truth table;
+    - an AST test for no retry loop;
+    - invariant 6 over values, keys, tags, the code and the job id;
+    - the shape's rendering.
+  - Route: an unreadable 200 gives one vendor call and a 503, and the cooldown answers the resend 429.
+  - Owner check: `unconfirmed` and `--shape`.
+  - Script: `--shape` passes through; any other argument runs nothing.
+  - Red: 59 failed, 193 passed, 1 collection error. Green: 339 passed on the set, and 1273 on the wider OTP, observability, legal, egress and staging suites. 16/16 mutations killed.
+- Result (`make check` / `make safety` / `make security` summary):
+  - ruff and format clean; mypy --strict clean (97 files).
+  - files/11 regenerated, and the three pins go from 369 to 370, on top of main's INT-573 and INT-574.
+  - The full `make check` fan-out runs on the PR's runner (no container runtime here). The local gate results are in docs/evidence/INT-576.md.
+  - `make safety` is not touched: no protocol, PolicyGuard or runtime change.
+- Invariants touched and still passing:
+  - 6: no number, code, job id or body in any error, log line or shape, tested;
+  - 14: credentials still only from OpenBao, and the egress allow-list is untouched;
+  - 16: Sec-Row `onboarding`, with the threat row updated;
+  - 17: no placeholders, and the fixture is labelled derived, not captured;
+  - 19: no SDK installed or added; the sources were read as data.
+- Decisions / ADRs / `00_STATE.md` rows: none.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): nothing. Deploy, then the owner's one retry: `netgsm_test_otp.sh --shape` over SSM. Its keys line settles `jobid` against `jobId` live.
+- Next: merge, deploy, and the owner's retry.
+- LOOP_STATUS: CONTINUE
+
+### 2026-10-28T05:30:00+03:00 · INT-574 · done (PR open)
+- Goal: GitHub #967, P1. `tests/api/test_red_notify.py::test_the_red_never_waits_on_the_inbox_store` timed one cold request against a 300 ms wall-clock budget on the shared intake-aws-ci runner: main's own run on `78330ff4` failed it at 620 ms, #963's at 350 ms, alone it passes. A required check-py shard, so it blocked every merge when it flaked.
+- Plan:
+  - Lift the test-only rewrite from #963 (`d5f1907b`, INT-459) as its own PR, and take the clock out altogether rather than keep its `elapsed < STALL_S / 2` ratio.
+  - The store holds every write until the test opens it (`_HeldStore`: an event the pump blocks on). The RED coming back while its write is still held is a fact of ordering — nothing had been written for it to wait on. The entry is pending in the outbox with the RED's own instant; the pump brings it to the store; opened refusing, as a down store does, the shutdown count is the original test's.
+  - Near miss: the same RED through an outbox that writes the store itself reaches the store and is held there, back only once the test opens it.
+  - Sweep tests/api and tests/voice for other wall-clock budgets; list each with a recommendation in the evidence; fix only this one.
+- Tests added (with the near-miss negative for any safety rule):
+  - `test_the_red_never_waits_on_the_inbox_store` rewritten: no `perf_counter`, no sleep, no threshold; `RED_BUDGET_MS`, `_down_store` and the polling `_pending_eventually` removed.
+  - `test_near_miss_a_red_that_writes_the_store_itself_is_held_with_the_write` added.
+  - Red: CI's own lines (`assert 620.08 < 300.0` on main, `assert 350.35 < 300.0` on #963). Locally the cold request reads 40 ms alone and 200 ms with one CPU-bound thread in the process: the clock measured the runner, not the property. Mutation (the RED made to write the store itself): the new test fails at `assert store.gave_up == 0` after the 30 s hold.
+  - Green: the file 41/41, ten runs alone and ten under 2 × ncpu CPU hogs; the api suite 825/825 with the file in it (docs/evidence/INT-574.md §3).
+- Result (`make check` / `make safety` / `make security` summary):
+  - ruff check and format clean on the changed files; tests/backlog and tests/smoke/test_make_check.py green (74); `no_placeholders` OK; files/11 regenerated, the three pins 367 → 368.
+  - `make safety` and `make security` untouched: no protocol, PolicyGuard or product code change. The repo-wide `security/vulnerabilities` gate is red until the deps PR lands (expected).
+- Invariants touched and still passing: 9 and 21 (the RED never waits on the inbox store — now proved by ordering, not by a clock); 6 (the shutdown count names nothing; `VISIT` never reaches a log line); 8 (api coverage unchanged, test only); 17 (no placeholder, no skipped test).
+- Decisions / ADRs / `00_STATE.md` rows: none. Three other wall-clock budgets remain in tests/api and tests/voice (`test_triage_hop` p95 < 300 ms; `test_policyguard_latency` 20 ms max and 40 ms report), each with a recommendation in the evidence §4 — thread-time or a recorded measurement — for their own issues.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): nothing.
+- Next: merge #967's PR; open issues for the three remaining wall-clock budgets if the coordinator wants them fixed.
+- LOOP_STATUS: CONTINUE
+
+### 2026-10-17T00:30:00Z · INT-560 · done (PR open; the merge queue deploys)
+- Goal: owner, 17 Oct ("solve these"). On the synthetic AWS host the ops console's registry tile was wrong in three columns:
+  - "Yoklama durumu" read `no_result` on every row, because nothing probed the host and the API had no results file;
+  - "blocking" appeared on rows the host does not run (HAPI and the team GPU server's models), because the column was the registry-wide INT-022 verdict;
+  - "Şu an kendi sunucumuzda" read "evet" for anything we self-host anywhere.
+  - Acceptance (GitHub #948), verbatim:
+    - services/probes runs on the synthetic host (monitoring contract, SLO yaml, its own registry row) and every registry row gets a real probe result, with probe targets fixed to what actually runs there;
+    - the column reflects reality, and GPU-box models never show a false "evet";
+    - "blocking" only for what the deployed synthetic stack actually needs, everything else advisory with the reason;
+    - TDD against a recorded host inventory, with near misses;
+    - no PHI in probe output, and every emitted metric catalogued;
+    - licence columns are INT-561.
+- Plan:
+  - A recorded host inventory (`infra/staging/inventory.yaml`, `intake_probes.inventory`), refused unless its services are exactly compose's and the process is synthetic.
+  - A host sweep (`intake_probes.host_sweep`) in the probes app, with least-privilege credentials, scrubbed details, an atomic results file and two live series.
+  - `intake_probes.standing` derives deployment, probe age, needed and severity. The ops tile serves them, and the page renders them and refuses a tile that claims what it cannot know.
+  - On the host: compose service `probes` (api image, backend+edge only), a read-only results volume on the api, the `svc_probe` role and the `intake-probe` Redis user. deploy.sh fills the two new secrets on an existing host.
+  - Four registry rows the page lacked (keycloak, oauth2-proxy, admin-web, caddy), licence UNVERIFIED for INT-561.
+- Tests added: `tests/observability/test_host_inventory.py` (33), `test_host_sweep.py` (21), `test_probes_host_service.py` (15), `tests/admin/test_registry_truth.py` (138), `tests/infra/test_staging_probes.py` (19) and `apps/admin-web/e2e/ops.spec.ts` (+18).
+  - Near misses:
+    - a GPU-box model with a planted healthy result is still `elsewhere`;
+    - a missing result is never healthy, and stale or unknown-age results are not current;
+    - every non-needed row × five probe states is never blocking;
+    - no inventory keeps the strict INT-183 reading;
+    - a planted TCKN, phone, IBAN, email or URL credential never reaches the written file.
+  - RED (on `ab9b8819`): 4 collection errors. Then 30 failed on assertions (`host_inventory_unknown_component`; catalogue `planned` ≠ `live`). The admin-web spec failed 18 of 57 against main's sources.
+  - GREEN: 489 targeted Python tests, 226 INT-560 tests and 404 admin-web tests passed. Branch coverage: `inventory.py` 100 %, `standing.py` 100 %, `host_sweep.py` 98 %.
+- Result (docs/evidence/INT-560.md):
+  - ruff and mypy strict clean;
+  - admin-web lint, typecheck and test green;
+  - the infra suite green;
+  - `no_placeholders`, `phi_scan`, `claims_scan` and evidence/sec-row linkage OK on the staged tree;
+  - the full Python suite as recorded in the evidence.
+- Invariants touched and still passing: 6 (scrubbed details, id-only labels, nothing from a refused file logged), 13 (two series live, the registry gains the rows the host runs), 14 (digest-pinned image reuse, host secrets only, no credential in the committed inventory), 15 (the probes app gains the shared OTel setup) and 17 (unknown and no-result stay states; a skip is never healthy).
+- Decisions / ADRs / `00_STATE.md` rows: none.
+  - The host-scoped severity is the owner's instruction in #948.
+  - The INT-022 gate itself is unchanged. Its verdict stays on the tile's badge, labelled registry-wide, and is advisory per row on a synthetic host only.
+- Backlog: INT-560 row added (`area:observability`, `monitoring-contract`). The three pins go from 364 to 365, and files/11 was regenerated.
+- Blocked on: nothing for this row.
+  - The first deploy after merge restarts redis once to load the ACL user.
+  - INT-561 records the licence blobs for the four new rows, and was told their names.
+- Refresh onto main `78330ff4` (28 Oct): main's #905 added ADR-042's `sms-egress` service. The inventory now places it as `needed: false` (`fails_closed_without_it`) and `unprobed` (`outside_probe_networks`): the probes stay off `sms-out`, which ADR-042 keeps to the API and the proxy, and a needed-but-unobserved row would have read blocking. Fixtures re-recorded with the recorders; the count pins go to 368 (evidence §9).
+- Next: the merge queue deploys. After it, `/ops` on the host should read real results with ages.
+### 2026-10-28T02:30:00Z · INT-529 · awaiting-human (PR #911 refreshed onto main 78330ff4; the sign-in SMS processor named)
+- Goal: main now runs Netgsm's OTP SMS on the synthetic host (INT-528, #905; D31), with the SMS-only proxy `sms-egress` (ADR-042). The vendor tripwire failed three tests against main, and the texts had to say who the sign-in code goes to.
+- Plan: merge main; name the processor, with its legal entity and country from a primary source, in exactly the text whose subject touches the sign-in number; re-sign; re-cut the tripwire's verified facts for the SMS proxy so it admits that path and still trips on any hosted-LLM path.
+- Tests added (with the near-miss negative for any safety rule): `tests/legal/hosted_reach.py` reads, per network, who can leave the host and who shares the api's networks; `test_synthetic_vendor_tripwire.py` pins the SMS row to `api.netgsm.com.tr` behind `sms-egress`, holds core to naming the processor with its country where recipients are listed and the other three texts to not naming it, and trips on the api joining `sms-wan` or `vendor`, the two proxies' networks bridged, or a new backend peer. RED: 3 failed on the merge. GREEN: 122 passed over the tripwire and the legal index.
+- Result (docs/evidence/INT-529.md §13): core `2026-10-28.syn1`, sha `fce73a8b…86d8d`, index `2026-10-28.1`; voice, lane.affect, documents unchanged (their data never reaches Netgsm). Source: Netgsm's own aydınlatma, retrieved 28 Oct 2026, snapshotted under `docs/legal/sources/netgsm-aydinlatma/`. Claims, PHI and placeholder scans OK; ruff and format clean.
+- Invariants touched and still passing: 5, 6, 14, 18, 19, 20.
+- Decisions / ADRs / `00_STATE.md` rows: none; D31 and ADR-042 are read, not changed.
+- Backlog: union with main; the three pins at 368; files/11 re-rendered. The `aydinlatma.app` awaiting-human row now records the entity, D31 and the live status, and narrows what remains to INT-535 and INTAKE's controller identity.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): unchanged — a licensed Turkish lawyer countersigns before any real patient (HB-L27); INT-535's three questions for the phone-entry notice.
+- Next: the independent legal-reviewer verifies §13; then this refresh is merged forward into #940 and #946.
+- LOOP_STATUS: WAITING_HUMAN
+### 2026-10-28T03:30:00+03:00 · INT-559 · done (PR open, not merged)
+- Goal: GitHub #947, P1, from the INT-536 legal review. The DEV voice lane and the VoiceNote pill recorded a temporary file on the phone through expo-audio's recorder and deleted it after upload. Invariant 3 allows no dev exception.
+- Plan:
+  - Classify every capture path: the dialogue hook, the pill and `lib/voice.ts` were file-backed; LiveKit (INT-103 → INT-515) already streams; the agent-clip cache is TTS output, not patient audio.
+  - Read what the pinned expo-audio 57.0.4 offers. The recorder is file-based on both platforms. `AudioStream` is not: an `AVAudioEngine` input tap on iOS and `AudioRecord` on Android, each emitting 100 ms PCM buffers and never naming a path. Chosen as the smallest option — no new dependency, no native module, Expo-only.
+  - A capture library (`apps/mobile/src/lib/capture`): a buffer allocated once at the 60 s cap and `fill(0)`ed on every trigger; a session that reads the dialogue's `closed()` after every await and on every chunk (INT-551's pattern); one turn for both callers; the ASR client sends bytes; the one expo-audio binding sits behind a lazy import.
+  - The hook keeps its ask-ahead shape: the microphone closes synchronously at "Bitirdim", at `leave` before its first await (the RED path), on failure, unmount, a typed answer and app background.
+  - One trade-off, recorded, not built around: expo-audio's stream puts the iOS session in `.record`, which silences playback, so on iOS the clip plays tap-interruptible and the microphone opens on the patient's turn. Android keeps INT-291's voice barge-in.
+- Tests added (with the near-miss negative for any safety rule):
+  - `lib/capture/{boundedBuffer,level,envelope,session,turn,policy,asrClient}.test.ts` (65): the cap, zeroing on take/clear/finish/discard, the closed-before/during/after-start paths, cap-sized segments with no sample lost, the envelope byte for byte, the client zeroing on success and on every failure, the deadline.
+  - `e2e/voiceCapture.spec.ts` (15): the source slice over the whole patient-audio path and a node-driven 70 s turn under a storage trap; `e2e/bargeIn.spec.ts` (7) pins moved to the file-less posture.
+  - Red: 9 files failed (8 missing modules, 4 barge-in pins). Green: 87/87 targeted, 2900/2900 whole suite.
+- Result (`make check` / `make safety` / `make security` summary):
+  - `apps/mobile`: tsc clean, expo lint 0 errors, vitest 138 files / 2900 tests. Python: backlog, voice-doctor, threat-model and release suites green; files/11 regenerated, the two pins 367 → 368.
+  - no_placeholders, phi_scan, claims_scan, sec-row linkage and evidence_check OK. `make safety` untouched; `make security` on the PR's runner (no dependency or egress change).
+- Invariants touched and still passing: 3 (the subject), 6, 9/21 (the RED path waits on nothing; `leave` discards before any await), 11, 16 (Sec-Row `mobile`, threat row updated), 17, 19.
+- Decisions / ADRs / `00_STATE.md` rows: none required — no architecture change, no new dependency. The iOS barge-in trade-off is the owner's product call (docs/evidence/INT-559.md §4); the two ways back are an upstream session-category option on expo-audio's stream or a local Expo module.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): nothing. The INT-536 consent text check re-runs when INT-515 deploys voice-runtime (INT-515's step).
+- Next: merge; INT-515 re-runs the text check; #939 (INT-551) and #866 (INT-497) merge at the recorder call sites of `useDialogueSession.ts`.
+- LOOP_STATUS: CONTINUE
+
+### 2026-10-17T03:00:00+03:00 · INT-550 · done (PR open, not merged, not deployed)
+- Goal: GitHub #930, P0. On the synthetic host no new staff user could sign in. Realm `intake` refused them after the password with "Invalid username or password", and `webauthn-register` never ran.
+- Plan:
+  - Read Keycloak 26.7.4's flow engine. The issue blamed the INT-378 provider for not allowing user setup, but it does: it inherits the stock factory's `true`.
+  - The engine sends a user without the credential to its required action only from a REQUIRED execution (`DefaultAuthenticationFlow.java:473`). The live WebAuthn step was an ALTERNATIVE beside an OTP ALTERNATIVE, so both threw `CREDENTIAL_SETUP_REQUIRED` and the flow ended with "Invalid username or password".
+  - In both realms: WebAuthn REQUIRED, and OTP DISABLED until INT-389.
+  - `staff_flow.py` switches the live realm. Its new steps are `set_required` and `disable_otp`. Each keeps the execution's priority, because Keycloak copies the body's priority. It refuses, before any change, a realm without an enabled `webauthn-register`.
+  - The jar is unchanged and reproduces its pin.
+- Tests added (with the near-miss negative for any safety rule):
+  - `StaffSecondFactorFlowTest` (12) runs Keycloak 26.7.4's own `DefaultAuthenticationFlow` over the committed subflow, with provider-semantics tests beside it (+5).
+  - `tests/admin/test_staff_passkey_enrolment.py` (41): both realms, 13 near misses each, fixture drift, and the first sign-in after enrolment.
+  - `tests/infra/test_staging_keycloak_provider.py` is reworked for the new target. INT-365's and the admin tier's flow assertions are updated.
+  - Red: Java 6 of 44 failed on the host's shape. Python 6 failed, plus a collection error in the staff_flow tests.
+  - Green: Java 46/46, with the jar `OK` against the pin. Python 378 on the affected files and 2553 on the broader set, where the container-only edge suite errors locally.
+  - 10/10 mutations caught.
+- Result (`make check` / `make safety` / `make security` summary):
+  - ruff check and format clean. mypy --strict clean on the changed Python.
+  - `make keycloak-provider` OK. files/11 regenerated, and the three pins go from 364 to 365.
+  - The full fan-out runs on the PR's AWS runner. `make safety` is not touched: no protocol or PolicyGuard change.
+- Invariants touched and still passing:
+  - 4 (no consent or share path changed);
+  - 6 (the script prints execution ids only);
+  - 14 (the jar pin is unchanged, and the bootstrap password still travels on stdin);
+  - 16 (Sec-Row `platform`, with the threat row updated).
+- Decisions / ADRs / `00_STATE.md` rows: none. OTP is DISABLED, not removed: INT-389 (#644) stays the owner's, and the console already refuses TOTP.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): nothing. The deploy (`./deploy.sh`, then `./smoke.sh` on the host) and the owner's first sign-in are the coordinator's steps after merge. The owner's first session after enrolment is refused by design: the runbook says to sign out of Keycloak and the proxy, then sign in with the passkey.
+- Next: merge, deploy, and the owner signs in.
+### 2026-10-17T08:00:00Z · INT-537 · done (round 2 on PR #940; the legal review's B1 and B2 fixed)
+- Goal: clear the legal review's two blocks. B1: a core withdrawal left both learning purposes `default_on` and processing, against the core text. B2: `consent.who.core` hid the RED staff alert.
+- Plan:
+  - The core cascade writes each default-on purpose's opt-out (audited, listed); the app's spare goes.
+  - Use the reviewer's wording for the who-row.
+  - Comment fix in `purposes.ts`. Visit-start copy for a tenant with no core text.
+  - Merge #911 as refreshed (`2cf0d5f3`).
+- Tests added:
+  - API: cascade inverted, re-grant re-opens nothing, voice near miss, no second opt-out.
+  - Legal: service test and sweep repair.
+  - ledger: inverted, plus the voice near miss. gate: a `no_text` reason. consent and visits specs pin the copy.
+  - RED: 13 mobile and 5 Python failed.
+  - Mutations caught: M1 5, M2 1, M3 3.
+- Result:
+  - `make check-ts`: exit 0. Mobile 2848 tests.
+  - api, legal, research, release, backlog and platform: 2219 passed.
+  - mypy --strict is clean on `intake_platform`.
+  - Details are in `docs/evidence/INT-537.md` §8.
+- Invariants touched and still passing: 4 (opt-outs audited as `consent.cascade`, chain verified), 5, 6, 18.
+- Decisions / ADRs / `00_STATE.md` rows: none. The default-on question goes to INT-556 (the coordinator files it).
+- Blocked on: nothing.
+- Next: the legal-reviewer re-check.
+- LOOP_STATUS: CONTINUE
+
+### 2026-10-16T21:00:00Z · INT-537 · done (PR stacked on #911; legal-reviewer pass to follow)
+- Goal: a signed-in account can start a visit end to end on the synthetic host. The server makes `core` açık rıza, and every visit and note route requires it. The app showed `core` as information and could not grant it (INT-529 finding F2).
+- Plan:
+  - Offer `core` through the existing İzinleriniz flow, like every açık rıza purpose. It is granted against its loaded text with version and hash, and withdrawn in one tap with the server's cascade.
+  - Gate the new-visit screen on the ledger's `core` answer. The refusal is B1 copy with one action, which opens the core text.
+  - Pin the server side end to end on the synthetic stack configuration.
+- Tests added:
+  - `gate.test.ts`: 8 tests.
+  - `ledger.test.ts`: 4 tests. Near miss: an undecided default-on purpose survives a core withdrawal, as the server leaves it.
+  - `store.test.ts`: 3 tests. `consent.spec`: 3 tests, plus 1 rewritten. `visits.spec`: 4 tests. `records/api.test`: 2 tests. `records/screen.test`: 2 tests.
+  - `tests/api/test_core_consent_visit_start.py`: 9 tests. Near misses: a wrong hash, and a real tenant with no text.
+  - RED: 19 failed, plus `gate.test.ts` failing to load.
+  - The API pin passed on its first run, because the server already enforced everything. Its mutation (the core guard removed from visit create) was caught: 5 failed.
+  - App mutation (the cascade spares nothing): 3 failed.
+- Result:
+  - `make check-ts`: exit 0. Mobile 2838 tests pass, lint has 0 errors, typecheck is clean.
+  - `make check-i18n`: 192 passed, with no new recorded finding.
+  - i18n, legal and touched API suites: 853 passed.
+  - Backlog and smoke: green. Placeholder, PHI and claims scans: clean.
+  - Details are in `docs/evidence/INT-537.md`.
+- Invariants touched and still passing: 4 (grant and withdraw audited, chain verified), 5 (tr first, two orphans deleted), 6 (ids only in refusals and audit), 18 (text from docs/legal with hash; no text, no grant), 20 (no figures).
+- Decisions / ADRs / `00_STATE.md` rows: none.
+- Blocked on: nothing.
+- Findings G1–G3 are in the evidence file. G1: `consent.who.core` still undersells the core text (INT-536). G2: the session mirror is never reconciled after a restart (pre-existing). G3: the learning purposes under a core withdrawal.
+- Next: the legal-reviewer pass; this PR merges after #911.
+### 2026-10-17T00:45:00Z · INT-536 · done (PR #946 open, stacked on #940 INT-537, which contains #911 INT-529)
+- Goal: GitHub #903, from the INT-529 legal-author findings, D25 legal lane, synthetic scope.
+  - F1: the consent-screen lines contradicted the texts and the host. "Türkiye'de kalır" is false on us-east-1, and the affect and linguistic lines said the doctor sees the cues, which never reach the doctor. INT-537 G1 adds the core line.
+  - F3: the render-time claims scanner missed "doğruluğu" beside a figure, which CI catches.
+  - F5: the satisfaction annotations said the contract ground, while the routes are gated on açık rıza.
+  - F8: the synthetic loader read the declared data class, not ADR-035's bound one.
+  - The comment's F9: voice and lane:affect did not name AWS.
+- Plan:
+  - Refresh #911 first: merge main, narrow the vendor tripwire, then close the backend bypass the legal re-verification found (INT-529 evidence §12, §12.1).
+  - Then stack this row on it. Write the five test files first, then rewrite the four who-lines (tr and en), mirror the CI expressions in `legal.claims`, add per-event-type bases, read the bound class per lookup, and re-sign voice and lane:affect at `2026-10-17.syn1`.
+- Tests added:
+  - `tests/legal/test_consent_who_lines.py`, which pins each line to its code fact; the old voice line is the near miss;
+  - `tests/legal/test_claims_ci_parity.py`, with 13 claims and 8 near misses run through both gates;
+  - `tests/data/test_satisfaction_basis.py`, where a contract ground on satisfaction is a finding;
+  - `tests/legal/test_synthetic_bound_class.py`, covering mismatch, unreadable, no store and the API wiring;
+  - a hosting-processor test in the tripwire file.
+  - RED: 19 failed and 2 collection errors. GREEN: 88 passed.
+- Result (docs/evidence/INT-536.md §7, §9):
+  - legal and synthetic grant suites: 721 passed;
+  - mobile vitest: 2819 passed;
+  - `pnpm -r typecheck`, ruff and mypy strict: clean;
+  - claims, PHI and placeholder scans: OK.
+- Invariants touched and still passing: 4, 5, 6, 11, 18, 20.
+- Decisions / ADRs / `00_STATE.md` rows: none.
+- Backlog: INT-536 row added; the three pins go from 365 to 366; files/11 regenerated. COUNSEL_BRIEF §2.9 and §3.6 note that the basis half is reconciled.
+- Blocked on: nothing for this row. For the legal-reviewer (evidence §8):
+  - G3 is fixed server-side by #940, which this PR now stacks on: a core withdrawal writes opt-outs for undecided default-on purposes.
+  - The voice lane's temporary file and its GPU-box route need re-verifying when INT-515 ships.
+- Next: legal-approved. #940 merged in on the reviewer's ruling (core who-line kept; consent.spec pin aligned; pins at 367). Retarget to main once #911 and #940 merge.
+- LOOP_STATUS: CONTINUE
+
+### 2026-10-16T19:30:00Z · INT-540 · done (committed locally, not pushed; stacked on #915 INT-522)
+- Goal: from the INT-522 clinical review (F1, F2), the onset anchor could stay `ASKED_PENDING` for a whole session and K2 never fire.
+  - Nothing said when to set `clarification_needed`, so "bilmiyorum" or a narrative could come back with no slot and no flag.
+  - An abandoned session left the anchor pending too.
+  - CD-04's UNCLEAR-at-once with one `follow_up_tr` was not built, so the engine's generic two applied, and a choice the model guessed beat the patient's hedge.
+- Plan:
+  - Read CD-04's table into `protocols.answer_states`, with the bound as the decision's own number.
+  - Define `clarification_needed` in the instructions (`extraction.v2`) and in the parse (`SlotOutcome`).
+  - For an asked anchor, treat a hedge or no recorded choice as UNCLEAR and give the engine CD-04's per-step bound.
+  - Add a `close_session` state Work, from `SessionStack.close()` and `VoiceSessionRouter.end()`, that resolves an asked, unanswered anchor; the rules engine then evaluates it.
+- Tests added: `tests/voice/test_anchor_unclear.py` (71), `tests/protocols/test_answer_states.py` (75), `tests/engine/test_clarification_bounds.py` (15) and `tests/ai/test_clarification_contract.py` (11); golden family `anchor_hedges` (13) with near misses for both active rules. INT-521/522 tests were updated to CD-04's once.
+  - RED (on `64e6aef7`): collection errors; 15 failed on the engine; INT-521's near miss failed twice (no follow-up). The probe showed the onset pending, GREEN, and no clinic for "Bilmiyorum." and for abandonment, on both profiles.
+  - GREEN: the four unfit answers × 3 locations × 2 profiles all end UNCLEAR → reference day → K2 at ALERT over the data channel. Abandonment and session end do the same through the close. Near misses stay quiet. Tables saying 0 or 2 change the session as data. 14/14 mutations caught.
+- Result (docs/evidence/INT-540.md):
+  - `make safety` exit 0: triage 100 %, 18/18 mutations, voice-runtime 98.32 % with every touched module at 100 %.
+  - Protocols lane 97.63 % (`answer_states.py` 100 %).
+  - runtime-sim: every scenario, both profiles and parity exit 0, with RT-06 withdrawn as before.
+  - ruff and mypy strict clean.
+- Invariants touched and still passing: 1, 6, 7, 9, 10, 14, 17, 21.
+- Decisions / ADRs / `00_STATE.md` rows: none. CD-04 gains only `unclear_follow_up_tr_asks: 1`, a machine-readable restatement of its own "once". CD-05 is unchanged.
+- Backlog: INT-540 row added (`area:voice`, depends on INT-522, `clinical-core`); the three pins go from 358 to 359; files/11 regenerated.
+- Blocked on: nothing for this row. D18 lane:
+  - INT-519 items 5, 6 and 7 are unchanged, and item 5's amendment is now one number in CD-04.
+  - New items: a hedge plus a choice in one answer; a plain negative to the onset question; a never-asked anchor at session end; CD-05's own wording for "asked, never answered at close".
+- Residuals in evidence: the CD-08 inbox kind `chest_pain_arms_unresolved` is unbuilt; CD-04 is not applied to non-anchor slots; no production worker pumps the close yet.
+
+### 2026-10-16T17:45:00Z · INT-544 · done (PR #923 open, round 2; owner patch and host install pending)
+- Goal: a pull request clears CI in under 20 minutes on the intake-aws-ci pool (GitHub #919, P0, Sec-Row cicd). The acceptance is quoted verbatim in docs/evidence/INT-544.md.
+- Plan:
+  - Measure ten ci and ten security runs per job (queued and running) and name the critical path.
+  - Shard check-py three ways. Round 2, at the coordinator's order: keep each floor on the data make check-py measures it on.
+  - Add a conservative path filter with a tested mapping.
+  - Add a per-runner cache seed: built by the registrar between jobs and read-only to jobs.
+  - Collapse queued main runs.
+  - Write the owner's headroom command, and runners 4-5 with a higher pool ceiling.
+  - Ship the workflow half as an owner patch.
+- Tests added (with the near-miss negative for any safety rule):
+  - tests/ci/test_py_shards.py: all nine check-py lines pinned word for word, with the basis: subset lanes run whole, and only the whole-suite line is split and combined. Partition, determinism and balance of files and lanes; median weight for an unrecorded file; an unrecorded lane is refused. Near misses: a subset floor that the whole suite's data would rescue fails; a missing share or lane fails; a share with failures fails.
+  - tests/ci/test_lanes.py: the mapping; decisions on real merge commits (a move out of a workspace still runs check-ts). Every lane step runs unless its lane is exactly false. Near misses: `== 'true'`, an unconditional step, a shallow checkout, a conditional decision, a job-level `if`. Security jobs and gates carry no condition.
+  - tests/ci/test_ci_seed.py: restore, no seed, a changed file, an added file, a forged manifest, an unpinned deid asset, an unknown part.
+  - tests/ci/test_aws_runner_seed.py: sha256 pins; the build in the job sandbox; the refresh order in prepare. Root refuses absolute or escaping links, pipes and setuid. Bundles hold only lockfiles; the inputs are denied to every runner; headroom only reads.
+  - tests/ci/test_workflow_concurrency.py: the workflow-plus-ref group, with INT-524's per-sha group kept as a near miss.
+  - Red run: 2 collection errors, then 28 failed and 149 passed. Round 2: the new test file against round 1's py_shards fails at collection (no `Lane`).
+- Result (`make check` / `make safety` / `make security` summary):
+  - Round 2, with the owner patch applied, on origin/main 33047ed1: three shards ran the 12117-test whole suite and the eight subset lanes. check-py-combine passes, every floor on its own data: whole-suite 94.74, schemas 92.35, protocols 97.57, triage 100.00, voice-clips 99.51, connectors 95.19, voice-runtime 98.27, metrics 95.09, learning 99.39. ruff is clean and check-py-static is clean.
+  - safety: triage 612 passed at 100.00 %, mutations 18/18 detected, voice-runtime 2185 passed at 98.27 %, adversarial and nightly plan 121 passed.
+  - security: hooks, bandit, checkov (258/0), trivy config, shellcheck, no_placeholders, phi_scan, claims_scan and vendor calls are clean. check-jsonschema and actionlint pass on the patched workflows.
+  - check-integration is CI-only (HB-I1).
+- Invariants touched and still passing:
+  - 6: no PHI in the artefacts; dist/check-py is declared.
+  - 8: floors and their basis unchanged; every floor reads what its make check-py line reads.
+  - 14: no gate skipped; actions SHA-pinned.
+  - 17: no placeholders.
+- Decisions / ADRs / `00_STATE.md` rows: none taken here. Left to the owner: the main-run collapse trade-off (evidence §5). Runners 4-5 and the 20G / 22G / 700 % ceiling follow the coordinator's host reading of 16 Oct 17:12Z (evidence §6).
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): owner, standing .github/** ownership, so no new HB id:
+  - apply and commit issue-drafts/owner-544-ci-speed.patch with its .msg on this branch;
+  - after merge, run `scripts/ci/aws_runner.sh install`, then `seed`, then `probe`;
+  - then apply owner-544-runners-4-5.patch, merge, and run `install`, `seed`, `probe` and `headroom`.
+- Next: record the after times from this PR's own runs once the owner commit is on it. Proposed follow-up: fold the eight sub-minute security jobs into fewer jobs, which would save about 10 runner-minutes per pull request.
+- LOOP_STATUS: WAITING_HUMAN
+
+### 2026-10-16T13:45:00Z · INT-522 · done (committed locally, not pushed; stacked on #910 INT-521, INT-518, INT-441)
+- Goal: `chest_pain.onset_at`, the tense anchor of K2 and its SARI sibling, is a date answered by four closed choices. Extraction offered `format: date`, gave no reference date and forbade inference, so a spoken choice bound nothing, the anchor read Unknown and K2 could not fire live. INT-518/521 passed only on a recorded ISO date.
+  - Acceptance (GitHub #888): build CD-05's choice-to-date resolution exactly; the reference date from the injected runtime clock, never the model; each choice to its CD-05 window, hedged answers Unknown, near misses; `make safety` and runtime-sim green.
+- Plan: read CD-05 through the clinical-decisions register into `protocols.anchor_choices`, refusing anything it cannot follow; offer the model the authored choices as an enum; the handler swaps the choice for its day against the engine's `reference_time`; an UNCLEAR anchor reads CD-05's unresolved day in `SessionTriage`; composition refuses a closed-choice date without a decided day for every choice.
+- Tests added: `tests/protocols/test_anchor_choices.py` (64), `tests/voice/test_onset_anchor.py` (72), golden family `anchor_choices` (10) with a near miss for each active rule; INT-518/521 now answer the onset with the authored choice.
+  - RED (on `1ba358ff`): collection errors; every choice refused `wrong_type`, onset pending, GREEN for "baskı"; INT-518/521 with the choice: 89 failed.
+  - GREEN: 136 passed; three bands × three locations × two profiles fire K2 at ALERT over the data channel; "üç günden daha önce" quiet; three unfitting answers → UNCLEAR → reference day → K2. 11/11 mutations caught.
+- Result (docs/evidence/INT-522.md): `make safety` exit 0 (triage 100 %, 18/18 mutations, voice-runtime 98.25 %, 98.27 % on re-run); protocols lane 97.57 % (`anchor_choices.py` 100 %); runtime-sim every scenario, both profiles, parity, exit 0 (RT-06 withdrawn as before); mypy strict clean.
+- Invariants touched and still passing: 1, 7, 9, 10, 14 (the model picks a choice, never a day), 17 (only CD-05's own open literal), 21, 22, 6.
+- Decisions / ADRs / `00_STATE.md` rows: none. CD-05 unchanged.
+- Backlog: INT-522 row added (`area:protocols`, depends on INT-518 and INT-521, `clinical-core`); the three pins go from 357 to 358; files/11 regenerated.
+- Blocked on: nothing for this row. D18 lane (no new item): CD-05's own open final resolution of the twelve-to-seventy-two-hour band; and whether the first "bilmiyorum" should resolve before the engine's two scripted follow-ups. Residuals in evidence: the app's API hop would need the resolved day if the app ever asks the onset; the reference time's producer is the composing caller.
+
+### 2026-10-16T18:00:00+03:00 · INT-538 · done (PR open, not merged, not run against the host)
+- Goal: GitHub #906. The owner gets one laptop command that creates a staff user in realm `intake` on the synthetic host: first themselves (`platform_owner`), then the second approver (`qms_owner`). It replaces the manual steps of `docs/runbooks/second-admin.md` (INT-460).
+- Plan:
+  - `scripts/ops/staff_user.sh` prompts and validates.
+  - A read-only probe over SSM asks whether a `platform_owner` exists. Only when none does is the user (who must then be the `platform_owner`) asked, once, for the organisation id, a slug.
+  - The temporary password goes into an SSM SecureString through a 0600 request file. `infra/staging/staff_user_host.sh` goes base64-wrapped over SSM with no secret in the command.
+  - On the host, the script names the IAM statement to add if the instance role may not read the staff_tmp parameters. It reads the bootstrap password locally and logs kcadm in on stdin with a throwaway `--config`.
+  - It refuses an existing username or email, inherits the owner's org (refusing a differing one), creates the user with `webauthn-register` + `UPDATE_PASSWORD`, grants the role, and sets the temporary password from SSM. A failed step rolls back.
+  - The command prints `created` and the reveal-once command.
+  - Round 2 (orchestrator review) replaced round 1's realm-config route for the first org with the probe and the prompt.
+- Tests added (with the near-miss negative for any safety rule):
+  - `tests/infra/test_staff_user.py` (63, laptop flows end to end) and `tests/infra/test_staff_user_host.py` (33, host half and the scripts as files), against fake `aws`/`docker`/`openssl`.
+  - 20 input near misses and 12 org-slug near misses make nothing, and slugs at the edges are accepted.
+  - The org rule holds both ways. The IAM refusal line is pinned. No secret appears in any argv, the command or the output. The kcadm config is deleted on every path.
+  - 13 of 13 mutations were caught.
+  - Red: round 1, 66 failed; round 2 against the round-1 scripts, 53 failed. Green: 96 passed; 111 with INT-460's runbook pins.
+- Result (`make check` / `make safety` / `make security` summary):
+  - ruff check and format clean; shellcheck clean.
+  - tests/backlog, tests/smoke and tests/security green, with counts at 356.
+  - files/11 regenerated.
+  - no_placeholders, evidence_check and sec_row linkage OK.
+  - The full fan-out runs on the PR's AWS runner.
+- Invariants touched and still passing:
+  - 6 (no email or credential in any output);
+  - 14 (secrets never in argv, logs or the SSM command; nothing committed);
+  - 16 (Sec-Row `platform`, threat row updated).
+- Decisions / ADRs / `00_STATE.md` rows: none. No org value is defined anywhere, so the owner types it once, on the very first run. No org is invented.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): nothing. The instance role's read of `/intake/staging/staff_tmp/*` was verified by the orchestrator from the host on 16 Oct 2026 (`ParameterNotFound`, not `AccessDenied`).
+- Next: merge. Then the owner runs the command twice, typing the org id on the first run.
+- LOOP_STATUS: CONTINUE
+
+### 2026-10-04T03:45:00+03:00 · INT-485 · done (PR open, not merged, not deployed)
+- Goal: GitHub #830. The admin console's login gate (INT-421) logged the signed-in staff email and the client IP on every request, in oauth2-proxy's default request and auth lines, into the host's json-file logs (invariant 6).
+
+### 2026-10-03T23:55:00+03:00 · INT-443 · awaiting-human (PR #775 open, stacked on #772; the cast take on the wire)
+- Goal: #772 (INT-449, owner decision D20) pinned the cast take E04 — `eleven_v3`, every row v4, closed-table tags at Natural 0.5, RED and instrument Robust 1.0 and untagged — and left this lane one change: send `profile.wire_prefix + text_tr`. Make that change so the tags come only from the served table and every refusal reads the script alone.
+- Plan:
+  - Merge `origin/main`, then `origin/int-449-turkish-voice-casting`, resolving from git's conflict list and validating before each commit.
+  - Tests first: the tags on the wire per context, none for instrument and RED, a client tag refused, v2 against v4 keys, `eleven_v3` on the wire, the hosted request equal to the offline one.
+  - Then one composer of the wire text, used by both ElevenLabs paths.
+- Tests added (with the near-miss negative for any safety rule): tests/platform/test_elevenlabs_hosted_tts.py (wire tags per context, instrument alone, a tag inside text_tr refused even when catalogued, forged rows and another voice refused, offline continuity), tests/api/test_hosted_clip_lane.py (route tags per context, five client tag or setting bodies refused, a v2-era clip never served against a v4 hit), tests/api/test_george_prebake.py (wire characters billed, v2 not cached, the v4 key printed), tests/voice/test_elevenlabs_clipgen.py (`wire_text`). Red: 18 and 9 failed. Green: 47, 54 and 39 passed.
+- Result (`make check` / `make safety` / `make security` summary): `make check-py` exit 0 (main 10573 passed at 94.71 %; voice-clips 99.51 %; voice-runtime 98.48 %; every floor met); `make safety` exit 0 (triage 100 % branch, 18/18 mutations); no_placeholders, vendor-call, PHI and claims scans OK; gitleaks clean on the range; `make security` not re-run (no lockfile, image or IaC change).
+- Invariants touched and still passing: 10 (`text_tr` verbatim; the tags exist on the wire only), 21 (RED refused on this lane and never tagged), 22 (the numeral gate runs on `text_tr` and again on the wire text), 6 (codes only), 19 (synthetic deployment only, unchanged).
+- Decisions / ADRs / `00_STATE.md` rows: D20 is merged in from #772. ADR-034 records the D20 amendment, ADR-035 names the v4 rows on `eleven_v3`, and the `cloud-clipgen` threat row gains render-time tags. The INT-443 acceptance states the D20 pins.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): unchanged from the first entry. The owner's egress commit (the `elevenlabs-api` row) and a deploy are still pending; then `george_prebake plan` and `apply --max-characters N` bake the v4 cache.
+- Next: #772 lands first, then this PR; merge `origin/main` once more before the merge queue takes it.
+- LOOP_STATUS: WAITING_HUMAN
+
+### 2026-10-03T19:00:00Z · INT-449 · done (PR #772 open, not merged)
+- Goal: pin the owner's blind pick E04 (3 Oct 2026, "use E04 voice") and re-render the bundled set in it.
+- Plan:
+  - Set `OAUTH2_PROXY_REQUEST_LOGGING` and `OAUTH2_PROXY_AUTH_LOGGING` to `"false"` on `oauth2-proxy` in infra/staging/compose.yaml, with a comment saying why. This is the same pair INT-481 sets on `oauth2-proxy-grafana`, which runs the same image digest.
+  - Pin both in `TestLoginGate`.
+- Tests added (with the near-miss negative for any safety rule):
+  - `tests/infra/test_staging_admin_tier.py::TestLoginGate`: both switches pinned.
+  - Near-misses refused by the same check: the default (both keys absent), one key alone, and either key set to `"true"`.
+  - Red: 1 failed, 39 passed.
+- Result (`make check` / `make safety` / `make security` summary):
+  - Green: tests/infra unit lane 754 passed. The 17 `integration` errors are the edge tier (HB-I13).
+  - tests/backlog and tests/smoke green, with counts at 342.
+  - files/11 regenerated.
+  - `make safety` exit 0. Local security: gitleaks found no leaks; trivy config on infra/staging gave rc 0.
+  - Full check-py, check-ts and check-integration, and the full `make security`, run on the PR's AWS runner.
+- Invariants touched and still passing:
+  - 6 (no staff email or IP in the gate's logs);
+  - 14 (image pin unchanged);
+  - 16 (Sec-Row `admin-console`, threat row updated).
+- Decisions / ADRs / `00_STATE.md` rows: none.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): nothing.
+- Next: the merge queue merges and deploys. At deploy, check that the old gate container, whose log holds the earlier lines, was removed.
+
+### 2026-10-16T18:30:00Z · INT-531 · done (committed locally, not pushed; stacked on INT-521)
+- Goal: GitHub #898, INT-521 residual 1. The Talker drained Layer B only when it took a turn, so a RED evaluated between turns waited for the next turn; measured on `1ba358ff`, a RED evaluated mid-silence reached the device 3 050 ms after the evaluation (5 050 ms with a 2 s sink cancel) and the next turn raised both budget violations.
+  - Acceptance (verbatim, GitHub #898): a rules-engine RED reaches the RED path within 300 ms of evaluation whether or not a turn is in progress, including mid-patient-speech and mid-TTS (barge-in for RED only); only a rules-engine RED takes the path, the Talker never awaits Backend Work and keeps six tools; fake-clock tests mid-silence, mid-patient-speech, mid-TTS, delivered once, budget held, YELLOW/GREEN near misses; `make safety` and runtime-sim (both profiles, PARITY=1) green.
+- Plan: tests first (behaviour end to end over INT-521's served session, then the parts); then `RedPush`/`RedMailbox`, the queue's post after settle and seal, the Talker's own between-turn watch started by `take_turn`, the stop latch before the path's first await, the turn stopping after a RED that cut its speech, the stop bounded by the stop budget (INT-520 item 1), one mailbox per session at composition, `preempt_red_violations_total`.
+- Tests added: `tests/voice/test_red_between_turns.py`, `tests/voice/test_red_push.py`.
+  - RED: `test_red_push.py` collection `ModuleNotFoundError`; `test_red_between_turns.py` 13 failed, 6 passed (nothing published between turns; the passing six are the drain-first, GREEN near-miss and watch-cost controls).
+  - GREEN: 55 passed; 24/24 mutations caught (evidence).
+- Also: `VoiceSessionRouter.end()` stops the ended session's watch (`stop_red_watch()`), so no task stays parked on its mailbox.
+- Result (docs/evidence/INT-531.md): `make safety` exit 0 (voice-runtime 98.27 %, 2168 passed); runtime-sim exit 0 for every runnable scenario on both profiles and parity (RT-06 withdrawn, exit 2); ruff, ruff format and `mypy --strict` over the check-py trees clean.
+- Invariants touched and still passing: 9 (six tools; the push is one non-awaitable member; the watch awaits no Backend Work; only a rules-engine RED is posted, re-checked by the mailbox and the Talker), 21 (pre-positioned script over the data channel; the cancel is the only media call), 11 (lanes stalled 30 s change nothing), 17 (refusals and violations on the watch are logged by id and counted, never swallowed), 6 (ids and closed values only), 13 (the new metric is catalogued).
+- Decisions / ADRs / `00_STATE.md` rows: none.
+- Backlog: INT-531 row added (`area:voice`, depends on INT-521, `voice-runtime`); the three pins go from 357 to 358; files/11 regenerated.
+- Blocked on: nothing. Residuals in evidence (no production worker runs a session yet, no alert on the RED series, the barge-in path's own `red_in_flight` is not wired).
+- Round 2 (the runtime review blocked `fc18a197`):
+  - **B1:** an INTERJECT item's speech could start after the RED script (the cancel awaited, then the emit, with no latch check). Now every egress start is gated on the latch, and only spoken items are reported delivered.
+  - **B2:** an unexpected error on the RED path killed the watch silently. Now it is logged by id and error class and counted (`red_watch_failures_total`); the watch serves on, and the next turn retries the RED and raises `RedDeliveryFailed` ahead of the stopped-intake return. An unexpected watch exit is counted by a done-callback.
+  - **The session ending mid-delivery:** this no longer cuts the trigger, because the delivery runs in its own task that the watch only shields. A delivery the loop cancels is recorded and retried like B2.
+  - **A clinician route that raises in the RED path:** this is now logged and counted, and the stop and trigger still go.
+  - Tests: `tests/voice/test_red_watch_failures.py` (10, with the reviewer's probes lifted). RED on `fc18a197`: 8 failed, 2 passed (the near misses). GREEN: 10 passed. Mutations: 15/15 caught. `make safety` exit 0 (98.32 %, 2178 passed). runtime-sim exit 0 on both profiles and with parity.
+
+### 2026-10-16T16:30:00Z · INT-521 · done (committed locally, not pushed; stacked on INT-518 and INT-441)
+- Goal: after INT-518 every base.intake code slot binds, but no production module called `evaluate_triage` in a session and no handler set `triage_update`, so a chest-pain RED could not fire from the conversation. Behind it: the Talker recorded a drained preempt and nothing delivered it, composition never bound the RED path, and the queue's pinned rule ids did not include the session's own rules.
+  - Acceptance (verbatim, GitHub #887): every completed Work that binds a slot a served rule reads triggers a rules-engine evaluation and a RED reaches the existing RED path; the Talker never awaits it (fake clock); end to end on both profiles a character or radiation answer alone gives RED at the rule's register and location, near misses do not; `make safety` and runtime-sim (both profiles, PARITY=1) green.
+- Plan: read #766, #773, #855 first (none evaluates in the runtime or delivers a drained RED); tests first; then `SessionTriage` (served rules of the pinned protocol, their reads, the caller's location), the queue's before/after compare and evaluation, the RED stamp, `take_turn` delivery, and `RedWiring` required at composition wherever rules are served.
+- Tests added: `tests/voice/test_live_triage.py` (95).
+  - RED: collection `ImportError`; behaviour on `d7f8bf3b`: every answer bound, `evaluate_triage` over the same state says RED, the session carried no determination, nothing preempted, and the next turn asked the next question.
+  - GREEN: 95 passed; end to end K2 RED (`ALERT`, the session's location) delivered over the data channel for each of the rule's six cardiac literals alone, under REMOTE, ON_SITE and UNKNOWN, both profiles, each asserting the rule's own action for that location (ON_SITE: no 112, `notify_staff_immediate: true`); every other pair of committed choices evaluated and quiet. Mutation check in evidence.
+- Result (docs/evidence/INT-521.md): `make safety` and runtime-sim (every runnable scenario, both profiles, parity) exit 0; voice-runtime coverage in evidence.
+- Invariants touched and still passing: 1 (level from `protocols.triage` only), 9 (six tools, Talker holds no evaluator, 30 s stall costs the turn nothing), 17 (refuses at composition, no default location), 21 (rule's register, session's location, pre-positioned script over the data channel), 6 (ids only).
+- Decisions / ADRs / `00_STATE.md` rows: none.
+- Backlog: INT-521 row added (`area:voice`, depends on INT-518 and INT-093, `clinical-core`); the three pins go from 345 to 346; files/11 regenerated.
+- Blocked on: nothing for this row. Residuals for the orchestrator (evidence §Residuals): the Talker drains only per turn (no Layer B → Layer A push between turns); no production data-channel adapter or script index in the runtime, and no shared script-id function with the API; the RED location is fixed for the session; CD-05 onset resolution is INT-522.
+- Round 2 (runtime review blocked `fc3289f4`): the RED fired only on a turn with no transcript, because `take_turn` submitted before it drained and the RED had sealed the queue (`QueueSealed`, nothing triggered). Now the turn drains and delivers first, returns `INTAKE_STOPPED` before the submit, and catches a `QueueSealed` from a RED that sealed between the drain and the submit. Also: a handler's own determination no longer skips the evaluation (the engine's stands; a disagreement pages); an evaluation fault fails the Work, pages and stays owed for the next Work; only a RED that stops the intake seals, and a RED already raised is not raised again. New `triage_live_evaluation_failures_total{kind}`, catalogued, with the `LiveTriageEvaluationFailed` page and runbook section. Tests 121: canonical-loop delivery on both profiles × 3 locations, the race, the fake-clock and late-drain tests with transcript-bearing turns, masking, fault and DEFERRED_CLINICIAN on the real queue. RED: the reviewer's probe, and 65 failed over round 1's queue and Talker; GREEN: 121 passed.
+
+### 2026-10-16T13:30:00Z · INT-518 · done (committed locally, not pushed; stacked on INT-441)
+- Goal: composition handed extraction `dict(valuesets or {})` and no production caller passed a table. The first question's Work (`subject_role`, a code slot) was refused, the slot stayed awaiting, and every later Work declared it and was refused too: a live session bound nothing after question one. `chest_pain.character` and `chest_pain.radiation`, the code inputs of the two active life-threat rules, never bound.
+  - Acceptance (verbatim, GitHub #884): composition loads the committed table and a test pins it; value sets for every base code slot, copied byte for byte from `choices_tr`; every code slot a red-flag rule reads binds from an authored choice, near miss a slot with no set; plan build re-checks gate values; `make safety` and runtime-sim green.
+- Plan: tests first (voice end to end, engine plan build, committed sets); then seven value sets; `load_committed_valuesets()` found from the package; both roots default to it; the handler refuses an unbound code slot at composition; `build_plan` runs `gate_value_refusals`; refusals before the INT-190 session count.
+- Tests added: `tests/voice/test_extraction_valuesets.py`, `tests/engine/test_plan_valuesets.py`, `tests/protocols/test_base_intake_valuesets.py`; one near miss in `test_sessions_metered.py`; `test_fsm.py` engine-seam pin lists `valuesets` (a frozen data model); `test_bare_gates._base_engine()` passes the committed table.
+  - RED: on `469c6195` the same assertions give 25 failed; end to end, all five Works `failed`, nothing bound, triage GREEN for "baskı" and for "kol".
+  - GREEN: 158 passed in the seven touched suites; end to end, all Works `completed`, K2 RED (`ALERT`, REMOTE) on character alone and on radiation alone; near misses bind and stay quiet. 12/12 single-change mutations caught.
+- Result (docs/evidence/INT-518.md): `make safety` exits 0 (triage 100 %, 18/18, voice-runtime 98.65 %); runtime-sim exits 0 on every runnable scenario, both profiles and parity; protocols 97.48 %; full suite green after the two environment reruns.
+- Invariants touched and still passing: 1 (level from `protocols.triage` only), 7 (no rule touched), 9 (Talker untouched; refusals at composition), 21 (RED resolves register and location), 5/10 (no Turkish string changed), 17 (missing set refuses, never defaults).
+- Decisions / ADRs / `00_STATE.md` rows: none.
+- Backlog: INT-518 row added (`area:protocols`, depends on INT-083 and INT-432, `clinical-core`); the three pins go from 344 to 345; files/11 regenerated.
+- Blocked on: nothing for this row. Residuals for the orchestrator (evidence §Residuals): no production module calls `evaluate_triage` in session; `chest_pain.onset_at` (the K2 tense anchor) has no CD-05 choice-to-date resolution in the runtime; `live_smoke.py` omits the required `clinic`.
+- Next: orchestrator's word to push and open the PR (body ready).
+- LOOP_STATUS: CONTINUE
+
+### 2026-10-16T11:00:00Z · INT-441 · done (committed locally, not pushed; part of INT-489 item 1)
+- Goal: `base.intake` gated `proxy_reported` on `subject_role != 'kendim'` and `lmp_date` on `pregnancy_status != 'hayir'`. Neither literal is an answer the slot offers, so the first opened for a patient answering "kendim için" and the second could never close. No value set was committed, so nothing showed it.
+  - Acceptance (verbatim, GitHub #750): each gate compares against a value its slot can carry; `proxy_reported` opens only on "yakınım adına"; `lmp_date` keeps its behaviour with authored literals; both project to `enableWhen`; a literal test with near misses `'kendim'` and an ASCII-folded choice; engine tests with the authored strings.
+  - INT-489 (#836) item 1: commit `vs.subject_role` and refuse a gate literal outside a code slot's value set.
+- Plan: tests first (engine, compiler, base.intake); then the committed value sets, a loader, a compiler check with three refusal codes wired through `resolve_protocol`, `compile_bundle` and `protocols compile --valuesets`; then the two gate literals.
+- Tests added: `tests/protocols/test_gate_values.py`, `tests/protocols/test_base_intake_gate_values.py`; `tests/engine/test_bare_gates.py` now answers only with `choices_tr` strings; `test_base_intake_pack.py` compiles with the committed sets.
+  - RED: 1 failed on main `be6c09c1` ("kendim için" opened `proxy_reported`), plus the missing-module collection error.
+  - GREEN: 78 passed in the three files; 1674 across protocols, engine, sim and ai. Nine single-change mutations each caught.
+- Result (docs/evidence/INT-441.md): `make safety` exits 0 (triage 100 %, 18/18 mutations). Protocols coverage 97.48 %. No Turkish string changed.
+- Invariants touched and still passing: 1 and 7 (gates only; no rule touched; every red-flag code literal is already an authored choice), 5 (tr choices are the source of the members), 17 (ambiguous cluster gates refused, not guessed).
+- Decisions / ADRs / `00_STATE.md` rows: none. CD-100 spec_basis T1 quote updated to the new verbatim line; its `supports` text corrected. Listed for D18.
+- Backlog: PR #867 carries the INT-441 and INT-489 rows; this PR adds none.
+- Blocked on: D18 for four review-queue cluster gates now refused (`cluster.mental_health` ×2 on `'kendim'`, `cluster.medical` and `cluster.womens_health` on `'hayir'`); push waits on the orchestrator.
+- Next: orchestrator's word to push and open the PR.
+- LOOP_STATUS: CONTINUE
+### 2026-10-16T12:30:00Z · INT-528 · done (committed locally, not pushed; live once the owner applies the egress patch and deploys)
+- Goal: acceptance verbatim (GitHub #895). In summary:
+  - a Netgsm adapter behind the INT-329 SMS port, from Netgsm's documented OTP SMS API;
+  - recorded fixtures only; typed refusals; no PII in logs, metrics or traces;
+  - credentials from OpenBao only, with a fail-closed 503 proven;
+  - an operator script modelled on `langfuse_secrets.sh`, with its one-line SSM command;
+  - the egress row as an owner patch;
+  - every metric catalogued; a legal-reviewer pass.
+- Scope additions, 16 Oct 2026:
+  - App Attest "keychain";
+  - owner orders: credentials from SSM Parameter Store, a read-only credential check first, the
+    Elastic IP 3.211.2.143, the SDK evaluated, an SMS test allow-list (SMS is real now), and one
+    authorised real OTP whose trigger is written and never run;
+  - the orchestrator's route decision, ADR-042.
+- Plan:
+  - `intake_api.otp_netgsm`: REST v2 `/sms/rest/v2/otp`, a hand-enumerated wire body, typed
+    refusals, one closed-label counter, wiring (Netgsm outside dev; Twilio unwired).
+  - `intake_api.sms_recipients`: the synthetic host's test allow-list, gating the login and the
+    send, failing closed.
+  - `intake_platform.egress.DEDICATED_PERSONAL_PROXIES` plus an `sms-egress` squid rendered from
+    the allow-list's SMS row (ADR-042).
+  - Staging: `netgsm_secrets.sh` (SSM → OpenBao, with `--check`), `netgsm_test_otp.sh`,
+    `app_attest_env.sh`, `scripts/staging/app_attest_golive.py`, the deploy sync and restart.
+  - The egress row, the runtime gate and the re-rendered SMS proxy config as
+    `owner-528-netgsm-egress.patch`.
+- Tests added:
+  - `tests/api/`: `test_otp_netgsm.py`, `test_otp_netgsm_wiring.py`, `test_otp_send_check.py`,
+    `test_sms_test_allowlist.py` (near miss one digit away);
+  - `tests/security/test_egress_sms_proxy.py`;
+  - `tests/infra/`: `test_staging_netgsm.py`, `test_staging_sms_egress.py`,
+    `test_app_attest_golive.py`, and `TestAttestAndSms` reworked.
+  - Red runs and 22/22 mutations are recorded in docs/evidence/INT-528.md.
+  - GREEN: 784 passed in the INT-528 targets.
+  - Adjacent suites: 5448 passed, 4 failed (deid NER model cache absent in a fresh worktree).
+- Result:
+  - ruff and format clean; mypy strict clean on 537 source files; shellcheck clean.
+  - no_placeholders, phi_scan and claims_scan OK.
+  - `make check` was not run as one command (check-integration needs a container runtime), and
+    the whole-suite coverage line was killed from outside. `otp_netgsm` is at 100 % branch
+    coverage.
+  - On the head with main's INT-424/428/430/475/501 merged in: the Python suite outside
+    infra/backlog/smoke gives 10642 passed, and infra/backlog/smoke all pass. The owner patch
+    re-applies (`git apply --check` OK); with it applied, 8800 passed across the 17 suites that
+    read the allow-list.
+  - After INT-442/443 (#774, #775) were merged in, the two proxies coexist, and
+    `PURPOSE_PROXIES` keeps each purpose on its own proxy (red 15 failed, then green 47
+    passed). Whole Python suite: **12408 passed**, 0 failed (`tests/infra tests/security tests/backlog tests/smoke tests/voice/adapters` plus the Netgsm API tests: 1783; everything else: 10625; integration tests deselected by the default marker; deid-NER cache through `INTAKE_DEID_MODEL_DIR`); admin-web vitest 385 passed. Patch re-cut, `git apply --check` OK; with it
+    applied: **9352 passed**, 0 failed (55 integration tests deselected).
+- Invariants touched and still passing:
+  - 6: no phone, code, password or vendor text anywhere; numbers only counted.
+  - 13: `otp_sms_delivery_total` is catalogued, and `sms-egress` has its registry row. The
+    probe sweep was re-taken with the shipped recorder (INT-124's precedent).
+  - 14: vendor secrets from OpenBao only, synced from SSM on stdin, never argv; egress via the
+    guard and ADR-042's one proxy.
+  - 17: no fake sender; fail closed everywhere.
+- Decisions / ADRs / `00_STATE.md` rows:
+  - ADR-042, allocated by the orchestrator: the SMS vendor rides its own egress proxy, amending
+    ADR-032 for one purpose.
+  - No D-row. The owner's 16 Oct decision is cited as INT-358.
+- Blocked on (owner, no HB id exists for "SMS done"):
+  - applying the patch, which carries the corrected 2018/10 measure 5a wording;
+  - counsel's answers listed in the evidence.
+  - The instance role's SSM read is already satisfied (checked from the host).
+- Next:
+  - the orchestrator pushes and opens the PR from `.scratch/pr-528.md`;
+  - the owner applies the patch, deploys and authorises the real OTP.
+- LOOP_STATUS: WAITING_HUMAN
+
+### 2026-10-16T14:30:00Z · INT-529 · awaiting-human (7 of 16 synthetic texts built; committed locally, not pushed)
+- Goal: the owner's yes of 16 Oct 2026 (INT-498 P6), as the legal-author half of D25. The legal lane writes texts for synthetic tenants only, so the synthetic host can exercise voice, documents and sharing. The real-tenant index stays empty until counsel signs (HB-L27, G3).
+- Plan:
+  - Build a separate index at `docs/legal/synthetic/`, hash-bound the INT-210 way.
+  - Put a visible "Sentetik test metni" marker on the first line of every text.
+  - Load the index only when the image bakes `INTAKE_DEPLOYMENT_DATA_CLASS=synthetic`.
+  - Build a text only where every value it states is already declared in the repo.
+- Tests added: `tests/legal/test_synthetic_legal_index.py` and `tests/api/test_synthetic_consent_grant.py`.
+  - Near misses: an unmarked text, and a marker in the front matter, in a comment or below line one. Also a moved byte, version drift, a claim, an id outside the sixteen, and a non-synthetic index.
+  - Boot refusals in both directions, by env and by settings object. An unbuilt purpose's grant gets 409.
+  - RED: `ModuleNotFoundError`, then 67 failed / 45 passed.
+  - GREEN: 119 passed, and 120 after merging origin/main with the hosted-lane coupling test.
+  - Mutation: 6 of 6 caught.
+- Result: docs/evidence/INT-529.md §7–§9.
+  - ruff, format and mypy --strict are clean. The check-py coverage gate passes at 95.58% (floor 85%). Its only failures were the four `test_deid_ner` cases, because this fresh worktree has no model cache; they pass with `INTAKE_DEID_MODEL_DIR` pointed at an existing copy.
+  - The legal, api, infra, embed and inventory suites pass: 1718.
+  - The claims, PHI and placeholder scans pass. PolicyGuard finds nothing in 261 sentences.
+- Invariants touched and still passing: 4 (a grant binds the synthetic hash), 6 (refusals carry ids and paths), 17 (gaps are declared, not filled), 18 (hash binding, real index untouched, no fixed string created), 20 (claims gate at render and in CI).
+- Decisions / ADRs / `00_STATE.md` rows: none minted. The owner's decision is in GitHub #896. D25 is not on main yet (PR #809).
+- Blocked on: nine ids, listed in `docs/backlog/blockers.md` under INT-529:
+  - the five aydınlatma texts: legal entity (HB-L21(e)), SMS vendor and transfer ground (INT-358), the hospital or partner tenant;
+  - `lane:linguistic`: the crisis carve-out (HB-C17);
+  - the two learning purposes: KVKK m.6(3) ground and retention;
+  - `research`: ethics protocol (HB-L26).
+- Merged `origin/main` (`4bde6599`, 35 commits including INT-428's hosted lanes):
+  - the backlog pins move to 355;
+  - INT-428's data-class reader and `ENV` line are reused, not duplicated;
+  - a coupling test fails the moment a hosted provider's egress row is listed while the voice, core or documents text still says no outside company receives the data;
+  - 2836 tests pass on the merged tree (evidence §9.1).
+- Round 2: the independent legal-reviewer approved with verdict B, and nine text fixes followed (evidence §11).
+  - Safety-inbox and AWS-hosting sentences were added; the quarantine, link-holder, "uyarlamak" and redaction wording was corrected.
+  - `aydinlatma.app` is reframed around Netgsm (INT-358, INT-535).
+  - The coupling test now also trips on any non-SMS `phi_path` row.
+  - HB-C17 is routed to the INT-432 lane, and the KSVY limb to the D25 lane.
+  - A counsel question on KVKK m.7 deletion after withdrawal is added.
+  - 123 tests pass; PolicyGuard finds nothing in 273 sentences.
+- Next: the coordinator pushes and opens the PR (body at `.scratch/pr-529.md`). Follow-ups F1–F10 are in the evidence file; F1 is now INT-536 (#903) and F2 is INT-537 (#904).
+- LOOP_STATUS: WAITING_HUMAN
+
+### 2026-10-03T21:30:00Z · INT-421 · doing (PR #723: staff sign-in wired; not merged, not deployed)
+- Goal: the owner's priority is that the admin panel works at all times. That needs staff sign-in on the host, and that needs INT-378's provider (main `d3abd45a`) in the host's Keycloak and in its live realm.
+- Plan:
+  - Merge main.
+  - Build the staging Keycloak from INT-390's pin plus the jar, checked against pin `91da1232…`.
+  - Switch the live realm's WebAuthn step in `deploy.sh` (an import never re-runs) and re-check it in `smoke.sh`.
+  - Make staff enrol a security key or passkey.
+- Tests added: `tests/infra/test_staging_keycloak_provider.py`. Updated: `test_staging_admin_tier.py` and `test_staging_compose.py`.
+  - Near-misses: a foreign reference or two providers are refused; the password never follows the command; the base URL is http(s) only.
+  - RED: 1 failed (staging flows ≠ dev flows) after the merge.
+  - GREEN: below.
+- Result: docs/evidence/INT-421.md §7.
+  - On a real Keycloak 26.7.4 with the host's flags, the sync refused the host's state, took four steps, settled, and was idempotent.
+  - A WebAuthn login through the synced realm was admitted, and through an unsynced copy refused.
+- Invariants touched and still passing: 6 (ids only; the password on stdin), 14 (every base pinned by digest, the jar pinned by sha256, the licence read raw), 15, 17.
+- Decisions / ADRs / `00_STATE.md` rows: this branch's D18 becomes **D19**, because main's D18 (INT-432) landed first. No new decision. The TOTP alternative is untouched (INT-389, the owner's).
+- Blocked on: nothing. The merge queue deploys after merge. No deploy was made here.
+- Next: the queue's parity-checked deploy; then smoke check 7 on the host.
+- LOOP_STATUS: CONTINUE
+
+### 2026-10-02T20:20:00Z · INT-421 · doing (admin tier live; PR #723 open, not merged)
+- Goal: continue INT-421 after the owner's `aws login`:
+  - deploy the admin tier;
+  - retire the "deneme hastası" fixture, audited;
+  - re-run smoke;
+  - apply the owner's decision of 2 Oct 2026, *"dont make admin access ip restricted"*.
+- Tests added:
+  - `tests/infra/test_staging_admin_tier.py`: the explicit allow-all, with an empty list as the near miss (admits nobody); the two-factor flow kept; the edge recreated on each deploy, with `wait_healthy caddy` as the near miss.
+- Result:
+  - Release `7d2cc23d` is live with 9 services up. `smoke.sh` passed 19 checks, sbom_digest `sha256:80d9eed4…`.
+  - The fixture was retired (consents 3, patient 1, tenant 1), audited as chain entries 5 to 9, and 0 rows remain.
+  - George answers 404.
+  - Two first-run defects were found and fixed: caddy kept the previous release's Caddyfile, and the caddy wait used a healthcheck caddy does not declare.
+- Decisions / ADRs / `00_STATE.md` rows: **D19** (owner, 2 Oct 2026; numbered D18 until main's INT-432 took that number).
+  - HB-A16's ranges half is closed. Its tenant→deployment map half stays open.
+- Blocked on owner:
+  - HB-A3 (Apple, Google), an Expo token;
+  - an SMS vendor with a DPA;
+  - INT-408 (workers);
+  - Keycloak staff accounts.
+  - Hosted lanes are INT-428.
+- LOOP_STATUS: WAITING_HUMAN
+
+### 2026-10-02T12:00:00Z · INT-421 · doing (PR open, not merged; AWS session expired mid-iteration)
+- Goal: acceptance verbatim (GitHub #713):
+  - *"The AWS host runs main HEAD across every service (API, workers, admin-web, Keycloak, OpenBao, Postgres, Redis). The SBOM stamp and smoke/probe results are recorded in the evidence. Nothing but simulated patients reaches us-east-1."*
+  - *"The EAS production profiles build from main with the Önvizit identity and the production API URL. Anything that needs the owner's Apple or Google credentials fails closed and is listed as an owner ask."*
+  - *"A release checklist in docs/ runs end to end."*
+- Plan: deploy main and fix what stops it; add the admin tier (Keycloak, oauth2-proxy, admin-web) to the host compose; owner directive "no deneme hastası in production"; EAS production profile; the checklist.
+- Tests added (with near-miss controls):
+  - `tests/api/test_dev_fixture_production.py`: no seed outside dev; retirement removes exactly the fixture, audited by id; it refuses in dev and when the tenant holds a session, a second patient or a foreign consent. RED: 3 failed, 11 passed.
+  - `tests/api/test_dev_voice_hardening.py`: the George route is absent on staging, STAGING and test. RED: 3 failed.
+  - `tests/infra/test_staging_admin_tier.py` (35): pins, the realm, the access-token bearer, the unrouted paths, the allow-list key, the cookie-secret form, and the key-set validity near-misses.
+  - `apps/mobile/e2e/releaseConfig.spec.ts` and `src/lib/profile/badge.test.ts`.
+- Result:
+  - Main `7ca881c8` failed closed on the host at migration 0014: there was no pgvector, and the host kept `7d926d73`.
+  - Integration `c155a0d3` (main + the pgvector image) is live. Smoke is green, sbom_digest `sha256:eddaaeb1…`.
+  - The admin-tier deploy (`21097828`) stopped at upload, because the AWS CLI session had expired.
+  - `tests/api` passed 530. `tests/infra` and `tests/backlog` are green, and shellcheck is clean.
+  - Mobile: 2447 vitest tests green, and both production exports built.
+- Invariants touched and still passing: 4, 6, 14, 15, 17, 19.
+- Decisions / ADRs / `00_STATE.md` rows: none.
+  - Found and fixed: main could not migrate on the host (pgvector); the API seeded the synthetic dev patient on every non-dev boot; the George route was mounted on staging; release builds labelled real accounts "Sentetik deneme hesabı".
+- Blocked on owner:
+  - the AWS re-login;
+  - HB-A3 (Apple, Google), an Expo token;
+  - HB-A16 (console ranges);
+  - an SMS vendor with a DPA;
+  - a decision and an ADR for hosted model lanes (invariant 19);
+  - INT-408 (workers).
+  - The asks are in docs/release/production-checklist.md §6. No HB id is minted here.
+- Next: the owner runs `aws login`; then deploy `21097828` or later, run `dev_fixture_retire` on the host, and record both in docs/evidence/INT-421.md.
+
+### 2026-10-03T17:00:00Z · INT-463 · awaiting-human (PR open, not merged; the owner's workflow commit 66cc6f91 is on it)
+- Goal: the acceptance, verbatim (GitHub #790):
+  - a GitHub Actions self-hosted runner runs on the AWS host (i-0e489e48739f5de98) with the labels self-hosted, linux, intake-aws-ci, as a dedicated unprivileged user with no read access to /opt/intake, the OpenBao tokens or any staging secret; ephemeral, re-registered by a systemd unit, with a disk guard and a workspace wipe after every job; Docker for that user is rootless only.
+  - every job in .github/workflows runs on [self-hosted, linux, intake-aws-ci]; tests/ci asserts no job targets a GitHub-hosted label or the GPU runner, and the pool is declared in infra/ci/runners.yaml.
+  - on the PR, every job is picked up by intake-aws-ci and none runs on a GitHub-hosted runner.
+- Plan:
+  - Install the runner over SSM from `infra/ci/aws-runner`:
+    - a root, unsandboxed supervisor (`cycle.sh`) runs the guards, registers with `--ephemeral`, runs one job in the sandboxed `intake-aws-ci-job.service`, then wipes;
+    - rootless Docker runs in its own sandboxed unit;
+    - everything sits on the instance-store NVMe, under a resource slice.
+  - Declare the pool.
+  - Write the test.
+  - Hand the workflow change to the owner as a patch.
+- Tests added (with the near-miss negative for any safety rule):
+  - `tests/ci/test_aws_runner.py`, with a hosted-name near-miss control.
+  - `tests/infra/test_ci_no_phi.py` is updated for the declared pool. The TR-DC label still fails closed, and a declared pool with no collected heartbeat reports Failed, not healthy.
+  - Red run: 40 failed, 37 passed. After the pool was declared: 39 failed (the 13 jobs × 3 `runs-on` assertions the owner patch fixes) and 113 passed.
+  - The patch was checked with `git apply --check` plus a YAML parse on `main` and on #643's branch: 13/13 jobs on intake-aws-ci.
+- Result (`make check` / `make safety` / `make security` summary):
+  - Local: the touched lanes, backlog counts and smoke counts (334, after main added INT-407 and INT-432), shellcheck, and no_placeholders (staged).
+  - The full check-py, check-ts, check-integration and security gates run on the PR, on the AWS runner, after the owner commit.
+  - Host isolation was measured as ghrunner (docs/evidence/INT-463.md).
+- Invariants touched and still passing:
+  - 6: no PHI in CI. The pool is phi_path false, and the six-surface policy is unchanged.
+  - 13: the ci-runners probe now reports a missing heartbeat rather than Skipped.
+  - 14: every gate still runs, with the same tools and pins; only the machine changes.
+  - 17.
+- Decisions / ADRs / `00_STATE.md` rows:
+  - The owner's order of 3 Oct 2026 answers HB-I7's spend for a non-TR pool. The note is on HB-I7.
+  - The TR-DC pool stays open (HB-L11).
+  - No ADR was minted: no invariant is relaxed.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id):
+  - The owner applied `owner-ci-aws-runners.patch` as 66cc6f91 (security.yml is hook-protected; the classifier refuses workflow edits from an agent).
+  - The runner stays ephemeral (INT-206). The host registrar reads the admin token from SSM as root and mints a registration token before every registration; the persistent-runner alternative was refused by the classifier as a security weakening.
+  - owner: the SSM SecureString `/intake/staging/gh_runner_admin_pat` holds 16 words of prose, not a token. Overwrite it with the raw fine-grained token, so the host's registrar mints a registration token before every job. HB-I7.
+- Result on #791 (aa07c3b2): 12 of 12 jobs ran on intake-aws-ci-1, re-registering by itself after each (the last ten via the SSM registrar); 11 green. gitleaks found no leaks but failed its SARIF upload because the workspace sat beside $HOME; fixed in-repo (workspace under home), awaiting a host reinstall.
+- Next: `scripts/ci/aws_runner.sh install` once host changes are cleared, then re-run #791.
+- LOOP_STATUS: WAITING_HUMAN
+
+### 2026-10-16T12:00:00+03:00 · INT-475 · done (PR open, stacked on #796, not merged, not deployed)
+- Goal: acceptance verbatim (GitHub #814). (1) The hop's RED branch raises the Safety-inbox entry with tenant, session, visit and work ids only (no PHI), exactly once per RED; near miss: GREEN/YELLOW raise none. (2) The device sends the location answer (on time or late) to the server; ON_SITE fires the staff notification; REMOTE does not; a late ON_SITE answer after REMOTE fires it then. Ids only. (3) The INT-465 tripwire tests are retired in the same PR, and finding 6 in docs/evidence/INT-465.md closes. (4) Consent scope checked and the notification audited (invariant 4); no PHI in logs (invariant 6).
+- Plan:
+  - Branch `int-475-red-staff-notify` from `origin/int-465-generic-red-active` (`0bea050d`; #796 is not on main).
+  - Reuse INT-406's path: `InboxEntry` → process `SafetyInboxOutbox` → pump → the shared store. Add one entry kind, `red_on_site`, for the staff notification.
+  - The hop takes `session_id`/`visit_id`, derives the work id from tenant, session, visit and the winning rule, puts the entries before answering, and audits after.
+  - A new `POST /v1/triage/red-location` takes the patient's answer; the device posts it fire-and-forget with retry from a store subscriber.
+- Tests added (with the near-miss negative for any safety rule):
+  - New: `tests/api/test_red_notify.py`, `apps/mobile/src/lib/red/locationReport.test.ts`.
+  - Extended: `test_triage_hop.py` (ids; tripwire retired), `test_safety_inbox.py`, `test_safety_inbox_notifier.py`, `test_staging_compose.py`, `store.test.ts`, `hop.test.ts`, `session.test.ts`, `e2e/red.spec.ts`, `e2e/a11y.spec.ts` (the retry backoff registered as not a time limit).
+  - Near misses: GREEN and YELLOW raise nothing; REMOTE and UNKNOWN notify no staff; "hayır" posts REMOTE and notifies none; the no-answer expiry posts nothing; a RED at a known location posts nothing; another visit is another RED; a 422 is not retried.
+  - RED run: Python 39 failed + 1 collection error; mobile 5 failed + 1 load error; the e2e failed to load.
+  - Review round (a code-review agent; resumed 16 Oct after the 4 Oct API-limit cut-off): the answer route takes only a served KIRMIZI rule; the hop's ids are optional so an old app build keeps its RED (unrouted, counted, audited); device ids are kept as a server UUID or a keyed pseudonym, never raw (a synced visit id carries the hospital patient number, invariant 14); the INT-406 outbox counts an in-flight write as waiting and survives any store fault; each device request has a 10 s deadline. Red run: API 6 failed, outbox 2 failed, mobile 1 failed.
+- Result (`make check` / `make safety` / `make security` summary):
+  - `make safety` exit 0: triage 601 passed at 100 % branch, 18/18 mutants, voice-runtime 1639 passed at 98.66 %, adversarial 121 passed.
+  - The `check-py` pytest lane ran to 85 % of 10 380 tests with no failure before the two-hour limit stopped it (load average above 300); the rest passed without coverage (security, sim, smoke 620; voice in `make safety`); the doc-reading suites 1440 passed after the last edit.
+  - `red_notify.py` 100 % branch. `mypy --strict` (537 files), ruff and format clean.
+  - Mobile 2689 passed; tsc, eslint and prettier clean.
+  - Backlog pins 336 → 337; files/11 regenerated. `make security` and check-integration are CI-only here.
+- Invariants touched and still passing: 1, 4, 6, 9, 13, 17, 21 (the RED never waits on the store, the audit chain or the location request).
+- Decisions / ADRs / `00_STATE.md` rows: none. Two engineering bounds, named as such: `LOCATION_REPORT_MAX_ATTEMPTS = 20`, `LOCATION_REPORT_TIMEOUT_MS = 10_000`.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): none. The synthetic host needs its next deploy to pick up `INTAKE_SAFETY_INBOX_REDIS_URL` (no deploy here).
+- Next: PR `INT-475: …` (Closes #814, Sec-Row clinical-core, label approval:human-clinical), stacked on #796, which merges first.
+- LOOP_STATUS: CONTINUE
+
+### 2026-10-03T21:30:00Z · INT-465 · done (PR open, not merged, not deployed)
+- Goal: acceptance verbatim (GitHub #794). (1) generic_red.yaml is active with CD-24's own source blocks, every location entry stating its location and `carry_engine_register`, and no 112 in any ON_SITE carrier. (2) The ON_SITE bold markers and the tenant segment are expanded before the screen and before TTS, and 112 becomes "yüz on iki". (3) The generic RED goldens pass in tests/safety, and `make safety` is green. (4) The served red rule set is signed with a non-exportable OpenBao test key on the synthetic AWS host, and every non-synthetic tenant config rejects it.
+- Plan:
+  - Start from `int-453-red-path-winner` merged with main `3bffb58d` (CD-24).
+  - Write `protocols.red_render`, `intake_platform.red_signature` and `intake_platform.red_tenant`.
+  - Make the generic RED document active, checked against CD-24.
+  - Add the API tenant kind and the signature interlock.
+  - Run the signer script on the host over SSM: the root token once, then a scoped token.
+- Tests added: `test_red_render.py`, `test_red_signature.py`, `test_red_rule_set_signature_cli.py`, `test_generic_red.py` (rewritten), `tests/safety/test_generic_red_goldens.py` (G01–G10), `test_triage_tenant_kind.py`, `test_red_signing_infra.py`, and the synthetic-tier cases in `test_triage_hop.py` and `test_red_winner.py`. Each has a near miss; examples:
+  - REMOTE carries 112 and ON_SITE does not;
+  - the exemplar's `why_tr` names an organ and the generic's does not;
+  - the authored line carries markup;
+  - a synthetic tenant accepts and every other kind refuses;
+  - ALERT+ALERT stays ALERT.
+  - RED run: 5 collection errors plus 30 failed. GREEN: the targeted lanes pass. M1–M4 mutation proofs are all detected.
+- Result:
+  - `make safety` exit 0: triage 100 % branch (600 passed), 18/18 mutants detected, voice 1631 passed at 98.65 %, adversarial 121 passed.
+  - ruff, format and `mypy --strict` are clean.
+  - Mobile tsc and eslint are clean, and vitest RED lanes pass (95).
+  - Backlog pins move 335 → 336, and files/11 is regenerated.
+  - Host: key `redset-synthetic-test` v1 (ed25519, exportable false); envelope verified for synthetic, refused for real.
+  - Review round (clinical and security reviewer agents): every block's `supports` now matches CD-24, so the generic RED was re-signed (`3bbd3fdd…`). Also fixed: both-order mixed-register goldens with the silent clinic notice, HB-C12b-independent near misses, the G10 tripwire, an explicit `INTAKE_ENV`, read-once parsing, an existing-key check, token renewal before signing, logged refusals, threat-model rows, and malformed-envelope tests.
+  - Review round 2 (coordinator, CHANGES REQUIRED): the cardiac why lines were rewritten through **CD-25** (D18, agent author, verifier agreed; HB-C12b stays open); the source fields were fixed and snapshot checks added to `load_life_threat_set`; the device gained a no-answer path (unsigned 30 s wait, Essential-Exception time limit); the generic is never wordless (decoder, store and session refuse); intake stops for `protocol_next` and on the device; the signature is bound to the host; RED clip rows refuse digits. Re-signed once (`c33a737f…`).
+  - Review round 3 (orchestrator, REQUEST_CHANGES), all fixed test-first with near misses:
+    - no question or commit control in any lane while a RED stands, and the navigator is hidden
+      from assistive technology under the root RED layer;
+    - `on_no_answer` is REMOTE only (DSL, API and device decoder);
+    - the generic copy is in the PolicyGuard sweep;
+    - `version_or_date` is checked against the snapshot;
+    - fixture snapshots sit behind an explicit flag;
+    - ON_SITE 112 is checked over every RED rule;
+    - LiveKit RED goes through the RED store;
+    - REMOTE shows 112 as selectable text;
+    - HB-C25 (the unsigned no-answer wait) was added;
+    - a late location answer after the wait is honoured (LD-05, INT-471 #800), and BK13
+      cites it.
+    Recorded, not built: the hop notifies no clinic, and the cardiac do-not lines are unsourced.
+    Rule bytes are unchanged, so there was no re-sign.
+  - Review round 4 (orchestrator, REQUEST_CHANGES), test-first with near misses:
+    - the privacy self-check is gated on `live`;
+    - the hop-lane notification gap is held by two tripwire tests and owned by INT-475 (#814);
+      `depends_on` is back to [INT-432, INT-446, INT-453];
+    - focus moves to the RED's words when it changes (never on first paint);
+    - the section sheet cannot open or commit under a RED;
+    - the 112 block near miss is added;
+    - HB-C25 carries the five LD-05 physician questions;
+    - `on_yes`/`on_no` are narrowed;
+    - the kiosk/RED-store observation is recorded under INT-476 (#815).
+    No rule bytes changed, so there was no re-sign.
+  - Review round 5 (orchestrator, REQUEST_CHANGES), test-first:
+    - the 422 tripwire's near miss now dates the tense anchor, with an engine positive
+      control (booleans fire RED), so type is the only blocker;
+    - HB-C25 asks (vi) about the SILENT focus move on expiry;
+    - the section sheet is never visible over a RED and leaves in 0 ms;
+    - the device decoder types yes ON_SITE and no REMOTE.
+- Invariants touched and still passing: 1, 2, 7, 10, 14, 17, 21, 22.
+- Decisions / ADRs / `00_STATE.md` rows: CD-25 (decision register); D23 (owner, 3 Oct 2026, read with D18). D17 and HB-C1 are unchanged, and INT-058 (cosign) is untouched.
+- Blocked on: nothing for review. Before any real patient: the physician (HB-C1, HB-C12b, HB-C25). The app hop cannot post booleans, so the served RED cannot fire from a typed answer yet (INT-081).
+- Next: PR `INT-465: …` (Closes #794, Sec-Row triage), stacked on #773; a protocol CODEOWNER review is required. Do not merge and do not deploy.
+- LOOP_STATUS: DONE
+
+### 2026-10-04T00:30:00Z · INT-453 · done (PR open, not merged)
+- Goal: acceptance verbatim (GitHub #767): *"The RED script is chosen by the highest-severity firing rule, deterministically, using that rule's own register, location and text_tr. A multi-rule test with a near-miss control is included."* and *"`make safety` passes, with triage at 100% branch coverage."* Found by INT-446 (#766).
+- Plan (after review round 1 on #773, CHANGES-REQUESTED):
+  - (a) The engine names its RED in `RulesTriageResult.red_rule_id` (schemas and codegen updated), so the path reads it and never re-derives it. Only that RED rule must be addressable, so a YELLOW rule beside it is irrelevant.
+  - (b) An unaddressable RED still triggers a device-visible generic escalation: ALERT, at the result's own location, so 112 is absent under ON_SITE and a generic UNKNOWN asks the question before any 112. It fails loudly.
+  - A replay of an unaddressable RED re-sends the device trigger.
+  - Device: `genericRed`; the session emits `red`, never nothing.
+- Tests added: `tests/voice/test_red_winner.py` (rewritten), the schema validation test, the engine `red_rule_id` and `winning_red_rule` tests, and the device generic-RED tests. Near misses: `rules[0]`'s script is never sent; the YELLOW rule has no script; a replay after a delivered RED is a no-op; ON_SITE shows no 112.
+  - RED (`rules[0]` restored): 4 failed, including the rewritten severity test. The previous #773 path fails at collection.
+  - GREEN: 1211 Python tests; mobile 2529.
+- Result: docs/evidence/INT-453.md.
+  - `make safety` exit 0: triage at 100 % branch (568 passed); `red_path.py` at 100 %; the mutation report DETECTED every mutant.
+  - typecheck, ruff and `mypy --strict` are clean.
+  - Pins 330 → 331; files/11 regenerated.
+- Invariants touched and still passing: 1, 9 (only a rules-engine RED preempts), 10 (the named rule's own `text_tr`), 17 (generic copy is `draft_needs_source`, nothing invented), 21 (no 112 under ON_SITE).
+- Decisions / ADRs / `00_STATE.md` rows: none. CD-24 (INT-432; `packages/protocols/decisions/CD-24.yaml` on #757; D18, simulated-patient testing only) is verified and applied. The generic carries the engine result's own register (`carry_engine_register`), never a fixed ALERT. The committed `generic_red.yaml` carries CD-24's copy but stays draft_needs_source until #757 is on main, so nothing is served and device_functions stays off. SILENT and mixed registers stay draft; the floor is stop-intake plus the `silent_generic` clinic notice.
+- Blocked on: nothing for merge. Changes under packages/protocols, packages/clinical-schemas and packages/intake_platform need CODEOWNER review. Until #757 (CD-24) is on main, /v1/triage serves nothing and device_functions stays off.
+- Next: PR `INT-453: …` (Closes #767, Sec-Row triage). Do not merge.
+
+### 2026-10-03T23:30:00Z · INT-446 · done (PR open, not merged)
+- Goal: acceptance verbatim (GitHub #756): *"Every bound answer on the typed and voice lanes passes through the deterministic rules engine (invariant 1). A RED result mounts the pre-positioned RED screen and script with no media transport (invariant 21). Its register (ALERT, CALM, SILENT or DEFERRED_CLINICIAN) and location (REMOTE, ON_SITE or UNKNOWN) are honoured, and on ON_SITE the 112 affordance is absent."* and *"An end-to-end test proves that a red-flag answer reaches the RED screen on both lanes, with a near-miss control that does not. The time from answer to RED is measured."*
+- Plan:
+  - API `/v1/triage/evaluate` runs `evaluate_triage` over the served set and returns the data-channel packet; `/v1/triage/red-scripts` is the pre-positioned catalog. Both fail closed with 503 while no signed set exists (HB-C1).
+  - Device: `lib/red/{hop,store,location}.ts`, plus `RedLayer` mounted after the navigator, where the hop runs on every note answer. SILENT renders in flow on both lanes, and the dialogue stops on a RED.
+- Tests added: `tests/api/test_triage_hop.py`, `e2e/red.spec.ts`, `lib/red/store.test.ts` and the MOTION-4 pin. Every RED case has a near miss: one differing value, or the right value undated.
+  - RED: 23 API tests failed with the router unmounted; both mobile files failed to load.
+  - GREEN: 26 API tests; mobile 2583; `make safety` exit 0 (triage 100 % branch).
+- Result: docs/evidence/INT-446.md. Typed RED verified in the iOS simulator against the real route over the SENTETİK set; there are four screenshots, including the near miss and ON_SITE with no 112. Measured answer→RED: server p50 5.9 ms and p95 12.1 ms over HTTP; device 0.30 ms. Pins 328 → 329; files/11 regenerated (this drops a stale INT-395 row with no YAML row).
+- Invariants touched and still passing: 1 (no rule on the device), 6 (nothing logged), 10 (verbatim `tr`), 14 (schema-constrained decode, input bounded), 17 (fail closed, nothing invented), 21 (no media on the RED path; 112 absent under ON_SITE).
+- Decisions / ADRs / `00_STATE.md` rows: none. ADR-033 Q2's fail-closed default (no RED haptic) holds; INT-340's `presentRed` belongs in RedLayer when #710 merges.
+- Blocked on: HB-C1. No signed `base.life_threat` exists, so no RED fires in a real session; that is the designed state. Generic copy for an unrenderable RED is a clinical and legal string and is not authored.
+- Next: PR `INT-446: …` (Closes #756, Sec-Row triage). Do not merge.
+
+  - `scripts/voice/cast_turkish_voices.py` and its two modules read the vendor's Turkish voice library, take eight native, adult, commercial-terms voices (four female, four male) plus George as the control, and render six catalogue lines on `eleven_multilingual_v2` and on `eleven_v3` for comparison.
+  - The renders go through the gateway's request body on `/with-timestamps`, so the vendor's character alignment gives exact word boundaries.
+  - The tool measures mid-phrase gaps, boundary pitch jumps and rate evenness, ranks by mean rank, and writes blind and labelled pages under `.cache/voice-cast/`.
+- Tests added: `tests/voice/test_cast_turkish_voices.py` (33).
+  - Near-miss controls: a line one word off its source refuses the whole run; a George-era `@v1` recording is refused once the pin lands (in the prepared change).
+  - RED: collection error with the modules absent, then 5 failures (a property called as a method; a verified accent overriding the voice's own).
+  - GREEN: 33 passed.
+- Result: docs/evidence/INT-449.md and docs/voice/casting-2026-10.md.
+  - The coordinator ran the render: 6,516 characters, 1.95 USD at the planning rate, all 108 takes aligned.
+  - Cavit ranks first on both models; Mine (v3) and Toprak (v2) follow among the native voices.
+  - George on v2 ranks third, so the continuity figures do not hear accent and the owner's blind ear decides.
+  - Pins 330 → 331; files/11 regenerated. The check-py lanes touched are green; `make check` was not run whole (no container runtime for check-integration).
+- Invariants touched and still passing: 10 (catalogue text only, verbatim against its source, markup refused), 19 (offline lane only, ADR-028), 20 (measurements of these takes, not properties), 22 (`assert_speakable_tr` before the wire; normaliser off).
+- Decisions / ADRs / `00_STATE.md` rows: none taken. A v3 pick is a model change recorded as the owner's decision in ADR-034 (PR #734).
+- Blocked on: the owner's pick of a blind code (Ario Moniri: *"Which coded row should the clip set be built with?"*). This answers docs/backlog/blockers.md INT-319 ask (c); ask (a), the vendor's commercial-use terms, stays open.
+- Next: apply the prepared pin change (voice id plus version bump) with the picked id; re-render the bundled set once INT-440 is on main.
+- LOOP_STATUS: WAITING_HUMAN
+
+### 2026-10-02T23:13:00Z · INT-443 · awaiting-human (PR open, stacked on INT-442 and #734)
+- Goal: acceptance verbatim (GitHub #753): *"An ElevenLabs adapter in the hosted TTS lane that speaks catalogue or scripted text only, using the v2 profiles and eleven_multilingual_v2. The cache is keyed by profile@version."* and *"It is the default TTS on the synthetic host once its key and egress row exist. The mobile client plays it gaplessly, and voice-e2e confirms the lane."* The coordinator's George-on-AWS checklist was added to it.
+- Plan: make the George route the synthetic host's hosted clip lane.
+  - ElevenLabs through the allow-list row, the INT-442 proxy and the OpenBao key.
+  - Admit the app's own scripted texts from a generated, staleness-tested catalogue.
+  - Key the cache by profile@version on a persistent volume, and pre-bake it.
+  - Fall back to self-hosted on a vendor failure, recorded per clip.
+  - Charge misses and refusals, never hits.
+  - Mount on the synthetic host only.
+- Tests added: 22 for the adapter, 35 for the route and its wiring, 6 for the pre-bake, 5 for infra and 6 for the mobile catalogue; two hardening tests adapted.
+  - RED: collection errors (no modules) and no mobile tests.
+  - GREEN: 101 on the George route, 629 on platform, infra and admin, 1151 on voice, 250 on mobile dialogue.
+- Result: docs/evidence/INT-443.md. ADR-035 amended: the clip vendor is not a model lane, and the dated-snapshot rule is stated, not waived, for the AI/ML reviewer. Pins 331 → 332; files/11 regenerated.
+- Invariants touched and still passing:
+  - 3 (agent speech only, encoded in voice_clips);
+  - 6 (codes only);
+  - 10 (verbatim catalogue text);
+  - 14 (OpenBao key, egress allow-list);
+  - 19 (synthetic deployment only; PHI never mounts it);
+  - 21 (RED never fetched);
+  - 22 (numerals and markup refused before the wire).
+- Decisions / ADRs / `00_STATE.md` rows: the ADR-035 amendment. Owner self-approval of lane switches (coordinator, D19) was refused by the permission classifier and is not in this change.
+- Blocked on: the owner's egress commit (INT-442). The mobile half is INT-440's branch.
+- Deploy: not done. The permission classifier refused my upload of the corrected merged
+  artefact. The host still runs `1785dd58`; see the evidence's deploy section.
+- Next: the owner's egress commit, then a deploy, the pre-bake and the smoke clip
+  (owner or coordinator).
+
+### 2026-10-02T22:48:00Z · INT-442 · awaiting-human (PR open, stacked on #751; owner egress commit + deploy pending)
+- Goal: acceptance verbatim (GitHub #752): *"A forward proxy on the synthetic host only, default-deny, admitting just the allow-listed vendor hosts. INTAKE_EGRESS_PROXY_URL is set there and never in the PHI deployment."* and *"Tests prove an unlisted host is refused. Deployed and smoked."*
+- Plan: render a second squid config from the one allow-list (hosted_model_inference rows only) and run it as `egress-proxy` on the staging compose, the API's one route out. Read the variable through a guard that refuses it outside the synthetic deployment, and probe it live from the API container on every deploy.
+- Tests added: `tests/infra/test_staging_egress.py` (40). It covers topology; the variable's single setter; the boot refusal outside synthetic, with a near miss; the config; host-for-host parity with the in-process guard; the renderer on a fake list with hosted rows; and the probe's five outcomes.
+  - RED: 32 failed and 6 errors against the base renderer and compose.
+  - GREEN: 284 targeted, then 723 over the egress, platform, admin and voice lane suites, and 482 observability.
+- Result: docs/evidence/INT-442.md. Pins 329 → 330; files/11 regenerated.
+- Invariants touched and still passing: 14 (egress allow-list, digest-pinned image), 19 (no vendor on the PHI path: the proxy and its variable exist only in the synthetic deployment), 6 (the CONNECT log is host:port only).
+- Decisions / ADRs / `00_STATE.md` rows: none. The vendor rows are the owner's protected change (07 §F rule 2), prepared unstaged.
+- Blocked on:
+  - the owner's commit of `infra/security/egress-allowlist.yaml` and the three files that move with it. Until then the proxy admits nothing.
+  - the deploy. The classifier refused my upload of the corrected artefact. The host still runs `1785dd58`, and `/opt/intake` needs restoring from the earliest `/opt/intake.prev-*`.
+- Next: INT-443 (ElevenLabs hosted TTS), stacked on this.
+
+### 2026-10-03T00:45:00Z · INT-426 · done (PR open, not merged)
+- **Goal.** The acceptance, verbatim (GitHub #721):
+  - *"make ci-aws PR=<n> … ships a PR head to the AWS host through the existing S3 + SSM path and runs the full gate set … in an isolated compose project with resource limits, so the live stack is not starved"*
+  - *"the result is posted as a GitHub commit status (aws-ci) with a log link; no secrets appear in logs and no PHI is touched"*
+  - *"workflow files are not edited: switching GitHub Actions to manual or self-hosted is an owner step, documented in docs/ci/aws-ci.md"*
+- **Plan.**
+  - The laptop does the git bundle and the harness `git archive`, uploads both to S3 with presigned URLs, then runs SSM AWS-RunShellScript.
+  - The host runs the compose project `intake-ci-<run id>` with three services: `prep`, `dind` (privileged, loopback API) and `runner` (uid 10001). Each service is capped on CPU, memory and pids, weighted at a quarter of the default `cpu_shares`, and has `oom_score_adj` 500. Two flock slots.
+  - The runner redacts the log (secret shapes plus `intake_platform.ci.find_identifiers`), scans it with gitleaks and `phi_scan.sh`, and uploads it only if both pass.
+  - The result is posted as the commit status `aws-ci` through `gh api`.
+- **Tests added.**
+  - `tests/ci/test_aws_ci.py`, 57 tests. They cover: arguments; the fork guard; the run id; the SSM bootstrap and upload commands; the SigV4 presigner against AWS's documented example; the status payload, including a harness error and a withheld log; redaction, with a checksum-valid TCKN computed at run time; and the static isolation and pin checks.
+  - `tests/ci/test_gitleaks_pin_compat.py`, 3 tests.
+  - RED: a collection error with the module absent, then `1 failed` for the harness-error status, `4 failed, 53 passed` for the probe mode, and `1 failed, 2 passed` for the gitleaks table.
+- **Result.**
+  - **Locally:** `tests/ci tests/backlog tests/smoke` pass; ruff, format and shellcheck are clean; `no_placeholders` is OK.
+  - **aws-ci on main (2ff595ef):** check-py, check-ts, check-integration, safety and edge-plugin are green. check-integration's 17 GitHub errors are gone, because `make edge-plugin` runs first. Security is red at gitleaks over the full history: 6 findings under the pinned 8.24.3. The cause: `.gitleaks.toml` used `[[allowlists]]`, which 8.24.3 ignores (fixed). The other 2 findings are an old fake JWT fixture, cleared by two fingerprints on the owner's approval of 3 Oct 2026.
+  - **aws-ci on PR #730:** the same picture. Its expo-export probe found 0 node-forge modules in either production bundle.
+  - **Each run took 47 minutes on the host.** The cost per run is in docs/ci/aws-ci.md.
+- **Invariants touched and still passing:** 6 (the log is redacted and scanned before upload), 14 (every gate runs, at the pinned scanner versions) and 15 (the live stack's capacity is protected by caps, weights and OOM order).
+- **Decisions.**
+  - The owner approved the two gitleaks fingerprints ("ignore the two old token fingerprints", relayed 3 Oct 2026). No ADR.
+  - The permission system refused to stage the gate files (`.gitleaks.toml`, `.gitleaksignore`, `tests/ci/test_gitleaks_pin_compat.py`, and the pin rows in `tests/ci/test_security_gates.py`), so the owner commits them.
+- **Blocked on:** none for the runner. Each PR's own verdict is its `aws-ci` commit status.
+- **Next:**
+  - Owner: make `aws-ci` required, and disable or keep Actions (docs/ci/aws-ci.md, "Owner steps").
+  - At the next workflow edit, raise CI's gitleaks pin to ≥ 8.25; this is the owner's change.
+- LOOP_STATUS: CONTINUE
+
+### 2026-10-03T17:30:00Z · INT-378 · done (PR #643 updated, not merged)
+- Goal: owner priority, 3 Oct 2026: the admin panel must work at all times, so staff login must. This PR is the provider that login needs. Acceptance clauses 1 and 2 (GitHub #621), unchanged.
+- Plan:
+  - Merge main. Main has INT-390's Keycloak 26.7.4.
+  - Rebuild the provider against 26.7.4 and re-record the live login on 26.7.4.
+  - Split clause 3 into INT-389 (#644), so the PR can say `Closes #621`.
+- Tests added or changed:
+  - Java:
+    - the stock rejection now asserts 26.7.4's `UNKNOWN_USER` failure, in place of `cancelLogin`;
+    - `success(type)`;
+    - the metadata-service fixture.
+    - RED: 3 errors and 1 failure against 26.7.4. GREEN: 29 of 29. Mutation: the decoder swap is caught.
+  - Python:
+    - the pins are held by version and tag;
+    - the CI build is held as a step of `check-py`;
+    - the recording replayed is the 26.7.4 one.
+    - RED: 3 failed. GREEN: 2024 in the affected lanes.
+- Result:
+  - Main merged: 8 conflicts, no markers left.
+  - The jar pin is `896d6698…`, reproduced from an empty repository under another time zone.
+  - The live login on Keycloak 26.7.4: the provider is admitted and the stock authenticator refused.
+  - Evidence: docs/evidence/INT-378.md, "Update, 2026-10-03".
+- Invariants touched and still passing: 6, 14 (each Maven artefact and the jar pinned by sha256; the distribution checked against Central), 16, 17.
+- Decisions / ADRs / `00_STATE.md` rows: none. The console's `aaguid` rule is unchanged, and the TOTP choice stays with the owner (INT-389).
+- Blocked on: nothing here. Staff login on the host also needs #723 to load this jar into the staging Keycloak and switch the live realm. That work is in #723, which merges after this PR.
+- Next: #723 with the staging wiring.
+- Update (the vulnerabilities gate):
+  - Fixed: the pom's test classpath pins jackson-core and jackson-databind at 2.21.7 and opentelemetry-api at 1.62.0. The checksums were re-recorded (258), the jar pin is now `91da1232…` (reproduced), and the passkey login was re-recorded on 26.7.4: admitted, stock refused.
+  - Left: GHSA-794g-x443-36f7 on keycloak-services. GitHub bounds it below 26.5.5, but OSV's range is open-ended, and 26.7.5 and 26.8.0 match it too. Its 30-day osv entry is an owner patch; no trivy row, since trivy reports nothing.
+- LOOP_STATUS: CONTINUE
+
+### 2026-09-27T06:20:00+03:00 · INT-378 · awaiting-human (PR open; clauses 1–2 delivered, clause 3 is the owner's)
+- Goal: acceptance verbatim (GitHub #621). Clause 1: *"a provider jar wraps `webauthn-authenticator` and, after a successful assertion, writes `aaguid` and `credential_id` as user-session notes … built reproducibly and pinned by sha256"*. Clause 2: *"a test, against a real Keycloak in CI (check-integration) or its recorded output, shows a WebAuthn login yields both claims and the console admits the token"*. Clause 3 is the owner's TOTP decision.
+- Plan:
+  - `infra/keycloak/providers/webauthn-session-notes`: a subclass of Keycloak 26.1.4's `WebAuthnAuthenticator`. After `super.action` returns SUCCESS (`DefaultAuthenticationFlow.processAction` reads the status only after `action` returns), it writes the asserted credential's stored AAGUID and its base64url id as the two notes the INT-373 mappers read.
+  - The Maven wrapper's distribution is sha256-pinned. Maven Resolver trusted checksums cover all 263 resolved artefacts. Keycloak is `provided`, never bundled. The jar is reproducible in UTC and pinned.
+  - Wiring: the realm's staff flow; `make keycloak-provider` (build, test, check the pin, then stage); `obs` mounts `providers/deploy`; CI job `keycloak-provider`; Renovate's maven managers.
+- Tests added:
+  - Java, 29: the note logic, the stock `action` run for real with only `isValid` stubbed, and the factory. RED: 30 `cannot find symbol` errors. GREEN: 29 passed. Mutations: 8/8 killed.
+  - Python, 25 (`tests/admin/test_webauthn_session_notes_provider.py`): wiring, pins, the recorded login and the runbook. RED: 14 failed and 11 passed against the pre-change tree. GREEN: 25 passed.
+- Result:
+  - A real Keycloak 26.1.4 (the distribution on the JVM, no container) ran the pinned jar. A software-authenticator login through the committed realm was **admitted** by the console, carrying the key's AAGUID and credential id. The same login through a stock-authenticator twin was **refused** (`MalformedClaims: aaguid`). The recording is replayed by the tests.
+  - The first start found that INT-365's realm cannot be imported: a flow description exceeded NVARCHAR(255). It is fixed here and test-held.
+- Invariants touched and still passing: 6 (ids only, nothing logged), 14 (sha256 pins on Maven, every artefact and the jar; licence verified from the raw LICENSE at the tag; no gate skipped), 17 (no placeholder or skip).
+- Decisions / ADRs / `00_STATE.md` rows: none. The verifier's `aaguid` rule is unchanged.
+- Blocked on: the owner's choice, (a) WebAuthn for every console role or (b) `aaguid` only when `amr` has `hwk`. Issue #621 should be split so this PR can close its engineering part. Also found and not fixed: 2 in 64 base64url credential ids start with `-` or `_`, which the console's id shape refuses.
+- Next: PR `INT-378: …` (Refs #621, Sec-Row admin-console). It depends on #619; #598 landed on main during the iteration. After merge, the owner deploys the provider (runbook §3).
+
+### 2026-10-03T19:00:00Z · INT-449 · done (PR #772 open, not merged)
+- Goal: pin the owner's blind pick E04 (3 Oct 2026, "use E04 voice") and re-render the bundled set in it.
+- Plan:
+  - D20 records the pick, and the ADR-034 render-time-tags amendment is Accepted.
+  - `voice_clips.delivery` pins `CLIPGEN_VOICE_ID` `2PwDxni9MpXdYqgALrBh` on `eleven_v3`, with every row at v4.
+  - Tagged contexts sit at Natural stability. RED and instrument sit at Robust and are never tagged.
+  - The gateway prepends the profile's tags on the wire only, and the dev route speaks E04.
+  - `render_cast_clips.py` re-renders INT-440's set behind a quota check and spend gates.
+- Tests added: E04 table tests; tag rules (a tag on RED or instrument refused, `[pause]` and malformed tags refused); a request test that the text is the tags plus the verbatim line, with no tag on RED or instrument; a numeral refused with a tag in front; and 15 re-render tests (quota short or unreadable, stop on refusal, resume).
+  - Near miss: a George-era `@v1` recording is refused.
+  - RED: an ImportError, plus 9 clip-gen failures.
+  - GREEN: voice-clips lane 1,190 (99.74 %); voice-runtime lane 1,676 (98.65 %); API voice tests 60; backlog, smoke and docs 94; ruff and the check-py `mypy --strict` set clean; text gates OK.
+- Result:
+  - The coordinator ran the render: 226 of 226 lines, 16,963 characters, about 5.09 USD at the planning rate.
+  - Every address is the set's own hash, and no RED or instrument clip is present.
+  - Clips are in `.cache/bundled-clips-e04/`. Copying them into the app is INT-440's gitignored dev-build step (#768).
+- Invariants touched and still passing: 10 (tags never in `text_tr`), 19 (offline lane), 20, 21 (RED is the most stable and untagged), 22 (numerals refused before the wire).
+- Decisions / ADRs / `00_STATE.md` rows: D20, and the ADR-034 amendment Accepted.
+  - Open amendment gates: 2 (registry row and vendor terms), 3 (vendor numeral fixture), 5 (round-trip ASR) and 7 (a Robust RED or instrument take to listen to).
+- Blocked on: nothing for INT-449. INT-319's ask (a), the vendor's commercial-use terms, stays open.
+- Next: #768 copies the clips and switches its renderer to the pin after #772. #775 sends `wire_prefix`. #734 and #768 conflict on `delivery.py`, and whichever lands second takes v4.
+- LOOP_STATUS: DONE
+
+### 2026-10-03T01:30:00Z · INT-449 · awaiting-human (PR open, the owner's pick)
+- Goal: acceptance verbatim (GitHub #762): *"Native Turkish ElevenLabs voices and the available models are compared on the same catalogue lines. The owner picks from a blind page."* and *"The chosen voice and model are pinned with a profile version bump and the bundled set is re-rendered. Intonation continuity between words is measured."*
+- Plan:
+  - `scripts/voice/cast_turkish_voices.py` and its two modules read the vendor's Turkish voice library, take eight native, adult, commercial-terms voices (four female, four male) plus George as the control, and render six catalogue lines on `eleven_multilingual_v2` and on `eleven_v3` for comparison.
+  - The renders go through the gateway's request body on `/with-timestamps`, so the vendor's character alignment gives exact word boundaries.
+  - The tool measures mid-phrase gaps, boundary pitch jumps and rate evenness, ranks by mean rank, and writes blind and labelled pages under `.cache/voice-cast/`.
+- Tests added: `tests/voice/test_cast_turkish_voices.py` (33).
+  - Near-miss controls: a line one word off its source refuses the whole run; a George-era `@v1` recording is refused once the pin lands (in the prepared change).
+  - RED: collection error with the modules absent, then 5 failures (a property called as a method; a verified accent overriding the voice's own).
+  - GREEN: 33 passed.
+- Result: docs/evidence/INT-449.md and docs/voice/casting-2026-10.md.
+  - The coordinator ran the render: 6,516 characters, 1.95 USD at the planning rate, all 108 takes aligned.
+  - Cavit ranks first on both models; Mine (v3) and Toprak (v2) follow among the native voices.
+  - George on v2 ranks third, so the continuity figures do not hear accent and the owner's blind ear decides.
+  - Pins 330 → 331; files/11 regenerated. The check-py lanes touched are green; `make check` was not run whole (no container runtime for check-integration).
+- Invariants touched and still passing: 10 (catalogue text only, verbatim against its source, markup refused), 19 (offline lane only, ADR-028), 20 (measurements of these takes, not properties), 22 (`assert_speakable_tr` before the wire; normaliser off).
+- Decisions / ADRs / `00_STATE.md` rows: none taken. A v3 pick is a model change recorded as the owner's decision in ADR-034 (PR #734).
+- Blocked on: the owner's pick of a blind code (Ario Moniri: *"Which coded row should the clip set be built with?"*). This answers docs/backlog/blockers.md INT-319 ask (c); ask (a), the vendor's commercial-use terms, stays open.
+- Next: apply the prepared pin change (voice id plus version bump) with the picked id; re-render the bundled set once INT-440 is on main.
+- LOOP_STATUS: WAITING_HUMAN
+
+### 2026-10-03T12:00:00Z · INT-460 · done (PR open, not merged)
+- Goal (GitHub #785, owner request): give the owner a way to add one real second admin approver on the synthetic staging host without weakening the four-eyes rule. Acceptance verbatim: *"docs/runbooks/second-admin.md, at most 15 lines, gives the owner's exact steps … it names INT-378 (#643) as the prerequisite and no dev variable"* and *"tests hold the facts the runbook rests on … each behaviour pin is mutation-checked"*.
+- Plan: investigate first. The console admits only Keycloak tokens (INT-180), and a dev token set outside dev refuses the boot (INT-325). So the brief's second dev-bearer admin could not approve anything and would stop the staging API. The existing path is a second Keycloak user, so no product code changes. Write the runbook and pin it.
+- Tests added: `tests/admin/test_second_admin_runbook.py` (15).
+  - Near-miss: the same staging environment without the dev variable boots.
+  - RED: 6 failed (runbook absent), 9 passed (pins of existing behaviour).
+  - Mutations: 4 of 4 caught (self-approval, the org rule, dev flags outside dev, a bearer fallback at the gate).
+  - GREEN: 15 passed.
+- Result: docs/evidence/INT-460.md. Pins 330 → 331; files/11 regenerated. `no_placeholders` OK after staging. `make check-py`: ruff, format and mypy clean; whole-tree pytest 9826 passed at 95.65 %, and the 4 deid-cache failures pass once the cache is linked. check-integration is CI-only.
+- Invariants touched and still passing: 4 and 14 (four eyes and the second factor unchanged; no secret generated or stored), 6 (the boot refusal names the variable, never its value), 17.
+- Decisions / ADRs / `00_STATE.md` rows: none. The brief's dev-bearer design is rejected because it would weaken INT-325 and the INT-180 gate. Its Sec-Row `auth` does not exist; `admin-console` is used.
+- Blocked on: PR #643 (INT-378) merged and live in the host's Keycloak. Until then the console refuses every staff token. Owner: #644 (INT-389) TOTP vs WebAuthn.
+- Next: PR `INT-460: second admin approver for synthetic staging` (Closes #785, Sec-Row admin-console), unmerged. The coordinator should know that the provider must also be mounted into #723's staging Keycloak and switched on in the live realm.
+- LOOP_STATUS: CONTINUE
+
+### 2026-10-02T23:30:00+03:00 · INT-430 · doing (PR open, not merged; the verifier ships, five split rows remain)
+- Goal: the acceptance verbatim (GitHub #732):
+  - *"A council orchestrator (provider-agnostic, through the INT-428 lanes) runs N configurable member models, each in a named role … Disagreement is resolved by a deterministic rule, and an unresolved disagreement falls back to asking the patient."*
+  - *"The deterministic IntakeEngine stays the only authority on the next question … LLM output may carry only candidate_flags, capped at YELLOW_REVIEW … the council never blocks a turn (fake-clock test)."*
+  - *"Facts carried from documents need patient confirmation before they fill a slot."*
+  - *"The admin panel picks the council members … with 4-eyes and audit, and shows per-member latency, cost and agreement rates."*
+  - *"Tests: recorded fixtures only, an injection corpus over documents, the fail-closed real-PHI egress guard, and determinism of the adjudication."*
+  - The binding medical and AI/ML challenger reviews (2 Oct 2026) narrowed this to a post-bind **verifier**. ADR-036 records the reshaping.
+- Plan:
+  - Primary extraction stays single-pass and feeds triage.
+  - The verifier reads red-flag and numeric slots only, adjudicates asymmetrically and deterministically, and can only append the slot's own scripted re-ask or confirm-back, compare-and-swapped on the slot revision.
+  - It runs as Backend Work behind the budget and an admission gate. Late verdicts become addenda and re-run triage.
+  - Members are pinned per session through the INT-428 role port. Hosted and mock members are unrepresentable on a PHI deployment.
+- Tests added (with the near-miss negative for any safety rule):
+  - Five suites, 123 tests: `tests/voice/test_council_{contract,adjudication,lanes,timing,ledger}.py`.
+  - Every review must-have that is in scope has its near-miss. The mapping table is in `docs/evidence/INT-430.md`.
+  - RED: 5 collection errors with the package absent, plus the `StateEffect` lane-invariant failure, which was fixed by reverting my change rather than the test.
+- Result: see the gates in `docs/evidence/INT-430.md`.
+- Invariants touched and still passing: 1, 2, 6, 9, 10, 12, 13, 14, 17, 19, 20, 22.
+- Decisions / ADRs / `00_STATE.md` rows: ADR-036, accepted by the owner on 3 Oct 2026 ("im giving u approval").
+- Blocked on: nothing for the ADR, which the owner accepted on 3 Oct 2026. The clinical decisions CD-02..09 are INT-432's. The cost cap is HB-O8 (INT-439).
+- Next: five split rows, with ids to be allocated by the coordinator: the admin Council section; production composition; the Loop-2 `yield_table` proposal; the document rules on `parse_document`; the red-flag lexicon, speaker attribution and the backchannel lexicon. Evidence-gated studies are listed in the evidence file.
+- LOOP_STATUS: WAITING_HUMAN
+
+### 2026-10-02T22:48:00Z · INT-442 · awaiting-human (PR open, stacked on #751; owner egress commit + deploy pending)
+- Goal: acceptance verbatim (GitHub #752): *"A forward proxy on the synthetic host only, default-deny, admitting just the allow-listed vendor hosts. INTAKE_EGRESS_PROXY_URL is set there and never in the PHI deployment."* and *"Tests prove an unlisted host is refused. Deployed and smoked."*
+- Plan: render a second squid config from the one allow-list (hosted_model_inference rows only) and run it as `egress-proxy` on the staging compose, the API's one route out. Read the variable through a guard that refuses it outside the synthetic deployment, and probe it live from the API container on every deploy.
+- Tests added: `tests/infra/test_staging_egress.py` (40). It covers topology; the variable's single setter; the boot refusal outside synthetic, with a near miss; the config; host-for-host parity with the in-process guard; the renderer on a fake list with hosted rows; and the probe's five outcomes.
+  - RED: 32 failed and 6 errors against the base renderer and compose.
+  - GREEN: 284 targeted, then 723 over the egress, platform, admin and voice lane suites, and 482 observability.
+- Result: docs/evidence/INT-442.md. Pins 329 → 330; files/11 regenerated.
+- Invariants touched and still passing: 14 (egress allow-list, digest-pinned image), 19 (no vendor on the PHI path: the proxy and its variable exist only in the synthetic deployment), 6 (the CONNECT log is host:port only).
+- Decisions / ADRs / `00_STATE.md` rows: none. The vendor rows are the owner's protected change (07 §F rule 2), prepared unstaged.
+- Blocked on:
+  - the owner's commit of `infra/security/egress-allowlist.yaml` and the three files that move with it. Until then the proxy admits nothing.
+  - the deploy. The classifier refused my upload of the corrected artefact. The host still runs `1785dd58`, and `/opt/intake` needs restoring from the earliest `/opt/intake.prev-*`.
+- Next: INT-443 (ElevenLabs hosted TTS), stacked on this.
+
+### 2026-10-02T21:00:00Z · INT-431 · done (PR open)
+- Goal: acceptance verbatim (GitHub #733): *"The fixture builds the token at runtime from its parts, so no JWT-shaped literal exists at rest. No allowlist, `gitleaks:allow` or `.gitleaksignore` entry is added."* and *"The test asserts the same behaviour as before. gitleaks at the CI-pinned version finds nothing in the file."*
+- Plan: replace the two JWT-shaped literals in `apps/embed-sample-partner/src/partnerBackend.test.ts` with a token joined at runtime from base64url-encoded parts, byte-identical to the old one.
+- Tests added: `the synthetic ticket fixture (INT-431)` pins three base64url parts that decode to the fixture.
+  - RED: gitleaks 8.18.4 and 8.30.1 each report `jwt` at lines 39 and 41.
+  - GREEN: both versions report no leaks; vitest 9 passed; typecheck, lint and prettier are clean.
+- Result: docs/evidence/INT-431.md. Pins 326 → 327; files/11 regenerated.
+- Invariants touched and still passing: 14 (the scanner gate is unchanged; nothing is allowlisted), 17.
+- Decisions / ADRs / `00_STATE.md` rows: none.
+- Blocked on: nothing. CI's pinned gitleaks (8.24.3) runs as the PR's own check.
+- Next: PR `INT-431: …` (Closes #733, Sec-Row connectors); then #481 can be recommitted.
+
+### 2026-09-27T16:00:00Z · INT-400 · done (PR open, not merged)
+- Goal: acceptance verbatim (GitHub #666): *"the device parser applies the server's ambiguity rule: an ambiguous day/month is refused with a prompt to confirm the date, never guessed; one shared fixture drives both parsers"*. Found by INT-122 §10.4: the device read `03.09.2026` day-first, and the server refuses it.
+- Plan:
+  - Port `turkish_dates.parse_printed_date` / `find_printed_date` line for line to `apps/mobile/src/lib/taxonomy/turkishDates.ts`: no default order, the server's refusal names, and the server's scan order.
+  - Match Python's Unicode `\d`, `\w`, `[^\W\d_]`, `\s`, `int()` and `fold_tr` to explicit device classes, code point by code point.
+  - `parseMhrsSms` gains `dateRefusal`. The form's new `ambiguous_date` notice leaves the date field empty; the patient writes the date.
+  - One fixture, `tests/fixtures/records/mhrs_dates.json`, holds both sides.
+- Tests added: `tests/records/test_mhrs.py`, `turkishDates.test.ts`, the fixture rows in `mhrsSms.test.ts`, reducer cases in `visits.test.ts`, and pins in `e2e/visits.spec.ts`.
+  - Near-miss controls `13.09.2026` and `05.05.2026` are read. `03.09.2026` is refused.
+  - RED: 46 of 85 failed. The old device guessed a date on 8 shared messages where the server refuses.
+  - GREEN: 117 targeted, 2278 mobile, 58 server.
+  - Mutants: 10 of 10 caught.
+- Result: docs/evidence/INT-400.md. check-i18n, ruff, format, typecheck, lint, the records/release/mobile/infra/backlog/ci/experience lanes, `no_placeholders` after staging, `phi_scan`, sec-row linkage and `evidence_check` all pass. `make check` was not run whole (no container runtime for check-integration).
+- Invariants touched and still passing: 5 (tr first; en mirrored), 6 (nothing echoes the message), 17, 22 (a date that reads two ways never becomes a date).
+- Decisions / ADRs / `00_STATE.md` rows: none new. `HARDCODED_EXEMPT` gains `lib/taxonomy/turkishDates.ts`, with its reason. New patient copy `visits.new.smsAmbiguousDate` is flagged for clinical-reviewer sign-off.
+- Blocked on: nothing. The order itself stays with INT-399 (Ask 2); nothing here chooses it.
+- Next: PR `INT-400: the on-device MHRS SMS parser refuses an ambiguous date, as the server does` (Closes #666, Sec-Row mobile, depends on #663), unmerged for review.
+- LOOP_STATUS: CONTINUE
+
+### 2026-09-27T10:45:00+03:00 · INT-395 · done (PR open)
+- Goal (GitHub #654, P0): DSAR erasure and export cover every patient-deletable table. Found by INT-393 §11: no path erased `notification_preferences`, and the export did not list Doctor Links.
+- Plan:
+  - A completeness contract derived from the inventory annotations. A subject-erasable clock means the table must be erased; a subject-data category or an erasable clock means it must be exported. The erasure graph and near-miss controls are INT-393's.
+  - Run against main's declarations, the contract named eight gaps: the two above, and six more tables the export never listed (previsit outputs, learned facts and their header, CSAT comments, the preference, guardian links).
+  - The erasure and the export now read one sweep (`dsar.store.subject_record`). The erasure removes the preference and audits it by id.
+  - The export lists Doctor Links under their share: ids, instants, and the recipient as the role `clinician`, never the label. It also lists the other six tables, each by id.
+  - Four new counsel headings, with no wording drafted. The export still refuses until INT-210.
+  - The grant preflight: the run asks postgres for every privilege it exercises. A role that lacks any is refused before anything is touched, with a typed result, an audit entry, and the request left open. `app_rw` lacks exactly three privileges; granting them is INT-394's decision (#650), recorded and not taken.
+- Tests added:
+  - `tests/data/test_session_delete_contract.py`: the contract, three pins, five near-miss controls, and the export over the full seed.
+  - `tests/legal/test_dsar_flows.py`: the Doctor Link export by role, the preference erasure, the fail-closed refusal, and the grant need parsed from the migrations.
+  - Integration (CI): the preference erased as the superuser; the refusal as `app_rw` naming exactly three privileges; the export sweep as `app_rw` under RLS.
+  - Access-log classification rows.
+  - RED: 12 failed, 119 passed. GREEN: 131 passed.
+- Result:
+  - data/legal/api/security/admin/experience/clinician/platform/backlog/smoke suites: 2907 passed.
+  - ruff and mypy --strict clean. One alembic head (`0013_previsit_output`).
+  - Pins raised 306 → 307 (main moved to 306 with INT-391 while this was open); files/11 regenerated.
+- Invariants touched and still passing: **4** (the refusal and the preference are audited by id), **6** (audit refs are id-shaped; the recipient label and the guardian's account ref stay out of the export), **14** (every envelope is still shredded before its row goes; no grant added), **17** (the missing grants fail closed, typed, and are not built around), **18** (the annotations now drive both paths), **22** (learned values render for `tr`).
+- Decisions / ADRs / `00_STATE.md` rows: none.
+- Found, not fixed, recorded in `docs/evidence/INT-395.md` §11:
+  - INT-394's three grants;
+  - `patients` is annotated patient-deletable but kept as the anchor;
+  - an erased subject's opt-out reads as "said nothing";
+  - merge order with #670 (`record_embeddings`).
+- Merge with main after #670 (INT-123), evidence §12: `record_embeddings` is declared. The sweep reads it in the patient's RLS namespace, the export lists it in the documents section (without the vector's numbers), and the erasure declares SELECT and DELETE on it. RED 2 failed, 26 passed; GREEN 176 passed. One alembic head (`0014_int123`). Pins: main's count + 1 (324 after the second merge of main, which brought INT-409..413); files/11 regenerated.
+- Next: PR `INT-395: DSAR erasure and export cover every patient-deletable table` (Closes #654, Sec-Row data-at-rest), left unmerged for review.
+
+### 2026-09-27T12:00:00Z · INT-021 · awaiting-human (close-out PR open; docs/slo/workers.yaml waits on the owner)
+- Goal: acceptance verbatim (GitHub #19; #211 was the closed scoped copy):
+  - *"docs/slo/{api,voice-runtime,workers}.yaml with SLIs/objectives/burn-rate alerts (14.4x/1h, 6x/6h page; 1x/3d ticket); generator emits Prometheus rules; golden-signal dashboards provisioned; runbook per alert"*
+  - The close-out audits every clause against the services, apps, jobs and tiers that exist now, and builds what is missing.
+- Plan:
+  - Generate the rules from every SLO file, not from `api.yaml` alone.
+  - Generate one golden-signal dashboard per SLO file (`intake_platform.slo_dashboards`) and mount the directory into Grafana.
+  - Hold every alert in every rule file Prometheus loads to a runbook heading that resolves, and every series a rule reads to a `live` catalogue entry (`intake_platform.alert_rules`).
+  - Discover every service, app and job, and record each one's SLO file and probe rows or the reason it has none (`observability/slo_coverage.yaml`, `intake_platform.slo_coverage`).
+- Tests added (with the near-miss negative for any safety rule):
+  - `tests/observability/test_alert_rules.py` (new). Near misses: an anchor one character off, a missing runbook file, a heading inside fenced code, a traversal link, an external URL, a series one letter off, a bare-name series, an undefined recording rule, a `planned` series, and an unloaded rule file.
+  - `tests/observability/test_slo_coverage.py` (new). Near misses: each entry dropped, a probe row one character off, an alert name one character off, a service exempted from its SLO, missing rule groups, a missing dashboard, a new service, app or job without an entry, and an emitter mounted under the wrong name.
+  - `tests/observability/test_slo_generator.py`, generalised to every SLO file. Near misses: the api-only rules file, and a changed objective without a re-emitted dashboard.
+  - `tests/observability/test_obs_compose.py`: the directory mount.
+  - RED 1: 3 collection errors, modules absent. RED 2: 24 failed, 67 passed.
+- Result:
+  - The four files are green, and the audit reports nothing.
+  - 1570 passed across observability, infra, ci, platform and the security-rule consumers.
+  - `make slo-report` exits 0 offline.
+  - `make check-py` (with the deid artefact dir): ruff and format are clean, and `mypy --strict` is clean over 489 files.
+  - Whole tree: 8779 passed at 95.85 %.
+  - Every scoped lane is at its floor. The host stopped the make process after the whole-tree lane, so the scoped lanes were re-run individually with the Makefile commands.
+  - `no_placeholders` (staged): OK.
+  - `make check` was not run whole (check-integration is CI-only; no TS changed).
+- Invariants touched and still passing: 6, 8, 13, 15, 17, 20.
+- Decisions / ADRs / `00_STATE.md` rows: none.
+  - Found and fixed: six SLO files had no alerts; `services/probes` never emitted the series its SLO reads; the 8 cost alerts had no runbook; nothing read `sec_audit_chain_ok` although files/08 §5 pages on it (`AuditChainVerificationFailed`, `docs/runbooks/audit-chain.md`).
+  - Found, not fixed: admin-web has no registry row (needs a re-recorded sweep); one-shot job gauges reach no Prometheus; a readiness 503 burns the HTTP SLIs (learning is not-ready by design until a human value exists); backup age has no emitter.
+  - Pins unchanged (307); files/11 regenerated for the status.
+- Blocked on: owner (backlog) — "Does the worker tier become `services/workers`, under which issue, and what objective does each worker SLI files/08 §4 A leaves open carry?" (`docs/backlog/blockers.md` INT-021; no HB id is minted here).
+- Next: PR `INT-021: SLOs, burn-rate rules, dashboards and runbooks cover every service — close-out` (Refs #19, Sec-Row monitoring-contract).
+- LOOP_STATUS: WAITING_HUMAN
+
+### 2026-09-27T14:00:00+03:00 · INT-333 · done (PR open, not merged)
+- Goal: acceptance verbatim (GitHub #532):
+  - *"every register × location × reduce-motion combination renders RED with 0 ms entrance, 0 ms delay and no loop; RED exit is 0 ms and no register auto-dismisses"*
+  - *"ALERT and CALM paint first as a root layer above the navigators, never as a push or a modal; SILENT renders in flow; DEFERRED_CLINICIAN is invisible to the motion layer"*
+  - *"ON_SITE never mounts a 112 control even transiently (invariant 21); no RED register permits a haptic"*
+  - *"a guard pins the list of RED surface files and forbids any animation API, haptics, Modal or router call on their first-paint path"*
+- Plan: a pure `lib/motion/red.ts` (presentation mode, literal-typed zero motion, location affordances, yields keyed on the mode) and a MOTION-4 source guard that pins the six RED-path files. ADR-033 is Proposed, so Q1, Q2 and Q4 ship in their recorded fail-closed defaults; Q4's default is also files/02 §5.3's action table.
+- Tests added (with the near-miss negative for the safety rule): `red.test.ts` (13, including an ON_SITE presentation built round `resolveRed`'s clamp) and two `e2e/motion.spec.ts` guards. RED: the module missing and 2 guards failing. GREEN: 25/25, whole mobile suite 2275. Mutants: 8 of 8 killed.
+- Result: `make check-ts` and `make check-i18n` exit 0; `tests/backlog` and `tests/smoke` pass; `no_placeholders` after staging OK. `make check` not run whole (check-integration is CI-only; no Python change).
+- Invariants touched and still passing: 21 (no 112 under ON_SITE, none mounted then removed under UNKNOWN), 9 (the RED path waits on nothing), 17, 8.
+- Decisions / ADRs / `00_STATE.md` rows: none. ADR-033 stays Proposed.
+- Blocked on: nothing. INT-135 consumes the contract and carries the device measurement.
+- Next: PR `INT-333: Motion: RED contract — zero motion, first paint as a root layer never behind a navigator, no haptic` (Closes #532, Sec-Row triage).
+
+### 2026-09-27T14:30:00+03:00 · INT-334 · done (PR open, not merged)
+- Goal: acceptance verbatim (GitHub #533):
+  - *"one app-authored animation at any instant; lower or equal priority arrivals render instantly, never queued; RED snaps every running element, stops the ambient loop and bypasses every window"*
+  - *"rail, work-chip and YELLOW commits wait for the commit window (closed while listening or composing) and are applied later, never dropped; arbitration reads no clock"*
+- Plan: a pure reducer `lib/motion/arbiter.ts` (`arbitrate`, `release`, `windowOpen`, `invalidate`, `flush`) over the named order `red > yellowPill > workChip > railCommit > content > ambient`: snap, never queue; hold, never rest; the window shut while listening or while the composer has focus. No consumer is wired (INT-337 wires the dialogue).
+- Tests added: `arbiter.test.ts` (15, including a 5,000-step seeded property test and near-miss controls for equal priority and an unfocused draft). RED: the module missing. GREEN: 15/15. Mutants: 11 of 11 killed.
+- Result: `make check-ts` and `make check-i18n` exit 0; `tests/backlog` and `tests/smoke` pass; `no_placeholders` after staging OK. `make check` not run whole (check-integration is CI-only; no Python change).
+- Invariants touched and still passing: 9 ("preempt" is RED's alone), 17, 8.
+- Decisions / ADRs / `00_STATE.md` rows: none. ADR-033 stays Proposed; none of its open questions touches the arbiter.
+- Blocked on: nothing.
+- Next: PR `INT-334: Motion: arbiter and commit windows (pure)` (Closes #533, Sec-Row mobile).
+
+### 2026-09-27T11:00:00Z · INT-404 · done (PR open; CODEOWNER review pending)
+- Goal: acceptance verbatim (GitHub #673):
+  - *"a rule's evidence line renders every quantity through the shared locale renderer (`clinical_schemas.quantity`): tr comma, `useGrouping:false`, number + unit as one non-breaking atom. The rule's thresholds and semantics are untouched (the stored comparison value stays numeric)"*
+  - *"golden tests with a near-miss (a full stop in tr fails); `make safety` green; CODEOWNER review"*
+- Plan:
+  - The evidence line is generated, not authored (`protocols.triage.engine._evidence`). The engine now records the reading in parts too: `RuleFire.evidence_slots` holds the slot, the carried values as numbers, and the declared unit. The unit comes from the new `TriageContext.units`, which is evidence only.
+  - The engine's `evidence` text stays byte-identical.
+  - A new `clinical_schemas.rule_evidence.render_rule_evidence(rule, *, locale)` writes the parts through `quantity_atom`.
+  - The SOAP/PDF note, the FHIR triage narrative and the document RiskAssessment's `reasonCode.text` write for `meta.language`.
+- Tests added (with the near-miss negative for any safety rule):
+  - `tests/protocols/test_triage_evidence_render.py` (91):
+    - nine synthetic engine-fired goldens in tr and en, each checked for the full-stop near miss and for a byte-identical engine text;
+    - the threshold near miss (37.99 vs `>= 38`);
+    - units change no level;
+    - `Decimal` scale and wire round trip;
+    - three faces × nine readings;
+    - renderer edge cases, and no text renderer imported by `packages/protocols`.
+  - `test_fhir_mappers.py` (+5), `test_note_golden.py` (+1, SOAP/PDF/FHIR), `test_numeric_carrier.py` (one expectation), and `test_quantity_render.py` (the new module joins the TTS boundary list).
+  - RED: 4 collection errors. Then, with only the schema and the renderer in place, the faces printed `38.50` for tr: 4 failed, and 79 failed on `TriageContext.units`.
+  - Mutants: 47, 8, 18, 7 and 8 tests fail respectively.
+- Result:
+  - No golden file changed. The one `make safety` expectation that changed is the clinician line in `test_numeric_carrier`, now `38,50` with `38.50` asserted absent.
+  - `make safety` exit 0: triage 100 % branch, 18/18 mutations both on the base and on this branch.
+  - `make check-py` exit 0: ruff/format clean, `mypy --strict` clean (474 files), whole tree 8563 passed at 96.11 %, every scoped lane at its floor (clinical-schemas 92.22 %).
+  - `make check` was not run whole: check-integration is CI-only, and the only TS change is generated `models.ts`, whose package was checked directly.
+  - `no_placeholders`, `phi_scan`, `claims_scan`, `evidence_check`, sec-row linkage, gitleaks (staged) and bandit: OK.
+  - Codegen regenerated. The clinical-schemas TS package typechecks, lints and tests clean.
+- Invariants touched and still passing:
+  - 1: levels come only from the rules, and units cannot change one.
+  - 6: refusals echo nothing.
+  - 7 and 10: no rule, threshold or `text_tr` changed.
+  - 8: tests only added; `rule_evidence.py` 100 %, triage 100 %.
+  - 22: display half on the evidence line; the TTS boundary is extended to the new module.
+- Decisions / ADRs / `00_STATE.md` rows: none.
+  - `RuleFire` gains an optional field, and the files/04 §5 `evidence` string is unchanged.
+  - Found, not fixed: the standalone `to_r4.triage_to_risk_assessment` still writes the engine's text. It has no locale and no production caller.
+  - Found, not fixed: nothing in production builds a `TriageContext` yet, so nothing fills `units`.
+  - Built on #657's branch, and rebased onto `main` once #657 merged (`f0564e93`). Pins 307 → 308 against `main`, and files/11 is regenerated.
+  - Re-run on the rebased tree: `make safety` exit 0 (18/18); `make check-py` exit 0 (8811 passed, 95.78 %, mypy clean over 487 files).
+- Blocked on: nothing technical. CODEOWNER review for `packages/protocols/**` must be requested by hand, because there is no `.github/CODEOWNERS`.
+- Next: PR (Sec-Row `triage`, Closes #673).
+- LOOP_STATUS: CONTINUE
+
+### 2026-09-27T08:30:00+03:00 · INT-391 · done (PR open, not merged)
+- Goal: acceptance verbatim (GitHub #646):
+  - *"the id shape follows WebAuthn Level 3 (base64url, unpadded, decoded length 16–1023 bytes); a refusal still never logs the value"*
+  - *"property tests over generated ids, with near-misses (padding, a non-base64url character, 0 bytes, 1024 bytes)"*
+  - Found by INT-378 (PR #643): the generic 128-character id shape refused ids starting with `-` or `_` and ids over 96 bytes.
+- Plan:
+  - `principal_from_claims` decodes `credential_id`. It must be 16–1023 bytes (WebAuthn L3 §4), unpadded base64url (§3), and re-encode to the same string (RFC 4648 §3.5), so each credential has one spelling for four-eyes' string comparison.
+  - The refusal names the claim, never the value.
+  - `aaguid` is unchanged: the provider writes UUID text, which the old shape always admits.
+  - The fixture's credential ids become valid ids.
+- Tests added (with the near-miss negative for any safety rule):
+  - `tests/admin/test_staff_second_factor.py` §5/§5b: hypothesis property tests, the boundaries × `A`/`-`/`_`, and the API harness. Near misses: padding, 16 characters outside the alphabet, the standard alphabet, 0–15 and 1024+ bytes, a second spelling, a dangling character, non-strings, an absent claim.
+  - `tests/admin/test_oidc_verifier.py`: a signed 1023-byte id end to end.
+  - RED: 34 failed against `main`'s principal. GREEN: 60 passed. Mutants: 7 of 8 killed; the survivor is equivalent.
+- Result: `make check-py` exit 0. That covers ruff and format clean, `mypy --strict` over 472 files, and the whole tree at 8374 passed and 96.04 %, with every package lane at its floor. `tests/security`: 412 passed, with the 11 integration tests deselected. `no_placeholders` (after staging), `phi_scan`, `claims_scan`, `evidence_check` and sec-row linkage: OK. gitleaks 8.24.3: no leaks. `make check` was not run whole (check-integration is CI-only), and there was no TS change.
+- Invariants touched and still passing: 6 (the refusal carries no value; the logs, audit rows and responses are checked), 8 (tests only added), 14 (the security baseline: a valid staff key is no longer refused at random, and non-ids are no longer admitted), 17 (fixture values are valid ids, not placeholders).
+- Decisions / ADRs / `00_STATE.md` rows: none. docs/security/threat-model.md `admin-console` gains "Controls added by INT-391". Pins 302 → 303, and files/11 is regenerated.
+- Blocked on: nothing.
+- Next: PR `INT-391: the console accepts every valid WebAuthn credential id` (Closes #646, Sec-Row admin-console). #643's recorder loop and runbook §3 describe the old rule once both merge.
+
+### 2026-09-27T09:00:00Z · INT-386 · done (PR open)
+- Goal: acceptance verbatim (GitHub #638):
+  - *"every clinical quantity in the typed lane, clinician note, patient summary and FHIR narrative text renders through the INT-385 locale renderer: tr comma, `useGrouping:false`, number + unit as one non-breaking atom; FHIR structured values (`valueQuantity.value`) stay numeric and unchanged"*
+  - *"a shared fixture test across all renderers, the golden and `make safety` tests updated with a near-miss (a full stop in tr fails), and no numeral reaching TTS"*
+- Plan:
+  - Move INT-385's renderer, unchanged, to `clinical_schemas.quantity`, because the FHIR mapper's package cannot import `intake_platform`. `intake_platform.records` re-exports the same five objects.
+  - Add `float_magnitude` for the float speech measures. It uses `repr` digits, never the binary expansion, and refuses NaN and inf.
+  - The typed rail takes a required `locale`. The note, the summary and the FHIR narrative use `meta.language`. The note's SOAP/PDF speech-measure lines are fixed too, so the two faces of one note agree.
+- Tests added (with the near-miss negative for any safety rule):
+  - `tests/records/test_quantity_render.py` (+139):
+    - six entry points × the shared table, in tr and en, each with a round trip through the parser and the reader;
+    - a full stop put back fails on every surface;
+    - no grouping; `de` refused everywhere; the re-export identities;
+    - speech measures read back to the exact float;
+    - a runtime import boundary: six TTS-path modules, each in a fresh interpreter, load none of the seven renderer modules; plus static allow-lists and a no-arithmetic check on the moved module.
+  - `test_note_golden.py` (+1): SOAP, PDF and FHIR decimal near misses. `test_patient_summary.py` (+1). `test_typed_parity.py` (+2). `test_fhir_mappers.py` (+5): the narrative carries the comma and `valueQuantity` is unchanged.
+  - RED: 2 collection ImportErrors, and 9 failed (TypeError on `locale`, `72.5` where `72,5` was expected).
+  - Mutants: a full-stop renderer kills 83 tests; two sites reverted to their old f-strings kill 21.
+- Result:
+  - Goldens byte-identical (every golden quantity is whole).
+  - One expectation changed: `test_numeric_carrier` rail `38.50` → `38,50`, with `38.50` now asserted absent.
+  - Before/after capture through `main`'s and this branch's renderers: each line differs only in its decimal point.
+  - `make check-py` exit 0: ruff/format clean, `mypy --strict` clean (473 files), whole tree 8462 passed at 96.11 %, every scoped lane at its floor.
+  - `make safety` exit 0 (triage 100 %, voice-runtime 98.63 %).
+  - `no_placeholders`, `phi_scan`, `claims_scan`, `evidence_check`, sec-row linkage, gitleaks (staged) and bandit: OK.
+  - `make check` was not run whole (check-integration is CI-only; no TS changed).
+- Invariants touched and still passing: 2 and 10 (no `text_tr`, instrument or copy string changed), 6 (refusals echo nothing), 8 (tests only added; clinical-schemas lane at 91.99 %), 22 (display half on every text surface; the TTS half is untouched and the boundary is tested).
+- Decisions / ADRs / `00_STATE.md` rows: none. The module move follows the existing one-way `intake_platform → clinical-schemas` edge.
+  - Found, not fixed: triage `evidence` strings (`packages/protocols`) still print a full stop into the note and the narrative.
+  - Found, not fixed: open-map `JsonValue` values are carried as written.
+  - Pins 302 → 303.
+- Blocked on: nothing.
+- Next: PR (Sec-Row `records`, Closes #638).
+
+### 2026-09-27T16:30:00+03:00 · INT-397 · done (PR open; depends on #658)
+- Goal: acceptance verbatim (GitHub #659):
+  - *"the notifications store distinguishes saving from failed, and only a real failure is announced (assertive), once per change"*
+  - *"`review.sentInfo` and `consent.queue.note` are announced (polite) only when the state changes in this session (just sent, just queued), never on a revisit"*
+  - *"INT-362's source-tree discovery test drops these three from its exception list (the list only shrinks); the 4.1.3 row moves to Supports with the tests cited, and MC-26 is retired"*
+- Plan:
+  - Give each store a typed state: notifications `save` is idle, saving or failed; consent `ConsentOutbox` is clear, sending or held.
+  - A pure `newsStep` makes an outcome news only when the store moves into it while the screen is in front. `useNews` stores it during render.
+  - `AnnouncedText` takes `news`, defaulting to true. While it is false the line keeps its label and has neither half.
+  - The discovery reaches the three keys by name. They were outside the discovered set, not in `ANNOUNCED_ELSEWHERE`.
+- Tests added (32 mobile, 0 net legal):
+  - `announce.test.ts` +6.
+  - `notifications/store.test.ts` 9 (new) and `consent/store.test.ts` 7 (new).
+  - `a11y.spec.ts` +5, plus 5 per-file cases. Its near-miss control catches a plain caption, an arrival announcement, `news={false}`, a non-hook value and a region.
+  - The legal "still open because" test now renders a copy that records a reason.
+  - RED: 31 failed | 131 passed. GREEN: 162 passed. Mutations: 8 of 8 caught.
+- Result:
+  - `make check-ts` exits 0 (mobile 2230 passed, typecheck and lint clean) and `make check-i18n` gives 30 passed.
+  - The report re-renders and `--check` is clean. `tests/legal` 504 and `tests/backlog tests/smoke` 28 pass.
+  - 4.1.3 moves to Supports. WCAG counts: Supports 28 · Partially 4 · Does Not Support 0 · N/A 13 · Not Evaluated 10.
+  - `make check` was not run whole, because check-integration is CI-only.
+- Invariants touched and still passing:
+  - 2: only shown words are spoken, with the error word on a real failure only.
+  - 5: no copy changed.
+  - 6: nothing is logged.
+  - 17: `ANNOUNCED_ELSEWHERE` stays at 7 and is pinned as a ceiling.
+  - 8: tests were only added.
+- Decisions / ADRs / `00_STATE.md` rows:
+  - None.
+  - The note's transition is read from its status rather than stored in `NoteState`, which is persisted in the encrypted draft.
+- Blocked on: nothing. DA-08 (the owner, INT-359) hears the lines on devices.
+- Next: once #658 merges, merge main and recompute the three pinned counts.
+- LOOP_STATUS: CONTINUE
+
+### 2026-09-27T14:00:00+03:00 · INT-387 · done (PR open)
+- Goal: acceptance verbatim (GitHub #640):
+  - *"each of those rows is re-rated from the tests CI now runs, and cites them; device-only aspects stay with their DA item; the report is re-rendered and `render_a11y_report.py --check` is clean"*
+  - *"`tests/legal/test_a11y_report.py` fails if a row rated below Supports cites an issue whose row is `done` without a recorded reason (so the report cannot fall stale again)"*
+  - *"the legal statement (`docs/legal/accessibility-statement.md`) is not edited here; its refresh is INT-359 with counsel"*
+- Plan:
+  - A row below Supports is linked to the INT ids its prose names, and to every backlog issue titled `WCAG <sc>:` for its criterion. The stale rows named only INT-144, so the title link is the one that finds them.
+  - If a linked issue is done, the row is refused unless it records `still_open_because:`. The report prints that reason in the row.
+  - Re-rate the stale rows from the tests CI runs.
+- Tests added: `tests/legal/test_a11y_report.py` +9 (30 → 39).
+  - An oracle for the link convention.
+  - The 3.3.8 regression.
+  - A near-miss control: 1.4.3 passes while INT-144 is open, is refused once it is done, and is accepted with a reason.
+  - A reason is refused where nothing is open.
+  - An unknown id is refused.
+  - The reason is rendered.
+  - RED: 8 errors and 1 failure. The guard on `main`'s YAML refuses 3.3.1, 3.3.8 and 4.1.3. GREEN: 39 passed. Mutations: 6 of 6 caught.
+- Result:
+  - 3.3.1 moves to Supports (INT-362) and 3.3.8 to Supports (INT-361).
+  - 4.1.3 stays Partially Supports with a new finding: three status lines that INT-362 left out on purpose (MC-26), with `still_open_because` recorded.
+  - The 3.2.2 remark is corrected, and DA-08's steps are refreshed.
+  - WCAG counts: Supports 27 · Partially 5 · Does Not Support 0 · N/A 13 · Not Evaluated 10.
+  - `--check` clean. `tests/legal` 504, `tests/backlog` 10, `tests/legal+backlog+smoke` 532 passed. ruff and mypy clean.
+  - `make check` was not run whole: no TypeScript changed, and check-integration is CI-only.
+- Invariants touched and still passing: 20 (no figure; ratings are test-backed statements), 17, 8.
+- Decisions / ADRs / `00_STATE.md` rows: none.
+- Blocked on: nothing.
+- Next:
+  - File an issue for the three silent status lines under 4.1.3 (`notifications.pending`, `review.sentInfo`, `consent.queue.note`).
+  - INT-359 refreshes the statement's items 6 and 7.
+- LOOP_STATUS: CONTINUE
+
+### 2026-09-27T12:00:00Z · INT-122 · todo (second pass; PR open, row unchanged)
+- Goal: acceptance verbatim (GitHub #97): *"patient-exported e-Nabiz documents parsed; MHRS SMS screenshot -> visit fields; no scraping of e-Nabiz (no third-party API exists; legal note enforced)"*.
+- Plan:
+  - Audit main clause by clause (docs/evidence/INT-122.md §10.1).
+  - Build the missing byte-level half without choosing an engine:
+    - `records/document_engine.py` holds the files/03 §4.9.1 rows 20-21 gate (§4.9.2(f)), plus `read_mhrs_screenshot` and `read_enabiz_export`. Both refuse with a closed `DocumentReadStatus` before any byte meets an engine.
+    - `enabiz.import_lab_table` runs the six-column parse through INT-124's unit guard into unconfirmed, boxed items.
+- Tests added: `tests/records/test_enabiz_mhrs_read_paths.py` (39).
+  - RED: collection error, module missing.
+  - GREEN: 39 passed; `tests/records` 612 passed at 100 % branch on `intake_platform.records`.
+  - Eight mutants were run, and each one was caught.
+- Result:
+  - ruff, format and mypy --strict (473 files) clean.
+  - tests/api + tests/security: 925 passed.
+  - Main pytest lane: 8416 passed at 96.16 % branch (floor 85).
+  - `no_placeholders`, `assert_no_vendor_calls` and `phi_scan` pass after staging (evidence §10.5).
+- Invariants touched and still passing:
+  - 6: refusals name a row and a status, never the upload.
+  - 12: every reading is a candidate or unconfirmed.
+  - 14: data, never instructions; one fence.
+  - 17: the gate is wired and fails closed with its content empty.
+  - 19: no OCR component reaches the PHI path without a blob-verified licence.
+  - 22: every lab value is guarded.
+- Decisions / ADRs / `00_STATE.md` rows: none. No engine was chosen, because that is the open engine-and-sandbox ADR plus a model-table licence audit.
+- Blocked on:
+  - an engine for rows 20-21: a licence read from the raw blob, a registry row and the files/10 §4 sandbox ADR;
+  - HB-A1 (does the e-Nabız PDF have a text layer?);
+  - Ask 2 in docs/backlog/blockers.md (MHRS SMS date order; no HB id yet).
+- Found, not fixed: INT-134's on-device `parseMhrsSms` reads dates day-first, while the server guard refuses the same two-way date. See evidence §10.4.
+- Next: PR `INT-122: e-Nabız export parser and MHRS SMS to visit fields (no scraping)`, `Refs #97`, Sec-Row records. It is left unmerged for the coordinator's split.
+
+### 2026-09-27T12:00:00Z · INT-123 · todo (PR open; mechanism shipped, no embedding model pinned)
+- Goal: acceptance verbatim (GitHub #98): *"embeddings scoped by patient+consent; retrieval cited into notes with provenance"*.
+- Plan:
+  - Migration `0014_int123`: `record_embeddings`, with a PERMISSIVE tenant and a RESTRICTIVE patient RLS policy, FORCE, and no clinician grant.
+  - Confirmed-only indexing through a queue hooked on `ConfirmedRecordStore.admit`.
+  - The `documents` consent gate on indexing and on retrieval.
+  - Erasure of vectors in the DSAR shred and in the retention executor.
+  - The `retrieve_records` background Work, and `cite_records` into `imported_objective`, with the document, page, bbox and item id on the span.
+- Tests added (with the near-miss negative for any safety rule):
+  - `tests/records/test_vector_rls.py` (the row's file), `tests/records/test_record_index.py` and `tests/voice/test_retrieve_records_work.py`: 55 unit + 8 integration.
+  - Near-miss controls:
+    - a PERMISSIVE patient policy, a missing WITH CHECK, an unforced table and a widened namespace are each named;
+    - the live probe is shown red on a copy of the table without RLS;
+    - a planted §4.9.1 record-embedding row is detected.
+  - RED: collection errors; then both erasure tests failing on surviving vectors; then the INT-385 guard catching a voice-side import of `intake_platform.records`. The guard was kept, and the voice side types by structure instead.
+  - Mutations: 10/10 killed (one survivor on the first pass got its test).
+- Result:
+  - ruff and format are clean; `mypy --strict` has no issues in 479 files.
+  - Full unit suite: 8417 passed, coverage 95.96 %. The 4 `test_deid_ner` failures are the missing model cache in a fresh worktree, and pass 4/4 against a sibling's cache.
+  - `alembic heads` is one head, `0014_int123`.
+  - `make check-integration` is CI-only.
+- Invariants touched and still passing:
+  - 4 (the consent scope on every index read and write);
+  - 6 (receipts are ids, closed states and class names);
+  - 12 (confirmed only);
+  - 14 and 19 (no model, no fallback; a pin must be `org/model@<commit>`);
+  - 17 (the fail-closed default, no fake);
+  - 18 (every column annotated);
+  - 22 (the INT-385 guard is untouched).
+- Decisions / ADRs / `00_STATE.md` rows: none.
+  - The patient namespace is a RESTRICTIVE policy on a new `app.patient_id` GUC.
+  - Index rows hold no item text.
+  - The embedder dimension is a per-row CHECK because no model declares one.
+- Blocked on: the owner (model-stack author) must choose a files/03 §4.9.1 record-embedding row: open weights, licence from the raw blob, `model_id@revision + sha256`, in-country. No HB row exists yet; the coordinator allocates one (docs/backlog/blockers.md).
+- Next:
+  - INT-392 (#648) and INT-393 (#653) merged mid-iteration. This branch now declares `record_embeddings` (ERASED) and `record_embeddings.patient_id` (PARENT_KEPT) in their contract, and seeds and erases a vector there.
+  - Purging the index on a `documents` withdrawal is a retention decision for a consent issue.
+- LOOP_STATUS: WAITING_HUMAN
+
+### 2026-09-27T02:30:00Z · INT-360 · done (PR open; the owner's landscape device walk, DA-05, pending)
+- Goal: acceptance verbatim (GitHub #586):
+  - *"apps/mobile/app.json no longer locks orientation for the whole app; any screen that keeps a lock names the SC 1.3.4 essential exception in the conformance report"*
+  - *"every screen lays out in landscape at the largest text size with no clipped control and no horizontal scroll of body text"*
+- Plan:
+  - Set `"orientation": "default"` in app.json.
+  - Find every other way to lock a screen, and register any kept lock in the SC 1.3.4 row with its reason. The register is empty, and no dependency was added.
+  - Audit every screen against an 844 × 390 and a 568 × 320 window at the largest step, and fix the findings with the existing primitives.
+  - Findings:
+    - the section sheet's `<Modal>` presented portrait-only on iPhone (React Native's empty-list default) and now names `ALL_ORIENTATIONS`;
+    - the dialogue composer was pinned behind the iOS keyboard (an absolute child ignores the avoiding view's padding) and is now pinned in a frame that ends at the keyboard, offset by the header height, with the stack capped at the frame and its upper part scrolling;
+    - the gauge was sized from the long side and now uses `shortSide`;
+    - the tab rail, the sheet and the kiosk chrome lacked side safe areas;
+    - the kiosk chrome could push the exit off-screen and now scrolls;
+    - six field scrollers now set `automaticallyAdjustKeyboardInsets`.
+- Tests added (with the near-miss negative for any safety rule):
+  - `e2e/a11y.spec.ts` gains 16 tests:
+    - the lock scan over src, plugins, app.json and app.config.ts, with the register reader and a near-miss control (planted lockAsync, a navigator option, a manifest key, a silent Modal and a restricted Modal are caught; the fixed forms, comments and a type alias are not);
+    - the landscape layout scan (fixed and percentage heights, `Dimensions.get`, long-side reads, edge-pinned chrome without side insets, horizontal scrollers), with a shrink-only allow-list of three and a near-miss control;
+    - wiring tests for the keyboard, the dialogue stack, GlassBar and the kiosk chrome.
+  - `src/lib/a11y/orientation.test.ts` (5).
+  - `tests/legal/test_a11y_report.py` (+4, the register in the report).
+  - RED: 9 vitest failures, the module missing, and 4 pytest failures.
+  - GREEN: all pass. Seven mutations are each caught.
+- Result:
+  - `make check-ts` exits 0 (mobile 109 files / 2164 tests);
+  - `make check-i18n` 30 passed;
+  - `tests/legal/test_a11y_report.py` 30 passed, and the Python suites that read apps/mobile 652 passed;
+  - `render_a11y_report.py --check` clean;
+  - `pnpm -r typecheck`, expo lint and prettier clean;
+  - `no_placeholders` OK after staging.
+  - `make check` was not run whole (check-integration is CI-only).
+- Invariants touched and still passing: 2 and 5 (no copy changed), 6, 8 (tests only added), 17 (both allow-lists carry reasons and fail on stale entries).
+- Decisions / ADRs / `00_STATE.md` rows: none. SC 1.3.4 moves from Does Not Support to Supports. DA-05 now covers landscape and confirms 1.3.4.
+- Blocked on: nothing. Landscape screenshots on hardware are the owner's DA-05 step.
+- Next: refresh `docs/legal/accessibility-statement.md` §4 (the orientation item, and INT-361/362's items) and the YAML's 3.3.1, 3.3.8 and 4.1.3 rows, which still describe closed defects. That belongs with INT-359 and counsel. #615 (held) also touches `intake.tsx` and the dialogue's bottom stack in `DialogueIntake.tsx`. Whichever merges second rebases there: #615's "Bitirdim" button goes inside the new bar `ScrollView`.
+
+### 2026-09-27T10:30:00+03:00 · INT-393 · done (PR open)
+- Goal (GitHub #649, P0): erasing a patient who issued a Doctor Link works. Found by INT-392 §8: `doctor_links.share_id → shares.id` has no ON DELETE rule, and both executors deleted the subject's shares with the links still in place (`ForeignKeyViolation` on postgres).
+- Plan:
+  - The INT-392 pattern one level down, in the DSAR erasure and the retention `clinical_record` executor: Doctor Links removed explicitly, before their shares.
+  - The DSAR erasure crypto-shreds each link's recipient envelope. It audits each removed link (`doctor_link:<id>`) and each removed share (`share:<id>`), deleting by the ids it audits.
+  - The key keeps NO ACTION as the backstop. No migration.
+  - files/06 gives no reason for a link to outlive the record: `RET_SHARE` says "grant row retained with the record". So no stop was needed.
+  - `retention_policy.yaml` `clinical_record` source text now lists the tree (INT-317 outputs, INT-150 Doctor Links). Text only; no period touched.
+- Tests added:
+  - `tests/data/test_session_delete_contract.py` is now an erasure-graph contract:
+    - 17 tables, 21 keys, each declared, read from the metadata;
+    - seven near-miss controls, including a planted undeclared key and a planted table below `shares`;
+    - both executors checked against the declaration with SQLite foreign keys ON.
+  - One DSAR test issues a real Doctor Link and erases the patient.
+  - Integration (CI): the backstop, and both paths with a Doctor Link.
+  - Access-log classification rows.
+  - RED: 3 failed, 111 passed. GREEN: 114 passed.
+- Result:
+  - data/legal/api/security/clinician/backlog/smoke/platform suites: 1771 passed.
+  - ruff and mypy --strict clean. One alembic head (`0013_previsit_output`).
+  - Pins raised 300 → 301; files/11 regenerated.
+- Invariants touched and still passing: **4** (each removed grant and share is audited by id), **14** (the recipient envelope is shredded before its row goes), **17**, **18** (the record clock reaches the Doctor Link row).
+- Decisions / ADRs / `00_STATE.md` rows: none.
+- Found, not fixed, recorded in `docs/evidence/INT-393.md` §11:
+  - No path erases `notification_preferences`, although its RET annotation says patient-deletable.
+  - The DSAR export does not list Doctor Links.
+  - INT-392's erasure-role question stands.
+- Next: PR `INT-393: patient erasure removes Doctor Links and their shares; retention text matches the tree` (Closes #649, depends on #648, Sec-Row data-at-rest), left unmerged for review.
+
+### 2026-09-27T07:30:00+03:00 · INT-392 · done (PR open)
+- Goal (GitHub #647, P0): every session-deletion path removes the session's `previsit_outputs` in the same transaction, in the documented order, audited. Found on main's check-integration: `ForeignKeyViolation` on `fk_previsit_outputs_session_id_sessions` in the teardown of `test_documents_roundtrip_against_real_minio`.
+- Plan:
+  - Explicit removal, output first, in the DSAR erasure (`intake_api.dsar.shred`) and the retention `clinical_record` executor.
+  - The DSAR erasure crypto-shreds each output and audits it as `dsar.delete.previsit_output` against `previsit_output:<id>`.
+  - The foreign key keeps NO ACTION as the fail-closed backstop. No cascade and no migration: files/06 §3 and the crypto-shred design require a shred and an audit entry, and a cascade gives neither.
+  - The retention executor also de-links telemetry, which it never did.
+  - The integration teardown deletes outputs first.
+- Tests added:
+  - `tests/data/test_session_delete_contract.py`: the metadata contract for every key to `sessions.id`, four near-miss controls, and the retention executor run with SQLite foreign keys ON.
+  - One DSAR test in `tests/legal/test_dsar_flows.py`, also with foreign keys ON.
+  - `tests/integration/test_session_erasure.py` (CI).
+  - The `test_api_postgres.py` teardown and an output-exists assertion.
+  - RED: 2 failed, 47 passed. GREEN: 49 passed.
+- Result:
+  - api/data/legal/security/platform suites: 1680 passed.
+  - ruff and mypy --strict clean. One alembic head (`0013_previsit_output`).
+- Invariants touched and still passing: **4** (every erasure of a disclosed output is audited), **14** (the envelope is crypto-shredded before its row goes), **17**, **18** (the files/06 §3 record clock now reaches the output).
+- Decisions / ADRs / `00_STATE.md` rows: none.
+- Found, not fixed, recorded in `docs/evidence/INT-392.md` §8:
+  - `doctor_links → shares` blocks both executors' share delete on postgres.
+  - The DSAR executor's event de-link needs an `UPDATE` grant that `app_rw` does not hold.
+- Next: PR `INT-392: deleting a session removes its previsit outputs in every erasure and retention path` (Closes #647, Sec-Row data-at-rest), left unmerged for review.
+
+### 2026-09-27T07:30:00+03:00 · INT-366 · done (PR open)
+- Goal: acceptance verbatim (GitHub #593) — *"the console generates the quarterly access review of files/08 §2.7 from Keycloak, the role grants and the audit log, and downgrades platform_owner and tenant_admin sessions to read-only past 100 days without a review; admin_access_review_age_days is emitted"* · *"one disable revokes the person's Keycloak sessions, OpenBao leases and every other console account together (files/08 §2.4), and an account with no login for 60 days is disabled automatically; both are audited"*.
+- Plan:
+  - `intake_platform.admin.access`: Keycloak admin adapter (effective roles, LOGIN events, disable, logout), OpenBao lease revoker (entity by alias → disable → revoke its tokens), console-systems config (Grafana/Langfuse/Unleash, manual, refused whole if one could be skipped).
+  - Review generated from Keycloak + the chain; review state = `admin.access_review.signed` rows read back by `ReviewLedger`; `admin_access_review_age_days` computed at scrape.
+  - Sign (§2.7 reviewer) + countersign (second person; another org for `platform_owner`) as a T2 ceremony; offboarding T1 (§8.2 "token revoke"), write-ahead per step, manual steps confirmed and audited.
+  - Router downgrade: writes reached only via `platform_owner`/`tenant_admin` refused past 100 days or with no review.
+  - `intake_platform.access_hygiene` + `make access-hygiene`: 60-day auto-disable through the same pipeline; refuses without 60 days of login history.
+  - admin-web `/access`, read-only, recorded fixtures drift-gated.
+- Tests added (with the near-miss negative for any safety rule):
+  - `tests/admin/test_access_review.py` and `tests/admin/test_offboarding.py` (102): 100 d ± 1 s on the ledger and at the route; 59 d vs 60 d dormancy; 5 183 999 s event retention refused; same-org vs external countersigner; grant between the keys voids the signature; self-countersign; assertion reuse; failed step reported while the rest run; unknown subject and path-shaped subject refused before any call.
+  - RBAC matrix and audit drive rows for the five routes; 2018/10 tally pinned at 11 partial / 8 not implemented.
+  - `apps/admin-web/e2e/access.spec.ts` (18).
+  - RED: pytest collection rc=2 (2 import errors, `intake_platform.admin.access` missing) at origin/main 868f6e19; vitest cannot resolve `src/access`. GREEN: see the evidence.
+- Result: `make check` not run whole (check-integration is CI-only); lanes individually — ruff/format clean (1244 files), `mypy --strict` clean (482 files), whole-tree pytest at the 85 % floor **8189 passed**, 0 failed, 95.65 %; `tests/admin tests/observability` 1264 passed; admin-web vitest 291, lint, typecheck, `next build` clean. `no_placeholders` (staged), `phi_scan`, `claims_scan`, `assert_no_vendor_calls`, gitleaks (staged + branch), bandit and semgrep p/ci on the new code, evidence_check, sec-row linkage: OK.
+- Invariants touched and still passing: 4, 6, 13, 14, 15, 16 (Sec-Row admin-console; threat-model row), 17, 18.
+- Decisions / ADRs / `00_STATE.md` rows: none new. Tiering per files/08 §8.2 and §3 (offboarding T1; sign-off T2 because it lifts the downgrade). Reported, not fixed: `apps/admin-web/src/ops/load.ts` `errorCode` still reads `detail.error` against a flat API body.
+- Blocked on: nothing new in HUMAN_BLOCKERS. Owner steps (runbook): Keycloak admin client + OpenBao KV entry, 60 days of LOGIN events, the three env vars, the OpenBao offboarding policy (`sudo` on token accessors), a daily scheduler for `make access-hygiene`, the first countersigned review — until then `platform_owner`/`tenant_admin` are read-only.
+- Next: PR `INT-366: quarterly access review from the console and one-action offboarding with a 60-day auto-disable` (Closes #593, Sec-Row admin-console), left unmerged for review.
+
+### 2026-09-27T07:30:00+03:00 · INT-390 · done (PR open)
+- Goal: acceptance verbatim (GitHub #645):
+  - *"every Keycloak pin (compose images by digest, docs, runbook, the INT-378 provider's `provided` dependency) moves to the newest patched 26.x release; licence re-verified from the raw LICENSE; OSV clean for Keycloak"*;
+  - *"the committed realm imports on that version: a test enforces the column limits the import applies (flow and execution descriptions ≤ 255, …), and the INT-378 recorded login is re-recorded on the new version if the provider's hook point changed"*.
+- Plan:
+  - Compose runs `quay.io/keycloak/keycloak:26.7.4@sha256:82a77884…29b2c` (released 16 Sep 2026). Apache-2.0 was read from the raw `LICENSE.txt` at the tag, which is byte-identical to apache.org's text.
+  - The `staff browser` description goes from 271 characters to 242, with the same wording as #643.
+  - Compose mounts the realm as `intake-dev-realm.json`, because 26.2.0+ refuses a file not named after its realm.
+  - Column limits were derived by replaying 26.7.4's 78 JPA changelogs, which are byte-identical to the shipped `keycloak-model-jpa` jar.
+- Tests added: `tests/infra/test_keycloak_realm_import.py`, 33 tests.
+  - Every realm string is classified and fits its column, measured in UTF-16 units.
+  - Near-misses: 256-character descriptions and names, 128 astral characters, 37-character authenticator and provider ids, unclassified fields, the 26.1.4 mount name, and a stale image tag.
+  - RED: 6 failed, 23 passed.
+  - GREEN: 33 passed. `tests/admin tests/infra tests/observability`: 1611 passed.
+- Result:
+  - Live on the JVM, red: 26.7.4 refused `main`'s mount name, then `Value too long for column "DESCRIPTION CHARACTER VARYING(255)" … (271)`.
+  - Live, green: `Realm 'intake-dev' imported`, `/health/ready` 200, and the export read-back matched 146 values (two set orderings and one mapper default aside).
+  - OSV: 26.1.4 has 72 advisories and 26.7.4 has 3. All three are open-ended OSV ranges whose GitHub source bounds them below 26.7.4. On #643's five artefacts osv-scanner gives 64 at 26.1.4 and 1 at 26.7.4 (GHSA-794g-x443-36f7).
+- Invariants touched and still passing: **14** (the image is pinned by digest and the licence was read from the blob), **17** (no placeholder).
+- Decisions / ADRs / `00_STATE.md` rows: none.
+  - `admin-console` gains "Controls added by INT-390".
+- Blocked on: nothing here. #643 must rebuild its provider against 26.7.4, adapt its tag-equality tests to the digest pin, and take the owner's call on the one residual OSV record in its gate.
+- Next: PR `INT-390: Keycloak upgraded to 26.7.4; the committed realm imports on it` (Closes #645, Sec-Row admin-console), left unmerged for review.
+- LOOP_STATUS: CONTINUE
+
+### 2026-09-27T03:25:00+03:00 · INT-368 · done (PR open)
+- Goal: acceptance verbatim (GitHub #595): *"a committed Renovate configuration (files/10 §8) covers the uv, pnpm, container-digest and GitHub Actions pins, opens security updates without waiting for a schedule, and never auto-merges into main"*.
+- Plan:
+  - `.github/renovate.json`, not a workflow file. It enables nine managers (pep621/uv, npm/pnpm, dockerfile, docker-compose, github-actions, pip_requirements, pre-commit, pyenv, and a regex manager for the two `pgsty/minio` digest pins outside compose).
+  - Digests pinned for containers and Actions.
+  - `vulnerabilityAlerts` unscheduled, not approval-gated, no cooldown, labelled `security`.
+  - Weekly per-ecosystem groups; majors and platform bumps on dashboard request.
+  - Monthly lock-file maintenance.
+  - `automerge` and `platformAutomerge` are false, and there is no `extends`.
+  - Commits are `chore(deps)`.
+- Tests added: `tests/ci/test_dependency_updates.py`, 24 tests.
+  - Ecosystems are discovered from `git ls-files`.
+  - Near-miss controls: a planted `go.mod`, an unwatched digest pin, `infra/**` and bare-substring ignores, an unpinned digest, a scheduled or gated security update, a cooldown under 7 days, and automerge anywhere.
+  - RED: 19 failed, 3 passed (three guards over things already compliant).
+  - Second RED: the pre-commit semgrep p/ci `renovate-missing-minimum-release-age` refused a 3-day cooldown and rules without an age. A test was added and failed on the staged config. The fix was 7 days, not a suppression.
+  - GREEN: 24 passed. Mutations: 17/17 killed. Semgrep 1.86.0 p/ci: 0 findings.
+- Result:
+  - The Renovate 44.115.10 validator (`--strict`, RE2, Node 24) passes, and a planted-defect copy is refused.
+  - Renovate extract-only found 34 package files and 293 deps across the 9 managers.
+  - The ci, legal, compliance, backlog and docs suites: 703 passed. `make check-py` is recorded in the evidence file.
+- Invariants touched and still passing: **14** (digest pins; no gate skipped; the licence gate runs on every Renovate PR because nothing auto-merges) and **17** (no placeholder).
+- Decisions / ADRs / `00_STATE.md` rows: none.
+  - 2018/10 measure 3ç gains control `dependency-update-config`.
+  - Gap `dependency-update-tracking` is narrowed from "which tool" (answered) to the owner's installation (organisational, owner).
+- Blocked on: the owner installs the Renovate GitHub App on ArioMoniri/intake and enables Dependabot alerts (runbook `docs/runbooks/dependency-updates.md`). This is not a new HB id; the mapping's gap carries it.
+- Next: PR `INT-368: Renovate configuration for uv, pnpm, container digests and Actions (no auto-merge)` (Closes #595, Sec-Row cicd), left unmerged for review.
+
+### 2026-09-27T04:40:00Z · INT-182 · done (PR open)
+- Goal: acceptance verbatim (GitHub #133) — *"per-profile metrics; kill switch flips tenant to typed without deploy (test)"*; title adds profile switch and canary weights (4-eyes).
+- Plan:
+  - `intake_platform.voice_control`: per-tenant record (kill switch, default profile, canary profile + weight 0..100, revision, changed/approved by) in Redis, written only by `services/api/admin` — not Unleash (inv 34). Unconfigured tenant = typed.
+  - Four `DangerousAction`s: kill switch engage T1 (sre_oncall / clinical_lead / platform_owner); release, default-profile switch, canary T2 (platform_owner/clinical_lead request; a different platform_owner/clinical_lead/qms_owner approves). `VoiceControlGovernor` binds an approval to the revision its brief showed.
+  - API: `GET /admin/voice` composite (sessions by profile × reason, turn latency per profile, ASR/TTS error ratio, INT-100 failovers/breakers, kill-switch activity, controls, pending) + the write routes; one approve route per ceremony.
+  - Runtime: `VoiceSessionRouter` reads the control at every session start and calls the shipped composition roots; a 1 s poll moves live voice sessions to typed via `fall_back_to_typed(OPERATOR_KILL_SWITCH)`; readiness check `voice_controls`. Speech calls counted at the failover ladder (TTS) and `HttpTranscriber` (ASR).
+  - admin-web `/voice`: tiles + four script-free, same-origin-only forms; approval stays API-side (no WebAuthn step-up in the console yet).
+- Tests added (with the near-miss negative for any safety rule):
+  - `tests/admin/test_kill_switch.py` (54): next session typed on the same router; live session typed ≤ 2 000 ms on a fake clock; other tenant untouched; self-approval / second tab / sre_oncall request refused for release, profile and canary (near miss: a distinct second human applies it); stale approval refused without spending the ceremony; profiles other than the two refused; weights -1/101/50.5/"50"/true refused, 0/1/100 accepted.
+  - `tests/admin/test_voice_console.py` (catalogued queries, per-tile unknown, fixture drift gate, route), `tests/voice/test_session_router.py`, `tests/voice/test_speech_call_metrics.py`, RBAC matrix and audit drive rows; `tests/admin/test_voice_governance.py` (45 edge tests, written after green for coverage).
+  - `apps/admin-web/e2e/voice.spec.ts` (36).
+  - RED: pytest collection rc=2 (4 import errors) + 10 failures (speech metrics, readiness); vitest rc=1 (module missing). GREEN: see the evidence.
+- Result: `make check` not run whole (check-integration is CI-only); lanes individually — ruff/format clean (1185 files), `mypy --strict` clean (455 files), whole-tree pytest at the 85 % floor **7604 passed**, 0 failed, 96.05 %; `make safety` rc=0 (voice-runtime 98.60 %); runtime-sim RT-03 ok; admin-web vitest 269, lint, typecheck, `next build` clean. `no_placeholders` (staged), `phi_scan`, `claims_scan`, `assert_no_vendor_calls`, evidence_check, sec-row linkage: OK.
+- Invariants touched and still passing: 4, 6, 9, 13, 15, 16 (Sec-Row admin-console; threat-model row), 17, 19, 20.
+- Decisions / ADRs / `00_STATE.md` rows: none new. Disagreement recorded in the evidence: the brief asked for four-eyes on the kill switch itself; files/08 §0c F17 / §8.2 make it single-key (safe direction) and the spec wins — two keys on every move back toward voice. Reported, not fixed: `apps/admin-web/src/ops/load.ts` reads refusal codes from `detail.error` but the API answers a flat `{"error": …}`.
+- Blocked on: nothing new. Live use needs `INTAKE_VOICE_CONTROL_REDIS_URL` (same Redis in API and runtime), console admission (HB-A16, OIDC), and a WebAuthn step-up in the console for page-side approval.
+- Next: PR `INT-182: admin Voice module — …` (Closes #133, Sec-Row admin-console), left unmerged for review.
+
+### 2026-09-27T03:30:00Z · INT-124 · done (PR open); INT-121 rescoped to done; INT-380, INT-381 added
+- Goal: acceptance verbatim (GitHub #99), rescoped: *"adapter behind LLMGateway with JSON-schema-constrained decoding; pin from 03 §4.9.1 row 9; off the spoken-loop critical path"* · *"unit resolution is a GUARD, not an assumption: magnitude outranks the printed unit token, and disagreement raises a flag rather than converting silently"* · *"`ure` is never substring-matched …"* · *"decimal separator resolved PER VALUE, not per document, cross-checked against the analyte's expected magnitude …"* · *"eval corpus includes a document with a WRONG printed unit string and a five-digit result carrying a thousands separator; a two-number reference cell stops the parse rather than averaging"*. The "target < 3 s" half moved to INT-381 (#627, `gpu`); INT-121's clause 3 moved to INT-380 (#626, awaiting-human).
+- Plan:
+  - `records/unit_guard.py`: `guard_lab_value` → `LabValueVerdict` (printed magnitude, printed unit, typed `GuardFlag`s, `STOP_FLAGS`); `ExpectationTable` keyed through `analyte_key`; `AnalyteExpectation` cannot exist without a `SourceCitation`; `SHIPPED_EXPECTATIONS` empty (HB-C24), so every value is flagged.
+  - `numbers.magnitude_readings` (the two-way form as both readings; `parse_printed_magnitude` delegates); `analytes.analyte_key`; `extract_record_items(..., guard=)` gives per-value verdicts, INT-121's path unchanged.
+  - `records/lab_extraction.py`: schema derived from `ITEM_KEYS`, schema-only instructions, numbered fence, recorded + self-hosted gateways, env wiring; `records/lab_model.py`: the row-9 pin and a PHI gate that refuses while no host serves it.
+  - Registry row `qwen3.6-35b-a3b` (revision + 26 LFS sha256s + raw-blob licence record, `self_hosted_now: false`); the probe reports it unavailable.
+- Tests added (with the near-miss negative for any safety rule): `tests/records/test_unit_resolution_guard.py` (106), `tests/records/test_labjson_eval.py` (79), `tests/observability/test_probe_registry.py` (+5). Every guard rule carries its near miss (same line in the expected unit; `Üre Nitrojeni` against Üre's row; the same `1.500` read two ways by two bands; `-5` is one number; a served registry row passes the PHI gate). RED: 2 collection errors + 5 `KeyError`s. Mutations M1–M8 (two-number cell, comparator, band-less first reading, case-folded unit, empty table passes, `Üre Nitrojeni`→urea, PHI gate ignores serving, strict decoding off) each killed, restored from an in-memory copy and byte-compared.
+- Result (on the tree merged with main): `make check` check-py lanes all green — ruff/format clean, `mypy --strict` 454 files, whole tree 7636 passed at 96.06 %; check-ts failed once on a latency this PR's re-taken sweep changed (`overview.spec.ts` pinned 100 ms, the re-take measured 74 ms), fixed, then `make check-ts` and `make check-i18n` exit 0. `make safety` exit 0 (triage 100 % branch, 18/18 mutations). `no_placeholders`, `phi_scan`, `claims_scan`, `assert_no_vendor_calls`, `evidence_check`, sec-row linkage: OK. 100 % branch on the six changed records modules.
+- Invariants touched and still passing: 1 (no level-shaped key in the schema; triage key refused whole), 6 (verdict and refusals echo nothing), 13 (registry row + probe), 14 (fence, schema-only instructions, pinned weights), 17 (no fakes outside tests; the empty table is the fail-closed content), 19 (raw-blob licence, self-hostable, vendor host refused, no fallback), 20 (synthetic fixture, no figure), 22 (the guard).
+- Decisions / ADRs / `00_STATE.md` rows: `00_STATE §1` extraction row now records the row-9 pin and the served-by-no-host state (it said "needs replacing"). No ADR: the adapter follows ADR-006 and INT-083's seam.
+- Blocked on: HB-C24 (physician of record + clinical biochemist: which analytes, unit, magnitude band, committed source) — the guard fails closed until then; INT-381 on GPU capacity (HB-I4, HB-I5, HB-L11); INT-380 on HB-A13 (+ HB-A10, HB-A2).
+- Next: merge promptly (this PR moves the three pins, now 299 after merging main twice: INT-370/317, then INT-352's INT-376); INT-381 once a GPU host exists.
+- LOOP_STATUS: CONTINUE
+
+### 2026-09-27T05:00:00Z · INT-385 · delivered (PR open)
+- Goal: acceptance verbatim (GitHub #635):
+  - *"every clinical quantity shown to a patient or clinician renders with the locale's decimal separator (tr: comma), `useGrouping:false`, and number + unit as one non-breaking atom; the mobile confirm cards (INT-138) and the server renderer agree"*
+  - *"a round-trip test: extract -> render -> re-parse returns the same value for 12.5, 12500, 0.05 and 1,5 in tr and en; a near-miss that renders `12.500` for 12.5 fails"*
+  - *"no numeral reaches TTS (the compiler expansion path is untouched)"*
+- Plan:
+  - `render_quantity`/`quantity_atom` take a keyword-only `locale` with no default. They write through the closed `DECIMAL_SEPARATORS` table (tr `,`, en `.`), and an unknown locale is refused, not guessed.
+  - The stored summary is written for `SUMMARY_LOCALE` (`tr`), because its two readers are the confirm card and the note's `imported_objective`.
+  - The app's `formatQuantity` writes the value's own digits instead of capping at one, which had written 0.05 as `0,1`.
+  - One fixture table, `tests/fixtures/records/quantity_render.json`, is read by both sides.
+- Tests added (with the near-miss negative for any safety rule):
+  - `tests/records/test_quantity_render.py` (52): round trips for 7 printed forms × tr/en through both the resolver and a locale reader; near misses `12.500` and INT-121's `12.5` in tr, each with a passing control; no grouping; U+00A0; refusal without echo; the shared table; two import-boundary tests off the speech path.
+  - Mobile `extraction.test.ts` (+29) and `format.test.ts` (+1).
+  - RED: Python ImportError at collection plus 1 TypeError in `test_extraction_eval.py`; vitest 4 failed (`0,1` for 0.05). An INT-121-behaviour mutant is killed by 25 tests.
+- Result:
+  - `make check-py`: ruff and format clean, `mypy --strict` clean (451 files), 7555 passed and 0 failed at 95.84 %. The 4 `test_deid_ner` tests passed once the de-id model cache was linked into the fresh worktree.
+  - `pnpm -r lint/typecheck/test` green (mobile 2173).
+  - `make check-i18n`: 30 passed.
+  - `no_placeholders`, `phi_scan`, `claims_scan`, `evidence_check` and the sec-row gate: OK.
+  - `make check` was not run whole (check-integration is CI-only).
+- Invariants touched and still passing: 6 (the refusal does not echo), 8 (tests only added), 22 (the display half, for record quantities and the app helper; the TTS half is untouched).
+- Decisions: none new. Recorded, not fixed: four private measure renderers still write a full stop (the typed rail, note measures, patient-summary measures and the document mapper). This is INT-096's finding, and it needs its own issue id. Pins 297 → 298.
+- Blocked on: nothing.
+- Next: PR (Sec-Row `records`, Closes #635). Merge after #634.
+
+### 2026-09-27T02:00:00Z · INT-181 · done
+- Goal: acceptance verbatim (GitHub #132) — *"SLO tiles, burn rates, probe matrix, dependency health from live dev stack (not mock JSON)"*. ADR-015: the console is real telemetry from INT-181 on.
+- Plan:
+  - `GET /admin/reliability` (`intake.admin.reliability.v1`, platform scope, audited): one tile per SLO in `docs/slo`, each SLI re-ranged over every window its file declares (5m/30m/1h/6h/3d lanes, 28d objective window) for SLI, budget remaining, burn per window and the alert condition; the probe matrix from the registry × the runner's results file; dependency health from the sweep (self-hosted components + fallback edges), Prometheus as the API sees it, `ops_gpu_host_up` and INT-100's `vendor_breaker_state`.
+  - The runner stamps each result with `checked_at` and names `SWEEP_INTERVAL_S`; stale = three missed sweeps.
+  - `/overview` on the INT-351 pattern; the INT-351 session, guards, tile primitives and admission step become shared modules instead of copies. `/` lands on `/overview`.
+  - `scripts/dev/record_reliability_fixture.py` records a real runner sweep and the live dev API's `/readyz` + `/version`, and builds the e2e payloads with the shipped composite.
+- Tests added (with the near-miss negative for any safety rule):
+  - `tests/admin/test_reliability_console.py` (78): query table catalogued and derived from the files; `or vector(0)` only beside traffic (no traffic is no SLI); one tile per SLO; burn condition (near-miss: long over, short under = not met); overspent budget negative; one fail-closed test per tile/section; stale at 181 s not 180 s; `detail` never leaves; ids only; drift gate on the e2e fixtures; route RBAC.
+  - `apps/admin-web/e2e/overview.spec.ts` (51): admission (a refused caller never reaches `/readyz`); every tile rendered and each failing closed; `OverviewBurnInconsistent`, `OverviewBudgetInconsistent`, `OverviewStaleRenderedFresh` each with its near-miss.
+  - `tests/observability/test_probe_registry.py` (+4), RBAC matrix and audit drive rows.
+  - RED: pytest collection rc=2 (2 import errors) + 6 RBAC/audit failures; vitest rc=1 (module missing). GREEN: see the evidence.
+- Result: `make check` not run whole (check-integration is CI-only); its lanes run individually — ruff/format clean (1157 files), `mypy --strict` clean (445 files), whole-tree pytest at the 85 % floor **7312 passed**, 0 failed, 95.95 %; `tests/admin tests/observability` + siem 902 passed; admin-web vitest 233 passed; `pnpm -r lint` and `pnpm -r typecheck` green; `next build` clean. `no_placeholders`, `phi_scan`, `claims_scan`, `assert_no_vendor_calls`, gitleaks (staged), sec-row linkage: OK. `make safety` exits 0 (nothing under packages/protocols, PolicyGuard or the runtime changed). `make security`'s container/SBOM scanners are CI-only here; no dependency was added.
+- Invariants touched and still passing: 6 (ids only; `detail` dropped), 13 (catalogued series only; registry projection), 15, 16 (Sec-Row admin-console; threat-model controls), 17 (per-tile unknown; stale never current), 20 (no target key; no verdict copy), 22 (atoms, no grouping).
+- Decisions / ADRs / `00_STATE.md` rows: none new. Fixed a defect found on the way: `docs/slo/langfuse.yaml` and `siem.yaml` declared GOOD ratios under the error-ratio convention (would burn ~1000× on a healthy boundary once the rule generator grows past api.yaml). Reported, not fixed: `/admin/models` and `/admin/ops` raise on a malformed `INTAKE_PROBE_RESULTS_PATH` file (`models_source._results` is unguarded).
+- Blocked on: nothing new. Admission remains HB-A16 (already open).
+- Next: PR (Sec-Row `admin-console`, Closes #132); the owner sets `INTAKE_PROBE_RESULTS_PATH` once the runner's 60 s loop is deployed.
+
+### 2026-09-27T01:45:00Z · INT-372 · delivered (PR open, device screenshots pending)
+- Goal: acceptance verbatim (GitHub #606): *"the visit card reserves the chevron's width, so a long department name wraps instead of running under the chevron, at the largest text size and at 320 pt width"*. Slice S5 of INT-354, int-demo `01e224a2`.
+- Plan: cherry-pick `01e224a2`, then adapt. Its 24 pt inset breaks "Hastalıkları" (245.2 pt in Newsreader 500 at 48 pt) mid-word on a 320 pt card that has 246 pt. So the chevron is laid out, not painted: a flex column below the large-text scale, and the end of the date line from it up (`lib/visitCardLayout.ts`, the Card's own `isLargeText` threshold).
+- Tests added: `src/lib/visitCardLayout.test.ts` (4) and `e2e/visitCard.spec.ts` (7: wiring, Themed geometry, measured fits over every branch word). RED: module missing; then the wiring test on main's and the as-ported `VisitCard.tsx`. GREEN: 11/11. Mutation (always beside) is killed by 3 tests.
+- Result: mobile vitest 106 files / 2023 tests; `pnpm -r typecheck`, expo lint and prettier clean; `make check-i18n` 30 passed; backlog + smoke 28 passed; `no_placeholders` OK after staging. `make check` was not run whole (check-integration is CI-only).
+- Invariants touched and still passing: 5 (no copy changed), 8 (tests only added), 17 (the residual is a recorded measurement, not a skip).
+- Decisions: at 1.3 on a 320 pt screen three subspecialty words break inside the word under the column (recorded in `COLUMN_RESIDUAL`, shrink-only). The date-line form at every scale removes it, and that design call is the owner's. Pins 287 → 288.
+- Blocked on: nothing. Device screenshots are an owner step.
+- Next: INT-370 (S3), then INT-371 (S4). These PRs merge one at a time, because each one raises the same three pinned counts.
+
+### 2026-09-27T02:10:00Z · INT-370 · delivered (PR open; clinical-reviewer and device screenshots pending)
+- Goal: acceptance verbatim (GitHub #604):
+  - *"Vizitlerim offers a calendar view and a Geçmiş list of past visits, built on the existing visits store with no new data field"*
+  - *"the a11y.visits.dayHint register finding is recorded in PROSE_REGISTER_FINDINGS and routed to clinical-reviewer, not rewritten"*
+  - *"INT-341's calendar press tokens apply"*
+
+  This is slice S3 of INT-354, int-demo `148a7dbd`.
+- Plan:
+  - Cherry-pick `148a7dbd`. It auto-merged, and git's conflict list was empty.
+  - Point the calendar's three Pressables at `motion.press`: the days and arrows 0.6 → `rowOpacity` 0.7, and the agenda row `opacity`.
+  - Record the day hint as a register finding instead of rewriting it.
+- Tests added:
+  - `src/lib/calendar.test.ts` (16, ported) and `e2e/visits.spec.ts` (+6: toggle, one visits list, the Geçmiş group always shown with an empty state, a pure date-only model, MIN_TAP targets, tr keys).
+  - `tests/release` records `a11y.visits.dayHint`.
+  - RED: 6 failed plus a missing module; the i18n gate is red on the unrecorded key; `motion.spec` is red on the 3 literals after the cherry-pick. GREEN: 42/42 targeted.
+- Result:
+  - mobile vitest 105 files / 2034 tests;
+  - `pnpm -r typecheck` and expo lint clean;
+  - `make check-i18n` 30 passed;
+  - the Python suites that read `apps/mobile` 526 passed;
+  - `no_placeholders` OK after staging;
+  - `make check` not run whole (check-integration is CI-only).
+- Invariants touched and still passing: 5 (tr source of truth, en mirror), 18 (no new field, nothing persisted), 17, 8.
+- Decisions: none new. The register decision stays with the copy owner through the clinical-reviewer. Pins 287 → 288.
+- Blocked on: nothing. Clinical-reviewer (register) and the owner device screenshots are pending review steps.
+- Next: INT-371 (S4). INT-370, INT-371 and INT-372 merge one at a time, because each one raises the same three pinned counts.
+
+### 2026-09-26T23:20:00Z · INT-352 · done (PR open)
+- Goal: close INT-352 (GitHub #558) by stamping `/version`'s `sbom_digest` on the production API (audit F18), and split the Frankfurt move into INT-376 (#613). Acceptance verbatim:
+  - *"main deploys to the onvizit-api host with production configuration (no INTAKE_DEV_* flag, the OpenBao transit KEK, digest-pinned images); public HTTPS serves a stamped /version with passing /healthz and /readyz, and a note written before a restart decrypts after it"*
+  - *"a generated-load stress test on synthetic sessions only (no real patient data) records p50/p95 latency and error rate, with its date and load profile, in docs/evidence/INT-352.md"*
+  - *"the GPU quota requests (us-east-1 to 16, eu-central-1 to 8) are tracked in the evidence file; the move to Frankfurt is tracked here and is INT-376"* (rescoped from "and the host moves to Frankfurt when the eu-central-1 request is approved")
+  - *"real patient PHI is not accepted until an in-country host or counsel's cross-border decision exists (HB-I5, HB-L11)"*
+- Plan:
+  - init.sh and deploy.sh build the api image, then have syft, pinned by digest, write its SPDX SBOM into `/etc/intake-staging/releases/<commit>/`, outside the build context.
+  - The file's sha256 becomes `INTAKE_SBOM_DIGEST`, a required compose interpolation.
+  - The final up is `--no-build`.
+  - smoke.sh reads the SBOM from disk and fails `dev` in any stamp, a digest mismatch, or a different running image.
+- Tests added: `TestSbomStamp` in `tests/infra/test_staging_compose.py` (57 tests), with near-miss negatives:
+  - a syft that exits 0 with empty or non-SPDX output;
+  - a well-formed digest one character off the file's;
+  - the required interpolation, which the no-`dev`-fallback scan must pass.
+  - A docker shim runs the stamp logic without a container runtime.
+  - RED: 43 failed, 201 passed. GREEN: 244 passed. Mutations M1 and M2 killed.
+- Result:
+  - tests/backlog, tests/smoke/test_make_check.py and tests/infra: 648 passed.
+  - tests/docs and the security-gate tests: green.
+  - bash -n and shellcheck: clean. `no_placeholders` OK after staging. `evidence_check` OK.
+  - `make check` was not run whole (check-integration is CI-only). `make safety` and `make security` were not run: no protocol, PolicyGuard or Python security surface changed.
+  - Nothing was deployed. The live stamp is shown by the coordinator's next `deploy.sh` and `smoke.sh` run.
+- Invariants touched and still passing:
+  - **14**: syft is pinned by digest, its licence was verified from the raw LICENSE blob, and it runs offline on a read-only archive without the docker socket.
+  - **15**: `/version` gets all three stamps.
+  - **17**: no placeholder. The build-time value is documented, bound to one call, never exported, and rejected by smoke.
+  - **19**: syft is Apache-2.0.
+- Decisions / ADRs / `00_STATE.md` rows: none. The acceptance's Frankfurt clause is rescoped to INT-376 as the coordinator directed.
+- Blocked on: nothing for this PR. INT-376 waits on AWS quota request `c6c0d271…`. Acceptance 2 names p50, and the Part 1 k6 table has p95 and max only, so the next deploy's k6 run must record the median (evidence Part 3, item 4).
+- Next: PR `INT-352: stamped /version (sbom_digest) on the production API; Frankfurt move split to INT-376` (Closes #558, Sec-Row platform), left unmerged for review.
+- LOOP_STATUS: CONTINUE
+
+### 2026-09-27T10:30:00Z · INT-363 · done (PR open, not merged)
+- Goal: acceptance verbatim (GitHub #589):
+  - *"before the kiosk idle timeout clears the session, the patient gets an announced warning with at least 20 seconds to extend with one action"*
+  - *"the timing test scans src/lib as well as .tsx screens, so a timer outside a screen is covered"*
+  - Found by the INT-226 report: the SC 2.2.1 row (MC-08).
+- Plan:
+  - **Pure machine** in `lib/kiosk/kioskState.ts`. `KIOSK_IDLE_WARNING_MS = 20_000` (W, the criterion's floor) and `kioskIdleReducer` / `kioskIdleDue` run `active → warning → wiped`. The warning comes at T − W = 40 s. The grace is counted from when the warning is shown, and extend or any touch restarts the full minute. `startKioskIdleClock` drives the machine on injected timers.
+  - **Adapter.** `nativeKiosk.ts` hands `Date.now` and its timer to the clock and no longer arms its own wipe.
+  - **`KioskGate`.**
+    - It shows an `AnnouncedText tone="warning"` and a "Devam edin" `PrimaryButton` that calls `extend()`.
+    - Focus moves onto the button with `sendAccessibilityEvent(…, "focus")`.
+    - The session behind the warning is hidden from the reader.
+    - `wiped` runs the unchanged `wipeSession()`.
+  - **Announcer.** INT-362's announcer gains a `warning` tone: assertive, and spoken as shown, without "Hata".
+  - **BK13 scan.** It walks all of `src`, `.ts` included. Each timer is either recorded as no time limit, with its reason, or handed to a warning machine.
+- Tests added:
+  - `kioskState.test.ts`: 13, on a fake clock (warn at T − W, no-extend wipe at T, late-timer grace, extend restarts, 12 repeated extends, the clock's reports, stop).
+  - `announce.test.ts`: 4.
+  - `a11y.spec.ts` BK13: 6 replacing 1. Near-miss control: a planted `src/lib` timer, the pre-INT-363 adapter and a timer beside the machine are each caught, and a comment is ignored.
+  - `kiosk.spec.ts`: 5.
+  - RED: 23 failed / 147 passed. GREEN: 170 / 170. Whole mobile suite: 2110 passed (105 files). Mutations M1–M4 were all killed and restored with `cp`, checked by `cmp`.
+- Result:
+  - `make check-ts` green and `make check-i18n` 30 passed.
+  - `tests/legal/test_a11y_report.py` 26 passed; the report is re-rendered and `--check` passes.
+  - `tests/backlog` passed; expo lint and prettier are clean.
+  - `no_placeholders` and `evidence_check` OK after staging.
+  - `check-py` was not run whole, and neither were `make safety` / `make security`: no Python, protocol, triage or security surface changed.
+- Invariants touched and still passing:
+  - **2:** B1, `siz`, calm copy with no number; PolicyGuard records unchanged.
+  - **3:** the wipe path is unchanged and still shreds the drafts.
+  - **5:** the new keys are tr-first with en mirrored.
+  - **6:** nothing is logged.
+- Decisions / ADRs / `00_STATE.md` rows: none.
+  - W = 20 s leaves T = 60 s (files/10 §4) intact.
+  - The `warning` tone extends INT-362's two-tone contract rather than calling a timeout an error.
+- New patient copy for clinical-reviewer: `kiosk.idle.warning`, `kiosk.idle.extend`, `kiosk.idle.extendHint`.
+- Blocked on: nothing. The device confirmation is a DA-08 step that waits for the kiosk dev build (HB-A3).
+- Next: PR `INT-363: kiosk idle wipe warns first and can be extended (WCAG 2.2.1)` (Closes #589, Sec-Row mobile), left unmerged for review.
+
+### 2026-09-26T21:31:00Z · INT-339 · done (PR open)
+- Goal: acceptance verbatim (GitHub #538):
+  - *"the typed fallback is enter-only within the fade token and visible inside INT-135's 2 s budget at every setting; a step change never shows two questions in one frame"*
+  - *"no navigation waits on an animation; the review screen renders every section in one commit with no stagger"*
+- Plan (MOTION-10; motion-verification.md §4, and C14–C16):
+  - Pure `lib/motion/transients.ts`: `typedFallback` and `typedStep`. Each is enter-only (`enterFor` from `fade.ts`), `exitMs` is the literal 0, and a step plan is keyed by its question.
+  - `lib/motion/native/reanimated.ts`: `enteringFor(spec)` returns a `FadeIn` built from the spec, or nothing. It has no exit builder.
+  - `intake.tsx`:
+    - the lane switch sits under `LayoutAnimationConfig skipEntering`, so only a lane that replaces another fades in;
+    - `StepFlow` sits in an entering `Animated.View`;
+    - the question's body is one keyed, entering `Animated.View` under its own `skipEntering`;
+    - the progress row and the CTA stay outside the body.
+  - Completion and review needed no product change, only guards.
+- Tests added: `apps/mobile/src/lib/motion/transients.test.ts`, with the 5 MOTION-10 DoD titles verbatim:
+  - the plans at every app × OS reduce-motion setting (6);
+  - a per-millisecond frame model over every consecutive pair in the Detaylı pack;
+  - an app-wide ban on exit animations;
+  - an app-wide detector for navigation behind an animation callback, frame, timer, transition event or awaited wait (11 samples caught, 3 accepted);
+  - the review's one index-free section map, and no delay, timer, deferred render, partial slice or virtualised list in the screen or the 7 components it draws.
+  - RED 1: module missing. RED 2: the two wiring tests failed and three passed. The three are the budget test, which needs only the pure module, and two regression guards over a tree that already complied.
+  - Mutations M1–M8 were each killed, restored with `cp` and checked with `cmp`.
+- Result: `make check-ts` green (mobile 105 files / 2017 tests, 5 new; the other packages unchanged) and `make check-i18n` green (30 passed). Prettier is clean. A Metro iOS dev export succeeds. `no_placeholders` is OK after staging. `tests/backlog`, `tests/smoke/test_make_check.py` and the threat-model test pass. `make check` was not run whole (check-integration is CI-only), and neither were `make safety` or `make security`: no protocol, Python or security surface changed.
+- Invariants touched and still passing:
+  - **17**: no new token; the adapter lands with its consumer.
+  - **8**: +5 tests, and the INT-335 hygiene gates are unchanged and green.
+  - **22**: progress numerals swap instantly.
+  - **2 / 10**: no copy changed; the instrument item is still verbatim.
+- Decisions / ADRs / `00_STATE.md` rows: none. MOTION-10 depends on MOTION-1 and MOTION-6 only, so nothing here waits on ADR-033 (PR #571, Proposed).
+- Blocked on: nothing. Device timing is not recorded (the owner's reference devices are unnamed, INT-330). The evidence file lists what to watch on a device: blur under the 120 ms fallback fade, and the keyboard between two free-text steps.
+- Next: PR `INT-339: Motion — typed lane, fallback and completion` (Closes #538, Sec-Row intake-typed), left unmerged for review.
+
+### 2026-09-27T00:20:00Z · INT-361 · in-review
+- Goal: acceptance verbatim (GitHub #587):
+  - *"pasting a six-digit code into any OTP box fills all six boxes, and the platform one-time-code autofill (iOS oneTimeCode, Android sms-otp) fills them"*
+  - *"the code never reaches a log line, analytics event or error report (invariant 6)"*
+  - Found by the INT-226 conformance report (PR #583), row SC 3.3.8 "Does Not Support".
+- Plan:
+  - Add a pure `enterOtp(digits, index, text)` in `lib/auth/phone.ts`:
+    - only digits count;
+    - a whole code fills all six boxes from the first, and anything past six is dropped;
+    - a short run fills forward;
+    - typing one digit is unchanged.
+  - `(auth)/otp.tsx`:
+    - drop `maxLength={1}`, which cut every paste and autofill to its first digit;
+    - route `onChangeText` through `enterOtp`;
+    - add `autoComplete` (`sms-otp` on Android, `one-time-code` on web) next to the existing `textContentType="oneTimeCode"`.
+- Tests added:
+  - `phone.test.ts`, 18 tests:
+    - distribution cases (box 0/1/3/5, spaces and dashes, more than six digits, letters, a short run, a digit already in the box, clearing a box);
+    - a console-spy test for invariant 6.
+  - `a11y.spec.ts`, 12 tests:
+    - SC 3.3.8 source facts on the single mapped `TextInput`;
+    - invariant 6: no console, no telemetry/metrics/analytics import on the entry path, and a crash event planted with the code emits none of it.
+    - Near-miss control: the legitimate error code, screen id and exception type do survive.
+  - The `auth.spec.ts` pin on `maxLength={1}` is inverted; the test name is unchanged because INT-226 cites it.
+  - RED: 22 failed, 98 passed. GREEN: 120 passed. Mutation check: 2/2 killed.
+- Result:
+  - mobile vitest: 2033 passed (103 files).
+  - `pnpm -r typecheck` and `expo lint` clean.
+  - `pytest tests/release tests/mobile`: 95 passed.
+  - `no_placeholders` is OK after staging.
+  - Full `make check` not run: check-integration is CI-only.
+- Invariants touched and still passing:
+  - **2 and 5**: no new copy and no catalog change.
+  - **6**: the code reaches no console, sink or crash report.
+- Decisions / ADRs / `00_STATE.md` rows: none. No HB, ADR or alembic id minted.
+- Blocked on: nothing. Device confirmation is DA-07 / MC-16 of the INT-226 audit.
+- Next:
+  - PR (Sec-Row `onboarding`, Closes #587).
+  - After PR #590 lands, flip the backlog row to done.
+  - After PR #583 lands, the SC 3.3.8 row can cite the new tests.
+
+### 2026-09-26T21:58:00Z · INT-362 · review (PR open, not merged)
+- Goal: acceptance verbatim (GitHub #588):
+  - *"every error and status line, including issue-link, ConfirmCard and RecordReading, is announced on iOS (announceForAccessibility) as well as Android (live region)"*
+  - *"the a11y test discovers error and status lines from the source tree instead of a hand-written screen list, so a new screen cannot be missed"*
+- Plan:
+  - One announcer, `src/components/Announced.tsx`. `AnnouncedText` and `AnnouncedRegion` set the Android live region and post the iOS announcement from a single `tone`.
+  - The rules are pure and node-tested in `lib/a11y/announce.ts`: error is assertive and spoken "Hata: …", status is polite, iOS posts and Android does not, and a line is announced once per change.
+  - Every error and status line is routed through the announcer.
+  - The BK28 test finds the lines by walking `src`.
+- Tests added:
+  - `announce.test.ts`: 15 tests.
+  - `a11y.spec.ts` BK28 rewrite: discovery over the tree, the per-file each over 15 discovered files, the near-miss control, a shrink-only exception list, no hand-made live region, tone literals, both halves in the announcer, only the announcer calls the iOS hook, and invariant 6.
+  - `kiosk.spec.ts` now expects the announcer.
+  - RED: 36 failed / 73 passed. GREEN: 110 / 110. Whole mobile suite: 2048 passed (main: 2012). Mutation checks: 4 of 4 killed.
+- Result:
+  - `make check-ts` green; `make check-i18n` 30 passed; `pnpm -r typecheck` green; expo lint clean; prettier clean; `no_placeholders`, `phi_scan` and `claims_scan` OK.
+  - `check-py` was not run, because no Python changed. `make safety` and `make security` were not run, because the change touches no protocol, triage or security surface.
+- Invariants touched and still passing:
+  - **2:** only on-screen words are announced.
+  - **5:** no new copy.
+  - **6:** announcements reach no log, and a test pins it.
+- Decisions / ADRs / `00_STATE.md` rows: none.
+- Findings not fixed here:
+  - `notifications.pending` doubles as the in-flight state, so it cannot be announced as an error without a store change.
+  - `review.sentInfo` and `consent.queue.note` show persisted state on every arrival.
+  - A repeated identical error is announced once (the INT-144 rule, on both platforms).
+- Blocked on: nothing. PR #583 (INT-226) is not on `main`, so `docs/backlog/issues.yaml` and `files/11` are untouched; the row flips to done after both merge.
+- Next: an on-device VoiceOver and TalkBack run of every routed line (INT-226 DA-08 / MC-17).
+- LOOP_STATUS: CONTINUE
+
+### 2026-09-27T12:00:00Z · INT-317 (INT-354 slice 1) · delivered (PR open; the read-back stays shut on HB-A18 and HB-L27)
+- Goal: INT-354 acceptance 1, one slice at a time. INT-317 is the first slice: previsit
+  output store and hospital read-back. Its acceptance is verbatim in its backlog row.
+  - Work: land int-demo's INT-317 work on main as one PR.
+  - Carry: its backlog row and HB-A18, both int-demo-only.
+  - Strip: F06/F21 demo-scoped content.
+- Plan:
+  - Classify all 26 `origin/main..origin/int-demo` commits: issue, on-main by content,
+    F06/held, slice. See `docs/evidence/INT-354.md`.
+  - Cherry-pick the nine INT-317 commits and squash them into three:
+    - red;
+    - implementation;
+    - backlog and evidence.
+  - Regenerate the exports on current main.
+  - Drop `545abfa7`, the demo recipient overlay and guide.
+- Tests added: none new. The int-demo suites are carried unchanged:
+  - `tests/api/test_previsit_output.py`;
+  - `tests/schemas/test_previsit_output_contract.py`;
+  - `tests/platform/test_previsit_output_recipients.py`;
+  - the `tests/data` table checks.
+
+  Their near-miss controls are carried too: no scope → refused and unaudited; no stored
+  previsit → 404; the note grant does not unlock the output scope. RED on main: 3
+  collection errors plus 4 `tests/data` failures. GREEN: 62 passed on the INT-317 suites
+  and 357 on the wider set.
+- Result: `make check` was not run whole, because check-integration needs a container
+  runtime. The `check-py` lanes were run instead:
+  - ruff and format clean; `mypy --strict` clean on 436 files;
+  - the whole-tree pytest: 7106 passed at 95.74 % (floor 85). There were 4 `test_deid_ner`
+    failures, caused by the model cache being absent from a fresh worktree;
+  - schemas 189 passed at 91.76 % (floor 90);
+  - `pnpm -r typecheck` 0; `no_placeholders` OK after staging; phi and claims scans OK.
+
+  `make safety`: not touched, because nothing changed under protocols or voice-runtime.
+- Invariants touched and still passing:
+  - **1**: `triage` is rules-or-`not_evaluated` only;
+  - **4**: a share means a consent check plus an audit entry before the answer;
+  - **6/14**: the patient number is body-only, tokenized and never stored, and the payload
+    is envelope-encrypted;
+  - **17**: an empty registry fails closed;
+  - **18**: every column is annotated;
+  - **22**: magnitude and unit are one object, on the ADR-030 carrier.
+- Decisions / ADRs / `00_STATE.md` rows:
+  - No new ADR.
+  - `ADR-029` → `ADR-030` references were corrected, because main de-collided the number.
+  - INT-317 and HB-A18 were carried, not minted. The check found no other use on main, on
+    any remote branch or on GitHub.
+  - Migration `0013_previsit_output` → `0012_int150`, with one alembic head.
+- Blocked on:
+  - **owner + hospital IT + counsel (HB-A18):** which credential a hospital system presents,
+    and the DPA's `dpa_ref`/`approval_ref`/`retention_ref`;
+  - **counsel (HB-L27):** the `share` consent text.
+- Next:
+  - The owner confirms INT-318 and allocates ids for the mobile slices.
+  - Then S2 INT-318, with the F06 route rebuilt registry-only.
+- LOOP_STATUS: WAITING_HUMAN
+
+### 2026-09-27T09:00:00Z · INT-365 · delivered (live realm and staff enrolment with the owner)
+- Goal: acceptance verbatim (GitHub #592):
+  - *"the admin verifier refuses a staff token whose amr/acr does not show a second factor, and WebAuthn for any role that reaches patient content (files/08 §2.3); the committed Keycloak realm configures the OTP and WebAuthn policies"*
+  - *"the realm bounds a staff session to at most 8 h with a 30-minute idle timeout on any session that can reach patient data, and a test asserts the realm values"*
+- Plan:
+  - New `intake_platform.admin.second_factor`. The token must show `amr` ⊇ {`pwd`} plus `otp` or `hwk`, and `hwk` for any role whose §2.1 patient-content path is not `NONE` (six roles, derived rather than listed).
+  - The claim is a JSON array of exact, case-sensitive strings or it is no evidence. `acr` is never read.
+  - The policy is called in `principal_from_claims`, the seam every verifier feeds.
+  - The refusal is RFC 9470's 401 `insufficient_user_authentication` with one generic body. It is audited under the verified subject id.
+  - Realm: OTP and WebAuthn policies, a `staff browser` flow (password, then WebAuthn or TOTP, each execution tagged with its `amr` reference), the AMR mapper on `admin-web`, and 8 h / 30 min bounds, offline sessions included.
+  - What Keycloak actually emits is cited in `docs/evidence/INT-365.md`, from the 26.1.4 docs and source.
+- Tests added (with the near-miss negative for any safety rule):
+  - `tests/admin/test_staff_second_factor.py` (135): role mapping against the spec table; the policy, including 44 shape and case spoofing cases and acr-alone; the console's 401, body, challenge and audit row; the realm flow evaluated path by path; the policies; the session bounds.
+  - Near-miss: `pwd`+`otp` is admitted for `auditor` and refused when only the role changes to `clinical_lead`. Every realm checker is also run against a one-field mutation.
+  - RED: collection error, then 96 failed / 39 passed. GREEN: 135 passed. Mutation check: 11/11 killed.
+- Result (`make check` / `make safety` / `make security` summary):
+  - `tests/admin tests/api tests/security tests/observability tests/docs`: 1601 passed. The 20 deselected are integration tests and the 4 deid-NER tests, whose model cache is absent from a fresh worktree.
+  - ruff, ruff format and `mypy --strict` (240 files) are clean. Pinned bandit found 0 issues on the touched paths. `no_placeholders` is OK after staging.
+  - `make check` was not run in full: check-integration is CI-only, since no container runtime is available. `make safety` is untouched: no protocol, triage or voice change.
+- Invariants touched and still passing:
+  - **4**: every refusal is on the one chain.
+  - **6**: the refusal body and audit row carry codes and ids only; no claim, factor or role.
+  - **14**: no secret added; the realm's dev passwords are unchanged.
+  - **16**: Sec-Row `admin-console`, threat-model section extended.
+  - **17**: nothing stubbed; an unenrolled or unmapped deployment fails closed.
+- Decisions / ADRs / `00_STATE.md` rows:
+  - No ADR. RFC 8176 and RFC 9470 are applied at the existing seam.
+  - WebAuthn is tagged `hwk`; `webauthn` is not an RFC 8176 value, and the fixture's old value matched no realm.
+  - No HB, ADR or alembic id minted.
+- Blocked on: nothing for the code. The owner applies the realm settings to the deployed Keycloak and enrols each staff account's factor (WebAuthn for the six patient-content roles) before its first console login.
+- Next: PR (Sec-Row `admin-console`, Closes #592). After #590 lands: flip the INT-365 row to done, regenerate files/11, and close and reopen the PR so the sec-row gate re-runs.
+- LOOP_STATUS: CONTINUE
+
+### 2026-09-26T22:30:00Z · INT-329 · awaiting-human (delivered=partial)
+- Goal: acceptance verbatim (GitHub #528):
+  - *"the Twilio OtpDeliveryAdapter is covered by MockTransport tests for success, 4xx, 5xx and timeout, and no phone number or code appears in any log line or error"*
+  - *"delivery uses an async HTTP client so the OTP route never blocks the event loop"*
+  - *"under prod the adapter is Twilio when configured and nothing otherwise (INT-325); credentials resolve through the secrets path (invariant 14), never an in-code default"*
+  - *"api.twilio.com is added to infra/security/egress-allowlist.yaml with its EgressPurpose member and rendered proxy config, and the phone-number field carries the data-inventory annotation (invariant 18), only after the owner records the DPA and cross-border decision"*
+  - Audit F13: the off-main adapter blocked the loop, had no tests, read env credentials, sat off the allow-list and fell back silently.
+- Plan:
+  - `intake_platform.egress`: add `guarded_async_transport` / `guarded_async_client`. They are the same admission step (`_admit`) as the sync guard, now shared by both, with an awaited send and DNS resolution in a worker thread. Add `EgressPurpose.SMS_OTP_DELIVERY`.
+  - New `intake_api.otp_twilio`: an `httpx.AsyncClient` over that guard, declaring the SMS purpose and `DataClass.PHI`, with credentials from OpenBao `secret/api/twilio` only.
+  - Make the OTP seam async, with a typed `OtpDeliveryError` and a generic `503 otp_delivery_unavailable`.
+  - Wiring outside dev: Twilio when the egress policy admits it **and** the vault holds all three values; otherwise the tier stays unconfigured. The dev logger is never wired outside dev.
+  - Evidence in `docs/evidence/INT-329.md`.
+- Tests added:
+  - `tests/api/test_otp_twilio.py` + `tests/api/test_otp_twilio_wiring.py` (81): 11 vendor-failure scenarios plus success, each mapped to one reason; a log-capture test over every scenario covering the error chain and the transfer log; an event-loop ticker test; credential shape checks named by field; the prod/staging matrix (any vault value missing, vault absent or unreachable, env-only credentials, the shipped allow-list, the PHI runtime gate unset, an unreadable allow-list, no tokenization key); dev unchanged; the route's 202 and 503.
+  - `tests/security/test_egress_async.py` (17): the INT-018 negatives through the async path, resolution off the loop thread, and sync/async decision parity.
+  - Near-miss negative: the SMS purpose is refused on every tier of the shipped allow-list, for every data class.
+  - RED: 106 failed, 114 passed, 1 collection error. GREEN: 271 passed. Mutation check: 5/5 killed.
+- Result: `tests/api` 467 passed (was 386). The adjacent suites passed 2360; 4 deid-NER tests failed only because the model cache is absent from a fresh worktree, and they pass with the shared cache. mypy strict is clean on 425 files; ruff is clean; `make safety` exits 0; `no_placeholders` is OK. `make check` was not run in full, because check-integration needs a container runtime and none is available here.
+- Invariants touched and still passing:
+  - **6**: no phone, code, token or vendor body in logs or errors; errors are unchained.
+  - **14**: vendor secret from OpenBao only; the call goes through the egress guard with purpose and data class.
+  - **17**: no fake adapter; the missing row fails closed and the content is left empty.
+  - **18**: nothing new is persisted.
+  - **19**: the PHI-path tier stays empty.
+- Decisions / ADRs / `00_STATE.md` rows:
+  - No ADR. The async guard is ADR-025's single enforcer: one admission function, two send paths.
+  - One bounded exemption added to the allow-list vocabulary test (`PURPOSES_AWAITING_THE_OWNER`). It can only shrink: a row declaring the purpose fails the companion test.
+  - No HB, ADR or alembic id minted.
+- Blocked on: **the owner, with counsel**. *May the patient's phone number and a one-time code go to Twilio, a US processor, for OTP delivery, and under which DPA and which KVKK Art. 9 cross-border transfer mechanism?* The decision id becomes the row's `phi_exception_approval`. No HUMAN_BLOCKERS id exists yet; the owner allocates one.
+- Next:
+  - PR (Sec-Row `onboarding`, Refs #528).
+  - After the decision:
+    - the `phi_path` row, re-rendered into the squid config;
+    - the pending-set removal;
+    - the recipient annotation;
+    - the ADR-025 topology change;
+    - staging: a kv-v2 mount, a policy grant on `secret/data/api/twilio`, the runbook step, and pointing the #573 guard at the vault.
+
+### 2026-09-26T20:30:00Z · INT-190 · delivered (prices and budgets pending)
+- Goal: acceptance verbatim — *"per-session cost by component/vendor/profile; budgets + alerts"*.
+- Plan:
+  - Give money one home, the owner-filled `infra/costs/unit-prices.yaml`. It holds 8 components and 8 budgets, every value is empty, and each value needs a `source` and an `as_of` date.
+  - Bind each component to a catalogued usage series (inv 13).
+  - `intake_platform.cost` computes per-session cost by component, vendor and profile, as usage in a 1d or 30d window divided by the new live `voice_sessions_metered_total`, which the INT-101 meter counts once per composed session. It also computes spend and day/month budget verdicts per vendor and for all vendors.
+  - `infra/observability/cost-rules.yaml` is generated from the file and drift-gated, and mounted into the obs Prometheus. Retention is raised from 7d to files/06 §3's 30d, so a month budget sees a whole month.
+  - admin-web gets `renderCostModule` with nine refusals. `scripts/dev/record_cost_fixture.py` records the committed-state and priced (test-only) payloads.
+- Tests added (with the near-miss negative for any safety rule):
+  - `tests/admin/test_cost_config.py`, `test_cost_module.py` and `test_cost_queries.py`.
+  - `tests/observability/test_cost_rules.py`, `tests/voice/test_sessions_metered.py` and `apps/admin-web/e2e/cost.spec.ts` (28).
+  - Every refusal is paired with the near-miss it must accept: an unsourced price vs a sourced one, a lower bound under the limit (not_evaluable) vs over it (exceeded), a tampered zero on an unpriced row vs the untampered payload.
+  - RED: pytest collection rc=2 (4 import errors); vitest rc=1 (module missing).
+  - GREEN: 97 cost tests at 100 % branch on `intake_platform.cost`; admin-web 145; voice lane 1364 at 98.47 %.
+- Result (`make check` / `make safety` / `make security` summary): `make check` was not run whole (check-integration is CI-only). Its lanes were run individually: ruff, ruff format and `mypy --strict`; the voice-runtime lane; the whole-tree pytest at the 85 % floor; `pnpm -r typecheck`; and admin-web lint, typecheck and test. `no_placeholders` exits 0 after staging. No protocol or triage surface changed, so `make safety` is untouched.
+- Invariants touched and still passing:
+  - **13**: only catalogued series, with a new live divisor.
+  - **6**: no session id; a response label is refused.
+  - **17 / rule 1**: no invented price; empty means not configured, never 0.
+  - **19**: the closed profile pair.
+  - **20**: no product measurement.
+  - **22**: every number is rendered as one atom with its unit.
+- Decisions / ADRs / `00_STATE.md` rows: none. The month window is 30d rolling, matching the retention files/06 §3 already states.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): the owner must fill the USD rate per component (with source and date) and a daily and monthly budget per vendor and for all vendors. This is HB-O8 (b), extended to the spend budgets; no id was minted.
+- Next: PR review. After INT-351 (#562) merges, serve `GET /admin/cost` through its Prometheus reader, and attach `ops_gpu_host_up` to the host rows.
+- LOOP_STATUS: WAITING_HUMAN
+
+### 2026-09-26T19:20:00Z · INT-335 · delivered
+- Goal: acceptance verbatim — *"every loop, core or Reanimated (withRepeat included), is gated on the app's reduce-motion hook and takes its period from motion.loop with every half-period above 167 ms · animated styles touch only opacity and transform; no LinearTransition, Layout animation, withSpring or runOnJS in src; Reanimated CSS durations come only from cssFade · a planted ungated loop and a planted literal duration each fail the suite (mutation-proven, file backed up with cp, never restored with git checkout)"*.
+- Plan:
+  - Add `motion.easing.out`, `motion.easing.breath` and `motion.loop.pulsePeriodMs` (a full period, 1400) to `theme.ts`, each with its first consumer.
+  - Add a pure `apps/mobile/src/lib/motion/fade.ts` (`fadeSpec`, `enterFor`, `cssFade`, `cubicBezierCss`).
+  - `PulseDot` reads its period and curve from the tokens.
+  - BK14 counts `Animated.loop`, `withRepeat` and CSS iteration counts across all of `src`, and requires the app's hook from `@/lib/a11y/prefs`.
+  - BK15 is re-pointed to `motion.loop`.
+  - Four new scans in `e2e/motion.spec.ts`, sharing loop detection with `a11y.spec` through `e2e/motionSource.ts`.
+- Tests added (with the near-miss negative for any safety rule):
+  - `fade.test.ts`: the 4 MOTION-6 tests.
+  - `theme.test.ts`: 1 test.
+  - `a11y.spec.ts`: BK14 and BK15 rewritten under the spec's titles.
+  - `motion.spec.ts`: 4 tests.
+  - Every scan proves its detector on caught and accepted samples.
+  - Mutations, each restored with `cp` from a backup:
+    - an ungated `withRepeat` in a component, and again in `src/lib`, both fail BK14;
+    - a literal `700`, and a `const HALF_MS = 700`, both fail BK15 and the literal-duration scan;
+    - a 300 ms period fails theme.test and BK15;
+    - a spring plus a height style plus a CSS literal fail the other three scans.
+  - RED: 4 failed | 72 passed, plus fade.test failing to load. GREEN: 80/80 targeted; whole mobile suite 104 files / 2009 tests.
+- Result (`make check` / `make safety` / `make security` summary): not run locally (check-integration is CI-only, and no Python, protocol or security surface changed). `pnpm -r typecheck`, expo lint and prettier are clean, and `no_placeholders` exits 0 after staging.
+- Invariants touched and still passing: **17** (every token has a live consumer), **8** (9 tests added; BK14 and BK15 replaced by strictly stronger versions; BK13 unchanged), **6** (nothing logged).
+- Decisions / ADRs / `00_STATE.md` rows: none. This implements the spec's settled MOTION-6. The choices that go beyond the spec's text are recorded in `docs/evidence/INT-335.md`: CSS iteration count counted as a loop, `src/lib` in BK14's scope, spring and JS-hop aliases, no `kind` parameter, and the curve carried in the CSS shorthand.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): none. No device run is recorded; the only felt change is PulseDot's curve (core ease-in-out → breath token), and the owner's reference devices are still unnamed.
+- Next: PR review. MOTION-7 (presence orb) can now land on these gates.
+- LOOP_STATUS: CONTINUE
+
+### 2026-09-26T19:00:00Z · INT-351 · done (PR open, not merged)
+- Goal: a RENDERED admin-web ops page (audit F26 — admin-web was headless view-models + fixture specs) with tiles for API health, model hosts/GPU, model usage, the scripted-clip cache, check-in→seen wait, CSAT/NPS and CI/CD, each backed by a real source and failing closed to "unknown"; admin OIDC role required, nobody admitted without configuration (HB-A16); no PHI on any tile.
+- Plan: minimal Next.js App Router shell in `apps/admin-web` (`/ops` server component + `proxy.ts` nonce CSP + `/healthz`) that forwards the caller's bearer to a new audited `GET /admin/ops` (`ADMIN_ROUTES`, platform-scope roles) and then reads the API's `/healthz`/`/readyz`/`/version`. The composite (`intake_api.admin.ops_console`) reads the registry (INT-183 loader) and Prometheus through a fixed catalogued query table (`ops_prom.py`). GPU and CI facts come from a new ops collector in `services/probes` (nvidia-smi beside the host; GitHub Actions with a read-only token from OpenBao through the egress guard); the ADR-028 clip build counts hits/misses/syntheses and per-pack manifest coverage (`voice_clips.metrics`) into a textfile the collector re-exports. Eleven families catalogued. The GitHub issue (#557, filed in parallel) asks for the clip *manifest* and one fail-closed test per tile — both added as a second red→green increment.
+- Tests (RED first): `tests/observability/test_ops_collector.py`, `tests/admin/test_ops_console.py`, `tests/voice/test_clip_cache_metrics.py`, the RBAC matrix/audit drive rows, and `apps/admin-web/e2e/ops.spec.ts` (loader + rendered tree over recorded responses from `scripts/dev/record_ops_fixture.py`). RED = py collection rc=2 (three ModuleNotFoundError), rbac/audit 6 failed, vitest rc=1 (Cannot find module '../src/ops/csp'). Second increment RED = voice 3 failed, collector+composite 4 failed, vitest 3 failed. GREEN = targeted py 203 passed; tests/admin+observability 596; tests/voice 888 at 99.68 % voice-clips coverage; admin-web 154 passed (ops 37); whole-tree pytest green (see evidence).
+- Result: ruff/format/mypy --strict clean; `pnpm -r lint/typecheck/test` green; `next build` clean and the page driven end to end locally (all eight tiles ok; refusal without a bearer; CSP emitted; no horizontal scroll at 375 px); no_placeholders (staged), vendor-calls, phi-scan, claims-scan, gitleaks --staged, licence gate, osv-scanner all OK. New npm deps next 16.3.6 / react 19.2.3 (MIT, blobs read); `sharp` excluded via `pnpm.ignoredOptionalDependencies` (its libvips is LGPL-3.0 and fails the licence gate).
+- Invariants touched and still passing: 6, 13, 14, 15, 17, 20, 22 (details in docs/evidence/INT-351.md).
+- Decisions / ADRs / 00_STATE rows: no ADR (implements files/08 §0b F1 / §7 as written). The CI read reuses the `api.github.com` row's `issue_tracking` purpose; EC2 vCPU quota is not collected (needs a new egress row — owner call). No HB id minted; HB-A16 referenced.
+- Blocked on: nothing for the acceptance. Owner config for live use: `INTAKE_ADMIN_API_BASE` + an OIDC ingress; `INTAKE_ADMIN_OIDC_*` and `INTAKE_ADMIN_IP_ALLOWLIST` (HB-A16 — must include the admin-web host); `INTAKE_OPS_PROMETHEUS_URL`; collector `INTAKE_OPS_GPU_HOST_ID`, `INTAKE_OPS_GITHUB_REPO` + `INTAKE_OPS_GITHUB_TOKEN_PATH`, `INTAKE_OPS_CLIP_METRICS_TEXTFILE`.
+- Next: coordinator reviews/merges the PR (Sec-Row `admin-console`). Main filed the INT-351 row (todo, #557) while this branch was open; the merge keeps main's row and count (280) and flips the row to done with this evidence.
+- LOOP_STATUS: DONE
+
+### 2026-09-26T21:45:00Z · INT-226 · awaiting-human (delivered=partial: report yes, publication no)
+- Goal: acceptance verbatim — *"report generated from a11y CI results; statement published in-app and web"*.
+- Plan:
+  - The source of record is `docs/compliance/accessibility-conformance.yaml`: all 55 WCAG 2.2 A and AA criteria (with BK1–BK31 on the Level A rows), 27 EN 301 549 V3.2.1 clauses beyond 11.1–11.4, 25 dated manual checks, 8 device-audit items and the contrast pairs.
+  - `scripts/compliance/render_a11y_report.py` renders it to `docs/compliance/accessibility-conformance-report.md`. It resolves every citation against the vitest source CI runs, computes contrast from `theme.ts`, and derives EN 11.1–11.4.
+  - The statement source gets factual status only. The INT-144 report gets a banner saying the status of record has moved.
+- Tests added (with the near-miss negative for any safety rule):
+  - `tests/legal/test_a11y_report.py` (26), including negatives for a renamed citation, a Supports row with no evidence, a citation to a non-suite file, an undated manual check, a device-decided row set to Supports, and a fixed palette.
+  - RED 1: collection error, because the renderer was missing (rc=2). RED 2: 2 failed, 23 passed (report unrendered; statement unaware).
+  - GREEN: 26/26. The wider suites (legal, backlog, ci, docs, smoke) pass 557/557. Mobile vitest passes 2003/2003, and all 80 cited tests passed in a JSON run.
+  - Mutations, each restored from a backup: skipping a cited test turns the gate red; the recommended `border` fix forces 1.4.11 to be re-assessed.
+- Result (`make check` / `make safety` / `make security` summary):
+  - Targeted lanes only (listed in docs/evidence/INT-226.md). ruff, format and bandit are clean. `no_placeholders` and `claims_scan` exit 0 after staging.
+  - `make check` end to end, `make safety` and `make security` were not run and are not claimed. This change adds no service, endpoint, dependency, metric, model or PHI path.
+- Invariants touched and still passing: **20** (tested results with date and method, no blanket-conformance phrasing, test-enforced), **18** (no legal text authored, no loader points at the statement), **17**, **8**.
+- Decisions / ADRs / `00_STATE.md` rows: none. Posture choices are stated per row, not taken as decisions:
+  - Not Evaluated is used at A/AA, where a VPAT would reserve it for AAA;
+  - 1.4.12 is N/A, because the criterion is scoped to markup;
+  - 2.4.5 and 2.4.1 are N/A under WCAG2ICT.
+- Findings (reported, not fixed; they are mobile changes for their own issues):
+  - SC 1.3.4: `app.json` locks portrait.
+  - SC 3.3.8: the six one-character OTP boxes cannot take a pasted or autofilled code.
+  - SC 3.3.1 / 4.1.3: `issue-link.tsx`, `ConfirmCard.tsx` and `RecordReading.tsx` are Android-only announcements, missed because the BK28 test's list is hand-maintained.
+  - SC 2.2.1: the BK13 test scans `.tsx` only, and kiosk's 60 s wipe sits in `lib/`.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id):
+  - Owner: run DA-01 to DA-08 (report §5) on a release build (HB-L9).
+  - Owner: name the feedback channel.
+  - Counsel: the enforcement route and the Turkish statement text (HB-L9), signed under HB-L27.
+  - Two rows added to blockers.md. No HB id minted.
+- Next: PR review. The OTP single-field fix and the announcement-list fix are the obvious follow-ups for the mobile lane.
+- LOOP_STATUS: WAITING_HUMAN
+
+### 2026-09-26T17:15:00Z · INT-341 · delivered (screenshots pending)
+- Goal: acceptance verbatim — *"every Pressable takes its pressed and disabled opacity from motion.press; no opacity literal remains in src; no Pressable narrows the platform press-retention default · disabled opacity stays distinguishable from pressed opacity; before/after screenshots for the calendar and the composer send button"*.
+- Plan: add `motion.press = { opacity: 0.85, rowOpacity: 0.7, disabledOpacity: 0.5 }` to `theme.ts` (the §2.2 table minus `retentionOffset`) and point all 10 literal sites on `main` (6 files) at it. This normalises the composer's disabled send from 0.4 to 0.5. No `pressRetentionOffset` is set. `VisitCalendar` (whose 0.6 is the other normalisation) is not on `main`: it lives on the unmerged `int-visits-calendar`/`int-demo*` branches, and the guard forces its sites onto the tokens when it lands.
+- Tests added (with the near-miss negative for any safety rule):
+  - New `e2e/motion.spec.ts` with the two MOTION-12 guards: the literal ban plus token reads in every `({ pressed })` callback, and no retention offset. Each detector is first run on offending samples and a clean one. The helper header is byte-identical to INT-331's (PR #570), so the second merge resolves by appending one block.
+  - `theme.test.ts`: "the disabled opacity stays distinguishable from the pressed opacity".
+  - Near-miss: a `ListRow` 0.6 and a `Segmented` local-name bypass each fail the guard. Both mutations were restored from backups.
+  - RED: 2 failed | 15 passed (10 literal sites listed; `motion.press` undefined). GREEN: 17/17 targeted; whole mobile suite 101 files / 1966 tests.
+- Result (`make check` / `make safety` / `make security` summary): not run locally (check-integration is CI-only, and no Python, protocol or security surface changed). `pnpm -r typecheck` and mobile `expo lint` are clean, and `no_placeholders` exits 0 after staging.
+- Invariants touched and still passing: **17** (only the three tokens with a consumer land), **8** (tests only added).
+- Decisions / ADRs / `00_STATE.md` rows: none. The change implements the spec's settled MOTION-12. The one remaining non-state opacity, the static `Themed` hairline at 0.9, is on the guard's shrink-only `STATIC_OPACITY` list.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): the owner must capture before/after screenshots of the composer send button, disabled 0.4 → 0.5, on a release build. The VisitCalendar pair belongs to the PR that lands the calendar. This is a device step, and the evidence file marks it pending. No HB id is minted.
+- Next: PR review.
+- LOOP_STATUS: WAITING_HUMAN
+
+### 2026-09-26T17:00:00Z · INT-331 · delivered
+- Goal: acceptance verbatim — *"one OS read and one listener serve every consumer; an unknown answer or a rejected read means reduced; a failed re-read keeps the last known answer · a live change reaches every consumer and Reanimated through ReducedMotionConfig driven by the app policy; nothing imports useReducedMotion from react-native-reanimated and no ReduceMotion.System appears · the appearance suite stays green unchanged"*.
+- Plan:
+  - A pure, dependency-injected `apps/mobile/src/lib/motion/policyStore.ts` (`createReduceMotionStore`, `deferredReduceMotionSource`).
+  - A thin `native/reduceMotionSource.ts` over AccessibilityInfo and AppState, reached only through a lazy `import()`.
+  - `reducedMotion(app, os: boolean | null)`, where null means reduced.
+  - `useReducedMotion` on `useSyncExternalStore`, with the same name and path, so no call site changes.
+  - `<ReducedMotionConfig mode={reduce ? Always : Never} />` mounted first under `AppearanceProvider`.
+- Tests added (with the near-miss negative for any safety rule):
+  - `policyStore.test.ts`: the 7 MOTION-2 tests, plus 4 for stale-read ordering and the lazy loader.
+  - `appearance.test.ts`: 2 tests.
+  - `e2e/motion.spec.ts`: the 3 spec guards, plus one pinning a single store and a single OS asker.
+  - Near-miss: four mutations were checked and each was restored from a backup: the store starting at motion, the bridge inverted, the bridge outside the provider, and the answer kept after release.
+  - RED: 4 failed | 90 passed, plus the policyStore suite failing to load. GREEN: 105/105 targeted; whole mobile suite 102 files / 1980 tests.
+- Result (`make check` / `make safety` / `make security` summary): not run locally (check-integration is CI-only, and no Python, protocol or security surface changed). `pnpm -r typecheck`, expo lint and prettier are clean, and `no_placeholders` exits 0 after staging.
+- Invariants touched and still passing: **17** (no stub source, no pretend answer), **8** (17 tests added, none loosened; `appearance.spec` unchanged), **6** (nothing is logged).
+- Decisions / ADRs / `00_STATE.md` rows: none. This implements the spec's settled MOTION-2. One choice goes beyond the spec: the store forgets its answer when the last consumer unsubscribes (fail closed), recorded in `docs/evidence/INT-331.md`.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): none. No device run is recorded; the owner's reference devices are still unnamed (as in INT-330).
+- Next: PR review. MOTION-6 (the Reanimated hygiene gates) can now build on the bridge.
+- LOOP_STATUS: CONTINUE
+
+### 2026-09-26T16:10:00Z · INT-349 · awaiting-human (engineering half delivered)
+- Goal: acceptance verbatim (backlog row on `chore-backlog-int-349-354`): *"the protocol Slot model carries a closed data_category tag (the compiler rejects an unknown value), and every specialty candidate slot that collects one of the owner-approved categories … declares it"*; *"answers to a tagged slot are written with field-level envelope encryption: slots.sensitivity is never SlotSensitivity.PLAIN for them … and a test reads the stored row back and proves no plaintext answer is at rest"*; *"each category has a data-register/VERBİS row whose legal basis, retention, recipients and consent scope are counsel-supplied; while any of those fields is awaiting-human the row is incomplete and a slot carrying that tag is not servable (fails closed, invariant 18)"*.
+- Plan: closed `protocols.types.DataCategory` (general_health + the eight D3 categories) and `Slot.data_category` (default general_health); `docs/legal/data-categories.yaml`, one row per non-general category, `purpose` from D3 and every counsel field null; `protocols.data_register` loader (fail closed) and `protocols.compile.data_categories` gates wired into `resolve_protocol` (`DATA_CATEGORY_UNKNOWN`, `DATA_CATEGORY_REGISTER_INCOMPLETE`, `DATA_CATEGORY_RELAXED`); `intake_api.store.write_slot_answer`/`read_slot_answer` choosing PLAIN vs the existing EnvelopeCipher envelope by category, AAD-bound to session and slot.
+- Tests added (with near-miss negatives): `tests/protocols/test_data_category_gate.py`, `tests/protocols/test_data_register.py`, `tests/data/test_sensitive_slot_categories.py`. Near-misses: `sexual`/`Sexual_Health`/`general` refused; a complete row for another category does not open this one; a patient-only category does not need the other-subject field while relatives_health does; a child may tag a general slot but not untag an inherited one; an envelope moved to another slot fails authentication. Six guard mutations each caught (evidence §5). RED = collection error `ModuleNotFoundError: protocols.data_register`; GREEN = 68 passed. Evidence: `docs/evidence/INT-349.md`.
+- Result: `tests/protocols tests/data tests/api` → 806 passed; `make check-py` exit 0 (full suite 6369 passed at 95.47 %; protocols 97.02 %, new modules 100 % branch; deid-ner needed `INTAKE_DEID_MODEL_DIR` in this fresh worktree); `make safety` exit 0; no_placeholders, claims, PHI and staged gitleaks clean. `make check-ts`/`check-golden`/`check-integration` and `make security` not run locally (no TS, golden or container change; integration is CI-only).
+- Invariants touched and still passing: **14** (field-level envelope encryption through the existing KEK/DEK path, no new crypto), **18** (register rows; inventory annotations on `slots.sensitivity`/`slots.value` updated), **17** (no legal value invented; counsel fields null; the gate fails closed), **7** (a category may be added down the chain, never dropped), **6** (no answer text in any refusal or log; ids only), **16** (`data-at-rest` threat-model row lists the new test).
+- Decisions / ADRs / `00_STATE.md` rows: no ADR (a field, a register and a gate on existing machinery). **No HB, INT or alembic id minted**; no migration (no column change). The review-queue candidates on `merge-305` are untouched; tagging them is the follow-up once INT-353 lands them.
+- Blocked on: Turkish counsel with the DPO, via the owner — for each D3 category, the KVKK m.6 basis, retention, recipients and consent scope, and for household, relatives_health and partner_fertility the separate basis and notice for the other data subject (docs/backlog/blockers.md INT-349; no HB row exists yet).
+- Next: coordinator opens the PR (`Refs #555`, Sec-Row `data-at-rest`); it needs the INT-349 backlog row on `main` for the sec_row linkage gate.
+- LOOP_STATUS: WAITING_HUMAN
+
 ### 2026-09-26T14:15:00Z · INT-330 · delivered (device timing pending)
 - Goal: acceptance verbatim — *"a pure transition policy (route class hierarchy/auth/intake/legal) drives the root, auth and visits stacks and the tabs; no transition literal remains in any TSX · iOS stack fades run the fade token (120 ms) and 0 under reduce motion, removing the 500 ms default that could hold a RED behind an in-flight push (docs/design/motion/motion-verification.md S-1) · legal screens never animate in either direction at any setting; the intake route cannot be swiped away · device measurement of push/pop timing on the owner's two reference devices recorded in the evidence file"*.
 - Plan: add a pure `apps/mobile/src/lib/motion/transitions.ts` (`ROUTE_CLASSES`, `routeClassOf`, `transitionFor`, `tabTransition`) over the kept `screenAnimation`/`motionMs`; add `motion.duration = { instant, fade }` with `fadeMs` as its alias. The root, `(auth)` and `visits` stacks and the JS tabs spread the policy from a function-form `screenOptions`, keyed by `<dir>/${route.name}`. No `Stack.Screen` child is declared, because that would reorder expo-router's screens. `animationMatchesGesture` is untouched.
@@ -1763,3 +3990,698 @@
 - Blocked on (human + one sentence + HUMAN_BLOCKERS id): **HB-C11** — physician of record (Dr Efe Onganer) + owner: collect and label the held-out Turkish clinical affect corpus, evaluate row 14's licence-clean SER weights against it, and record the clinician sign-off into `affect_enablement.yaml` (`model_ref`, `corpus`, `evaluated_on`, `sign_off` — never a number). Until then `admit_affect` refuses every model and no `AffectLane` can be built. Pre-existing; not minted here.
 - Next: INT-113 (asr_quality) and INT-114 (engagement) are the neighbouring E06-lanes rows, both awaiting-human on HB-L22 (lawful basis); the framework already refuses them fail-closed.
 - LOOP_STATUS: WAITING_HUMAN
+### 2026-09-26T19:30:00Z · INT-355 · done (PR open, not merged)
+- Goal: gated questions were never asked. Pack gates name slots bare (`base.intake`: `subject_role != 'kendim'`, `pregnancy_status != 'hayir'`; every specialty/cluster candidate: `<slot> == true`), while the engine keys steps `<section>.<slot>` and read the atom as written. The gate evaluated UNKNOWN, never opened (files/13 §9.5), and the dependent question was silently dropped. Acceptance: resolve a bare gate name to the unique slot of that name across the resolved chain; refuse a bare name matching more than one section (new refusal code) or none; qualified names keep working; apply the same resolution wherever gates are evaluated; tests for `lmp_date`, `proxy_reported`, a specialty-style bare boolean gate (opens on true, closed on false and unanswered), ambiguity refused at compile, FHIR projects the qualified linkId; coverage thresholds do not drop.
+- Plan: one rule in one module, `protocols/gates.py` (`SlotNamespace` + `qualify_gate`, a rewrite over the parsed `when` tree). Applied in three places: the compiler (`resolve.py` `_gate_ref_refusals` → new `RefusalCode.GATE_REF_AMBIGUOUS` / `GATE_REF_UNKNOWN`), the FHIR emitter (`enableWhen.question` = the resolved linkId; the last-writer-wins dict is gone), and the engine (`plan.py` `build_plan` rewrites every gate to step ids and raises `PlanError` on ambiguous or unknown, so `fsm.py` `_lookup` only ever sees step ids). The typed lane renders the engine frontier, and the mobile `askIfMet` gates on a flat, test-pinned-unique question-id namespace, so neither needed a change.
+- Tests added (with the near-miss negative for any safety rule): `tests/engine/test_bare_gates.py` (26) covers the verifier's reproduction and `base.intake`'s two authored gates driven through a real `IntakeEngine`. `tests/protocols/test_gate_refs.py` (23) covers the namespace, compile refusals and emitter projection. Near-miss: the same chain with the same duplicated key compiles and runs once the gate is qualified. `test_compiler_edges.py::test_a_gate_naming_an_unknown_slot_is_refused` now expects `GATE_REF_UNKNOWN` as the exact refusal list. It still fails closed, one stage earlier. RED: 14 failed / 12 passed (the 12 are the qualified and stays-closed controls), plus a collection error for the missing module. GREEN: 26 + 23 passed. Full log in docs/evidence/INT-355.md.
+- Result (`make check` / `make safety` / `make security` summary): protocols 96.98 % (≥ 95), voice-runtime 98.46 % (≥ 90), triage 100 %. `make safety` exit 0 (18/18 mutations detected). `ruff`, `ruff format` and `mypy --strict` are clean. `make check-py`: every lane green at or above its floor. The only failures were 4 in `test_deid_ner`, all "NER model missing" (a fresh worktree has no model cache), and they pass against the pinned artefact. `make security` and `check-integration` were not run locally (no container runtime; CI-only).
+- Invariants touched and still passing: **1** (no triage module changed; red-flag `when` and `tense_anchor` keep their qualified references), **8** (floors hold), **9** (Talker tools and PolicyGuard untouched), **10** (no scripted text changed), **17** (no placeholder, no skip, no invented clinical value).
+- Decisions / ADRs / `00_STATE.md` rows: none. A bare gate name resolves across the whole resolved chain, with no own-section precedence, so a duplicated key is an authoring error rather than a scoping rule. All 183 gates on the review branch (`origin/merge-305`, 100 packs) resolve uniquely under it.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): nothing. The GitHub API was unreachable from this host, so the issue and PR are still to be opened, and INT-355 still needs its `docs/backlog/issues.yaml` row (`sec_row: triage`) for `sec_row_linkage`.
+- Next: open the issue and PR once the GitHub API is reachable.
+- LOOP_STATUS: CONTINUE
+### 2026-09-26T20:30:00Z · INT-100 · done (PR open, not merged)
+- Goal: acceptance verbatim — *"breaker per vendor; failover order from probes registry; chaos kill proves <=2s"*.
+- Plan: new `intake_voice_runtime.resilience` package with three modules.
+  - `breaker.py`: one closed/open/half-open breaker per vendor component on an injected clock, shared across sessions through `BreakerBoard`. Defaults are sourced from files/03 §4.5b: 30 s anti-flap and T3's "two consecutive".
+  - `order.py`: the order is the `observability/registry.yaml` `fallback` chain. On the PHI path a non-self-hostable lane is refused (`CloudFailoverRefused`), never skipped (invariant 19).
+  - `failover.py`: `FailoverSynthesizer`, a `SpeechSynthesizer`, tries the lanes under one 2 000 ms budget. Each attempt gets its share as the wire timeout, and the lane choice is sticky per session (§4.9.4 row 11).
+  - `TalkerSession._emit` turns `SpeechLanesExhausted` into `fall_back_to_typed(SPEECH_LANES_EXHAUSTED)` and re-renders the same verbatim text on the screen in the same turn.
+  - Three catalogued live families: `vendor_breaker_state`, `vendor_breaker_transitions_total` and `vendor_failovers_total`.
+- Tests added (with the near-miss negative for any safety rule): `tests/chaos/test_vendor_failover.py` (11) and `tests/voice/test_vendor_resilience.py` (54).
+  - The chaos file drives a real Talker turn over the real `HttpSpeechSynthesizer` behind `httpx.MockTransport`, with the order read from the real registry. The primary dies in flight → next lane at 720 ms. A hung primary → next lane at 1 520 ms. Both lanes killed → screen at 0 ms. Both lanes hung → screen at 2 000 ms. Every turn runs with the Backend stalled 0, 10 or 10 000 s, and the latencies are identical (invariant 9).
+  - Five near-miss mutations were each caught (M1–M5 in the evidence file) and restored from backups: no budget split, no cloud refusal, no typed catch, not sticky, breaker late by one.
+  - RED: collection errors (module absent), plus the parity reason-set test failing on the new member. GREEN: 65 passed.
+- Result (`make check` / `make safety` / `make security` summary):
+  - Main check-py pytest lane: 6844 passed, 95.76 % (≥ 85).
+  - Voice-runtime: 98.56 % (≥ 90); the resilience modules are at 100 %.
+  - `make safety`: exit 0.
+  - `ruff`, `ruff format` and `mypy --strict` (428 files) are clean, and `no_placeholders` is OK after staging.
+  - `make security` and `check-integration` were not run locally (CI-only). `check-ts` was not run because no TypeScript changed.
+- Invariants touched and still passing:
+  - **9**: six tools unchanged; the Talker never awaits the Backend, proved under chaos.
+  - **10**: the fallback renders `text_tr` verbatim.
+  - **13**: every emitted family is catalogued.
+  - **19**: `residency_tr` never fails over to a cloud lane; this is asserted on the order object and at lane binding.
+  - **22**: a numeral is refused before any lane or breaker is touched.
+  - **6**: labels and exception text carry ids and outcomes, never text.
+  - **8**: floors hold.
+- Decisions / ADRs / `00_STATE.md` rows: none new. `LaneSwitchReason` gains `speech_lanes_exhausted`, the fourth route into typed, which files/03 §4.9.4 rows 7 and 11 name. Scope is the speech *egress* lanes (TTS rows 11 → 12). The ASR row 1 → 2 fallback lives in the media plane, where row 1 has no registry row (HB-I11), and the component-keyed breaker and order bind to it unchanged.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): nothing. GitHub issue #83 had been closed by INT-083's PR #392 (an issue-number collision). It was reopened so this PR closes it.
+- Next: PR review.
+- LOOP_STATUS: CONTINUE
+
+### 2026-09-26T20:50:00Z · INT-215 · awaiting-human (delivered=partial)
+- Goal: KVKK Board decision 2018/10 (special-category adequate measures) mapped to controls and evidence. Acceptance verbatim: *"each 2018/10 measure mapped to a control and a live signal; export produces the auditor packet"*. The mapping and the export ship; every measure is mapped to controls with their signals or to gaps with named owners, and no measure is reported implemented, so the issue stays open.
+- Plan: fetch and snapshot the decision (Resmî Gazete 07.03.2018 sayı 30353 PDF, image-only; the Kurum's text of the same decision), bind both by sha256; `docs/legal/special-category-measures.yaml` quotes each measure verbatim and names controls (paths, pytest ids, catalogued metric or registered probe) or gaps (kind, owner, one question, HB row or issue); `intake_platform.compliance.{measures_model,measures_loader,adequate_measures}` parse the measure ids out of the snapshot, refuse any drift, derive status, and export the auditor packet through the invariant-47 guard (`make evidence-2018-10`); `seal_bundle` extracted from INT-189's evidence module so both exports share one digest rule.
+- Tests added (with near-miss negatives): `tests/legal/test_2018_10_mapping.py` (41) and `tests/compliance/test_measures_loader.py` (26) — paraphrased quote, dropped or invented measure, drifted digests, unresolvable or wrong-class test id, path escaping the repo, planned metric declared live, uncatalogued metric, unregistered probe, ownerless or undeclared-owner gap, invented HB id, declared status, removed signal gap, formula payload in an ask, nineteen malformed shapes. RED 20:23 UTC: ModuleNotFoundError at collection, rc=2. GREEN 20:43 UTC: 67 passed, rc=0.
+- Result (`make check` / `make safety` / `make security` summary): `make check` not run in full from a clean clone and not claimed; targeted lanes: ruff + format clean repo-wide, mypy --strict packages/intake_platform/src clean, legal/compliance/admin/ci/backlog/metrics-catalog suites 830 passed; `make safety`/`make security` not run (no container runtime; no protocol, service, dependency or egress change).
+- Invariants touched and still passing: 4, 6, 14, 17 (no id minted; every human value is an owned gap), 18 (legal text under docs/legal with hash binding), 20 (mapping in the claims-scanned tree, scanned by a test), 47.
+- Decisions / ADRs / `00_STATE.md` rows: none. files/06 §1 row KVKK-12 + 2018-10 corrected (it named "test-data masking", absent from the decision, and omitted items 4, 5 and 6). docs/security/threat-model.md `compliance-evidence` row updated. files/11 regenerated (INT-215 todo → awaiting-human).
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): owner — the seventeen organisational gaps (policy, training, undertakings, grant register and reviews, offboarding, unseal-key custody, premises, transfer rules, pen test), of which three are HB-I12, HB-I9, HB-I8; counsel — mTLS vs "VPN or sFTP" (5c), plaintext LAN feeds (5c), whether patient OTP + device-bound key is two-factor (3e), the undertaking text (2b). No HB row minted; blockers.md carries both asks.
+- Next: the coordinator allocates issues for the ten `security_owner` gaps (staff second factor, session lifetime, access-review generator, offboarding, key-rotation schedule, encryption and auth signals, dependency updates, API fuzzing, the Kurum's security guide).
+- LOOP_STATUS: WAITING_HUMAN
+
+### 2026-09-27T09:30:00Z · INT-367 · done (PR open, not merged)
+- Goal: acceptance verbatim (GitHub #594): *"a scheduled job runs the existing re-wrap rotation quarterly (files/10 §3) and emits sec_secret_rotation_due_days, catalogued as live; an overdue rotation raises an alert"*. Found by INT-215 as the 2018/10 measure 3b gap `rotation-schedule`.
+- Plan: `intake_platform.key_rotation` — `schedule` (three calendar months in UTC, `ROTATION_PERIOD_MONTHS` sourced to files/10 §3), `transit` (last rotation = creation time of the latest Transit version, read from Transit's own key metadata; no new store), `job` (one idempotent tick: rotate what is due through the existing `TransitKekProvider.rotate`, confirm the new version, set `sec_secret_rotation_due_days{key}`), `cli` (`make key-rotation`). Catalogue entry flipped to live with `[key]`; `SecretRotationOverdue` in a new `infra/observability/security-rules.yaml` wired into the obs Prometheus; runbook `docs/runbooks/key-rotation.md`.
+- Tests added: `tests/security/test_rotation_schedule.py` (31) on the INT-014 FakeTransit extended with metadata reads, a fake clock and `min_decryption_version` on decrypt. Near-miss control: one second short of the quarter is not rotated, the quarter is. Failed and partial rotations leave every ciphertext decryptable; the job's only write is `rotate`. RED 1: module missing. RED 2: 4 wiring failures plus the INT-025 gate naming the metric as planned-but-emitted. GREEN: all pass. Mutants 7/7 killed.
+- Result: see docs/evidence/INT-367.md (pytest lane with coverage, ruff, format, mypy --strict, no_placeholders after staging, evidence_check). `make check-ts`/`check-i18n`, `make safety` and `make security` not run: no TS, protocol or dependency change.
+- Invariants touched and still passing: 6 (label is the Transit key name only; CLI prints ids only), 13 (metric catalogued live and emitted; alert reads only catalogued series), 14 (secrets only via `SecretsProvider.from_env`, fails closed), 15 (runbook linked from the alert), 17 (no fake outside tests; the unwired production pieces are stated, not faked).
+- Decisions / ADRs / `00_STATE.md` rows: none. OpenBao policies untouched (LOOP guardrail).
+- Blocked on: owner — which host runs the daily tick in production, how its gauge is scraped, and minting its rotation-scoped OpenBao token (key-management deployment; CLAUDE.md "stop and ask"). The `rotation-schedule` gap in docs/legal/special-category-measures.yaml is left for the security owner to close.
+- Next: PR `INT-367: scheduled quarterly key rotation with sec_secret_rotation_due_days and an overdue alert` (Closes #594, Sec-Row data-at-rest), unmerged for review.
+- LOOP_STATUS: CONTINUE
+
+### 2026-09-27T05:35:00Z · INT-138 · done (PR open, not merged)
+- Goal: acceptance verbatim (GitHub #108): *"camera+file upload; AV/processing states; confirm-before-use; provenance boxes"*. The row had stayed `todo` since 3 Sep because no route carried a document extraction to the phone.
+- Plan:
+  - Audit first. Camera + file upload, the AV chips, `ConfirmCard`, the two verdicts, `SourceBoxPanel` and the client reader were already on `main`. What was missing was the transport, plus re-asking a document that is still being read.
+  - API: `record_items.py` with `GET …/documents/{doc_id}/extraction` (closed item shape, INT-385 summary byte for byte, `unit_conflict`, page + bbox, the server-held verdict) and `POST …/extraction/decisions` (`{card_id, decision}` only). A confirmed item goes through `confirm_record_item` to `ConfirmedRecordStore.admit`. Both routes use the `documents` scope and are audited with ids only.
+  - Seam: `record_feed.py` holds `ExtractionSource`, `NoExtractionSource` (unread for every document while every producer is shut) and the verdict ledger.
+  - App: `apiExtractionSource` is the one production source, and `noExtractionFeed` is deleted. `isAcknowledgement` gives no optimistic write. `pollExtraction` backs off from 2 s to 30 s over about 2.5 min, lives in lib and is registered as a BK13 wait. The confirm intro is announced.
+- Tests added (with the near-miss negative for any safety rule): `tests/records/test_extraction_transport.py` (27).
+  - Near misses: the same line in the expected unit carries no flag; the fence word without the marker is served.
+  - Also covered: a box into another document refuses whole, a body with `by`/`actor`/`source`/value/unit is a 422 that echoes nothing, the same tap twice admits once, and a contrary verdict gets 409.
+  - Mobile: 31 new tests (3 older ones replaced) across `extraction.test.ts` (fake clock), `api.test.ts` and `e2e/records.spec.ts`. The spec cross-checks both paths against the Python router.
+  - RED: server ModuleNotFoundError, then 26 failed. Mobile: 29 failed. a11y BK13 refused a timer in a component, so it moved to lib.
+  - Mutations: 6/6 killed.
+- Result: `make check` MAKE_CHECK_EXIT=0. 8340 passed at 96.14 % and every coverage lane met its floor. Mobile: 2207 tests; `check-i18n`: 30. `no_placeholders` (staged), `phi_scan`, `claims_scan` and `assert_no_vendor_calls` all OK. `make safety` was not run separately because no protocol, triage or runtime file changed.
+- Invariants touched and still passing: 1, 2 (no new copy), 4, 5 (no new keys), 6, 12, 14, 17, 18 (nothing persisted), 20, 22.
+- Decisions / ADRs / `00_STATE.md` rows: none.
+  - The fail-closed default moved from the app to the server (one gate).
+  - The `records` threat row gained the transport and one named limit.
+  - Three exact access-log actions were added.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): nothing blocks the issue.
+  - Owner decision, not made here: should confirmed record items be persisted durably? Today INT-121's store is in-memory, so a restart returns a card to pending (the safe direction). Persisting them is a new structured copy of health data (invariant 18, stop-and-ask).
+  - Coordinator decision: INT-313's five clauses are what this PR's test file pins, and its row was left untouched (one issue per PR).
+- Next: PR `INT-138: records screens — upload, processing, confirm cards and provenance viewer` (Closes #108, Sec-Row records), left unmerged for review.
+- LOOP_STATUS: CONTINUE
+
+### 2026-09-27T10:30:00Z · INT-187 · awaiting-human (PR open, not merged)
+- Goal: acceptance verbatim: *"pipelines, eval gates, deploy health, canary state, rollback button (4-eyes), deploy-freeze on budget exhaustion"*. Everything but the rollback button ships; the row stays `awaiting-human` on it.
+- Plan: extend the INT-351 ops collector with a CI/CD source on the same read-only OpenBao token and egress-guarded transport (`intake_probes.ops_cicd`: recent runs per workflow with failing jobs, every PR-triggered gate on `main` and the open PRs, whether GitHub enforces them, releases with the `sign-and-attest` outcome; eleven catalogued `ops_cicd_*` families); `intake_platform.release_freeze` (record, CAS Redis store, the verdict rule); `admin.cicd.freeze.engage` (T1) / `admin.cicd.freeze.lift` (T2) with `DeployFreezeGovernor`; `GET /admin/cicd` (`intake.admin.cicd.v1`) and the freeze routes; `python -m intake_api.admin.release_gate`, run by `infra/staging/deploy.sh` before the first `compose up`; `/cicd` in admin-web.
+- Tests added (with near-miss negatives): `tests/admin/test_deploy_freeze.py`, `test_cicd_console.py`, `test_cicd_routes.py`, `tests/observability/test_ops_cicd.py`, `tests/infra/test_staging_release_freeze.py`, `apps/admin-web/e2e/cicd.spec.ts`; RBAC matrix and audit drives extended to the five new routes. Near misses: an engage that names an approver, a lift with none, "deploys allowed" beside a freeze / an exhausted budget / an unreadable freeze, Argo CD painted deployed, a gate that could not run. RED: collection errors (modules absent), 13 infra failures, 26 spec failures on the missing recording. GREEN: see docs/evidence/INT-187.md.
+- Result (`make check` / `make safety` / `make security` summary): `make check-ts` rc=0; `make check-i18n` 30 passed; ruff, format and `mypy --strict` clean repo-wide; admin/observability/infra/backlog/ci suites green (docker-only edge suite excluded, HB-I13); `next build` ok; `make safety`/`make security`/`check-integration` not run (no protocol change; CI-only).
+- Invariants touched and still passing: 4 (every route write-ahead audited), 6 (ids only; actors, commit messages, PR titles never labels; free text stays in the brief), 13 (every family catalogued; alert `admin.deploy_freeze_changes_total`), 14 (token from OpenBao, egress guard, no secret printed by the gate), 15 (no new service), 16 (`cicd` row), 17 (every tile unknown on its own source; no ceremony over nothing; Argo CD shown not deployed and held by a test against `infra/`).
+- Decisions / ADRs / `00_STATE.md` rows: none new. The freeze is not an Unleash key (invariant 34 reasoning); deploy state is this API's own `/version`, read in process (no new egress); `docs/slo` now ships in the api image so the gate can evaluate budgets where a Prometheus is declared.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): owner — where does continuous delivery run (a cluster with Argo CD and Rollouts), or is `deploy.sh` the release path, in which case rollback becomes a gated redeploy? Nearest row HB-I13; a CD-tier row is the coordinator's to allocate (blockers.md "INT-187").
+- Next: PR `INT-187: admin CI/CD & releases module — runs, gates, releases, deploy state and change freeze` (Closes #138, Sec-Row cicd), unmerged for review.
+- LOOP_STATUS: WAITING_HUMAN
+
+### 2026-09-27T12:40:00+03:00 · INT-179 · done (PR open, not merged)
+- Goal: close out the row. Acceptance verbatim: *"one-question-per-screen typed intake (chips multi-select, single-select, free text) with progress and in-session resume; review screen with sectioned note, per-section share scope, send flips the status ladder; all strings tr-first; no clinical content beyond fixtures"*. PR #200 merged on 27 Aug and closed #201, the only copy of the issue, but the row stayed `doing`. INT-396 (PR #661, merged at `2f75900f` while this ran) flipped it to `done` on closure alone. This close-out supplies the behavioural audit.
+- Plan: audit each clause against main `0880cc88`, with a file and a test for each. Read "fixture data" per invariant 17: the shipped app must not run on fixtures.
+- Tests added: none, since the close-out adds no code. Five mutants (send, scope filter, resume, progress, a seed import into review) were each killed by the clause's own tests.
+- Result: 11 of 11 clauses met; nothing built, nothing held.
+  - `make check-ts` green (mobile 2260/2260). tests/backlog, tests/mobile and tests/release: 105 passed.
+  - no_placeholders passed after staging; evidence_check passed.
+  - `make check` was not run whole (no Python change; check-integration runs in CI only).
+- Invariants touched and still passing: 2, 5 and 17 were read only; nothing changed.
+- Decisions / ADRs / `00_STATE.md` rows: none. The row's `done` + `evidence:` came from INT-396. After rebasing onto `2f75900f`, this PR's copy of that flip was identical, so issues.yaml and files/11 carry no diff.
+- Blocked on: nothing blocks the issue. Recorded outside the acceptance in docs/evidence/INT-179.md:
+  - audit F11: the typed intake asks unsigned neutral packs until HB-C1;
+  - audit F30: the seed module is still bundled;
+  - `TODAY_FIXTURE` pins Vizitlerim's "today" to 2026-08-27 in release builds, and no row owns it.
+- Next: PR `INT-179: mobile flow shells — close-out` (Closes #201, Sec-Row intake-typed), left unmerged.
+
+### 2026-09-27T12:00:00Z · INT-257 · done (branch pushed; no GitHub issue exists, so no PR yet)
+- Goal: acceptance verbatim — *"every archetype root in packages/protocols/openehr/previsit_intake.v1.opt carries an explicit <occurrences>; EHRbase 2.35.1 returns 201 on ensure_template against the COMMITTED bytes, not a patched fixture"* and *"OPT_SHA256 bumped in the same change; the integration test uploads the committed file with no in-test edit"*.
+- Plan: read the OPT 1.4 schema rather than recall it.
+  - openEHR ITS-XML tag `Release-1.0.2` (commit f7a93777), `components/ALL/*.xsd`, is vendored byte-for-byte with its Apache-2.0 LICENSE under `tests/fixtures/openehr/its-xml-Release-1.0.2/` and digest-pinned. `C_OBJECT` makes `rm_type_name, occurrences, node_id` all mandatory, which corrects INT-032's "optional" claim. `C_ATTRIBUTE` needs `existence`, and `C_MULTIPLE_ATTRIBUTE` needs `cardinality`.
+  - The OPT is re-authored to the schema's element order. Every value is read off a source: root 1..1; `content` existence 0..1 and cardinality {0..*; ordered; non-unique} from RM 1.0.2 `List<CONTENT_ITEM>`; content roots 0..*, because the parent composition archetype that would state it is local and unauthored (HB-C12), the four CKM entry archetypes that exist carry no root occurrences, and the RM leaves content unbounded.
+  - `node_id` is present and empty. EHRbase's `OPTParser` (SDK v2.35.0, `buildNode` line 1266) dereferences the terminology for any non-blank id, and the template carries none.
+  - `OPT_SHA256` goes c72247ab… → 5ad266b4…. The patched fixture is deleted, and the integration test uploads the committed bytes through the production client with a status-recording transport.
+- Tests added (with the near-miss negative for any safety rule): `tests/protocols/test_opt_schema.py` (12).
+  - Near-miss controls on the committed bytes: without one `occurrences` the schema rejects it; without `cardinality` it rejects it; with the root code as a node id the schema accepts it but the catalogue guard flags it, and with a `term_definitions` entry the guard accepts it.
+  - The integration test's "rejected today" case flips to `test_the_committed_template_uploads_with_201`. The fixture-identity test goes with the fixture (INT-032 prescribed both).
+  - RED: 8 failed / 4 passed on the INT-041 bytes (XSD line 83 `archetype_id` where `node_id` was expected), then the pin bit (OptError on 5ad266b4 vs c72247ab). GREEN: 26 passed.
+- Result (`make check` / `make safety` / `make security` summary):
+  - `ruff` and `ruff format` are clean, and `mypy --strict` is clean (485 files).
+  - check-py main line: 8514 passed, 96.28 % (≥ 85). The 4 `test_deid_ner` failures are "NER model missing" in a fresh worktree and pass against the pinned artefact.
+  - Protocols lane: 97.14 % (≥ 95), 1184 passed. Schemas lane: 91.76 % (≥ 90).
+  - `make safety`: exit 0 (18/18 mutations).
+  - Licence gate OK. `osv-scanner` on uv.lock clean. PHI scan OK. `no_placeholders` OK after staging.
+  - The live 201 is CI-only: `check-integration` needs EHRbase and there is no container runtime here. It is argued element-by-element from the EHRbase 2.35.1 / SDK 2.35.0 source in the evidence, and first observed on the PR's CI run.
+- Invariants touched and still passing:
+  - **6**: synthetic payloads only.
+  - **14**: vendored schema digest-pinned; new dev dependency licence-checked and OSV-clean.
+  - **17**: no skip or placeholder; the one removed test is accounted for.
+  - **19**: lxml BSD-3-Clause and ITS-XML Apache-2.0, both read from the raw blob.
+  - **20**: no claims.
+- Decisions / ADRs / `00_STATE.md` rows: none.
+  - `lxml>=6.1` is added to the dev group, test-only.
+  - Found, not fixed (HB-C12(a)): of the nine archetype ids, only four exist at the transcribed id and version in the CKM mirror (5cb099fa). symptom_sign is a CLUSTER.v2, adverse_reaction_risk is v2, PHQ-9 is `phq_9.v0`, GAD-7 is `gad_7_score.v0`.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): the coordinator must file the GitHub issue for INT-257 (none exists) before the PR can say `Closes #n`. No HB row.
+- Next: file the issue, then open the PR `INT-257: the openEHR OPT carries occurrences and validates against the OPT 1.4 schema` (Sec-Row clinical-core) and watch `check-integration` for the 201.
+- LOOP_STATUS: CONTINUE
+
+### 2026-09-27T16:30:00Z · INT-415 · done (PR open, not merged)
+- Goal: acceptance verbatim (docs/backlog/issues.yaml INT-415): a typed, versioned delivery-profile table maps each delivery context to ElevenLabs voice_settings plus the pinned model id, server-side only, with the profile id in the clip cache key and RED/instrument the most stable with no style; only scripted catalogue text is sent (INT-326 guards unchanged), the normaliser-off request and invariant 22 stay enforced; docs/voice/on-prem-tts-wiring.md maps each profile to the self-hosted residency_tr controls; unit tests cover the table and prove the request body carries voice_settings.
+- Plan:
+  - `voice_clips.delivery` holds the table beside the gateway.
+  - `TtsGateway.synthesise` takes a required profile, and the ElevenLabs body carries `voice_settings`.
+  - The offline build reads each row's context from its subject, with the profile key in the object key.
+  - The dev route gains `delivery_context`, refuses red, pins RED and instrument rows, and keys its cache by profile.
+  - The mobile client sends `delivery_context`, sharing `deliveryContext.ts` with INT-414.
+  - The guide is written.
+- Tests added (with the near-miss negative for any safety rule):
+  - New: `tests/voice/test_delivery_profiles.py`.
+  - Extended: `test_elevenlabs_clipgen.py`, `test_clip_cache_builder.py`, `test_clip_manifest.py`, `tests/api/test_dev_voice_george.py`, `georgeClip.test.ts`.
+  - Near misses:
+    - labels close to a context (`Red`, `routine `) are refused;
+    - the vendor-range edges are admitted;
+    - `rfx.foo` and `rf` stay routine;
+    - an unpinned text is served in any context but red.
+  - RED run: collection errors (module absent) and 4 mobile failures.
+- Result (`make check` / `make safety` / `make security` summary):
+  - `make check-py` exit 0 (9153 passed; every coverage floor met; voice-clips 99.73 %).
+  - `make check-ts` exit 0 (mobile 2264 passed).
+  - Also green: `no_placeholders` (staged), `assert_no_vendor_calls`, prettier.
+  - `check-integration` is CI-only.
+  - `make safety` and `make security` are in the evidence file.
+- Invariants touched and still passing: 3, 6 (the text is never echoed), 10, 13, 14 (the key stays env-only), 17, 19, 20 (no claims), 21 (RED never on demand), 22.
+- Decisions / ADRs / `00_STATE.md` rows:
+  - ADR-028 amendment note (no decision changed).
+  - The `cloud-clipgen` threat row is updated.
+  - No new metric.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): none for the build. Owner ask, not an HB row: a listening review of the v1 profile values ("do welcome, routine, sensitive, instrument, acknowledgement, red and closing each sound as intended on catalogue sentences?").
+- Next: PR `INT-415: ElevenLabs delivery profiles per question context + on-prem TTS wiring guide` (Closes #706, Sec-Row cloud-clipgen), left unmerged for review.
+- LOOP_STATUS: CONTINUE
+
+### 2026-10-02T12:00:00Z · INT-420 · done (PR open, not merged)
+- Goal: acceptance (GitHub #712), with the old name written as <old>: *"Every brand use of <old> on main reads Önvizit (ASCII identifier `onvizit`) … The Turkish common noun "<old>" is kept wherever it is used as a word … Identifier changes (bundle id, URL scheme, Keycloak redirect URIs, deep links) change together and are tested. A guard test fails on any new brand-case "<old>"."*
+- Plan: read int-demo `0115c60b` and `82c1a1e6` hunk by hunk, and port their intent without merging int-demo: the name, the localized CFBundleDisplayName, the V-logo `icon.png` with the `ios.icon` override dropped, and the registered bundle id. Rename every brand use (i18n, embed SDK and sample partner, dev tenant, HL7 fixtures, docs, files/, tests). Keep the common noun and dated records in a reviewed allow-list. Leave eas.json and the other release config to INT-421.
+- Tests added (with near-miss negatives): `tests/release/test_brand_name.py` (derived token, any case; the new brand, `onvizitEmbed` and bare `vizit` are not caught; planted, unlisted and stale entries are; common-noun entries must be word-shaped), `tests/release/test_brand_identifiers.py` (scheme ↔ Keycloak redirects with a planted foreign client, bundle id ↔ App Attest, push title ↔ app name, embed attribute/route/env read back from both sides), `apps/mobile/e2e/brand.spec.ts`. Three mutants were each killed.
+- Result: see docs/evidence/INT-420.md. 199 occurrences renamed. 12 common-noun and 42 dated-record occurrences kept, each listed.
+- Invariants touched and still passing: 5 (tr catalogue brand keys, en mirrored), 18 (no hash-bound consent text changed; the accessibility statement and its draft now name Önvizit; the dev legal tree outside the repo is an owner ask), 2 (the disclaimer under the new name still passes PolicyGuard).
+- Decisions / ADRs / `00_STATE.md` rows: none. Kept on purpose: the bundle id `com.ariomoniri.intakemobile` (the ASC record) and the Expo slug. The scheme is `["onvizit", "intake"]`, so old links still open the app. Dated records are not rewritten (the owner may overrule; it is one list).
+- Blocked on: nothing.
+- Next: PR `INT-420: Önvizit everywhere …` (the issue title; Closes #712, Sec-Row mobile), left unmerged.
+- LOOP_STATUS: CONTINUE
+### 2026-10-03T01:30:00+03:00 · INT-428 · awaiting-human (PR open, not merged)
+- Goal: acceptance verbatim (GitHub #724):
+  - *"An ADR records the owner decision and its scope against invariant 19. A hosted lane is allowed for a tenant whose data class is synthetic (simulated patients). It fails closed for a real-PHI tenant unless a recorded DPA/transfer basis id exists."*
+  - *"The admin panel has a model-routing module: per-lane provider (hosted provider / self-hosted GPU / mock), a key entry written only to OpenBao and never shown back, a 4-eyes switch with audit, live lane health and cost, and an instant fallback to the self-hosted lane when it is healthy."*
+  - *"Gateways route through the existing adapter interfaces. Egress allow-list rows are added per provider. No PHI is logged. Numbers are normalised before TTS (invariant 22)."*
+  - *"Tests cover the routing decision, the fail-closed real-PHI guard, the key never being echoed, and the audit row on every switch."*
+  - Narrowed by the binding medical (finding 12) and AI/ML reviews, and extended by the owner to model selection per lane. These remove the DPA branch and mock, split the deployment, attest models, freeze the model per session, and gate swaps on red-flag goldens.
+- Plan: ADR-035.
+  - A vendor-free platform (`intake_platform.model_lanes`): guard, catalogue, qualifications, decision table, identity health, the `ModelResolver` / `SessionLanes`, and dispatch.
+  - Synthetic-image-only adapters (`packages/hosted-lanes`) behind the existing interfaces.
+  - Five DangerousActions and ten audited routes, plus the admin-web module.
+  - Catalogued metrics and owner-filled cost rows.
+  - The terminal key route and its deploy hook.
+- Tests added (each safety rule with its near miss):
+  - `tests/platform/test_model_lane_{routing,resolver,hosted_adapter,deployment}.py`
+  - `tests/voice/test_model_lane_shims.py`
+  - `tests/admin/test_model_lanes_routes.py`
+  - `tests/infra/test_put_provider_key.py`
+  - 58 admin-web specs.
+  - The named four are `mock_hosted_unrepresentable_for_phi_tenant`, `lane_swap_requires_green_rf_extraction_goldens`, `model_pin_frozen_in_session` and `synthetic_flag_immutable`.
+  - RED: 4 failed (route drives, RBAC rows, cost budgets and fixtures). Every guard was then mutated, and each mutation was RED (5/5).
+- Result:
+  - check-py: ruff, format and `mypy --strict` (537 files) are clean. Whole tree: 9779 passed at 94.73 %, and every scoped lane is at its floor.
+  - check-ts: lint and typecheck are clean. vitest: admin-web 385, mobile 2413.
+  - safety: 18/18 mutations detected.
+  - security: the staged diff and the branch range have no leaks. semgrep, bandit, trivy config, checkov, licences, the PHI scan and the claims scan are clean. `trivy fs` and osv flag lockfile advisories already on main.
+  - no_placeholders (staged): OK. The vendor-call gate: OK.
+- Invariants touched and still passing: 1, 2, 3, 6, 13, 14, 17, 19 (relaxed for the synthetic deployment only, ADR-035), 20 and 22.
+- Decisions / ADRs / `00_STATE.md` rows: ADR-035 (number allocated by the coordinator).
+  - The egress allow-list row was refused by the permission classifier (a hook-protected file), reported, and not routed around.
+  - The OpenBao `model-lanes` grant was restored at the coordinator's request and is flagged for review.
+- Blocked on:
+  - owner: "Add the `openai-api` egress row and its INT-001 gate exception under ADR-035";
+  - owner: "Give the synthetic host an egress route to the provider";
+  - clinical: "Which golden set and sensitivity floor qualify an llm/asr model version (medical review, physician decision 8)?".
+  - No HB id is minted here.
+- Next: split rows for the coordinator:
+  1. guarded transport for the self-hosted extraction clients;
+  2. `/identity` on the GPU servers;
+  3. a drift canary;
+  4. model@revision recording keys;
+  5. a schema-keyword lint;
+  6. an egress proxy for the synthetic host;
+  7. lanes in the mobile release build;
+  8. ElevenLabs as a hosted TTS provider, and the George route on the synthetic host;
+  9. MonthlySpendLedger in dispatch.
+- LOOP_STATUS: WAITING_HUMAN
+
+### 2026-10-03T01:30:00+03:00 · INT-424 · done (PR #734 open, not merged)
+- Goal: acceptance verbatim (GitHub #719):
+  - *"delivery profiles v2 (a version bump of the INT-415 table) are tuned from rendered samples of catalogue sentences only (no PHI), within a recorded spend under 20 USD; the samples are stored outside git for the owner's listening review"*
+  - *"an ADR proposal evaluates expressive models and emotion audio tags (for example eleven_v3) against invariants 10, 21 and 22 and ADR-028; it is a proposal only, with no model change without owner ratification"*
+  - *"RED and instrument profiles stay neutral (style 0, the most stable); tests cover the v2 table and the cache-key bump"*
+- Plan:
+  - Bump the table to `PROFILE_VERSION = 2`, with each row picked from the rendered candidate grid by a stated rule (hard checks, then level evenness, then the context's intent).
+  - Add a sample-render tool through the existing gateway: verbatim catalogue lines, a spend cap, and labelled and blind pages in `.cache/voice-samples/`.
+  - Refuse SSML and audio tags inside scripted text.
+  - Write ADR-034. It was proposed, then accepted by the owner on 3 Oct 2026.
+  - Add the v2 table, the pacing rules and the owner's render steps to the wiring guide.
+- Tests added (with the near-miss negative for any safety rule):
+  - New: `tests/voice/test_render_delivery_samples.py`.
+  - Extended: `test_delivery_profiles.py` (v2 table, key bump per context, retired `@v1` take), `test_elevenlabs_clipgen.py` (markup refused), `tests/api/test_dev_voice_george.py` (markup → 422).
+  - Near misses:
+    - the same settings under a new version still change the key;
+    - the ellipsis, dash, semicolon and comma reach the wire unchanged;
+    - a gap under 150 ms is not a pause.
+  - RED run: 2 collection errors (`PROFILE_VERSION`, `MarkupInScriptError` absent) and 2 API failures.
+- Result (`make check` / `make safety` / `make security` summary):
+  - `make check-py` exit 0 (9684 passed at 95.77 %; voice-clips 99.73 %; every floor met).
+  - `make safety` exit 0 (triage 534 at 100 % branch; 18/18 mutations; voice-runtime 1626 at 98.68 %; red-team 121).
+  - Also green: `no_placeholders` (staged), `assert_no_vendor_calls`, and backlog/smoke/docs/evidence 122 passed.
+  - `make security` is in the evidence file.
+  - No TS changed.
+  - The samples were rendered by the coordinator with the owner's permission on 3 Oct: 80 clips, 3,424 characters, 0.27 USD at the published rate. Offline transcripts show the words intact in 80/80, and the peak is 26,781 of 32,767.
+  - v2: welcome c, routine v1, sensitive v1, instrument c, acknowledgement b, red c, closing v1.
+- Invariants touched and still passing: 6 (the key is never printed), 10 (markup refused), 17, 19, 20 (no claims), 21 (RED most stable, style 0), 22 (SSML breaks refused).
+- Decisions / ADRs / `00_STATE.md` rows: ADR-034 Accepted. The owner, 3 Oct 2026, relayed by the coordinator: "eleven labs is yes", so the model stays `eleven_multilingual_v2`. The `00_STATE.md` §3 row is left to the coordinator. No metric, no threat-row change.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): none.
+  - The owner delegated the listening review on 3 Oct ("do this by yourself, I'm giving permission").
+  - The review is by measurement and transcript; no human ear was involved.
+  - The blockers.md entry is removed.
+- Next: PR #734, `INT-424: ElevenLabs delivery profiles v2 — sample-tuned naturalness + expressive-model ADR proposal` (Closes #719, Sec-Row cloud-clipgen), left unmerged for review.
+- LOOP_STATUS: CONTINUE
+
+### 2026-10-03T18:00:00+03:00 · INT-432 · done (PR #757 open, not merged)
+- Goal: the clinical decisions register under owner decision D18 ("agent-only sign-off anyway"), scoped to simulated-patient stress testing; a licensed physician's review is required before any real patient. Acceptance quoted in docs/evidence/INT-432.md.
+- Plan:
+  - Three medical-author agents (EM/IM; EM operations / informatics + paediatrics; the INT-427 specialties) write CD-01..CD-18 from current guidelines and openEHR CKM against verbatim snapshots in packages/protocols/sources/.
+  - An independent verifier agent, seeing only output and sources, re-fetches every source and returns verdicts; authors revise until all agree.
+  - The lead builds the typed loader, applies the decisions (HB-C6 slots, HB-C3 polarity), and wires the tests.
+- Tests added (with the near-miss negative for any safety rule):
+  - New: tests/protocols/test_clinical_decisions.py, tests/protocols/test_life_threat_slot_reads.py.
+  - Extended: test_base_intake_pack.py (three life-threat read sections), test_gate_refs.py (six new gates).
+  - Near misses: LT-01-N fires nothing; LT-02-N lands KIRMIZI_K2; neck-only radiation fires neither arm while neck-and-arm (CONTESTED) fires K2; a reworded quote is refused; the inverted hydration wording is gone from the whole review queue.
+  - Red run: 2 failed (empty register) and 15 failed (KeyError 'chest_pain.present').
+- Result (`make check` / `make safety` / `make security` summary):
+  - `make safety` exit 0 (triage 100 % branch, 18/18 mutations).
+  - Protocols lane 98.10 % (1560 passed); tests/protocols + tests/engine 1280 passed; ruff, format and mypy clean; no_placeholders OK after staging.
+  - `make security` and check-integration are CI-only here.
+- Invariants touched and still passing: 1, 2, 5 (tr first, en mirror), 7 (the life-threat set is untouched; slots declared under the names its rules read), 10, 17 (every unsourced value is the sanctioned literal under a draft entry), 20 (no performance figure anywhere), 21, 22 (no digits in patient copy).
+- Decisions / ADRs / `00_STATE.md` rows: D18 in files/00_STATE.md §3 and the changelog; files/04 §1 records the three read sections. D17 stands; no clinical_signoff field is filled; HB-C1 is not closed.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): one owner question, not a clinical one — does D3's occupational-exposure approval cover göğüs hastalıkları Q10/Q10a (CD-11 owner_question; V-GH-2)? text_first and not-servable stay meanwhile.
+- Next: apply the CD-11..CD-18 `apply_after_737_merges` changes once PR #737 merges. The rest is split by the coordinator: INT-447 (#758, INT-414's 48 lines) and INT-448 (#759, the #642 packet items).
+- LOOP_STATUS: CONTINUE
+
+### 2026-10-03T23:30:00+03:00 · INT-448 · done (PR open, not merged)
+- Goal: every #642 sign-off packet item (197) gets a sourced decision and an independent verdict under owner decision D18 (simulated-patient stress testing; a licensed physician's review is required before any real patient).
+- Plan: parse the packets at 151cf34f into a committed item fixture; two medical-author agents write CD-100..CD-106 against verbatim snapshots; the independent verifier re-fetches every source and returns verdicts; authors revise until all agree. Owner-decider parts stay owner questions.
+- Tests added (with the near-miss negative for any safety rule): tests/protocols/test_signoff_packet_decisions.py (an item decided twice, missing or misfiled fails; an owner-only item decided by an agent fails). Red run: 8 failed.
+- Result (`make check` / `make safety` / `make security` summary): `make safety` exit 0 (triage 100 %, 18/18 mutations); protocols lane 97.39 %; 1366 passed across protocols/engine/backlog/smoke; ruff, format, mypy clean; no_placeholders OK. `make security` and check-integration are CI-only here.
+- Invariants touched and still passing: 1, 2, 7 (no rule gate slot left unaskable; nothing removed or relaxed), 17, 20, 21, 22.
+- Decisions / ADRs / `00_STATE.md` rows: none new; the feeding construct left open by CD-10 is closed by CD-100 T9/T48 and CD-103 L75 (both items kept, ungated).
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): 31 owner questions recorded per item in CD-100..CD-106 (generator fixed slots vs base, self/proxy wording under HB-L20, D3 categories); none blocks the merge.
+- Next: apply the packet decisions through the proposals and the generator once #642 merges.
+### 2026-10-03T04:10:00+03:00 · INT-450 · done (PR open, not merged)
+- Goal: GitHub #763, the owner's request of 3 Oct 2026. Acceptance, verbatim:
+  - "kobra, beautifului, beui, reverseui, astryx, transitions, evilcharts and kinetics are each licence-verified from their raw LICENSE."
+  - "Admin-web dashboards, charts and interactions are upgraded with the adopted ones. Accessibility is tested and before/after captures are recorded."
+- Plan:
+  - Read each licence from its raw LICENSE blob, or its licence/terms page where there is none, and record the URL, sha256 and date.
+  - Port the adopted ones into the console's own server-rendered SVG and bundled CSS. The CSP admits no inline style and no foreign script, so Recharts and Motion cannot be installed as they are.
+  - Chart the dashboards where data exists, and refresh the navigation, cards, tables, forms and motion.
+  - Gate it all with axe, a token contrast check and a reduced-motion check.
+- Licences:
+  - Adopted:
+    - EvilCharts (MIT);
+    - beUI public library (MIT);
+    - Astryx (MIT);
+    - Transitions.dev, two free transitions under its custom licence.
+  - Cleared but not used: Beautiful UI (MIT). It ships chat-agent primitives, and none fits the console.
+  - Rejected:
+    - Kinetics: no LICENSE in its repository; the site's "MIT" is a badge.
+    - Kobra: paid, per seat. Owner purchase.
+    - Reverse UI: paid lifetime licence; the free tier has no licence text. Owner purchase.
+- Tests added (with the near-miss negative for any safety rule):
+  - `apps/admin-web/e2e/accessibility.spec.ts` (33 tests):
+    - axe WCAG 2.1 A/AA + best practice over 8 page states × tr/en, all with 0 violations;
+    - token contrast in both themes;
+    - reduced motion;
+    - one repeating animation only;
+    - no `text-transform`, ellipsis or break-all (files/00_STATE Turkish casing);
+    - CSP and stylesheet origin checks.
+    - Near-misses: a nameless chart image fails axe; a 0.55 gradient fails 3:1; a planted uppercase rule is caught.
+  - `apps/admin-web/src/ui/charts.test.tsx` (15 tests). Near-misses: a grouped figure draws no bar; 0 is not unknown; a stale reading is named stale.
+  - RED runs: 1 + 7 failures, recorded in the evidence. They caught three defects:
+    - a grouped number charted as 1;
+    - a pre-existing `landmark-unique` defect on CI/CD and Voice (tiles are now `article`);
+    - a 2.1:1 bar gradient.
+- Result (`make check` / `make safety` / `make security` summary):
+  - `make check-ts` exit 0 (mobile 2526 passed). admin-web is now 375 passed: 327 existing plus 48 new.
+  - admin-web `build` green.
+  - `check_licenses.py` OK, and `no_placeholders` OK after staging.
+  - `tests/backlog` and `tests/smoke/test_make_check.py` green, with pins 330 → 331.
+  - `make security`: steps 2–5 and 7–12 are green.
+    - Step 1 (gitleaks, full history) reports 7 findings, all in commits already on main; the staged diff is clean.
+    - Step 6 (OSV) reports `braces@3.0.3` and `http-cache-semantics@4.2.0`. The same two are on origin/main's lockfile; none comes from this change's additions.
+  - No Python, protocol or voice change, so `make safety` is not affected.
+- Invariants touched and still passing:
+  - 6: charts carry ids only;
+  - 14: CSP unchanged, verified in Chrome under the production policy with zero violations;
+  - 17: a chart renders only in an `ok` tile, and an unknown figure draws no mark;
+  - 19: licences read from raw blobs;
+  - 20: no target drawn beside a figure;
+  - 22: a chart parses the printed atom and refuses grouping.
+- Decisions / ADRs / `00_STATE.md` rows: none. The port-not-install choice follows from the existing CSP and is recorded in the evidence.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): none for the build. Owner asks, not HB rows: buy Kobra and/or Reverse UI if wanted; ask the Kinetics author for a LICENSE.
+- Next: PR `INT-450: admin-web UI upgrade with owner-listed component libraries (licence-checked)` (Closes #763, Sec-Row admin-console), left unmerged. Cost and Roadmap pages, and Model lanes (#751), take the shared chart primitives when they land.
+- LOOP_STATUS: CONTINUE
+
+### 2026-10-03T18:40:00+03:00 · INT-459 · done (PR #784 open, not merged)
+- Goal (GitHub #783, owner request): make the admin console read as premium and Apple-native rather than AI-generated.
+  - In scope: the dashboard, the shell, tables, Model lanes, settings, and the empty, loading and error states.
+  - Glass on chrome only, with fallbacks.
+  - Tokens for both themes, with AA tested.
+  - Spring motion, none on a control.
+  - No behaviour change.
+- Plan:
+  - Stack on INT-450 (#776), which already licence-checked the owner's libraries.
+  - Add three sheets (tokens, shell, content) and a sidebar `ConsoleNav` with drawn symbols and a language switch.
+  - Make the settings-style four-eyes forms still.
+  - Centre the refused states, inset the empty state, and render not-found per request.
+  - Model lanes (#751) inherits the shell through its shared class names.
+- Tests added: `e2e/native.spec.ts` (31), `e2e/states.spec.ts` (10), `src/ops/nav.test.tsx` (15). `e2e/accessibility.spec.ts` now reads every sheet. Each property has its near-miss: Apple's dark systemBlue fails AA, a 70 % glass fails, a planted glass card is caught, INT-450's tile entrance would move the forms, and React streams a late SVG segment in a style attribute.
+  - RED 1: three suites failed to load.
+  - RED 2: 23 failed against an empty layer. The critical-control test named six INT-450 rules that moved a control.
+  - RED 3: in the production build behind the CSP, a route-level `loading.tsx` streamed `<svg style="display:none">`, which was blocked; and a prerendered 404's scripts had no nonce.
+- Result:
+  - admin-web 431 passed; typecheck, lint, prettier and `next build` clean.
+  - `pnpm -r typecheck` and `pnpm -r lint` exit 0; `make check-ts` exit 0.
+  - Backlog and smoke 74 passed (pins 331 → 332, files/11 regenerated).
+  - `no_placeholders` OK after staging.
+  - Production check: zero CSP violations and no `style=` on any page.
+  - Captures are in `docs/design/admin-premium/`. `docs/design/library-patterns.md` maps the libraries and Mobbin patterns to the mobile chat; it cites #716, #717, #726, #728, #740 and #771 where they already deliver an item.
+- Invariants touched and still passing: 5 (tr first, en mirrored), 6 (ids only), 14 (the CSP is unchanged and tighter in practice: the 404 now carries the nonce), 17 (an unknown tile has no figure; no placeholder), 20 (no claim).
+- Decisions / ADRs / `00_STATE.md` rows: none. The `loading.tsx` withdrawal is recorded in the evidence.
+- Blocked on: the owner and the security reviewer. Should the CSP admit React's `style="display:none"` on streamed segments (`style-src-attr 'unsafe-hashes'` with the hash of that one string), so that the console can have a route-level loading state?
+- Next: merge #776, then #784. The Model lanes nav entry (three lines) goes to whichever of #751 and #784 merges second.
+- LOOP_STATUS: CONTINUE
+
+### 2026-10-02T20:00:00Z · INT-414 · done (PR open, not merged)
+- Goal: acceptance verbatim (docs/backlog/issues.yaml INT-414, GitHub #705): a pure, typed delivery composer picks a lead-in, transition or acknowledgement from tr resource keys by session phase, question context and the patient's on-device state (read-only), and never alters the question text; every new string is B1 Turkish in the siz register, warm through verb mood, passes PolicyGuard, with an en mirror; an instrument item, a RED script or a question whose allow_paraphrase is false is byte-equal to its text_tr and a RED gets nothing added; no numerals reach TTS and no patient words are composed into speech; all new strings are listed for clinician review (HB-C1) in docs/evidence/INT-414.md.
+- Plan:
+  - `delivery.ts` composes `lead_in | transition | acknowledgement | question`, deterministic by an FNV-1a hash of the session seed and turn index.
+  - `deliveryDeck.ts` maps slot to keys and context, with no strings; `deliveryPlan.ts` folds the composer over a sitting.
+  - The typed lane renders the line above the unconditional question heading; the voice lane speaks the planned utterances in order and drops a lead-in whose clip is not ready.
+  - Each utterance carries its INT-415 delivery context through the clip store to the George route; the route allow-list holds the 42 spoken lines verbatim.
+- Tests added (with the near-miss negative for any safety rule):
+  - New: `delivery.test.ts`, `deliveryPlan.test.ts`, `tests/release/test_delivery_copy.py`, `tests/api/test_dev_voice_delivery.py`.
+  - Extended: `tests/api/test_dev_voice_hardening.py`; the existing `tests/release/test_i18n_complete.py` sweep covers every new key.
+  - Near misses: a question one trailing space off, a RED script with one decoration, a delivery line turned into a question, an outcome reassurance in an acknowledgement, an allow-list one character off.
+  - RED run: module absent, then 4 failures, then 5 context-threading failures; 10 of 10 mutants killed.
+- Result (`make check` / `make safety` / `make security` summary), merged with main at 79ba5659:
+  - `pnpm -r typecheck`, `make check-ts` (mobile 2482 passed), `make check-i18n` (191 passed), `make check-py` (9786 passed; every coverage floor met), `make safety` (triage 100 %, 18 of 18 mutations detected), `tests/backlog` + `tests/smoke`, and `no_placeholders` all exit 0.
+  - `check-integration` is CI-only; `make security` is the CI gate set (no dependency, model or egress added).
+  - Conflicts with main were only the generated and counted backlog files; the pinned counts are 327 and files/11 is re-rendered.
+- Invariants touched and still passing: 2, 3, 5, 10, 11, 17, 18, 22.
+- Decisions / ADRs / `00_STATE.md` rows: none. No id minted; the spoken "tekrar" repeat command is an owner decision recorded in the evidence.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): HB-C1 (Dr Efe Onganer): "Do you sign the 48 delivery lines in docs/evidence/INT-414.md, or which do you rewrite?" The lines are engineer-authored and unsigned. Owner asks, not HB rows: which docs/legal/strings.yaml string may the opening use to say answers go to the doctor (INT-210), and a listening review of the contexts on George.
+- Next: PR `INT-414: Conversational question delivery — warm opener, context- and affect-aware lead-ins, questions verbatim` (Closes #705, Sec-Row mobile), left unmerged for review.
+- LOOP_STATUS: WAITING_HUMAN
+
+### 2026-10-02T20:40:00Z · INT-414 · done (PR open, not merged; clinical-reviewer pre-review applied)
+- Goal: the clinical-reviewer agent pre-reviewed PR #726 and asked for copy and code changes; acceptance is unchanged (docs/backlog/issues.yaml INT-414).
+- Plan:
+  - Copy: eleven lines reworded and three polished in `tr.ts`, `en.ts` and the server allow-list, after confirming in `stream.ts` that a silent turn's question always returns in the manual steps.
+  - Code: `questionContextOf` can return `red` from a pack declaration (`redAdjacent`) and the turn after it gets no acknowledgement or cadence line; the instrument check moves above the repair branch; a lead-in dropped for want of a clip is dropped from the transcript as well as the voice.
+- Tests added (with the near-miss negative for any safety rule):
+  - `delivery.test.ts`, `deliveryPlan.test.ts` (20 failed before the change), `stream.test.ts`, plus the existing `tests/release/test_delivery_copy.py` allow-list check (1 failed before the mirror followed).
+  - Near misses: the same stretch after a routine step is warmed on some seeds, so the after-RED assertion is not vacuous; a re-asked first instrument item gets the introduction, not a repair line; every ready/stalled pattern of three lines keeps voice and screen equal.
+- Result (`make check` / `make safety` / `make security` summary): typecheck, `make check-ts` (mobile 2499 passed), `make check-i18n` (191), ruff, mypy, the affected pytest lanes, `make safety` (18 of 18) and `no_placeholders` exit 0. The whole-tree `make check-py` was not repeated.
+- Invariants touched and still passing: 2, 10, 11, 17, 21, 22.
+- Decisions / ADRs / `00_STATE.md` rows: none.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): HB-C1 (Dr Efe Onganer): "Do you sign the 48 delivery lines, or which do you rewrite?" The 12 revised lines are marked pre-reviewed by the clinical-reviewer agent on 2 Oct 2026; physician sign-off is still open. files/04 §4.2 pre-brief: the sensitive transition lines are not that pre-brief, which is owed separately.
+- Next: the `leadIn` rendering through #728's `ChatLines` waits for #728 to reach main.
+- LOOP_STATUS: WAITING_HUMAN
+
+### 2026-10-03T22:00:00+03:00 · INT-447 · done (PR open, not merged)
+- Goal: verify INT-414's 48 delivery lines (#726) under owner decision D18 (INT-432). That means a medical-author pass and an independent verifier pass, sourced to Sağlık Bakanlığı health-literacy material, with a decision record per line, so the approval:human-clinical label on #726 can come off. Scope is simulated-patient testing only; a licensed physician reviews before any real patient.
+- Plan:
+  - Author pass by a family-medicine and health-literacy agent: six checks per line (PolicyGuard, B1, siz, not a question, no numerals, fits context).
+  - Independent verifier pass: sees only the records, the snapshots, the rules and the INT-414 code.
+  - Records CD-19..CD-23 in INT-432's format (numbers agreed with the INT-432 lead).
+  - Line fixes go on #726's branch.
+- Tests added (with the near-miss negative for any safety rule):
+  - New: tests/protocols/test_delivery_line_decisions.py.
+  - Near misses refused by the same checker: a line turned into a question, an outcome reassurance, a numeral, an interrogative opening (the line CD-22 replaced), an over-long acknowledgement, an over-long sentence, the sen register.
+  - Red run: a collection error with no records (KeyError 'CD-19'), then 2 failed while the verifier verdicts were pending.
+- Result (`make check` / `make safety` / `make security` summary):
+  - `make safety` exit 0 (triage 100 % branch, 18/18 mutations).
+  - tests/protocols + backlog + smoke: 1161 passed. On #726: release lane and mobile vitest (2499) green after the line fix.
+  - check-integration and `make security` are CI-only here.
+- Verdict: 48/48 lines pass; one reworded (sensitiveLead.b, CD-22), pushed to #726 as 8fc8442c.
+- Invariants touched and still passing: 2 (PolicyGuard, one question per turn, B1), 5 (tr first, en mirror), 10 (no question or instrument item touched), 17 (no pending token; nothing draft), 18 (no line says where answers go), 20 (no performance figure), 22 (no digits in any line).
+- Decisions / ADRs / `00_STATE.md` rows: CD-19..CD-23 under D18. HB-C1 is not closed and no clinical_signoff field is filled.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): nothing new.
+- Next: #757 (INT-432) merges first, then #726 (INT-414, conflicting with main at the time of writing), then this PR.
+
+### 2026-10-03T01:30:00+03:00 · INT-424 · done (PR #734 open, not merged)
+- Goal: acceptance verbatim (GitHub #719):
+  - *"delivery profiles v2 (a version bump of the INT-415 table) are tuned from rendered samples of catalogue sentences only (no PHI), within a recorded spend under 20 USD; the samples are stored outside git for the owner's listening review"*
+  - *"an ADR proposal evaluates expressive models and emotion audio tags (for example eleven_v3) against invariants 10, 21 and 22 and ADR-028; it is a proposal only, with no model change without owner ratification"*
+  - *"RED and instrument profiles stay neutral (style 0, the most stable); tests cover the v2 table and the cache-key bump"*
+- Plan:
+  - Bump the table to `PROFILE_VERSION = 2`, with each row picked from the rendered candidate grid by a stated rule (hard checks, then level evenness, then the context's intent).
+  - Add a sample-render tool through the existing gateway: verbatim catalogue lines, a spend cap, and labelled and blind pages in `.cache/voice-samples/`.
+  - Refuse SSML and audio tags inside scripted text.
+  - Write ADR-034. It was proposed, then accepted by the owner on 3 Oct 2026.
+  - Add the v2 table, the pacing rules and the owner's render steps to the wiring guide.
+- Tests added (with the near-miss negative for any safety rule):
+  - New: `tests/voice/test_render_delivery_samples.py`.
+  - Extended: `test_delivery_profiles.py` (v2 table, key bump per context, retired `@v1` take), `test_elevenlabs_clipgen.py` (markup refused), `tests/api/test_dev_voice_george.py` (markup → 422).
+  - Near misses:
+    - the same settings under a new version still change the key;
+    - the ellipsis, dash, semicolon and comma reach the wire unchanged;
+    - a gap under 150 ms is not a pause.
+  - RED run: 2 collection errors (`PROFILE_VERSION`, `MarkupInScriptError` absent) and 2 API failures.
+- Result (`make check` / `make safety` / `make security` summary):
+  - `make check-py` exit 0 (9684 passed at 95.77 %; voice-clips 99.73 %; every floor met).
+  - `make safety` exit 0 (triage 534 at 100 % branch; 18/18 mutations; voice-runtime 1626 at 98.68 %; red-team 121).
+  - Also green: `no_placeholders` (staged), `assert_no_vendor_calls`, and backlog/smoke/docs/evidence 122 passed.
+  - `make security` is in the evidence file.
+  - No TS changed.
+  - The samples were rendered by the coordinator with the owner's permission on 3 Oct: 80 clips, 3,424 characters, 0.27 USD at the published rate. Offline transcripts show the words intact in 80/80, and the peak is 26,781 of 32,767.
+  - v2: welcome c, routine v1, sensitive v1, instrument c, acknowledgement b, red c, closing v1.
+- Invariants touched and still passing: 6 (the key is never printed), 10 (markup refused), 17, 19, 20 (no claims), 21 (RED most stable, style 0), 22 (SSML breaks refused).
+- Decisions / ADRs / `00_STATE.md` rows: ADR-034 Accepted. The owner, 3 Oct 2026, relayed by the coordinator: "eleven labs is yes", so the model stays `eleven_multilingual_v2`. The `00_STATE.md` §3 row is left to the coordinator. No metric, no threat-row change.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): none.
+  - The owner delegated the listening review on 3 Oct ("do this by yourself, I'm giving permission").
+  - The review is by measurement and transcript; no human ear was involved.
+  - The blockers.md entry is removed.
+- Next: PR #734, `INT-424: ElevenLabs delivery profiles v2 — sample-tuned naturalness + expressive-model ADR proposal` (Closes #719, Sec-Row cloud-clipgen), left unmerged for review.
+- LOOP_STATUS: CONTINUE
+
+### 2026-10-03T22:52:00+03:00 · INT-467 · awaiting-human (PR open, stacked on #791)
+- Goal: a pool of three ephemeral intake-aws-ci runners (GitHub #799), each with exactly runner 1's isolation. Acceptance quoted in docs/backlog/issues.yaml and docs/evidence/INT-467.md.
+- Plan:
+  - Measure the proposed netns design on the host first, with runner 2's own identity, leaving runner 1 untouched.
+  - Write the tests: re-pin the INT-463 contract onto unit templates, and pin the pool contract in a new file.
+  - Implement: an identity per instance, templated units, the job in its daemon's detached network namespace with port driver none, peer ACLs, a drain-first installer with the single-runner migration, and the isolation probe.
+- Tests added (with the near-miss negative for any safety rule):
+  - New: tests/ci/test_aws_runner_pool.py (37 tests). Re-pinned: tests/ci/test_aws_runner.py.
+  - Near misses: instance values 0, 4, 01, a, "1 2", "1;true", ../1 and the empty string are refused; a runner's own CI root and run directory are never in its denied set.
+  - Red run: 49 failed, 73 passed. Green: 122 passed; 9 of 9 mutations caught.
+- Result (`make check` / `make safety` / `make security` summary):
+  - Local lanes only (no Docker on the laptop): the runner tests 122 passed; all of tests/ci with test_ci_no_phi 362 passed (after Renovate learned the probe image's digest pin); tests/backlog and smoke 74 passed; shellcheck, ruff 0.16.4, prettier and no_placeholders (staged) clean.
+  - The full gates run on the PR in CI.
+- Invariants touched and still passing: 14 (no credential read or printed; the registrar is unchanged), 16 (Sec-Row cicd), 17.
+- Decisions / ADRs / `00_STATE.md` rows: none. The nsenter-into-the-userns variant was measured and not taken (uid 0, CapEff 000001ffffffffff); systemd NetworkNamespacePath keeps the job's own uid with CapEff 0.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): owner — run (or allow a session to run) `scripts/ci/aws_runner.sh install` from this branch, so the pool replaces the single runner; this session's permission classifier refused it (HB-I7). Also apply the `.github/renovate.json` owner patch (issue-drafts/owner-int467-renovate-probe-image.patch), which the classifier refused to stage; until then check-py fails on the digest-reachability test.
+- Next: after the install, `scripts/ci/aws_runner.sh probe` for the per-runner isolation, then two overlapping check-integration runs; record both in docs/evidence/INT-467.md.
+- LOOP_STATUS: WAITING_HUMAN
+
+### 2026-10-16T04:10:00+03:00 · INT-500 · done (PR open)
+- Goal: clear the required vulnerabilities job, which went red on main 3afc5a29 and blocked every merge (GitHub #851), by upgrading rather than ignoring. Acceptance quoted in docs/backlog/issues.yaml.
+- Plan:
+  - Reproduce with CI's own scanners: trivy 0.70.0 from the sha256-verified release tarball, and osv-scanner 2.5.1.
+  - Pin the fixed versions in tests/ci/test_security_gates.py first.
+  - Raise the transitive packages with root pnpm.overrides floors and next by its direct pin; fix anything else osv reports the same way.
+- Tests added (with the near-miss negative for any safety rule):
+  - In tests/ci/test_security_gates.py:
+    - FIXED_VERSIONS gains shell-quote, compression, source-map-js and next.
+    - New PYPI_FIXED_VERSIONS (mako) over uv.lock.
+    - The override selectors and next's exact pin are pinned.
+    - The no-suppression sweep covers the fifteen INT-500 ids.
+  - Near miss: the lockfile reader catches a planted `shell-quote@1.10.0` and a peer-suffixed `next@16.3.6(...)`, and does not match `shell-quote-word` or a scoped `@scope/compression`.
+  - Red run: 3 failed, 7 passed. Green run: 10 passed.
+- Result (`make check` / `make safety` / `make security` summary):
+  - trivy 0.70.0: before, exit 1 with pnpm-lock.yaml at 4 (1 CRITICAL, 3 HIGH); after, exit 0 with every target at 0.
+  - osv-scanner 2.5.1: before, exit 1 with 5 packages and 10 vulnerabilities, including mako in uv.lock; after, exit 0 with "No issues found".
+  - pnpm -r typecheck and lint: 0 errors.
+  - vitest: mobile 2650, admin-web 327, clinical-schemas 6, embed-sdk 14, embed-sample-partner 9.
+  - admin-web next build: green on Next.js 16.3.8.
+  - tests/api: 590 passed.
+  - Licence gate: 971 node packages and 94 Python distributions, OK.
+  - test_security_gates plus test_dependency_updates: 85 passed. tests/backlog and smoke: 74 passed.
+  - no_placeholders, phi-scan and claims-scan (staged): OK.
+  - check-integration, safety and the full security fan-out run in CI on intake-aws-ci.
+- Invariants touched and still passing:
+  - 14: no gate skipped or weakened, and the suppression pins are unchanged.
+  - 16: Sec-Row is cicd. The issue's "supply-chain" names no threat-model row.
+  - 17 and 19: licences read from the raw blobs.
+- Decisions / ADRs / `00_STATE.md` rows: none.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): nothing.
+- Next: merge once the vulnerabilities job is green on the PR. The existing node-forge, braces and http-cache-semantics exceptions still expire on 1–2 Nov 2026.
+- LOOP_STATUS: CONTINUE
+
+### 2026-10-16T10:20:00+03:00 · INT-524 · doing (owner commit pending)
+- Goal: a new push to a pull request cancels that PR's superseded CI runs, so the three intake-aws-ci runners build only current heads, and a push to main is never cancelled (GitHub #890). Acceptance quoted in docs/backlog/issues.yaml.
+- Plan:
+  - Read GitHub's concurrency semantics from docs.github.com and pin the source in the evidence.
+  - Write tests/ci/test_workflow_concurrency.py first: pin the block in both workflows, model the documented semantics, and add near misses.
+  - Ship the workflow change as an owner patch, because .github/** is owner-only.
+- Tests added (with the near-miss negative for any safety rule):
+  - The block is pinned in ci.yml and security.yml, and no job sets its own concurrency.
+  - A seven-run model: a PR's runs share a group and cancel; two PRs never share one; main never cancels and nothing joins its group; two tags on one commit stay apart; ci and security never meet.
+  - Near misses (11): the issue's ref-less group (a v* tag would replace main's waiting security run), cancel always, cancel inverted, ref-only, sha-for-PRs, workflow-only, no workflow prefix, missing block, `queue: max`, an unmodelled trigger, an expression outside the model.
+  - Red run: 3 failed, 15 passed. Green run, with the patch applied: 18 passed; tests/ci 308 passed; with the workflow readers, backlog and smoke, 482 passed.
+- Result (`make check` / `make safety` / `make security` summary):
+  - check-py lanes above pass; ruff check and format are clean; no_placeholders, phi_scan and claims_scan are OK after staging.
+  - check-jsonschema validates both patched workflows; gitleaks and semgrep p/ci pass on them.
+  - check-integration is CI-only (HB-I1).
+- Invariants touched and still passing: 14 (CI gates never skipped; the patch only adds a concurrency block). 17 (no placeholders).
+- Decisions / ADRs / `00_STATE.md` rows: the group carries the ref beyond the issue's key, so that security.yml's v* tag runs cannot replace or join main's group (evidence §The block).
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): owner — apply and commit issue-drafts/owner-524-concurrency.patch with its .msg on this branch, then push; standing .github/** ownership, so no new HB id.
+- Next: after the owner commit is pushed, open the PR from .scratch/pr-524.md and check that a superseded run shows `cancelled` on its run history.
+
+### 2026-10-16T06:40:00+03:00 · INT-501 · done (PR open; owner patch pending)
+- Goal: before the time-boxed node-forge, braces and http-cache-semantics scanner exceptions expire (1–2 Nov 2026), upgrade each package so its exception is no longer needed (GitHub #853).
+- Plan:
+  - Reproduce the vulnerabilities job with CI's scanners: trivy 0.70.0 from the sha256-verified release tarball, and osv-scanner 2.5.1. Run them with and without the three exceptions.
+  - Check npm, the OSV API and the upstream repositories for a release that clears each advisory.
+  - Pin the floor first, upgrade by override, and hand the exception removal to the owner as a patch.
+- Tests added (with the near-miss negative for any safety rule):
+  - In tests/ci/test_security_gates.py, FIXED_VERSIONS and OVERRIDE_FLOORS gain http-cache-semantics 4.3.0.
+  - New test_every_override_floor_is_its_fixed_version.
+  - Near miss: a selector `<4.2.0` or a floor `^4.2.0` is refused.
+  - Red run: 2 failed, 10 passed. Green run: 12 passed.
+- Result (`make check` / `make safety` / `make security` summary):
+  - Scanners with all three exceptions removed:
+    - main: trivy reports 2 HIGH (braces, node-forge); osv reports 3 (adds http-cache-semantics).
+    - PR: both scanners report only braces and node-forge.
+  - With the owner-501 patch applied, both scanners exit 0. With the owner-508 renewal also applied, both still exit 0.
+  - pnpm -r typecheck and lint: 0 errors.
+  - vitest: mobile 2650, admin-web 327, clinical-schemas 6, embed-sdk 14, embed-sample-partner 9.
+  - admin-web next build: green.
+  - Licence gate: 971 node packages and 94 Python distributions, OK.
+  - tests/ci: 292 passed. tests/backlog and smoke: 74 passed.
+  - no_placeholders, phi-scan and claims-scan (staged): OK.
+  - check-integration, safety and the full security fan-out run in CI.
+- Invariants touched and still passing:
+  - 14: no gate weakened, and no exception added or extended by this PR.
+  - 16: Sec-Row is cicd.
+  - 17: no fork or git-ref override is forced for the two packages with no fix.
+  - 19: licence read from the raw blob (BSD-2-Clause).
+- Decisions / ADRs / `00_STATE.md` rows:
+  - Split on the orchestrator's decision: node-forge and braces go to INT-508 (GitHub #865, todo). On 16 Oct neither had a release that clears its advisory: digitalbazaar/forge#1152 and the micromatch/braces fix PRs are unmerged.
+  - http-cache-semantics 4.3.0 clears GHSA-ch52 by the record's range (last_affected 4.2.0), not by a max-stale code change. The maintainer disputes the report. This is recorded in the evidence.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id):
+  - Owner, routine: apply issue-drafts/owner-501-remove-exceptions.patch, which drops the http-cache-semantics osv entry and lowers the osv pin from 4 to 3. The exception files are owner-only.
+  - Owner decision for INT-508: apply issue-drafts/owner-508-renew-exceptions.patch, which renews node-forge and braces to 31 Dec 2026, or accept a red vulnerabilities gate from 1 Nov.
+  - No HUMAN_BLOCKERS id was minted.
+- Next: merge once CI is green. The owner patches follow. INT-508 rechecks upstream weekly.
+- LOOP_STATUS: WAITING_HUMAN
+
+### 2026-10-03T01:30:00+03:00 · INT-428 · awaiting-human (PR open, not merged)
+- Goal: acceptance verbatim (GitHub #724):
+  - *"An ADR records the owner decision and its scope against invariant 19. A hosted lane is allowed for a tenant whose data class is synthetic (simulated patients). It fails closed for a real-PHI tenant unless a recorded DPA/transfer basis id exists."*
+  - *"The admin panel has a model-routing module: per-lane provider (hosted provider / self-hosted GPU / mock), a key entry written only to OpenBao and never shown back, a 4-eyes switch with audit, live lane health and cost, and an instant fallback to the self-hosted lane when it is healthy."*
+  - *"Gateways route through the existing adapter interfaces. Egress allow-list rows are added per provider. No PHI is logged. Numbers are normalised before TTS (invariant 22)."*
+  - *"Tests cover the routing decision, the fail-closed real-PHI guard, the key never being echoed, and the audit row on every switch."*
+  - Narrowed by the binding medical (finding 12) and AI/ML reviews, and extended by the owner to model selection per lane. These remove the DPA branch and mock, split the deployment, attest models, freeze the model per session, and gate swaps on red-flag goldens.
+- Plan: ADR-035.
+  - A vendor-free platform (`intake_platform.model_lanes`): guard, catalogue, qualifications, decision table, identity health, the `ModelResolver` / `SessionLanes`, and dispatch.
+  - Synthetic-image-only adapters (`packages/hosted-lanes`) behind the existing interfaces.
+  - Five DangerousActions and ten audited routes, plus the admin-web module.
+  - Catalogued metrics and owner-filled cost rows.
+  - The terminal key route and its deploy hook.
+- Tests added (each safety rule with its near miss):
+  - `tests/platform/test_model_lane_{routing,resolver,hosted_adapter,deployment}.py`
+  - `tests/voice/test_model_lane_shims.py`
+  - `tests/admin/test_model_lanes_routes.py`
+  - `tests/infra/test_put_provider_key.py`
+  - 58 admin-web specs.
+  - The named four are `mock_hosted_unrepresentable_for_phi_tenant`, `lane_swap_requires_green_rf_extraction_goldens`, `model_pin_frozen_in_session` and `synthetic_flag_immutable`.
+  - RED: 4 failed (route drives, RBAC rows, cost budgets and fixtures). Every guard was then mutated, and each mutation was RED (5/5).
+- Result:
+  - check-py: ruff, format and `mypy --strict` (537 files) are clean. Whole tree: 9779 passed at 94.73 %, and every scoped lane is at its floor.
+  - check-ts: lint and typecheck are clean. vitest: admin-web 385, mobile 2413.
+  - safety: 18/18 mutations detected.
+  - security: the staged diff and the branch range have no leaks. semgrep, bandit, trivy config, checkov, licences, the PHI scan and the claims scan are clean. `trivy fs` and osv flag lockfile advisories already on main.
+  - no_placeholders (staged): OK. The vendor-call gate: OK.
+- Invariants touched and still passing: 1, 2, 3, 6, 13, 14, 17, 19 (relaxed for the synthetic deployment only, ADR-035), 20 and 22.
+- Decisions / ADRs / `00_STATE.md` rows: ADR-035 (number allocated by the coordinator).
+  - The egress allow-list row was refused by the permission classifier (a hook-protected file), reported, and not routed around.
+  - The OpenBao `model-lanes` grant was restored at the coordinator's request and is flagged for review.
+- Blocked on:
+  - owner: "Add the `openai-api` egress row and its INT-001 gate exception under ADR-035";
+  - owner: "Give the synthetic host an egress route to the provider";
+  - clinical: "Which golden set and sensitivity floor qualify an llm/asr model version (medical review, physician decision 8)?".
+  - No HB id is minted here.
+- Next: split rows for the coordinator:
+  1. guarded transport for the self-hosted extraction clients;
+  2. `/identity` on the GPU servers;
+  3. a drift canary;
+  4. model@revision recording keys;
+  5. a schema-keyword lint;
+  6. an egress proxy for the synthetic host;
+  7. lanes in the mobile release build;
+  8. ElevenLabs as a hosted TTS provider, and the George route on the synthetic host;
+  9. MonthlySpendLedger in dispatch.
+- LOOP_STATUS: WAITING_HUMAN
+
+
+### 2026-10-28T01:40:00+03:00 · INT-573 · done
+- Goal: four advisories published on 27 Oct (next 16.3.8 RCE+DoS, certifi 2026.7.22, filelock 3.32.4) turned the vulnerabilities gate red on main and on every open PR. All four have fixed releases, so the fix is bumps, never an exception row (invariant 14).
+- Plan: `pnpm install --lockfile-only` with next pinned to 16.4.1 in apps/admin-web; `uv lock --upgrade-package certifi --upgrade-package filelock==4.2.1` (virtualenv followed). No constraint, no suppression.
+- Tests: tests/ci (419) on the new lockfiles; admin-web tsc and vitest (385) on next 16.4.1; a local `trivy fs` run recorded before and after in docs/evidence/INT-573.md.
+- Result: trivy shows none of the four; the only remaining rows are the two already-suppressed, time-boxed ones. The PR goes to the front of the merge queue because nothing else can merge until it lands.
+### 2026-10-28T10:00:00Z · INT-459 (refresh) · done
+- Goal: land the admin console's premium shell (#776 INT-450 + #784 INT-459) on current main and fix, inside it, what the 17 Oct audit named: Unknown as a wall of equal tiles, empty tables, refusals that drop the nav, cells that clip, a flat grid. Acceptance, verbatim from the row: "Translucent glass only on chrome (sidebar, top bar, sheets); content sits on solid fills; prefers-reduced-transparency, prefers-contrast and prefers-reduced-motion each have a fallback." "Light and dark themes come from one token set, and WCAG AA contrast is asserted by tests in both themes." "Motion is subtle and spring-based, and none of it is on a critical control." "Behaviour is unchanged: no API contract, auth, approval-flow or four-eyes change; no IP restriction; no PHI in fixtures." "Before/after captures from the local dev server are recorded."
+- Plan: branch `int-459-admin-premium-refresh` from #784's head; merge `origin/main` (nav.tsx keeps the grouped sidebar and gains Model lanes; backlog union, pins 368; lockfile re-resolved); withdraw D26 and `loading.tsx` (main has no D26); Palette B in one file; the layout layer; designed unknown and empty states; the refused shell; captures with the audit's harness.
+- Tests added (each with its near miss): `e2e/palette.spec.ts` (14: one file, pinned to the app's theme, deepened shades keep the hue, the RED hex caught), `e2e/layout.spec.ts` (12: twelve columns, eight unread SLOs fill two rows, the draft selector that lost to the table rule, cells wrap, sticky headers), `e2e/fills.spec.ts` (31: every reason has its fill line, nineteen empty tables, the unknown note's shape), `e2e/states.spec.ts` (+26: all twelve refused documents keep the shell and pass axe; the old dead end caught). `e2e/model-lanes.spec.ts` follows the sidebar's markup.
+- Result: admin-web vitest 23 files, 604 passed; `typecheck`, `lint`, prettier clean; `uv run pytest tests/backlog tests/smoke` green; `no_placeholders` OK. `pnpm -r lint` outside apps/mobile clean (the mobile workspace is not installed here; CI runs it). Measured contrast ratios are in docs/evidence/INT-459.md §10.3.
+- Invariants touched and still passing: 5 (tr first, en under the type), 6 (ids only in fixtures), 17 (no figure on an unknown tile), 20 (no target line anywhere; the fill lines are nominal), 48 (the CSP is main's: no `unsafe-*`).
+- Decisions / ADRs / `00_STATE.md` rows: none minted. D26 is withdrawn from this branch (allocation is the orchestrator's). Palette B is the owner's 17 Oct decision, recorded in the evidence and the PR.
+- Blocked on: nothing. The pages still missing are INT-562..565 (#951..#954); the synthetic host's Unknowns clear with INT-567 (#956) and INT-566 (#955).
+- Next: INT-562 (Safety queue page), INT-564 (Compliance, Models, Experience pages), INT-565 (Protocols, Clinical quality, Security, Cost), INT-563 (four-eyes approval through a WebAuthn step-up).
+- LOOP_STATUS: CONTINUE
+
+### 2026-10-29T01:30:00+03:00 · INT-586 · done (PR open)
+- Goal: osv-scanner began reporting GHSA-ccrj-gw8r-854m against the Keycloak provider's test-classpath pin opentelemetry-api 1.62.0, turning the vulnerabilities gate red on main and on every open PR. 1.67.0 fixes it, so the fix is a bump, never an exception row (invariant 14).
+- Plan: raise `opentelemetry-patched.version` to 1.67.0 and swap the six 1.62.0 trusted-checksum lines for verified 1.67.0 ones.
+- Tests: local osv-scanner 2.5.1 before (exit 1) and after (exit 0); provider tests (25); backlog and smoke pins at 375. The `make check` fan-out and the strict-checksum Maven build run on the PR's AWS runner.
+- Invariants touched and still passing: 14 (no suppression; the trusted checksums still fail if anything is missing); 16 (Sec-Row `cicd`); 17 (no placeholders).
+- Decisions / ADRs / `00_STATE.md` rows: none.
+- Blocked on: nothing.
+- Next: merge at the front of the queue, because every PR's vulnerabilities job is red until it lands.
+- Update (check-py red at `make keycloak-provider`):
+  - Cause: the jar embeds its pom, so the bump changed its bytes. main's pom still reproduces `91da1232…`, and the bumped one gives `3ca703b6…`, now the pin (pin file and runbook).
+  - Re-recorded, not edited: the passkey login ran with that jar on Keycloak 26.7.4 (dist sha256 checked) on the AWS synthetic host over SSM. It was loopback only, in a throwaway NVMe dir, with no container and the staging stack untouched. Provider admitted, stock refused. Then torn down.
+- LOOP_STATUS: CONTINUE
+
+### 2026-10-30T13:30:00+03:00 · INT-590 · done (PR open)
+- Goal: trivy began reporting CVE-2026-118664 (HIGH) against decode-uri-component 0.5.0, turning the vulnerabilities gate red on main and on every open PR. 0.5.1 fixes it, so the fix is a bump, never an exception row (invariant 14).
+- Plan: raise the root pnpm override floor to ^0.5.1, regenerate the lockfile, and raise the FIXED_VERSIONS floor and ADVISORY_IDS in tests/ci/test_security_gates.py.
+- Tests: the floor test is red on main's lockfile and green after; tests/ci 421; local trivy and osv-scanner before and after; backlog and smoke pins at 376. The `make check` fan-out runs on the PR's AWS runner.
+- Invariants touched and still passing: 14 (no suppression added); 16 (Sec-Row `cicd`); 17 (no placeholders).
+- Decisions / ADRs / `00_STATE.md` rows: none.
+- Blocked on: nothing.
+- Next: merge at the front of the queue, because every PR's vulnerabilities job is red until it lands.
+- LOOP_STATUS: CONTINUE
+
+### 2026-10-30T18:00:00+03:00 · INT-592 · done (PR open; legal review of the strings pending)
+- Goal: Apple rejected TestFlight build 6 with ITMS-90683. INT-420 had set the HealthKit plugin's `NSHealthUpdateUsageDescription` to `false`, so the Info.plist had no key. The library links write APIs, so the key is required although the app never writes. P0: blocks build 7.
+- Plan: give the key a truthful Turkish string saying Önvizit writes nothing to Apple Health and asks only to read. tr is the source (plugin option = app-tr.json), with an en mirror in app-en.json. The share string is localised too, so both agree with the connector's three read types. The declared key is classified in the store-label inventory.
+- Tests: brand.spec.ts has a write-denial oracle with near misses (false, empty, the library default, a write claim, a denial plus a claim) and a code-truth check (toRead only; no toShare/save/delete). The new tests/legal/test_ios_purpose_strings.py covers base = tr, tr/en parity, PolicyGuard and B1 over every purpose string, and the inventory row. Red run: 4 vitest + 5 pytest failures. Green run: mobile vitest 2971, `pnpm -r typecheck`, tests/legal + tests/release 964, claims scan, backlog and smoke pins at 382 (after merging main `4bb5ecae`, which brought INT-585's row). 3 of 3 mutations killed.
+- Invariants touched and still passing: 2 and 5 (siz, B1, PolicyGuard-clean, tr first); 13/18 (the declared key has an inventory row, with no new data category); 16 (Sec-Row `mobile`); 17 (no placeholders); 20 (claims scan covers the locales).
+- Decisions / ADRs / `00_STATE.md` rows: none. The pre-existing 19-word share string is recorded as a B1/PolicyGuard-length finding, not rewritten; its wording is the legal lane's call.
+- Blocked on: nothing. The legal-reviewer approved #1001 (30 Oct).
+- Update (legal review applied):
+  - The share string is now the reviewer's variant A, for a build carrying INT-587: an added Health line travels with a sent note. It is the same text in app.json and app-tr/en.json.
+  - The update string loses the semicolon after "Önvizit".
+  - The recorded length finding is cleared, so both findings sets are empty.
+  - Tests first: red 4 vitest + 2 pytest; green brand 19, mobile 2972, legal + release 964.
+- Next: merge #995 (INT-587) before or with #1001, then TestFlight build 7.
+- LOOP_STATUS: CONTINUE

@@ -6,8 +6,8 @@
  * digits. Cache contract: one synthesis per clip per session (name-keyed),
  * clear() drops the whole directory (component calls it on unmount AND on
  * session end). These are AGENT-voice clips composed from catalog strings —
- * invariant 3 governs PATIENT audio, which keeps the delete-after-upload
- * posture in lib/voice.ts untouched.
+ * invariant 3 governs PATIENT audio, which never touches a file at all
+ * (lib/capture, INT-559).
  */
 import { describe, expect, it, vi } from "vitest";
 
@@ -314,40 +314,6 @@ describe("createClipStore (one synthesis per clip per session)", () => {
     await expect(store.ensure("q_bad.wav", "5 dakika bekleyin")).rejects.toThrow();
     expect(synth).not.toHaveBeenCalled();
     expect(fs.files.size).toBe(0);
-  });
-
-  it("serves a prebaked clip's uri without synthesizing or writing (INT-demo)", async () => {
-    const fs = memoryFs();
-    const synth = vi.fn(async () => wav);
-    const prebaked = vi.fn(async (_name: string, _text: string) => "asset://q_complaint");
-    const store = createClipStore("cache/dialogue/", fs, synth, prebaked);
-    const uri = await store.ensure("q_complaint.wav", "Bugün sizi buraya getiren nedir?");
-    expect(uri).toBe("asset://q_complaint");
-    expect(prebaked).toHaveBeenCalledWith("q_complaint.wav", "Bugün sizi buraya getiren nedir?");
-    expect(synth).not.toHaveBeenCalled();
-    expect(fs.files.size).toBe(0);
-  });
-
-  it("falls through to the live lane when a clip is not prebaked (INT-demo)", async () => {
-    const fs = memoryFs();
-    const synth = vi.fn(async () => wav);
-    const prebaked = vi.fn(async () => null);
-    const store = createClipStore("cache/dialogue/", fs, synth, prebaked);
-    const path = await store.ensure("q_onset.wav", "Nasıl başladı?");
-    expect(path).toBe("cache/dialogue/q_onset.wav");
-    expect(prebaked).toHaveBeenCalledTimes(1);
-    expect(synth).toHaveBeenCalledTimes(1);
-    expect(fs.files.get(path)).toBe(bytesToBase64(wav));
-  });
-
-  it("checks the prebaked source only after the numeral guard (INT-demo, invariant 22)", async () => {
-    const fs = memoryFs();
-    const synth = vi.fn(async () => wav);
-    const prebaked = vi.fn(async () => "asset://never");
-    const store = createClipStore("cache/dialogue/", fs, synth, prebaked);
-    await expect(store.ensure("q_bad.wav", "5 dakika bekleyin")).rejects.toThrow();
-    expect(prebaked).not.toHaveBeenCalled();
-    expect(synth).not.toHaveBeenCalled();
   });
 });
 

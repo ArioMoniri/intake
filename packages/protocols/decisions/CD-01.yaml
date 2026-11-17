@@ -1,0 +1,360 @@
+kind: clinical_decision
+id: CD-01
+title: "Chest-pain slots the two active RED rules read (HB-C6)"
+question: "Which slots, with which scripted Turkish questions and closed choices, must base.intake declare so that rf.chest_pain_cardiac_features and rf.chest_pain_no_cardiac_history can evaluate, and which patients are asked each one?"
+decision: "Declare three sections and seven slots: chest_pain {present, character, radiation, onset_at}, associated {diaphoresis, dyspnoea} and trauma {recent}. chest_pain.present is asked of every session as one direct scripted question that names pain or discomfort, now or recently, because NICE CG95 counts discomfort as chest pain and requires an immediate check of current pain and, when pain free, of the last episode. The other six are asked only when chest_pain.present is true. All seven are must_ask: the K2 rule can fire on chest_pain.present, one positive feature and the anchor with the others unanswered (T or U is T), but the SARI rule fires only when all seven are answered, so leaving any of them unasked silently removes the SARI arm. Every code slot offers a closed choice containing each literal the rules test, spelled exactly. character adds 'yanma' (a pain character the CKM Symptom/Sign archetype names) and 'başka bir his' (the archetype's free character phrase); radiation adds 'boyun' and 'omuz' (NICE CG95 1.3.3.1) and 'başka bir yer'. An answer naming more than one site or more than one character word is recorded CONTESTED with every named value and evaluated on their union (files/12 §7.3); it is never stored as a list (a list reads Unknown) and never reduced to one value, and 'yok' is exclusive. The associated symptoms are asked as occurring with the chest pain (NICE CG95 1.2.1.3: marked sweating, breathlessness). trauma.recent is anchored to the current chest-pain episode rather than to a numeric window, because no retrieved source states a window. onset_at holds the time of the most recent episode, not the first onset (NICE CG95 1.2.1.1), and is answered from the four-band closed choice of CD-05. Each slot also carries a proxy form, spoken when identity_check.subject_role is 'yakınım adına', because the CKM Symptom/Sign archetype records symptoms as reported by a parent, care-giver or other party; the DSL holds one ask_tr per slot, so until it can select the proxy form the proxy stop-gap below applies, and the under-triage gap it leaves is recorded as finding F13. Disagreements between the sources and the two rules are recorded as findings and are not applied to base.life_threat."
+status: active
+scope: simulated_patient_stress_testing
+author_role: "emergency medicine and internal medicine/cardiology physician (agent)"
+inference_disclosure: "The proxy wording, the CONTESTED recording of multi-value answers and the proxy stop-gap are this author's operationalisation; no cited guideline words a proxy question or a multi-site answer. The character/radiation/associated feature split itself is the rule author's, as base.life_threat's own inference_disclosure says."
+sources:
+  - kind: guideline
+    guideline_id: TR-EK4-2022
+    title: "Yataklı Sağlık Tesislerinde Acil Servis Hizmetlerinin Uygulama Usul ve Esasları Hakkında Tebliğ, EK-4"
+    version_or_date: "RG 13/9/2022 sayı 31952 (EK-4 unchanged by RG 13/5/2023 sayı 32189 and RG 11/10/2024 sayı 32689)"
+    url: "https://www.resmigazete.gov.tr/eskiler/2022/09/20220913-5-1.pdf"
+    retrieved_on: 2026-10-02
+    quote: "Kardiyak ağrıya benzer göğüs ağrısı"
+    snapshot: packages/protocols/sources/TR-EK4-2022.txt
+  - kind: guideline
+    guideline_id: TR-EK4-2022
+    title: "Yataklı Sağlık Tesislerinde Acil Servis Hizmetlerinin Uygulama Usul ve Esasları Hakkında Tebliğ, EK-4"
+    version_or_date: "RG 13/9/2022 sayı 31952"
+    url: "https://www.resmigazete.gov.tr/eskiler/2022/09/20220913-5-1.pdf"
+    retrieved_on: 2026-10-02
+    quote: "Kardiyak öykü ile uyumlu olmayan göğüs ağrısı"
+    snapshot: packages/protocols/sources/TR-EK4-2022.txt
+  - kind: guideline
+    guideline_id: TR-EK4-2022
+    title: "Yataklı Sağlık Tesislerinde Acil Servis Hizmetlerinin Uygulama Usul ve Esasları Hakkında Tebliğ, EK-4"
+    version_or_date: "RG 13/9/2022 sayı 31952"
+    url: "https://www.resmigazete.gov.tr/eskiler/2022/09/20220913-5-1.pdf"
+    retrieved_on: 2026-10-02
+    quote: "Göğüs ağrısı ve solunum sıkıntısı olmayan basit göğüs yaralanmaları"
+    snapshot: packages/protocols/sources/TR-EK4-2022.txt
+  - kind: guideline
+    guideline_id: NICE-CG95
+    title: "Recent-onset chest pain of suspected cardiac origin: assessment and diagnosis"
+    version_or_date: "CG95, published 24 March 2010, last updated 30 November 2016; minor changes January 2020, August 2020, November 2020 and October 2022"
+    url: "https://www.nice.org.uk/guidance/cg95/chapter/Recommendations"
+    retrieved_on: 2026-10-02
+    quote: "Check immediately whether people currently have chest pain. If they are pain free, check when their last episode of pain was, particularly if they have had pain in the last 12 hours."
+    snapshot: packages/protocols/sources/NICE-CG95.txt
+  - kind: guideline
+    guideline_id: NICE-CG95
+    title: "Recent-onset chest pain of suspected cardiac origin: assessment and diagnosis"
+    version_or_date: "CG95, published 24 March 2010, last updated 30 November 2016; minor changes January 2020, August 2020, November 2020 and October 2022"
+    url: "https://www.nice.org.uk/guidance/cg95/chapter/Recommendations"
+    retrieved_on: 2026-10-02
+    quote: "The term 'chest pain' is used throughout the guideline to mean chest pain or discomfort."
+    snapshot: packages/protocols/sources/NICE-CG95.txt
+  - kind: guideline
+    guideline_id: NICE-CG95
+    title: "Recent-onset chest pain of suspected cardiac origin: assessment and diagnosis"
+    version_or_date: "CG95, published 24 March 2010, last updated 30 November 2016; minor changes January 2020, August 2020, November 2020 and October 2022"
+    url: "https://www.nice.org.uk/guidance/cg95/chapter/Recommendations"
+    retrieved_on: 2026-10-02
+    quote: "pain in the chest and/or other areas (for example, the arms, back or jaw) lasting longer than 15 minutes"
+    snapshot: packages/protocols/sources/NICE-CG95.txt
+  - kind: guideline
+    guideline_id: NICE-CG95
+    title: "Recent-onset chest pain of suspected cardiac origin: assessment and diagnosis"
+    version_or_date: "CG95, published 24 March 2010, last updated 30 November 2016; minor changes January 2020, August 2020, November 2020 and October 2022"
+    url: "https://www.nice.org.uk/guidance/cg95/chapter/Recommendations"
+    retrieved_on: 2026-10-02
+    quote: "chest pain associated with nausea and vomiting, marked sweating, breathlessness, or particularly a combination of these"
+    snapshot: packages/protocols/sources/NICE-CG95.txt
+  - kind: guideline
+    guideline_id: NICE-CG95
+    title: "Recent-onset chest pain of suspected cardiac origin: assessment and diagnosis"
+    version_or_date: "CG95, published 24 March 2010, last updated 30 November 2016; minor changes January 2020, August 2020, November 2020 and October 2022"
+    url: "https://www.nice.org.uk/guidance/cg95/chapter/Recommendations"
+    retrieved_on: 2026-10-02
+    quote: "constricting discomfort in the front of the chest, or in the neck, shoulders, jaw or arms"
+    snapshot: packages/protocols/sources/NICE-CG95.txt
+  - kind: guideline
+    guideline_id: NICE-CG95
+    title: "Recent-onset chest pain of suspected cardiac origin: assessment and diagnosis"
+    version_or_date: "CG95, published 24 March 2010, last updated 30 November 2016; minor changes January 2020, August 2020, November 2020 and October 2022"
+    url: "https://www.nice.org.uk/guidance/cg95/chapter/Recommendations"
+    retrieved_on: 2026-10-02
+    quote: "the characteristics of the pain, including its location, radiation, severity, duration and frequency, and factors that provoke and relieve the pain"
+    snapshot: packages/protocols/sources/NICE-CG95.txt
+  - kind: openehr_ckm
+    archetype_id: openEHR-EHR-CLUSTER.symptom_sign.v2
+    revision: "2.1.4"
+    url: "https://ckm.openehr.org/ckm/archetypes/1013.1.6769"
+    retrieved_on: 2026-10-03
+    quote: "Word or short phrase describing the nature of the symptom or sign."
+    snapshot: packages/protocols/sources/openEHR-EHR-CLUSTER.symptom_sign.v2.txt
+  - kind: openehr_ckm
+    archetype_id: openEHR-EHR-CLUSTER.symptom_sign.v2
+    revision: "2.1.4"
+    url: "https://ckm.openehr.org/ckm/archetypes/1013.1.6769"
+    retrieved_on: 2026-10-03
+    quote: "pain could be described as 'gnawing', 'burning', or 'like an electric shock'"
+    snapshot: packages/protocols/sources/openEHR-EHR-CLUSTER.symptom_sign.v2.txt
+  - kind: openehr_ckm
+    archetype_id: openEHR-EHR-CLUSTER.symptom_sign.v2
+    revision: "2.1.4"
+    url: "https://ckm.openehr.org/ckm/archetypes/1013.1.6769"
+    retrieved_on: 2026-10-03
+    quote: "identifying both the originating and distal site in pain radiation"
+    snapshot: packages/protocols/sources/openEHR-EHR-CLUSTER.symptom_sign.v2.txt
+  - kind: openehr_ckm
+    archetype_id: openEHR-EHR-CLUSTER.symptom_sign.v2
+    revision: "2.1.4"
+    url: "https://ckm.openehr.org/ckm/archetypes/1013.1.6769"
+    retrieved_on: 2026-10-03
+    quote: "as reported by the individual, parent, care-giver or other party"
+    snapshot: packages/protocols/sources/openEHR-EHR-CLUSTER.symptom_sign.v2.txt
+    supports: "proxy_ask_tr / proxy_follow_up_tr"
+  - kind: openehr_ckm
+    archetype_id: openEHR-EHR-OBSERVATION.symptom_sign_screening.v1
+    revision: "1.0.7"
+    url: "https://ckm.openehr.org/ckm/archetypes/1013.1.4432"
+    retrieved_on: 2026-10-03
+    quote: "Is there a history of the specific symptom or sign being present?"
+    snapshot: packages/protocols/sources/openEHR-EHR-OBSERVATION.symptom_sign_screening.v1.txt
+  - kind: openehr_ckm
+    archetype_id: openEHR-EHR-OBSERVATION.symptom_sign_screening.v1
+    revision: "1.0.7"
+    url: "https://ckm.openehr.org/ckm/archetypes/1013.1.4432"
+    retrieved_on: 2026-10-03
+    quote: "the interval of time during which the specific symptom or sign occured"
+    snapshot: packages/protocols/sources/openEHR-EHR-OBSERVATION.symptom_sign_screening.v1.txt
+spec_basis:
+  - file: files/12_DSL_V2_AND_RUNTIME_SPEC.md
+    section: "§7.3 Slot supersession, and triage leaves the queue"
+    quote: "triage evaluates on the *union* of head and superseded values and takes `max` acuity."
+    supports: "sections.chest_pain.radiation.multi_select, sections.chest_pain.character.multi_select"
+  - file: packages/protocols/src/protocols/triage/context.py
+    section: "canonical_scalar docstring"
+    quote: "for JSON null and for collections. Those are inside the carrier and simply do not compare in this grammar, so a predicate over them reads Unknown and a rule does not fire."
+    supports: "multi_select: never stored as a list"
+  - file: files/protocols/base.life_threat.yaml
+    section: "RULE SCHEMA, gate"
+    quote: "`T ∨ U = T`, everything else with U is U."
+    supports: "must_ask_reason (K2 can fire with features unanswered; the SARI conjunction cannot)"
+  - file: packages/protocols/base/intake.yaml
+    section: "identity_check.subject_role choices_tr"
+    quote: "tr: [\"kendim için\", \"yakınım adına\"]"
+    supports: "proxy_selection"
+  - file: files/protocols/base.life_threat.yaml
+    section: "RULE SCHEMA, age_band"
+    quote: "age_band:           adult | paediatric | both"
+    supports: "proxy_unasked_inbox_item.raised_when (both chest-pain rules carry age_band: adult)"
+value:
+  proxy_selection: "proxy_ask_tr / proxy_follow_up_tr are spoken instead of ask_tr / follow_up_tr whenever identity_check.subject_role is 'yakınım adına'; a proxy answer fills the patient's slot with proxy-reported provenance"
+  proxy_until_dsl_selects_copy: "The DSL holds one ask_tr per slot. Until it can select proxy copy, the self-worded copy of these seven slots is not spoken in a proxy session and the seven slots stay NOT_ASKED (rendered 'Sorulmadı'). This stop-gap avoids filling the patient's slots with the speaker's own answers, but it is not fail-closed: meanwhile neither chest-pain RED rule can fire in a proxy session, a known under-triage gap recorded as finding F13 that blocks any real patient. In simulated stress testing a proxy persona with chest pain is reported as unscreened, never as negative."
+  proxy_unasked_inbox_item:
+    kind: proxy_chest_pain_screen_unasked
+    decision_ref: CD-08
+    raised_when: "identity_check.subject_role is 'yakınım adına' and the subject is in the adult age band of rf.chest_pain_cardiac_features and rf.chest_pain_no_cardiac_history (both age_band: adult), or the subject's age is unknown"
+    not_raised_when: "the subject is known to be outside that adult age band (for example a child intake), where neither chest-pain rule applies"
+    pinned_to_note: true
+  considered_proxy_alternative:
+    wording_tr: "Şu anda ya da yakın zamanda göğüste ağrı veya rahatsızlık oldu mu?"
+    adopted: false
+    reason: "Without a possessor the question does not say whose chest is meant, so in a proxy session the speaker can answer about their own chest and fill the patient's rule-gate slot with the wrong subject, which is the hazard the stop-gap exists to avoid; no cited source supports subject-neutral wording, and the self copy is pinned by base.intake's test. Recorded as considered, not adopted."
+  sections:
+    chest_pain:
+      present:
+        type: boolean
+        valueset: null
+        choices_tr: []
+        ask_tr: "Göğsünüzde şu anda ya da yakın zamanda ağrı veya rahatsızlık oldu mu?"
+        follow_up_tr: "Göğsünüzde herhangi bir ağrı ya da rahatsızlık hissettiniz mi?"
+        proxy_ask_tr: "Yakınınızın göğsünde şu anda ya da yakın zamanda ağrı veya rahatsızlık oldu mu?"
+        proxy_follow_up_tr: "Yakınınızın göğsünde herhangi bir ağrı ya da rahatsızlık oldu mu?"
+        ask_if: null
+        must_ask: true
+        required: true
+        must_ask_reason: "Both active rules gate on chest_pain.present == true. NICE CG95 1.2.1.1 requires an immediate check of current chest pain and, when pain free, of the last episode, so the question covers now and recently; the CG95 definition counts discomfort as chest pain, so the question names both. Asked of every session because base.life_threat is evaluated on every session regardless of branch (files/04 §8); its cost against the fast-mode turn budget is HB-C5, not this decision."
+        sources: [NICE-CG95, TR-EK4-2022, openEHR-EHR-CLUSTER.symptom_sign.v2]
+        openehr_archetype:
+          archetype_id: openEHR-EHR-OBSERVATION.symptom_sign_screening.v1
+          revision: "1.0.7"
+          element: "at0005 Presence?"
+      character:
+        type: code
+        valueset: vs.chest_pain_character
+        choices_tr: ["baskı", "sıkışma", "ağırlık", "yanma", "başka bir his"]
+        ask_tr: "Göğsünüzdeki bu his en çok hangisine benziyor: baskı, sıkışma, ağırlık, yanma ya da başka bir his?"
+        follow_up_tr: "Baskı, sıkışma, ağırlık, yanma ya da başka bir his diyebilirsiniz; hangisi size daha yakın?"
+        proxy_ask_tr: "Yakınınızın göğsündeki bu his en çok hangisine benziyor: baskı, sıkışma, ağırlık, yanma ya da başka bir his?"
+        proxy_follow_up_tr: "Baskı, sıkışma, ağırlık, yanma ya da başka bir his diyebilirsiniz; yakınınızın anlattığına hangisi daha yakın?"
+        ask_if: "chest_pain.present == true"
+        must_ask: true
+        required: true
+        multi_select: "more than one word is recorded CONTESTED carrying every named value and evaluated on their union (files/12 §7.3); never stored as a list (a list reads Unknown in context.py) and never reduced to one value"
+        must_ask_reason: "rf.chest_pain_cardiac_features reads character in {baskı, sıkışma, ağırlık} as one disjunct of four, and rf.chest_pain_no_cardiac_history requires its negation; NICE CG95 1.2.4.3 and 1.3.2.1 require the characteristics of the pain to be recorded."
+        choice_basis:
+          "baskı": "literal tested by both rules (rule-required)"
+          "sıkışma": "literal tested by both rules; NICE CG95 1.3.3.1 'constricting discomfort'"
+          "ağırlık": "literal tested by both rules (rule-required)"
+          "yanma": "CKM CLUSTER.symptom_sign.v2 at0189 Character names 'burning' as a pain character; not in the rules' cardiac set (finding F6)"
+          "başka bir his": "CKM at0189 Character is a free word or short phrase; the patient's own word is kept verbatim in hpi.character_text"
+        unanswerable: "'bilmiyorum' is not a choice; it maps to the UNCLEAR answer state (CD-04), never to a value"
+        sources: [TR-EK4-2022, NICE-CG95, openEHR-EHR-CLUSTER.symptom_sign.v2]
+        openehr_archetype:
+          archetype_id: openEHR-EHR-CLUSTER.symptom_sign.v2
+          revision: "2.1.4"
+          element: "at0189 Character"
+      radiation:
+        type: code
+        valueset: vs.chest_pain_radiation
+        choices_tr: ["kol", "çene", "sırt", "boyun", "omuz", "başka bir yer", "yok"]
+        ask_tr: "Bu ağrı ya da rahatsızlık kolunuza, çenenize, sırtınıza, boynunuza, omzunuza ya da başka bir yere yayılıyor mu?"
+        follow_up_tr: "Yayılmıyorsa yok diyebilirsiniz; yayılıyorsa nerelere yayıldığını söyler misiniz?"
+        proxy_ask_tr: "Bu ağrı ya da rahatsızlık yakınınızın koluna, çenesine, sırtına, boynuna, omzuna ya da başka bir yere yayılıyor mu?"
+        proxy_follow_up_tr: "Yayılmıyorsa yok diyebilirsiniz; yayılıyorsa nerelere yayıldığını söyler misiniz?"
+        ask_if: "chest_pain.present == true"
+        must_ask: true
+        required: true
+        multi_select: "a multi-site answer is recorded CONTESTED carrying every named site and evaluated on their union (files/12 §7.3); never stored as a list (a list reads Unknown in context.py) and never reduced to one site; 'yok' is exclusive of every other choice"
+        must_ask_reason: "rf.chest_pain_cardiac_features reads radiation in {kol, çene, sırt} as one disjunct of four; rf.chest_pain_no_cardiac_history requires radiation == 'yok', so without an explicit 'yok' the SARI arm can never fire. NICE CG95 1.2.1.3 names the arms, back or jaw."
+        choice_basis:
+          "kol": "literal tested by the K2 rule; NICE CG95 1.2.1.3 'the arms'"
+          "çene": "literal tested by the K2 rule; NICE CG95 1.2.1.3 'jaw'"
+          "sırt": "literal tested by the K2 rule; NICE CG95 1.2.1.3 'back'"
+          "boyun": "NICE CG95 1.3.3.1 'neck'; not in the rules' set (finding F5)"
+          "omuz": "NICE CG95 1.3.3.1 'shoulders'; not in the rules' set (finding F5)"
+          "başka bir yer": "CKM at0151 Body site records the distal site of radiation as reported"
+          "yok": "literal tested by the SARI rule"
+        sources: [TR-EK4-2022, NICE-CG95, openEHR-EHR-CLUSTER.symptom_sign.v2]
+        openehr_archetype:
+          archetype_id: openEHR-EHR-CLUSTER.symptom_sign.v2
+          revision: "2.1.4"
+          element: "at0151 Body site"
+      onset_at:
+        type: date
+        valueset: null
+        choices_tr: ["şu anda var", "son on iki saat içinde", "on iki saatten önce ama son üç gün içinde", "üç günden daha önce"]
+        ask_tr: "Göğsünüzdeki bu ağrı ya da rahatsızlık en son ne zaman oldu?"
+        follow_up_tr: "Şu anda var, son on iki saat içinde, on iki saatten önce ama son üç gün içinde ya da üç günden daha önce diyebilirsiniz; hangisi doğru?"
+        proxy_ask_tr: "Yakınınızın göğsündeki bu ağrı ya da rahatsızlık en son ne zaman oldu?"
+        proxy_follow_up_tr: "Şu anda var, son on iki saat içinde, on iki saatten önce ama son üç gün içinde ya da üç günden daha önce diyebilirsiniz; hangisi doğru?"
+        ask_if: "chest_pain.present == true"
+        must_ask: true
+        required: true
+        semantics: "the time of the most recent episode (or 'ongoing now'), not the first onset; the four bands do not overlap, and each resolves to an ISO date against the session reference time as decided in CD-05"
+        numerals_note: "the choices spell twelve hours and three days in words because NICE CG95's bands are defined in hours; no numeral reaches TTS (invariant 22)"
+        must_ask_reason: "Both rules are tense-qualified on chest_pain.onset_at and cannot fire on an undated symptom; NICE CG95 1.2.1.1 requires checking when the last episode of pain was."
+        sources: [NICE-CG95, openEHR-EHR-OBSERVATION.symptom_sign_screening.v1]
+        openehr_archetype:
+          archetype_id: openEHR-EHR-OBSERVATION.symptom_sign_screening.v1
+          revision: "1.0.7"
+          element: "at0037 Timing"
+    associated:
+      diaphoresis:
+        type: boolean
+        valueset: null
+        choices_tr: []
+        ask_tr: "Bu ağrı ya da rahatsızlık sırasında çok terlediniz mi?"
+        follow_up_tr: "Ağrı olduğu sırada normalden çok daha fazla terleme oldu mu?"
+        proxy_ask_tr: "Bu ağrı ya da rahatsızlık sırasında yakınınız çok terledi mi?"
+        proxy_follow_up_tr: "Ağrı olduğu sırada yakınınızda normalden çok daha fazla terleme oldu mu?"
+        ask_if: "chest_pain.present == true"
+        must_ask: true
+        required: true
+        must_ask_reason: "One of the four K2 disjuncts (associated.diaphoresis == true); the SARI rule requires == false. NICE CG95 1.2.1.3 names 'marked sweating' with chest pain, so the question asks about heavy sweating during the pain."
+        sources: [NICE-CG95]
+        openehr_archetype:
+          archetype_id: openEHR-EHR-OBSERVATION.symptom_sign_screening.v1
+          revision: "1.0.7"
+          element: "at0005 Presence?"
+      dyspnoea:
+        type: boolean
+        valueset: null
+        choices_tr: []
+        ask_tr: "Bu ağrı ya da rahatsızlık sırasında nefes almakta zorlandınız mı?"
+        follow_up_tr: "Ağrı sırasında nefesiniz daraldı mı?"
+        proxy_ask_tr: "Bu ağrı ya da rahatsızlık sırasında yakınınız nefes almakta zorlandı mı?"
+        proxy_follow_up_tr: "Ağrı sırasında yakınınızın nefesi daraldı mı?"
+        ask_if: "chest_pain.present == true"
+        must_ask: true
+        required: true
+        must_ask_reason: "One of the four K2 disjuncts (associated.dyspnoea == true); the SARI rule requires == false. NICE CG95 1.2.1.3 names breathlessness with chest pain."
+        sources: [NICE-CG95]
+        openehr_archetype:
+          archetype_id: openEHR-EHR-OBSERVATION.symptom_sign_screening.v1
+          revision: "1.0.7"
+          element: "at0005 Presence?"
+    trauma:
+      recent:
+        type: boolean
+        valueset: null
+        choices_tr: []
+        ask_tr: "Bu ağrı ya da rahatsızlık başlamadan önce göğsünüz bir darbe ya da kaza sonucu yaralandı mı?"
+        follow_up_tr: "Düşme, çarpma ya da kaza gibi bir nedenle göğsünüze bir şey oldu mu?"
+        proxy_ask_tr: "Bu ağrı ya da rahatsızlık başlamadan önce yakınınızın göğsü bir darbe ya da kaza sonucu yaralandı mı?"
+        proxy_follow_up_tr: "Düşme, çarpma ya da kaza gibi bir nedenle yakınınızın göğsüne bir şey oldu mu?"
+        ask_if: "chest_pain.present == true"
+        must_ask: true
+        required: true
+        semantics: "an injury to the chest before the current chest-pain episode; recency is anchored to the episode, not to a numeric window, because no retrieved source states one"
+        must_ask_reason: "K2 does not read trauma.recent; rf.chest_pain_no_cardiac_history requires trauma.recent == false, so the SARI arm cannot fire without it. EK-4 places simple chest injuries without chest pain or breathing difficulty in a separate row."
+        sources: [TR-EK4-2022]
+        openehr_archetype:
+          archetype_id: openEHR-EHR-OBSERVATION.symptom_sign_screening.v1
+          revision: "1.0.7"
+          element: "at0005 Presence?"
+  findings:
+    - id: F1
+      finding: "The rules' evidence quotes are written with a lower-case 'kardiyak'; EK-4 prints both entries with a capital 'K', so a case-sensitive verbatim check of the rules' quotes against this snapshot fails. Not changed here."
+      quote: "Kardiyak ağrıya benzer göğüs ağrısı"
+      guideline_id: TR-EK4-2022
+    - id: F2
+      finding: "Both rules cite https://www.resmigazete.gov.tr/eskiler/2022/09/20220913-6.htm, which returned HTTP 404 on 2026-10-02. The Tebliğ is item 20220913-5.htm of the 13/9/2022 Resmî Gazete and EK-4 is in its scanned annex 20220913-5-1.pdf. Not changed here."
+      quote: "YATAKLI SAĞLIK TESİSLERİNDE ACİL SERVİS HİZMETLERİNİN"
+      guideline_id: TR-EK4-2022
+    - id: F3
+      finding: "NICE CG95 1.2.1.3 lists nausea and vomiting with chest pain; the K2 rule's associated disjunction reads only diaphoresis and dyspnoea, and no nausea or vomiting slot exists. Adding a disjunct is a rule change for the signing clinician."
+      quote: "chest pain associated with nausea and vomiting, marked sweating, breathlessness, or particularly a combination of these"
+      guideline_id: NICE-CG95
+    - id: F4
+      finding: "NICE CG95 1.2.1.3 lists pain lasting longer than fifteen minutes; neither rule reads a duration, and hpi.duration is not read by any rule."
+      quote: "pain in the chest and/or other areas (for example, the arms, back or jaw) lasting longer than 15 minutes"
+      guideline_id: NICE-CG95
+    - id: F5
+      finding: "NICE CG95 1.3.3.1 places anginal discomfort in the neck and shoulders as well as the jaw and arms. The K2 radiation set is {kol, çene, sırt}; a patient whose pain spreads only to the neck or shoulder, with no other feature, satisfies neither rule (not in the K2 set, and not 'yok' for the SARI rule), so no rule fires."
+      quote: "constricting discomfort in the front of the chest, or in the neck, shoulders, jaw or arms"
+      guideline_id: NICE-CG95
+    - id: F6
+      finding: "The CKM archetype names burning as a pain character. The K2 character set omits 'yanma', so burning chest pain with no other feature routes to the SARI arm rather than K2. Whether burning belongs to the cardiac set stays draft_needs_source here: the ESC 2023 ACS guideline section 3.1.1 primary text could not be retrieved by this author (publisher site behind a bot check)."
+      quote: "pain could be described as 'gnawing', 'burning', or 'like an electric shock'"
+      guideline_id: openEHR-EHR-CLUSTER.symptom_sign.v2
+    - id: F7
+      finding: "Both rules anchor on chest_pain.onset_at, but the NICE windows run from the last episode. If onset_at held the first onset, a pain that began days ago and is present now would fail tense: now. This decision defines onset_at as the most recent episode; renaming the slot is for the rule author."
+      quote: "If they are pain free, check when their last episode of pain was"
+      guideline_id: NICE-CG95
+    - id: F8
+      finding: "NICE CG95 1.2.1.8 sends a last episode twelve to seventy-two hours old for urgent same-day assessment. The K2 rule carries tense: now only and there is no same-day cardiac-features arm, so a final resolution of that band either over-triages to EMERGENCY_NOW or fires nothing (CD-05 keeps it draft_needs_source and states the while-draft behaviour)."
+      quote: "the last episode of pain was 12 to 72 hours ago."
+      guideline_id: NICE-CG95
+    - id: F9
+      finding: "Three-valued gap, with chest_pain.present true and no feature reading True. If any of character, radiation, diaphoresis or dyspnoea is UNCLEAR, the K2 disjunction reads Unknown (False or Unknown is Unknown) and the SARI conjunction reads Unknown. If only trauma.recent is UNCLEAR, the K2 disjunction reads False (K2 does not read trauma) and the SARI conjunction reads Unknown. In both cases neither rule fires, although EK-4 names chest pain by row in KIRMIZI Kategori 2 and SARI Kategori 1 (and chest injury without chest pain in SARI Kategori 2). CD-04 routes an UNCLEAR that survives the follow-up to a clinic-inbox item so it is never dropped."
+      quote: "Kardiyak öykü ile uyumlu olmayan göğüs ağrısı"
+      guideline_id: TR-EK4-2022
+    - id: F10
+      finding: "Chest pain with trauma.recent true and no K2 feature fires nothing: K2 needs a feature, the SARI_K1 rule's own gate requires trauma.recent == false (a condition EK-4's SARI Kategori 1 row does not itself state), and EK-4's SARI Kategori 2 row covers a simple chest injury WITHOUT chest pain or breathing difficulty. Writing that third arm (CI gate ek4_chest_pain_split_is_three_way) therefore does not close this gap; it needs a decision on painful chest injury."
+      quote: "Göğüs ağrısı ve solunum sıkıntısı olmayan basit göğüs yaralanmaları"
+      guideline_id: TR-EK4-2022
+    - id: F11
+      finding: "The Tebliğ defines triage as performed by the duty health personnel, with in-service triage training. An EK-4 level computed before arrival is therefore signposting toward triage, not triage under MADDE 8; this belongs in the regulatory file."
+      quote: "Triyaj yapacak personele hizmet içi eğitim verilmiş olmalıdır."
+      guideline_id: TR-EK4-2022
+    - id: F12
+      finding: "EK-4 KIRMIZI Kategori 2 also lists severe pain of any cause. Neither chest-pain rule reads hpi.severity_nrs, so severe chest pain without a K2 feature lands at SARI_K1, or fires nothing under F9."
+      quote: "Herhangi bir nedenle olan ciddi ağrı"
+      guideline_id: TR-EK4-2022
+    - id: F13
+      finding: "Until the DSL can select proxy copy, none of the seven chest-pain slots is asked in a proxy session (subject_role 'yakınım adına'), so neither chest-pain RED rule can fire for an adult patient spoken for by a relative: the immediate check NICE CG95 asks for is not performed. This is a known under-triage gap that blocks any real patient. In simulated stress testing a proxy persona with chest pain is reported as unscreened, never as negative; a subject-neutral wording was considered and not adopted (value.considered_proxy_alternative)."
+      quote: "Check immediately whether people currently have chest pain."
+      guideline_id: NICE-CG95
+verifier:
+  verdict: agree
+  role: "independent clinical verifier (agent; EM/IM/paediatrics)"
+  verified_on: 2026-10-03
+  notes: "Independent verification: round 1 agree_with_changes; round 2 agree_with_changes (proxy stop-gap scope and F13); round 3 agree. Every quote re-checked against the live source; the verifier saw only the committed output and the sources, never the authors' reasoning. Scope D18: simulated-patient stress testing only; a licensed physician's review is required before any real patient."

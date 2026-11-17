@@ -10,6 +10,15 @@ global:
 
 rule_files:
   - /etc/prometheus/rules/prometheus-rules.yaml
+  # INT-190 budget alerts, generated from infra/costs/unit-prices.yaml and
+  # drift-gated by tests/observability/test_cost_rules.py
+  - /etc/prometheus/rules/cost-rules.yaml
+  # INT-367 security countdowns (key rotation overdue), pinned by
+  # tests/security/test_rotation_schedule.py
+  - /etc/prometheus/rules/security-rules.yaml
+  # INT-406 RED acknowledgement pages (invariant 49), pinned by
+  # tests/safety/test_red_acknowledgement_sla.py
+  - /etc/prometheus/rules/safety-rules.yaml
 
 scrape_configs:
   - job_name: prometheus

@@ -28,7 +28,7 @@ import { Pressable, StyleSheet, View } from "react-native";
 
 import { AppText, useFontScale, useTheme } from "@/components/Themed";
 import { isLargeText } from "@/lib/prefs/appearance";
-import { scaledControl, spacing } from "@/lib/theme";
+import { motion, scaledControl, spacing } from "@/lib/theme";
 
 interface SwitchRowProps {
   label: string;
@@ -58,7 +58,7 @@ export function SwitchRow({ label, sublabel, checked, onChange, hint }: SwitchRo
       style={({ pressed }) => [
         styles.row,
         stacked ? styles.rowStacked : null,
-        { opacity: pressed ? 0.7 : 1 },
+        { opacity: pressed ? motion.press.rowOpacity : 1 },
       ]}
     >
       <View style={stacked ? styles.labelsStacked : styles.labels}>

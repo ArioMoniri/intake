@@ -40,6 +40,8 @@ from intake_platform.db.models import (
 )
 from intake_platform.documents import ScanVerdict
 from intake_platform.envelope import EnvelopeCipher, FileKekProvider
+from intake_platform.legal.synthetic import DeploymentDataClass
+from intake_platform.red_tenant import TenantKind
 from intake_platform.uploads import ScanFailedError
 from minio.commonconfig import COMPLIANCE
 from sqlalchemy import (
@@ -222,7 +224,31 @@ def build_harness(
     # cannot be turned into the pseudonym that addresses a patient, and the
     # committed registry has zero rows, so the route refuses every caller.
     tokenization_key: str | None = None,
+    # INT-584: why there is no key, as the API's wiring would record it
+    # (tokenization_key_absent when None and no key)
+    tokenization_key_refusal: str | None = None,
     previsit_output_recipients: Path | None = None,
+    # INT-446: the served red-flag rule set. None is the shipped state (no
+    # signed set exists, HB-C1), in which /v1/triage answers 503.
+    triage_rules_path: Path | None = None,
+    # INT-453: the generic RED document. Default: the committed one, which is
+    # draft_needs_source until CD-24 lands, so nothing is served.
+    triage_generic_red_path: Path | None = None,
+    # INT-465: the test-key signature and the tenant kind (raw env value: only
+    # the exact "synthetic" is synthetic, as ApiSettings.from_env reads it).
+    triage_signature_path: Path | None = None,
+    triage_tenant_kind: str | None = None,
+    triage_deployment: str | None = None,
+    # INT-465: the SENTETİK sets cite a tests/fixtures snapshot; the harness opts
+    # in explicitly, and a test passes False to see the served path refuse it.
+    triage_fixture_sources: bool = True,
+    # INT-407: the clinic Safety inbox a RED visit's move raises its entry in.
+    # None is the unwired state, in which a reschedule or cancel answers 503.
+    safety_inbox: Any = None,
+    # INT-529: the deployment data class (raw env value: only the exact
+    # "synthetic" is synthetic, as ApiSettings.from_env reads it). None is the
+    # shipped real-tenant default, in which the synthetic legal tree is refused.
+    deployment_data_class: str | None = None,
 ) -> Iterator[ApiHarness]:
     app_db = tmp_path / "api.db"
     audit_db = tmp_path / "audit.db"
@@ -249,6 +275,7 @@ def build_harness(
         # too — everything that renders them fails closed (INT-037)
         dev_otp_peek=dev_otp_peek,
         tokenization_key=tokenization_key,
+        tokenization_key_refusal=tokenization_key_refusal,
         previsit_output_recipients_path=(
             previsit_output_recipients
             if previsit_output_recipients is not None
@@ -264,6 +291,27 @@ def build_harness(
         ),
         # default: the REAL committed taxonomy (INT-134) — tests that need
         # the fail-closed path point this at a missing/broken file instead
+        triage_rules_path=triage_rules_path,
+        triage_signature_path=triage_signature_path,
+        triage_deployment=triage_deployment,
+        triage_fixture_sources=triage_fixture_sources,
+        deployment_data_class=(
+            DeploymentDataClass.SYNTHETIC
+            if deployment_data_class == DeploymentDataClass.SYNTHETIC.value
+            else DeploymentDataClass.REAL_PHI
+        ),
+        triage_tenant_kind=(
+            TenantKind.SYNTHETIC
+            if triage_tenant_kind == TenantKind.SYNTHETIC.value
+            else TenantKind.REAL
+        ),
+        triage_generic_red_path=triage_generic_red_path
+        if triage_generic_red_path is not None
+        else Path(__file__).resolve().parents[2]
+        / "packages"
+        / "protocols"
+        / "generic"
+        / "generic_red.yaml",
         taxonomy_path=taxonomy_path
         if taxonomy_path is not None
         else Path(__file__).resolve().parents[2]
@@ -299,6 +347,7 @@ def build_harness(
             # INT-320: the partner embed wiring. None keeps the shipping
             # default in which every /embed route answers 503.
             embed=embed,
+            safety_inbox=safety_inbox,
         )
     )
     # INT-180: the console's IP allow-list reads the transport peer, so the

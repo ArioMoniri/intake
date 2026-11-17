@@ -461,6 +461,21 @@ NON_VENDOR_PURPOSES = frozenset(
     }
 )
 
+#: INT-329. A VENDOR purpose whose row is a decision nobody has made yet. The
+#: SMS processor receives the patient's phone number — personal data, sent to a
+#: processor abroad — so its row needs the owner's DPA and cross-border
+#: decision, and on the PHI tier a ``phi_exception_approval`` naming that
+#: decision (docs/evidence/INT-329.md). The member exists because the OTP
+#: adapter must declare why it calls; the row does not, so the shipped policy
+#: refuses every such call. This set only shrinks: the test after next fails the
+#: moment a row declaring one of these purposes lands, so the row and the
+#: purpose's removal from here arrive in the same change.
+#: INT-428 / ADR-035's hosted_model_inference left this set in the owner's
+#: INT-442 change, together with its two rows (openai-api, elevenlabs-api).
+#: INT-528 emptied it: SMS_OTP_DELIVERY left with its phi_path row (Netgsm, the
+#: owner's INT-358 decision of 16 Oct 2026).
+PURPOSES_AWAITING_THE_OWNER: frozenset[EgressPurpose] = frozenset()
+
 
 def _shipped_rows() -> list[AllowlistEntry]:
     allowlist = load_allowlist(ALLOWLIST_PATH)
@@ -474,7 +489,7 @@ def test_every_purpose_in_the_vocabulary_is_used_by_the_shipped_allowlist() -> N
     every shipped row's purpose must be in the enum (the latter by type).
     """
     used = {entry.purpose_id for entry in _shipped_rows()}
-    expected = set(EgressPurpose) - NON_VENDOR_PURPOSES
+    expected = set(EgressPurpose) - NON_VENDOR_PURPOSES - PURPOSES_AWAITING_THE_OWNER
     assert used == expected, (
         f"unused purposes: {sorted(expected - used)}; "
         "a purpose nothing declares is vocabulary, not policy"
@@ -495,6 +510,62 @@ def test_a_connector_push_purpose_never_appears_in_the_vendor_allowlist() -> Non
         f"{offenders} declare a non-vendor purpose in the vendor allow-list; "
         "connector destinations belong in infra/connectors/destinations.yaml"
     )
+
+
+def test_a_purpose_awaiting_the_owner_has_no_row_and_every_tier_refuses_it() -> None:
+    """The stronger direction of the pending set above (INT-329).
+
+    No shipped row may declare a pending purpose — a row that lands must take
+    its purpose out of ``PURPOSES_AWAITING_THE_OWNER`` in the same change — and
+    until then the shipped policy refuses the SMS vendor on every tier, for
+    every data class, which is what keeps the OTP tier at 503 outside dev.
+    """
+    offenders = [
+        entry.name for entry in _shipped_rows() if entry.purpose_id in PURPOSES_AWAITING_THE_OWNER
+    ]
+    assert offenders == [], (
+        f"{offenders} declare a purpose still awaiting the owner; record the decision "
+        "and remove the purpose from PURPOSES_AWAITING_THE_OWNER in the same change"
+    )
+    allowlist = load_allowlist(ALLOWLIST_PATH)
+    for tier in ("dev", "phi_path"):
+        policy = EgressPolicy.for_tier(allowlist, tier, resolver=_resolver({}))  # type: ignore[arg-type]
+        for purpose in PURPOSES_AWAITING_THE_OWNER:
+            for data_class in DataClass:
+                context = EgressContext(purpose=purpose, data_class=data_class)
+                for host in ("api.twilio.com", "api.netgsm.com.tr"):
+                    assert not policy.check(host, 443, context).allowed, host
+
+
+def test_the_sms_row_is_netgsm_alone_and_only_on_the_phi_tier(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """INT-528. The one phi_path row: Netgsm's OTP SMS host, exact, on 443,
+    for the SMS purpose only, citing the owner's INT-358 decision, and open
+    only with the runtime gate. No other tier, purpose or SMS host clears."""
+    allowlist = load_allowlist(ALLOWLIST_PATH)
+    [row] = allowlist.tiers.phi_path
+    assert (row.host, row.port, row.glob) == ("api.netgsm.com.tr", 443, False)
+    assert row.purpose_id is EgressPurpose.SMS_OTP_DELIVERY
+    assert row.phi_allowed and row.phi_exception_approval
+    assert row.phi_exception_approval.startswith("INT-358")
+    assert all(e.purpose_id is not EgressPurpose.SMS_OTP_DELIVERY for e in allowlist.tiers.dev)
+
+    sms = EgressContext(purpose=EgressPurpose.SMS_OTP_DELIVERY, data_class=DataClass.PHI)
+    phi = EgressPolicy.for_tier(allowlist, "phi_path", resolver=_resolver({}))
+    monkeypatch.delenv("INTAKE_ALLOW_PHI_EGRESS", raising=False)
+    assert not phi.check("api.netgsm.com.tr", 443, sms).allowed
+    monkeypatch.setenv("INTAKE_ALLOW_PHI_EGRESS", "explicit-yes")
+    assert phi.check("api.netgsm.com.tr", 443, sms).allowed
+    assert not phi.check("api.twilio.com", 443, sms).allowed
+    assert not phi.check("netgsm.com.tr", 443, sms).allowed
+    for purpose in set(EgressPurpose) - {EgressPurpose.SMS_OTP_DELIVERY}:
+        other = EgressContext(purpose=purpose, data_class=DataClass.PHI)
+        assert not phi.check("api.netgsm.com.tr", 443, other).allowed, purpose
+    dev = EgressPolicy.for_tier(allowlist, "dev", resolver=_resolver({}))
+    for data_class in DataClass:
+        context = EgressContext(purpose=EgressPurpose.SMS_OTP_DELIVERY, data_class=data_class)
+        assert not dev.check("api.netgsm.com.tr", 443, context).allowed
 
 
 # --- the transfer log: {host, purpose, bytes, ts} -----------------------------------

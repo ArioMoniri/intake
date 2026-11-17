@@ -1,0 +1,15 @@
+{
+  "commit": {
+    "sha": "f893dcf5e90a6289831a553bd12be87a7e7a9b6b"
+  },
+  "name": "main",
+  "protected": false,
+  "protection": {
+    "enabled": false,
+    "required_status_checks": {
+      "checks": [],
+      "contexts": [],
+      "enforcement_level": "off"
+    }
+  }
+}

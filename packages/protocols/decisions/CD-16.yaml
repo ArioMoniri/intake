@@ -1,0 +1,100 @@
+# INT-432 clinical decision CD-16. Agent-authored under owner decision D18
+# (2 Oct 2026): simulated-patient stress testing only; a licensed physician's
+# review is required before any real patient. Every source quote below appears
+# verbatim in the named snapshot; spec_basis quotes appear verbatim in the named
+# committed file. Not a pack: nothing here is compiled or served.
+kind: clinical_decision
+id: CD-16
+title: "Göğüs cerrahisi Q12b: regurgitation is asked of every patient, not only after a swallowing complaint"
+question: >-
+  V-GC-5: should food or saliva coming back up (Q12b yiyecek_geri_gelmesi) be asked of
+  every thoracic-surgery patient, or only after a swallowing complaint (the current gate
+  yutma_guclugu == true)?
+decision: >-
+  Ask it of every patient: the gate is removed. The UEG and ESNM European achalasia
+  guideline lists regurgitation as a symptom of achalasia in its own right, next to
+  dysphagia, chest pain and weight loss, and calls it a hallmark of achalasia and poor
+  oesophageal emptying. A patient with regurgitation and no perceived swallowing
+  difficulty is therefore a patient the thoracic-surgery pack exists to see (TGCD lists
+  achalasia surgery among its consent forms, TOR-S7). The current gate encodes a
+  clinical association, not a presupposition, and it would hide exactly that patient.
+  NICE NG12 1.2.1 points the same way: its second arm refers people aged 55 and over
+  with weight loss and reflux, without dysphagia. The caveat is that NICE's word is
+  reflux; the item's wording is achalasia-type regurgitation, and the pre-visit never
+  maps one onto the other. The item stays symptom capture: no red flag is proposed on
+  regurgitation alone, and the dysphagia rule (row 4) keeps its own trigger. The cost is
+  one extra yes/no turn for patients without a swallowing complaint. The verifier's
+  scratch run with the gate removed passed check_proposal and verify_chain.
+status: active
+scope: simulated_patient_stress_testing
+author_role: "thoracic surgery physician (agent)"
+sources:
+  - kind: guideline
+    guideline_id: UEG-ESNM-ACHALASIA-2020
+    title: "European Guideline on Achalasia - UEG and ESNM recommendations"
+    version_or_date: "United European Gastroenterol J. 2020 Feb 5;8(1):13-34; doi 10.1177/2050640620903213"
+    url: "https://pmc.ncbi.nlm.nih.gov/articles/PMC7005998/"
+    retrieved_on: 2026-10-03
+    section: "Introduction"
+    quote: "Achalasia is a primary motility disorder in which insufficient relaxation of the lower oesophageal sphincter (LOS) and absent peristalsis result in stasis of ingested foods and subsequently, lead to oesophageal symptoms of dysphagia, regurgitation, chest pain or weight loss."
+    snapshot: packages/protocols/sources/UEG-ESNM-ACHALASIA-2020.txt
+    supports: ungate
+  - kind: guideline
+    guideline_id: UEG-ESNM-ACHALASIA-2020
+    title: "European Guideline on Achalasia - UEG and ESNM recommendations"
+    version_or_date: "United European Gastroenterol J. 2020 Feb 5;8(1):13-34; doi 10.1177/2050640620903213"
+    url: "https://pmc.ncbi.nlm.nih.gov/articles/PMC7005998/"
+    retrieved_on: 2026-10-03
+    section: "3.3 How to manage reflux disease after treatment?"
+    quote: "regurgitation is also a hallmark of achalasia and poor oesophageal emptying"
+    snapshot: packages/protocols/sources/UEG-ESNM-ACHALASIA-2020.txt
+    supports: ungate
+  - kind: guideline
+    guideline_id: NICE-NG12
+    title: "Suspected cancer: recognition and referral"
+    version_or_date: "NICE guideline NG12; published 23 June 2015; last updated 15 April 2026"
+    url: "https://www.nice.org.uk/guidance/ng12/chapter/Recommendations-organised-by-site-of-cancer"
+    retrieved_on: 2026-10-03
+    section: "1.2.1"
+    quote: "are aged 55 and over, with weight loss, and they have any of the following:"
+    snapshot: packages/protocols/sources/NICE-NG12.txt
+    supports: ungate
+    caveat: "NICE's list item is 'reflux'. The pre-visit records the patient's description and never maps it onto NG12's term; this source shows only that a symptom of this kind carries weight without dysphagia."
+spec_basis:
+  - file: CLAUDE.md
+    section: "Non-negotiable invariants, 2"
+    quote: "Patient-facing text passes `PolicyGuard` (no diagnosis/treatment/prognosis language; one question per turn; B1 Turkish)."
+    supports: item_unchanged
+value:
+  item:
+    slot: yiyecek_geri_gelmesi
+    ask_tr: "Yediklerinizin ya da tükürüğünüzün ağzınıza geri geldiği oluyor mu?"
+    gated: false
+    ask_if: none
+  red_flag_on_regurgitation_alone: false
+  dysphagia_rule_unchanged: "rf.gogus_cerrahisi_disfaji keeps its trigger yutma_guclugu == true (CD-13: department stub)"
+  apply_after_737_merges:
+    - file: docs/evidence/proposals/gogus_cerrahisi.md
+      where: "§3 Q12b gen line"
+      change: remove_ask_if
+      from: "gen: slot=yiyecek_geri_gelmesi; type=boolean; ask_if=yutma_guclugu == true"
+      to: "gen: slot=yiyecek_geri_gelmesi; type=boolean"
+      note: "ask wording unchanged; add UEG-ESNM-ACHALASIA-2020 to the Q12b source line"
+    - file: docs/evidence/proposals/gogus_cerrahisi.md
+      where: "§1, after TOR-S11"
+      change: add_source
+      text: |-
+        ### TOR-S12 — UEG and ESNM, European Guideline on Achalasia (international) **[retrieved 2026-10-03]**
+        - **guideline_id:** `UEG-ESNM-ACHALASIA-2020` · snapshot `packages/protocols/sources/UEG-ESNM-ACHALASIA-2020.txt`
+        - **Version / date:** United European Gastroenterol J. 2020;8(1):13-34; doi 10.1177/2050640620903213
+        - **Verbatim:** > "regurgitation is also a hallmark of achalasia and poor oesophageal emptying"
+value_status:
+  item: active
+  red_flag_on_regurgitation_alone: active
+  dysphagia_rule_unchanged: active
+  apply_after_737_merges: active
+verifier:
+  verdict: agree
+  role: "independent clinical verifier (agent; EM/IM/paediatrics)"
+  verified_on: 2026-10-03
+  notes: "Independent verification: round 1 agree; round 2 agree. Every quote re-checked against the live source; the verifier saw only the committed output and the sources, never the authors' reasoning. Scope D18: simulated-patient stress testing only; a licensed physician's review is required before any real patient."

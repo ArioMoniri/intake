@@ -25,6 +25,7 @@ import { verticalSlop } from "@/lib/a11y/target";
 import { availableLocales, t, type Locale } from "@/lib/i18n";
 import { chooseFromChooser, present, toChoices } from "@/lib/locale/chooser";
 import { offerableAppLocales } from "@/lib/i18n/locale";
+import { accountBadgeKey } from "@/lib/profile/badge";
 import { useSession } from "@/lib/session";
 import { radius, spacing } from "@/lib/theme";
 
@@ -128,6 +129,9 @@ export default function Me() {
     // renders without a session; render nothing during that frame.
     return null;
   }
+  // INT-421: the synthetic label belongs to the dev fixture session alone; a
+  // phone-verified account in a store build carries no sublabel at all.
+  const badge = accountBadgeKey(account);
   return (
     <Screen edges={RAIL_EDGES}>
       <ScrollView contentContainerStyle={[styles.content, { paddingBottom: tabBarClearance }]}>
@@ -138,7 +142,7 @@ export default function Me() {
           <ListRow
             icon="person.crop.circle"
             label={account.name}
-            sublabel={t("me.syntheticBadge")}
+            sublabel={badge === null ? undefined : t(badge)}
           />
         </ListGroup>
         {/* Görünüm (INT-260): text size, theme, motion and how a visit

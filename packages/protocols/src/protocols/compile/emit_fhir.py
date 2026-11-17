@@ -12,6 +12,13 @@ joined by top-level ``&&`` (``enableBehavior: all``) or ``||``
 (``enableBehavior: any``). ``skip_if`` is the same grammar inverted, which
 under De Morgan flips the behaviour as well as each operator.
 
+``<slot>`` is read through :class:`protocols.gates.SlotNamespace` (INT-355): a
+qualified name projects as itself, a bare name as the linkId of the one slot
+across the resolved chain that holds it, and a bare name two sections hold —
+or a name none holds — does not project at all. The resolver has already
+refused such a document; this is the same rule applied again, so an emitter
+handed one anyway cannot point ``enableWhen`` at whichever holder came last.
+
 URIs come from the INT-033 namespace (``clinical_schemas.mappers.codes``) so
 the compiler and the mappers cannot disagree about an identity; the ValueSet
 canonical follows that module's own ``urn:intake:fhir:<ResourceType>:<name>``
@@ -28,6 +35,7 @@ from clinical_schemas.mappers.codes import EXT_PROTOCOL_HASH, PROTOCOL_CANONICAL
 
 from protocols.compile.errors import Refusal, RefusalCode
 from protocols.compile.resolve import ResolvedProtocol, ResolvedSlot
+from protocols.gates import SlotNamespace
 from protocols.types import SlotType
 
 __all__ = ["VALUESET_CANONICAL_PREFIX", "questionnaire"]
@@ -108,12 +116,12 @@ def _answer(raw: str) -> dict[str, Any]:
     return {"answerInteger": int(raw)}
 
 
-def _condition(fragment: str, links: dict[str, str]) -> dict[str, Any] | None:
+def _condition(fragment: str, links: SlotNamespace) -> dict[str, Any] | None:
     match = _CONDITION.match(fragment.strip())
     if match is None:
         return None
-    question = links.get(match.group("lhs"))
-    if question is None:
+    question = links.resolve(match.group("lhs"))
+    if not isinstance(question, str):
         return None
     return {
         "question": question,
@@ -122,7 +130,7 @@ def _condition(fragment: str, links: dict[str, str]) -> dict[str, Any] | None:
     }
 
 
-def _project(expr: str, links: dict[str, str]) -> tuple[str, list[dict[str, Any]]] | None:
+def _project(expr: str, links: SlotNamespace) -> tuple[str, list[dict[str, Any]]] | None:
     """Project one gate expression to ``(enableBehavior, conditions)``."""
     for separator, behaviour in (("&&", "all"), ("||", "any")):
         fragments = _split_top_level(expr, separator)
@@ -146,7 +154,7 @@ def _invert(
     ]
 
 
-def _enable_when(slot: ResolvedSlot, links: dict[str, str]) -> tuple[dict[str, Any], list[Refusal]]:
+def _enable_when(slot: ResolvedSlot, links: SlotNamespace) -> tuple[dict[str, Any], list[Refusal]]:
     behaviours: list[str] = []
     conditions: list[dict[str, Any]] = []
     for expression, invert in ((slot.slot.ask_if, False), (slot.slot.skip_if, True)):
@@ -161,7 +169,8 @@ def _enable_when(slot: ResolvedSlot, links: dict[str, str]) -> tuple[dict[str, A
                     message=(
                         f"{expression!r} does not project to a FHIR enableWhen. The "
                         "supported grammar is <slot> (==|!=|>|>=|<|<=) <literal>, joined "
-                        "by top-level && or ||. A Questionnaire that silently drops a "
+                        "by top-level && or ||, where <slot> resolves to exactly one "
+                        "slot of the resolved chain. A Questionnaire that silently drops a "
                         "gate shows a consumer a question the protocol says to hide, so "
                         "this is a build failure rather than a dropped constraint "
                         "(files/03 §6)"
@@ -190,7 +199,7 @@ def _enable_when(slot: ResolvedSlot, links: dict[str, str]) -> tuple[dict[str, A
 
 
 def _item(
-    slot: ResolvedSlot, text: str, links: dict[str, str]
+    slot: ResolvedSlot, text: str, links: SlotNamespace
 ) -> tuple[dict[str, Any], list[Refusal]]:
     item: dict[str, Any] = {
         "linkId": slot.fhir_link_id,
@@ -214,13 +223,8 @@ def questionnaire(
     ``texts`` maps ``fhir_link_id`` to the tr-expanded ``ask_tr`` so the item
     carries exactly what the clip cache carries (CLAUDE.md invariant 22).
     """
-    links = {
-        slot.fhir_link_id: slot.fhir_link_id
-        for section in document.sections
-        for slot in section.slots
-    }
-    links.update(
-        {slot.key: slot.fhir_link_id for section in document.sections for slot in section.slots}
+    links = SlotNamespace(
+        (slot.section_id, slot.key) for section in document.sections for slot in section.slots
     )
     refusals: list[Refusal] = []
     groups: list[dict[str, Any]] = []

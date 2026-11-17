@@ -50,6 +50,9 @@ EXPECTED_TABLES = {
     # Its recipients annotation is the awaiting-human one: no DPA names a
     # hospital reader yet, so no recipient beyond the PHI boundary is defined.
     "previsit_outputs",
+    # INT-123 — the pgvector record index: one CONFIRMED record item's vector
+    # and source box per row, in one patient's RLS namespace. No item text.
+    "record_embeddings",
 }
 
 

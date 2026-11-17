@@ -1,0 +1,92 @@
+/* INT-459 refresh — the console's palette, and the one file a palette change
+   touches. Palette B, owner 17 Oct 2026: "the app's own warm paper background
+   with teal, so the admin panel and the app share one brand".
+
+   Every shared value is the app's own (apps/mobile/src/lib/theme.ts), pinned
+   in e2e/palette.spec.ts. Two light text tokens, --ok and --accent, take a
+   deeper shade of the app's hue because the app's value falls under 4.5:1 on
+   the raised surface (--surface-2) the console sets text on. --bad and
+   --unknown are the console's own states; --bad never reuses the app's
+   RED-only emergency colour (02 §5.3). WCAG AA is asserted from these values
+   in e2e/native.spec.ts and e2e/accessibility.spec.ts; the measured ratios
+   are recorded in docs/evidence/INT-459.md section 10. */
+
+:root {
+  color-scheme: light;
+  /* app: background, surface, surfaceRaised */
+  --bg: #faf8f4;
+  --surface: #ffffff;
+  --surface-2: #f1ede4;
+  --row-hover: #f6f3ec;
+  --field: #ffffff;
+  /* app: inkFaint, a field's edge at 3:1 */
+  --field-border: #8a867a;
+  /* app: ink, inkSoft, border */
+  --ink: #1c1b18;
+  --muted: #5c594f;
+  --line: #eae6dd;
+  --hairline: #f1ede4;
+  /* app success, one shade deeper; app amber */
+  --ok: #18734a;
+  --warn: #9a5b00;
+  /* the console's own: a failure and an unread source */
+  --bad: #a33a2c;
+  --unknown: #4f5a8a;
+  /* app primary (şifa teal): text one shade deeper, fills and marks as is */
+  --accent: #0c6c5f;
+  --accent-fill: #0f7b6c;
+  --accent-fill-active: #0b6357;
+  --on-accent: #ffffff;
+  --data: #0f7b6c;
+  --focus: #0f7b6c;
+  --track: #eae6dd;
+  /* chrome: the paper, lifted; the selected row in app primarySoft */
+  --rail: #fbfaf7;
+  --chrome: #fbfaf7;
+  --chrome-mix: 86%;
+  --chrome-edge: #e3ded3;
+  --nav-selected: #eaf5f2;
+  /* the app's warm shadow (ink at a low alpha) */
+  --shadow-card: 0 1px 2px rgb(28 27 24 / 5%);
+  --shadow-chrome: 0 10px 30px rgb(28 27 24 / 8%), 0 1px 3px rgb(28 27 24 / 6%);
+  --shadow-low: var(--shadow-card);
+  --shadow-tile: var(--shadow-card);
+  --shadow-med: var(--shadow-card);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --bg: #0f0e0c;
+    --surface: #211f1b;
+    --surface-2: #2b2823;
+    --row-hover: #29261f;
+    --field: #211f1b;
+    --field-border: #8a867a;
+    --ink: #f2f0ea;
+    --muted: #b7b3a7;
+    --line: #353128;
+    --hairline: #2b2823;
+    --ok: #5cb884;
+    --warn: #e0a34e;
+    --bad: #f08a72;
+    --unknown: #a9b3e0;
+    --accent: #4fa79a;
+    --accent-fill: #4fa79a;
+    --accent-fill-active: #63b5a8;
+    --on-accent: #10201d;
+    --data: #4fa79a;
+    --focus: #4fa79a;
+    --track: #353128;
+    --rail: #1a1916;
+    --chrome: #1a1916;
+    --chrome-mix: 86%;
+    --chrome-edge: #353128;
+    --nav-selected: #22322f;
+    --shadow-card: 0 0 0 1px rgb(242 240 234 / 4%);
+    --shadow-chrome: 0 10px 30px rgb(0 0 0 / 45%);
+    --shadow-low: var(--shadow-card);
+    --shadow-tile: var(--shadow-card);
+    --shadow-med: var(--shadow-card);
+  }
+}

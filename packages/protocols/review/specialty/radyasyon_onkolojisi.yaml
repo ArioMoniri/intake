@@ -1,0 +1,151 @@
+# REVIEW QUEUE — QUESTIONS authored; NOT servable. Promoted to L1 only by the
+# physician of record's sign-off (HB-C1).
+# generated-by: scripts/dev/gen_specialty_packs.py from docs/evidence/proposals/radyasyon_onkolojisi.md
+# (guideline-sourced; reviewed per docs/evidence/verification/). Symptom-capture
+# prompts only (inv 2/10) — not diagnosis, not triage. Acuity is EK-4 law +
+# physician of record; never fabricated. RED/life-threat stays in
+# base.life_threat (inv 7).
+kind: pack
+id: specialty.radyasyon_onkolojisi
+layer: specialty
+version: 0.3.0
+schema_version: 2
+maturity: L0
+status: questions-authored; awaiting physician-of-record sign-off (HB-C1); not servable
+language: tr
+title_tr: Radyasyon Onkolojisi ön görüşme protokolü
+extends: cluster.medical
+visit_types:
+- first
+- followup
+- preop
+- report
+- pregnancy_followup
+- chronic_review
+- post_discharge
+- screening
+- second_opinion
+- teleconsult
+sections:
+  ziyaret_baglami:
+    slots:
+      basvuru_nedeni:
+        type: string
+        required: true
+        ask_tr:
+          tr: Bugün radyasyon onkolojisi polikliniğine gelme nedeninizi kısaca anlatır mısınız?
+        follow_up_tr:
+          tr: Sizi hekime getiren en önemli şikâyetiniz nedir?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.reason_for_encounter.v1 recorded in docs/evidence/proposals/radyasyon_onkolojisi.md'
+      sikayet_suresi:
+        type: duration
+        required: false
+        ask_tr:
+          tr: Bu şikâyetiniz ne zamandır var?
+        follow_up_tr:
+          tr: Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; no candidate archetype recorded in docs/evidence/proposals/radyasyon_onkolojisi.md'
+  sorular:
+    slots:
+      onceki_isin_tedavisi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Daha önce vücudunuzun herhangi bir bölgesine ışın tedavisi uygulandı mı?
+        follow_up_tr:
+          tr: Daha önce radyoterapi aldınız mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/radyasyon_onkolojisi.md'
+      onceki_isin_bolgesi:
+        type: string
+        required: false
+        ask_tr:
+          tr: Önceki ışın tedavisi vücudunuzun hangi bölgesine uygulandı?
+        follow_up_tr:
+          tr: Işın tedavisi hangi organa ya da bölgeye yapıldı?
+        ask_if: onceki_isin_tedavisi == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/radyasyon_onkolojisi.md'
+      onceki_isin_bitis:
+        type: date
+        required: false
+        ask_tr:
+          tr: Önceki ışın tedaviniz ne zaman bitti?
+        follow_up_tr:
+          tr: Ay ve yıl olarak yaklaşık söyleyebilir misiniz?
+        ask_if: onceki_isin_tedavisi == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/radyasyon_onkolojisi.md'
+      kalp_cihazi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Vücudunuzda kalp pili ya da şok cihazı takılı mı?
+        follow_up_tr:
+          tr: Göğsünüzde deri altına takılmış bir kalp cihazı var mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/radyasyon_onkolojisi.md'
+      hareketsiz_yatma_zorlugu:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Bir süre sırtüstü ve hareketsiz yatmak sizin için zor olur mu?
+        follow_up_tr:
+          tr: Sırtüstü yatınca ağrı ya da nefes darlığı oluyor mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/radyasyon_onkolojisi.md'
+      kapali_alan_huzursuzluk:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Kapalı alanlarda ya da yüzünüz örtülüyken kendinizi çok huzursuz hisseder misiniz?
+        follow_up_tr:
+          tr: Dar ve kapalı yerlerde bunaldığınız olur mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/radyasyon_onkolojisi.md'
+      yorgunluk_gunluk_is:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Son zamanlarda günlük işlerinizi zorlaştıran bir yorgunluk var mı?
+        follow_up_tr:
+          tr: Gün içinde sık sık dinlenme ihtiyacı duyuyor musunuz?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/radyasyon_onkolojisi.md'
+      isin_bolgesi_cilt:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Işın uygulanan bölgedeki derinizde kızarıklık, kaşıntı ya da soyulma var mı?
+        follow_up_tr:
+          tr: Işın uygulanan bölgede deriniz güneş yanığı gibi görünüyor mu?
+        ask_if: onceki_isin_tedavisi == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/radyasyon_onkolojisi.md'
+      agiz_kurulugu_yutma:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Ağız kuruluğu ya da yutkunurken zorlanma yaşıyor musunuz?
+        follow_up_tr:
+          tr: Yemek yutarken takılma ya da acı hissediyor musunuz?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/radyasyon_onkolojisi.md'
+      idrar_yanma_siklik:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: İdrar yaparken yanma ya da sık sık tuvalete gitme ihtiyacı oluyor mu?
+        follow_up_tr:
+          tr: Her zamankinden daha sık idrara çıkıyor musunuz?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/radyasyon_onkolojisi.md'
+      ishal_diskilama_degisiklik:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Son zamanlarda ishal ya da dışkılama alışkanlığınızda bir değişiklik oldu mu?
+        follow_up_tr:
+          tr: Dışkınız her zamankinden daha sık ya da daha sulu mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/radyasyon_onkolojisi.md'
+red_flags:
+- id: rf.radyasyon_onkolojisi_l0_taslak
+  label_tr: Radyasyon Onkolojisi ön görüşme protokolü — branşa özgü kırmızı bayrak taslağı (klinik onay bekliyor)
+  when: 'TODO: radyasyon_onkolojisi branch-specific red-flag trigger requires clinical sign-off'
+  tense: ever
+  tense_anchor: sikayet_suresi
+  level: YESIL
+  route: EXPEDITE
+  notify_clinic: never
+  status: draft_needs_source
+  source_gap: 'Trigger, EK-4 level and route await clinical sign-off (invariant 17 pending-value literal). Guideline-sourced candidates recorded in docs/evidence/proposals/radyasyon_onkolojisi.md; acuity bound by EK-4 law (RG 13/9/2022 sayı 31952), snapshot absent. RED/life-threat stays in base.life_threat (invariant 7). Owner: physician of record (HB-C1, HB-C2, HB-C7).'

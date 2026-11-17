@@ -1,6 +1,6 @@
 """INT-320 — the embeddable white-label partner handshake (ADR-029).
 
-A partner embeds Vizite as a "Start pre-visit" button. The trust boundary is a
+A partner embeds Önvizit as a "Start pre-visit" button. The trust boundary is a
 signed, single-use, short-lived **launch ticket**: the partner backend mints
 one server-to-server, the patient's device presents it, and the branded intake
 starts under the partner's tenant with that tenant's consent shown. Nothing

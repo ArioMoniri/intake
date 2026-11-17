@@ -176,7 +176,10 @@ class TestStackWiring:
         assert env["GF_USERS_ALLOW_SIGN_UP"] == "false"
         assert env["GF_SECURITY_ADMIN_PASSWORD"] == "${GRAFANA_ADMIN_PASSWORD:-grafana-dev-only}"
         volumes = [str(v) for v in grafana["volumes"]]
-        assert any("api-slo-dashboard.json" in v for v in volumes)
+        # INT-021 close-out: one generated dashboard per SLO file, so the whole
+        # directory is provisioned rather than one file per mount
+        assert "./observability/grafana/dashboards:/var/lib/grafana/dashboards:ro" in volumes
+        assert (OBSERVABILITY / "grafana" / "dashboards" / "api-slo-dashboard.json").is_file()
 
     def test_grafana_datasource_uids_match_dashboard_references(self) -> None:
         datasources_file = yaml.safe_load(
@@ -186,15 +189,16 @@ class TestStackWiring:
         )
         uids = {entry["uid"] for entry in datasources_file["datasources"]}
         assert {"prometheus", "loki", "tempo"} <= uids
-        dashboard = json.loads(
-            (OBSERVABILITY / "grafana" / "api-slo-dashboard.json").read_text(encoding="utf-8")
-        )
-        referenced = {
-            panel["datasource"]["uid"]
-            for panel in dashboard["panels"]
-            if isinstance(panel.get("datasource"), dict)
-        }
-        assert referenced <= uids
+        dashboards = sorted((OBSERVABILITY / "grafana" / "dashboards").glob("*.json"))
+        assert dashboards
+        for path in dashboards:
+            dashboard = json.loads(path.read_text(encoding="utf-8"))
+            referenced = {
+                panel["datasource"]["uid"]
+                for panel in dashboard["panels"]
+                if isinstance(panel.get("datasource"), dict)
+            }
+            assert referenced <= uids, path.name
 
     def test_dashboard_provider_path_matches_the_mount(self) -> None:
         provider_file = yaml.safe_load(
@@ -204,7 +208,8 @@ class TestStackWiring:
         )
         path = provider_file["providers"][0]["options"]["path"]
         volumes = [str(v) for v in _services()["grafana"]["volumes"]]
-        assert any(f"{path}/" in v for v in volumes)
+        targets = {v.split(":")[1] for v in volumes if v.count(":") >= 1}
+        assert path in targets
 
 
 class TestKeycloakDevRealm:

@@ -35,6 +35,13 @@ Two levels of strictness, and the split is deliberate:
 Numbers are read with ``parse_float=Decimal`` so a decimal literal never
 touches binary floating point on the way in (files/13 §9.5).
 
+**Every declared slot gets exactly one reading** (INT-540):
+:meth:`~intake_voice_runtime.extraction.result.ExtractionResult.outcome_of`
+says ``CLARIFY``, ``BOUND``, ``REFUSED`` or ``SILENT``. That is the runtime
+half of the contract the instructions define for ``clarification_needed``; a
+slot left ``SILENT`` is one the model neither recorded nor asked about, which
+the runtime does not read as an answer.
+
 **No message here names a value.** Keys, refs and counts only (invariant 6).
 """
 
@@ -64,6 +71,7 @@ from intake_voice_runtime.extraction.schema import (
     TOP_LEVEL_KEYS,
     UNIT_KEY,
     VALUE_KEY,
+    date_choices,
 )
 
 __all__ = ["parse_extraction"]
@@ -143,6 +151,12 @@ def _coerce(
     if slot.type is SlotType.DATE:
         if not isinstance(raw, str):
             return FlagReason.WRONG_TYPE
+        choices = date_choices(slot)
+        if choices:
+            # INT-522: a closed-choice date binds only an authored choice. A day
+            # the model wrote itself is outside the set it was offered — it was
+            # given no reference date to compute one from — and is refused.
+            return raw if raw in choices else FlagReason.VALUESET_VIOLATION
         return raw if _ISO_DATE.match(raw) else FlagReason.WRONG_TYPE
     return raw if isinstance(raw, str) else FlagReason.WRONG_TYPE
 
@@ -185,6 +199,7 @@ def parse_extraction(
         candidate_flags=candidate_flags,
         clarification_needed=clarification_needed,
         flags=tuple(flags),
+        declared=frozenset(slots),
     )
 
 

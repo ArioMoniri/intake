@@ -31,6 +31,8 @@ from __future__ import annotations
 
 from clinical_schemas.mappers.document import previsit_note_to_document_bundle
 from clinical_schemas.mappers.r4 import Bundle
+from clinical_schemas.quantity import float_magnitude, render_quantity
+from clinical_schemas.rule_evidence import render_rule_evidence
 from intake_platform.pdf import render_document_pdf
 
 from intake_voice_runtime.note.composer import ComposedNote, facts_by_section
@@ -145,15 +147,24 @@ def _screening_lines(composed: ComposedNote) -> list[str]:
 
 
 def _konusma_lines(composed: ComposedNote) -> list[str]:
+    """The speech measures, each written by the one quantity renderer for the
+    note's reader (invariant 22, INT-386): the note language's decimal point,
+    no grouping, and the float's printed digits rather than its binary
+    expansion. The unit stays in the key, as it always has on this face."""
     block = composed.note.konusma_ozellikleri
     if block is None:
         return []
+    locale = composed.note.meta.language
+
+    def number(value: float) -> str:
+        return render_quantity(float_magnitude(value), locale=locale)
+
     return [
-        f"{_INDENT}speech_rate_syll_s: {block.speech_rate_syll_s}",
-        f"{_INDENT}pause_ratio: {block.pause_ratio}",
-        f"{_INDENT}f0_mean_hz: {block.f0_mean_hz}",
-        f"{_INDENT}f0_sd_hz: {block.f0_sd_hz}",
-        f"{_INDENT}response_latency_ms_mean: {block.response_latency_ms_mean}",
+        f"{_INDENT}speech_rate_syll_s: {number(block.speech_rate_syll_s)}",
+        f"{_INDENT}pause_ratio: {number(block.pause_ratio)}",
+        f"{_INDENT}f0_mean_hz: {number(block.f0_mean_hz)}",
+        f"{_INDENT}f0_sd_hz: {number(block.f0_sd_hz)}",
+        f"{_INDENT}response_latency_ms_mean: {number(block.response_latency_ms_mean)}",
         f"{_INDENT}{block.recording_conditions_caveat_tr}",
     ]
 
@@ -191,7 +202,12 @@ def document_lines(composed: ComposedNote, copy: NoteCopy) -> list[str]:
         copy.value("previsit_note.heading.triage"),
         f"{_INDENT}level: {note.triage.level.value}",
     ]
-    lines.extend(f"{_INDENT}[{rule.id}] {rule.evidence}" for rule in note.triage.rules)
+    # A fired rule's evidence is written from its parts for the note's reader
+    # (invariant 22, INT-404); the engine's own text keeps JSON's full stop.
+    lines.extend(
+        f"{_INDENT}[{rule.id}] {render_rule_evidence(rule, locale=note.meta.language)}"
+        for rule in note.triage.rules
+    )
     lines.append("")
 
     lines.append(copy.value("previsit_note.soap.subjective"))

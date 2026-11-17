@@ -1,0 +1,134 @@
+# REVIEW QUEUE — QUESTIONS authored; NOT servable. Promoted to L1 only by the
+# physician of record's sign-off (HB-C1).
+# generated-by: scripts/dev/gen_specialty_packs.py from docs/evidence/proposals/klinik_psikoloji_poliklinigi.md
+# (guideline-sourced; reviewed per docs/evidence/verification/). Symptom-capture
+# prompts only (inv 2/10) — not diagnosis, not triage. Acuity is EK-4 law +
+# physician of record; never fabricated. RED/life-threat stays in
+# base.life_threat (inv 7).
+kind: pack
+id: specialty.klinik_psikoloji_poliklinigi
+layer: specialty
+version: 0.3.0
+schema_version: 2
+maturity: L0
+status: questions-authored; awaiting physician-of-record sign-off (HB-C1); not servable
+language: tr
+title_tr: Klinik Psikoloji polikliniği ön görüşme protokolü
+extends: cluster.mental_health
+visit_types:
+- first
+- followup
+- preop
+- report
+- pregnancy_followup
+- chronic_review
+- post_discharge
+- screening
+- second_opinion
+- teleconsult
+sections:
+  ziyaret_baglami:
+    slots:
+      basvuru_nedeni:
+        type: string
+        required: true
+        ask_tr:
+          tr: Bugün klinik psikoloji polikliniğine gelme nedeninizi kısaca anlatır mısınız?
+        follow_up_tr:
+          tr: Sizi hekime getiren en önemli şikâyetiniz nedir?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.reason_for_encounter.v1 recorded in docs/evidence/proposals/klinik_psikoloji_poliklinigi.md'
+      sikayet_suresi:
+        type: duration
+        required: false
+        ask_tr:
+          tr: Bu şikâyetiniz ne zamandır var?
+        follow_up_tr:
+          tr: Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; no candidate archetype recorded in docs/evidence/proposals/klinik_psikoloji_poliklinigi.md'
+  sorular:
+    slots:
+      hekim_yonlendirmesi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Bu görüşmeye gelmeniz için bir hekim sizi yönlendirdi mi?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.reason_for_encounter.v1 recorded in docs/evidence/proposals/klinik_psikoloji_poliklinigi.md'
+      beklenen_degisiklik:
+        type: string
+        required: false
+        ask_tr:
+          tr: Bu görüşmelerden sonra hayatınızda neyin değişmesini istersiniz?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.reason_for_encounter.v1 recorded in docs/evidence/proposals/klinik_psikoloji_poliklinigi.md'
+      baslangic_oncesi_zorlayici_olay:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Bu durum başlamadan önce hayatınızda sizi zorlayan bir olay yaşandı mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/klinik_psikoloji_poliklinigi.md'
+      islevsellik_etkilenimi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Bu durum işinizi ya da günlük sorumluluklarınızı etkiliyor mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/klinik_psikoloji_poliklinigi.md'
+      iliskilere_etki:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Bu durum yakınlarınızla olan ilişkilerinizi etkiliyor mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/klinik_psikoloji_poliklinigi.md'
+      basa_cikma_yollari:
+        type: string
+        required: false
+        ask_tr:
+          tr: Zorlandığınızda kendinizi rahatlatmak için neler yapıyorsunuz?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/klinik_psikoloji_poliklinigi.md'
+      onceki_psikoterapi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Daha önce bir psikolog ya da psikiyatristle düzenli görüşmeler yaptınız mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.problem_diagnosis.v1 recorded in docs/evidence/proposals/klinik_psikoloji_poliklinigi.md'
+      psikiyatrik_ilac_kullanimi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Şu anda ruh sağlığınız için bir hekimin verdiği ilacı kullanıyor musunuz?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype ACTION.medication.v1 recorded in docs/evidence/proposals/klinik_psikoloji_poliklinigi.md'
+      uyku_duzeni_degisikligi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Son zamanlarda uyku düzeninizde bir değişiklik oldu mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/klinik_psikoloji_poliklinigi.md'
+      zorlanmada_madde_kullanimi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Zorlandığınızda alkol ya da başka bir maddeye başvurduğunuz oluyor mu?
+        delivery: text_first
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/klinik_psikoloji_poliklinigi.md'
+      kisisel_kulturel_tercih:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Görüşmelerde dikkate alınmasını istediğiniz kişisel ya da kültürel bir tercihiniz var mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/klinik_psikoloji_poliklinigi.md'
+      kisisel_kulturel_tercih_aciklama:
+        type: string
+        required: false
+        ask_tr:
+          tr: Bu tercihinizi kısaca anlatır mısınız?
+        ask_if: kisisel_kulturel_tercih == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/klinik_psikoloji_poliklinigi.md'
+red_flags:
+- id: rf.klinik_psikoloji_poliklinigi_l0_taslak
+  label_tr: Klinik Psikoloji polikliniği ön görüşme protokolü — branşa özgü kırmızı bayrak taslağı (klinik onay bekliyor)
+  when: 'TODO: klinik_psikoloji_poliklinigi branch-specific red-flag trigger requires clinical sign-off'
+  tense: ever
+  tense_anchor: sikayet_suresi
+  level: YESIL
+  route: EXPEDITE
+  notify_clinic: never
+  status: draft_needs_source
+  source_gap: 'Trigger, EK-4 level and route await clinical sign-off (invariant 17 pending-value literal). Guideline-sourced candidates recorded in docs/evidence/proposals/klinik_psikoloji_poliklinigi.md; acuity bound by EK-4 law (RG 13/9/2022 sayı 31952), snapshot absent. RED/life-threat stays in base.life_threat (invariant 7). Owner: physician of record (HB-C1, HB-C2, HB-C7).'

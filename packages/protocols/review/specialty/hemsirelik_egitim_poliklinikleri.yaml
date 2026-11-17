@@ -1,0 +1,110 @@
+# REVIEW QUEUE — QUESTIONS authored; NOT servable. Promoted to L1 only by the
+# physician of record's sign-off (HB-C1).
+# generated-by: scripts/dev/gen_specialty_packs.py from docs/evidence/proposals/hemsirelik_egitim_poliklinikleri.md
+# (guideline-sourced; reviewed per docs/evidence/verification/). Symptom-capture
+# prompts only (inv 2/10) — not diagnosis, not triage. Acuity is EK-4 law +
+# physician of record; never fabricated. RED/life-threat stays in
+# base.life_threat (inv 7).
+kind: pack
+id: specialty.hemsirelik_egitim_poliklinikleri
+layer: specialty
+version: 0.3.0
+schema_version: 2
+maturity: L0
+status: questions-authored; awaiting physician-of-record sign-off (HB-C1); not servable
+language: tr
+title_tr: Hemşirelik/eğitim poliklinikleri ön görüşme protokolü
+extends: cluster.allied_and_reports
+visit_types:
+- first
+- followup
+- preop
+- report
+- pregnancy_followup
+- chronic_review
+- post_discharge
+- screening
+- second_opinion
+- teleconsult
+sections:
+  ziyaret_baglami:
+    slots:
+      basvuru_nedeni:
+        type: string
+        required: true
+        ask_tr:
+          tr: Bugün hemşire eğitim polikliniğinde öğrenmek istediğiniz konu nedir?
+        follow_up_tr:
+          tr: Bugünkü randevunuzun sebebini kısaca anlatır mısınız?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.reason_for_encounter.v1 recorded in docs/evidence/proposals/hemsirelik_egitim_poliklinikleri.md'
+      sikayet_suresi:
+        type: duration
+        required: false
+        ask_tr:
+          tr: Bu şikâyetiniz ne zamandır var?
+        follow_up_tr:
+          tr: Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; no candidate archetype recorded in docs/evidence/proposals/hemsirelik_egitim_poliklinikleri.md'
+  sorular:
+    slots:
+      onceki_egitim:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Bu konuda daha önce bir sağlık çalışanından eğitim aldınız mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/hemsirelik_egitim_poliklinikleri.md'
+      evde_oz_uygulama:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Evde kendiniz yaptığınız iğne, pansuman ya da ölçüm gibi bir uygulama var mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/hemsirelik_egitim_poliklinikleri.md'
+      uygulamada_zorluk:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Bu uygulamayı yaparken zorlandığınız ya da emin olmadığınız bir nokta var mı?
+        ask_if: evde_oz_uygulama == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/hemsirelik_egitim_poliklinikleri.md'
+      cihaz_sorusu:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Kullandığınız bir ölçüm aletiyle ya da tıbbi cihazla ilgili bir sorunuz var mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/hemsirelik_egitim_poliklinikleri.md'
+      en_cok_dusundiren:
+        type: string
+        required: false
+        ask_tr:
+          tr: Durumunuzla ilgili sizi en çok düşündüren konu nedir?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/hemsirelik_egitim_poliklinikleri.md'
+      yakin_katilimi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Eğitime sizinle birlikte bir yakınınızın da katılmasını ister misiniz?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/hemsirelik_egitim_poliklinikleri.md'
+      sesli_anlatim_tercihi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Yazılı bilgilerin size ayrıca sesli olarak anlatılmasını ister misiniz?
+        delivery: voice
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; no candidate archetype recorded in docs/evidence/proposals/hemsirelik_egitim_poliklinikleri.md'
+      yakin_taburculuk:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Hastaneden yakın zamanda taburcu oldunuz mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/hemsirelik_egitim_poliklinikleri.md'
+red_flags:
+- id: rf.hemsirelik_egitim_poliklinikleri_l0_taslak
+  label_tr: Hemşirelik/eğitim poliklinikleri ön görüşme protokolü — branşa özgü kırmızı bayrak taslağı (klinik onay bekliyor)
+  when: 'TODO: hemsirelik_egitim_poliklinikleri branch-specific red-flag trigger requires clinical sign-off'
+  tense: ever
+  tense_anchor: sikayet_suresi
+  level: YESIL
+  route: EXPEDITE
+  notify_clinic: never
+  status: draft_needs_source
+  source_gap: 'Trigger, EK-4 level and route await clinical sign-off (invariant 17 pending-value literal). Guideline-sourced candidates recorded in docs/evidence/proposals/hemsirelik_egitim_poliklinikleri.md; acuity bound by EK-4 law (RG 13/9/2022 sayı 31952), snapshot absent. RED/life-threat stays in base.life_threat (invariant 7). Owner: physician of record (HB-C1, HB-C2, HB-C7).'

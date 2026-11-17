@@ -1,0 +1,330 @@
+{
+  "about": "Synthetic, written for INT-124 to exercise the unit-resolution guard. It is not a patient record and not an accuracy corpus, and no figure is computed over it (CLAUDE.md invariant 20). Each line is a SHAPE a Turkish lab page prints, taken from files/03 §4.9.6 and §10; the magnitudes are arbitrary test data and none is a reference value. The completion is authored to the contract, standing in for a recording until INT-381 records one on the target GPU.",
+  "document_ref": "document:int124-synthetic-handbook-page",
+  "observed_at": "2026-09-27T09:00:00+00:00",
+  "regions": [
+    {
+      "page": 1,
+      "bbox": [
+        0.08,
+        0.1,
+        0.92,
+        0.13
+      ],
+      "start": 0,
+      "end": 11,
+      "text": "ALT 30 U/mL"
+    },
+    {
+      "page": 1,
+      "bbox": [
+        0.08,
+        0.14,
+        0.92,
+        0.17
+      ],
+      "start": 12,
+      "end": 24,
+      "text": "Üre 45 mg/dL"
+    },
+    {
+      "page": 1,
+      "bbox": [
+        0.08,
+        0.18,
+        0.92,
+        0.21
+      ],
+      "start": 25,
+      "end": 47,
+      "text": "Üre Nitrojeni 21 mg/dL"
+    },
+    {
+      "page": 1,
+      "bbox": [
+        0.08,
+        0.22,
+        0.92,
+        0.25
+      ],
+      "start": 48,
+      "end": 60,
+      "text": "BUN 21 mg/dL"
+    },
+    {
+      "page": 1,
+      "bbox": [
+        0.08,
+        0.26,
+        0.92,
+        0.29
+      ],
+      "start": 61,
+      "end": 82,
+      "text": "Lökosit 12.500,00 /µL"
+    },
+    {
+      "page": 1,
+      "bbox": [
+        0.08,
+        0.3,
+        0.92,
+        0.33
+      ],
+      "start": 83,
+      "end": 102,
+      "text": "Nötrofil 10.250 /µL"
+    },
+    {
+      "page": 1,
+      "bbox": [
+        0.08,
+        0.34,
+        0.92,
+        0.37
+      ],
+      "start": 103,
+      "end": 125,
+      "text": "Glukoz 3.33–5.55 mg/dL"
+    },
+    {
+      "page": 1,
+      "bbox": [
+        0.08,
+        0.38,
+        0.92,
+        0.41
+      ],
+      "start": 126,
+      "end": 144,
+      "text": "Kalsiyum 8,4 mg/dL"
+    },
+    {
+      "page": 1,
+      "bbox": [
+        0.08,
+        0.42,
+        0.92,
+        0.45
+      ],
+      "start": 145,
+      "end": 164,
+      "text": "Potasyum 4.5 mmol/L"
+    },
+    {
+      "page": 1,
+      "bbox": [
+        0.08,
+        0.46,
+        0.92,
+        0.49
+      ],
+      "start": 165,
+      "end": 186,
+      "text": "Ferritin >1.000 ng/mL"
+    }
+  ],
+  "completion": {
+    "items": [
+      {
+        "kind": "lab",
+        "printed_name": "ALT",
+        "region": 0,
+        "printed_value": "30",
+        "printed_unit": "U/mL",
+        "code_system": null,
+        "code": null,
+        "date": null
+      },
+      {
+        "kind": "lab",
+        "printed_name": "Üre",
+        "region": 1,
+        "printed_value": "45",
+        "printed_unit": "mg/dL",
+        "code_system": null,
+        "code": null,
+        "date": null
+      },
+      {
+        "kind": "lab",
+        "printed_name": "Üre Nitrojeni",
+        "region": 2,
+        "printed_value": "21",
+        "printed_unit": "mg/dL",
+        "code_system": null,
+        "code": null,
+        "date": null
+      },
+      {
+        "kind": "lab",
+        "printed_name": "BUN",
+        "region": 3,
+        "printed_value": "21",
+        "printed_unit": "mg/dL",
+        "code_system": null,
+        "code": null,
+        "date": null
+      },
+      {
+        "kind": "lab",
+        "printed_name": "Lökosit",
+        "region": 4,
+        "printed_value": "12.500,00",
+        "printed_unit": "/µL",
+        "code_system": null,
+        "code": null,
+        "date": null
+      },
+      {
+        "kind": "lab",
+        "printed_name": "Nötrofil",
+        "region": 5,
+        "printed_value": "10.250",
+        "printed_unit": "/µL",
+        "code_system": null,
+        "code": null,
+        "date": null
+      },
+      {
+        "kind": "lab",
+        "printed_name": "Glukoz",
+        "region": 6,
+        "printed_value": "3.33–5.55",
+        "printed_unit": "mg/dL",
+        "code_system": null,
+        "code": null,
+        "date": null
+      },
+      {
+        "kind": "lab",
+        "printed_name": "Kalsiyum",
+        "region": 7,
+        "printed_value": "8,4",
+        "printed_unit": "mg/dL",
+        "code_system": null,
+        "code": null,
+        "date": null
+      },
+      {
+        "kind": "lab",
+        "printed_name": "Potasyum",
+        "region": 8,
+        "printed_value": "4.5",
+        "printed_unit": "mmol/L",
+        "code_system": null,
+        "code": null,
+        "date": null
+      },
+      {
+        "kind": "lab",
+        "printed_name": "Ferritin",
+        "region": 9,
+        "printed_value": ">1.000",
+        "printed_unit": "ng/mL",
+        "code_system": null,
+        "code": null,
+        "date": null
+      }
+    ]
+  },
+  "exercises": {
+    "wrong_printed_unit": [
+      0
+    ],
+    "ure_and_bun": [
+      1,
+      2,
+      3
+    ],
+    "five_digit_thousands_separator": [
+      4,
+      5
+    ],
+    "two_number_cell": [
+      6
+    ],
+    "mixed_decimal_separators": [
+      7,
+      8
+    ],
+    "bound_not_magnitude": [
+      9
+    ]
+  },
+  "expected_under_shipped_table": [
+    {
+      "analyte_key": "alt",
+      "magnitude": "30",
+      "flags": [
+        "no_expectation"
+      ]
+    },
+    {
+      "analyte_key": "urea",
+      "magnitude": "45",
+      "flags": [
+        "no_expectation"
+      ]
+    },
+    {
+      "analyte_key": "bun",
+      "magnitude": "21",
+      "flags": [
+        "no_expectation"
+      ]
+    },
+    {
+      "analyte_key": "bun",
+      "magnitude": "21",
+      "flags": [
+        "no_expectation"
+      ]
+    },
+    {
+      "analyte_key": "lökosit",
+      "magnitude": "12500.00",
+      "flags": [
+        "no_expectation"
+      ]
+    },
+    {
+      "analyte_key": "nötrofil",
+      "magnitude": null,
+      "flags": [
+        "no_expectation",
+        "separator_ambiguous"
+      ]
+    },
+    {
+      "analyte_key": "glukoz",
+      "magnitude": null,
+      "flags": [
+        "no_expectation",
+        "two_number_cell"
+      ]
+    },
+    {
+      "analyte_key": "kalsiyum",
+      "magnitude": "8.4",
+      "flags": [
+        "no_expectation"
+      ]
+    },
+    {
+      "analyte_key": "potasyum",
+      "magnitude": "4.5",
+      "flags": [
+        "no_expectation"
+      ]
+    },
+    {
+      "analyte_key": "ferritin",
+      "magnitude": null,
+      "flags": [
+        "bound_not_magnitude",
+        "no_expectation"
+      ]
+    }
+  ]
+}

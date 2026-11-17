@@ -28,6 +28,7 @@
 import { useEffect, useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
 
+import { AnnouncedText } from "@/components/Announced";
 import { useTabBarClearance } from "@/components/FloatingTabBar";
 import { GuidanceBlock } from "@/components/GuidanceBlock";
 import { Kicker } from "@/components/Kicker";
@@ -152,9 +153,9 @@ export default function Data() {
           </ListGroup>
         </View>
         {unsent ? (
-          <AppText role="caption" color="inkSoft">
-            {t("data.unsent")}
-          </AppText>
+          // SC 3.3.1: the request the patient just made did not leave the
+          // phone — announced as an error on both platforms (INT-362).
+          <AnnouncedText tone="error" role="caption" color="inkSoft" message={t("data.unsent")} />
         ) : null}
         <AppText role="caption" color="inkFaint">
           {t("data.deviceOnly")}

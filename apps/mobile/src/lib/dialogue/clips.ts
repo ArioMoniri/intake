@@ -11,16 +11,16 @@
  * The clips under FileSystem.cacheDirectory/dialogue/ are AGENT-VOICE
  * audio: WAVs synthesized from catalog tr strings, one per question per
  * session. They are NOT patient audio — invariant 3 governs PATIENT
- * recordings, which keep the existing delete-after-upload posture in
- * lib/voice.ts (transcribeRecording deletes the file in its finally
- * block). The dialogue cache is still deleted wholesale on unmount AND on
- * session end: no session leaves audio behind, of either kind.
+ * audio, which never touches a file at all (lib/capture, INT-559: a bounded
+ * in-memory buffer, zeroed on every trigger). The dialogue cache is still
+ * deleted wholesale on unmount AND on session end: no session leaves audio
+ * behind, of either kind.
  */
 import * as FileSystem from "expo-file-system/legacy";
 
 import { buildApiBase } from "../auth/expoApiBase";
 import { configuredTtsLaneCandidates } from "../dev/expoHosts";
-import { resolvePrebakedClip } from "./prebakedClipSource";
+import type { DeliveryContext } from "./deliveryContext";
 import {
   fetchGeorgeClip,
   georgePreferringSynth,
@@ -58,14 +58,16 @@ function createGeorgeSource(): GeorgeGenerator | null {
     }
     return baseP;
   };
-  return async (text: ScriptedTr): Promise<Uint8Array> => {
+  return async (text: ScriptedTr, context?: DeliveryContext): Promise<Uint8Array> => {
     const base = await resolveBase();
     if (base === null) {
       baseP = null; // a later turn re-probes rather than staying muted
       throw new Error("george_unavailable");
     }
     try {
-      return await fetchGeorgeClip(base, text);
+      // INT-415: the utterance's delivery context rides along; the server maps
+      // it to its own profile (the device holds no voice setting)
+      return await fetchGeorgeClip(base, text, { context });
     } catch (error) {
       baseP = null; // degrade this turn to the self-hosted lane, re-probe next
       throw error;
@@ -126,15 +128,12 @@ export function dialogueClipStore(selector: TtsLaneSelector): ClipStore {
   // those requests lands.
   const selfHosted = (text: string): Promise<Uint8Array> =>
     synthesizeClipWith((sentence) => synthesizeWithFallback(selector, sentence), text);
-  // ADR-028 (int-demo + on-demand variant): the store consults the bundled
-  // prebaked ElevenLabs/George clips FIRST (`resolvePrebakedClip`) — an offline
-  // hit plays instantly and never touches a live lane. On a miss, in dev, prefer
-  // George's cloud voice for a scripted question with no cached clip, degrading
-  // to the self-hosted lane on any failure. George is null in prod, so there the
-  // store is prebaked-then-self-hosted exactly as before.
+  // ADR-028 (on-demand variant): in dev, prefer George's cloud voice for a
+  // scripted question with no cached clip, and degrade to the self-hosted lane
+  // on any failure. Null in prod, so this is the SAME store as before there.
   const george = createGeorgeSource();
   if (george === null) {
-    return createClipStore(dialogueClipDir(), expoClipFs, selfHosted, resolvePrebakedClip);
+    return createClipStore(dialogueClipDir(), expoClipFs, selfHosted);
   }
   const prefer = georgePreferringSynth(george, selfHosted);
   // The store is only ever fed catalog-composed SCRIPTED text
@@ -143,11 +142,13 @@ export function dialogueClipStore(selector: TtsLaneSelector): ClipStore {
   // point where that architectural fact is asserted as a ScriptedTr — every
   // OTHER path to the George vendor requires a ScriptedTr minted from an
   // IntakeQuestion (georgeClip.ts), so patient words cannot reach the vendor.
-  return createClipStore(
-    dialogueClipDir(),
-    expoClipFs,
-    (text) => prefer(text as ScriptedTr),
-    resolvePrebakedClip,
+  //
+  // INT-414: the store also hands on each clip's delivery context, which
+  // `prefer` forwards to George (INT-415) and the self-hosted lane ignores.
+  // Delivery lines reach the store the same way questions do: minted from a
+  // deck key (`scriptedDeliveryTr`), never from anything the patient said.
+  return createClipStore(dialogueClipDir(), expoClipFs, (text, context) =>
+    prefer(text as ScriptedTr, context),
   );
 }
 

@@ -1,0 +1,61 @@
+# guideline_id: WHO-IMCI-CHART-2014
+# title: Integrated Management of Childhood Illness: Chart Booklet
+# publisher: World Health Organization
+# version_or_date: March 2014; ISBN 978 92 4 150682 3 (the edition WHO serves at the URL below at retrieval)
+# url: https://cdn.who.int/media/docs/default-source/mca-documents/child/imci-integrated-management-of-childhood-illness/imci-in-service-training/imci-chart-booklet.pdf
+# retrieved_on: 2026-10-03
+# retrieval: curl with a browser user-agent (HTTP 200, PDF 5,304,059 bytes); text extracted with pdftotext (poppler), with and without -layout. The chart is a table: each cell is transcribed on its own line in reading order, the PDF line wraps inside a cell are joined with single spaces, and bullet glyphs are dropped; the words and punctuation are as printed
+# scope: verbatim excerpt of the cover lines; from the chart 'Assess and classify the sick child age 2 months up to 5 years' the general danger signs block, the cough or difficult breathing assessment and its yellow classification cell, and the diarrhoea dehydration questions; and from the chart 'Assess and classify the sick young infant' (age up to 2 months) the two ASK questions and the first two signs of the pink VERY SEVERE DISEASE cell; nothing paraphrased or edited. '[...]' marks an omission between excerpts.
+---
+Integrated Management of Childhood Illness
+Chart Booklet
+March 2014
+[...]
+ISBN 978 92 4 150682 3
+[...]
+SICK CHILD AGE 2 MONTHS UP TO 5 YEARS
+ASSESS AND CLASSIFY THE SICK CHILD
+[...]
+CHECK FOR GENERAL DANGER SIGNS
+Ask:
+Is the child able to drink or breastfeed?
+Does the child vomit everything?
+Has the child had convulsions?
+Look:
+See if the child is lethargic or unconscious.
+Is the child convulsing now?
+Any general danger sign
+URGENT attention
+A child with any general danger sign needs URGENT attention; complete the assessment and any pre-referral treatment immediately so referral is not delayed.
+THEN ASK ABOUT MAIN SYMPTOMS:
+Does the child have cough or difficult breathing?
+If yes, ask:
+For how long?
+Look, listen, feel*:
+Count the breaths in one minute.
+Look for chest indrawing.
+Look and listen for stridor.
+Look and listen for wheezing.
+[...]
+Chest indrawing or Fast breathing.
+[...]
+Does the child have diarrhoea?
+[...]
+Offer the child fluid. Is the child:
+Not able to drink or drinking poorly?
+Drinking eagerly, thirsty?
+[...]
+SICK YOUNG INFANT AGE UP TO 2 MONTHS
+ASSESS AND CLASSIFY THE SICK YOUNG INFANT
+[...]
+CHECK FOR VERY SEVERE DISEASE AND LOCAL BACTERIAL INFECTION
+ASK:
+Is the infant having difficulty in feeding?
+Has the infant had convulsions (fits)?
+[...]
+Any one of the following signs
+Not feeding well or
+Convulsions or
+[...]
+Pink:
+VERY SEVERE DISEASE

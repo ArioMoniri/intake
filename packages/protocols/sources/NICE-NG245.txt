@@ -1,0 +1,37 @@
+# guideline_id: NICE-NG245
+# title: Asthma: diagnosis, monitoring and chronic asthma management (BTS, NICE, SIGN)
+# publisher: National Institute for Health and Care Excellence (NICE), British Thoracic Society (BTS) and Scottish Intercollegiate Guidelines Network (SIGN)
+# version_or_date: NICE guideline NG245; published 27 November 2024; minor change November 2025 (recommendation 1.8.2; sections 1.1 and 1.4 unchanged)
+# url: https://www.nice.org.uk/guidance/ng245/chapter/Recommendations
+# url_update_information: https://www.nice.org.uk/guidance/ng245/chapter/Update-information
+# retrieved_on: 2026-10-03
+# retrieval: curl with browser UA; HTML (utf-8) text-extracted; tags stripped and whitespace runs collapsed to single spaces as a browser renders them; blank lines dropped; non-breaking spaces (U+00A0) rendered as plain spaces; non-breaking hyphens (U+2011) kept as served
+# scope: verbatim excerpt of the page header, recommendations 1.1.1 and 1.1.2 (Initial clinical assessment), section 1.4 (Diagnosing occupational asthma, recommendations 1.4.1 and 1.4.2) and the minor-change entry of the Update information chapter; nothing paraphrased or edited. '[...]' marks an omission between excerpts.
+---
+Reference number: NG245
+Published:
+27 November 2024
+[...]
+1.1 Initial clinical assessment
+Clinical history
+1.1.1
+Obtain a structured clinical history in people with suspected asthma. Specifically, check for:
+reported wheeze, noisy breathing, cough, breathlessness or chest tightness, and any variation (for example, worse during the night or early morning, or seasonal) in these symptoms
+any triggers that make symptoms worse
+a personal or family history of asthma or allergic rhinitis
+symptoms to suggest alternative diagnoses (see the tables on alternative diagnoses in wheezy children and alternative diagnoses in adults in the BTS/SIGN British guideline on the management of asthma SIGN 158.) [NICE 2017, BTS/SIGN 2019, amended BTS/NICE/SIGN 2024]
+1.1.2
+Do not confirm a diagnosis of asthma without a suggestive clinical history and a supporting objective test. Code as suspected asthma until the diagnosis is confirmed. [NICE 2017, amended BTS/NICE/SIGN 2024]
+[...]
+1.4 Diagnosing occupational asthma
+See the BTS clinical statement on occupational asthma.
+1.4.1
+In people with adult-onset asthma, poorly controlled established asthma, or reappearance of childhood asthma, check for a possible occupational component by asking:
+Are symptoms the same, better or worse on days away from work?
+Are symptoms the same, better or worse when on holiday (time away from work, longer than usual breaks, at weekends or between shifts)?
+Make sure all answers are recorded for later review. [NICE 2017, BTS/SIGN 2019, amended BTS/NICE/SIGN 2024]
+1.4.2
+Refer people with suspected occupational asthma to an occupational asthma specialist. [NICE 2017]
+[...]
+Minor changes since publication
+November 2025: We updated recommendation 1.8.2 after a budesonide/formoterol dry powder inhaler (100 micrograms/6 micrograms per inhalation) was licensed for MART in children aged 6 to 11. The accompanying visual summary and inhaled corticosteroid dose guide have also been updated.

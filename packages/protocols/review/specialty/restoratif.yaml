@@ -1,0 +1,134 @@
+# REVIEW QUEUE — QUESTIONS authored; NOT servable. Promoted to L1 only by the
+# physician of record's sign-off (HB-C1).
+# generated-by: scripts/dev/gen_specialty_packs.py from docs/evidence/proposals/restoratif.md
+# (guideline-sourced; reviewed per docs/evidence/verification/). Symptom-capture
+# prompts only (inv 2/10) — not diagnosis, not triage. Acuity is EK-4 law +
+# physician of record; never fabricated. RED/life-threat stays in
+# base.life_threat (inv 7).
+kind: pack
+id: specialty.restoratif
+layer: specialty
+version: 0.3.0
+schema_version: 2
+maturity: L0
+status: questions-authored; awaiting physician-of-record sign-off (HB-C1); not servable
+language: tr
+title_tr: Restoratif ön görüşme protokolü
+extends: cluster.dental
+visit_types:
+- first
+- followup
+- preop
+- report
+- pregnancy_followup
+- chronic_review
+- post_discharge
+- screening
+- second_opinion
+- teleconsult
+sections:
+  ziyaret_baglami:
+    slots:
+      basvuru_nedeni:
+        type: string
+        required: true
+        ask_tr:
+          tr: Bugün sizi diş hekimine getiren asıl diş sorununuz nedir?
+        follow_up_tr:
+          tr: Bugünkü randevunuzun sebebini kısaca anlatır mısınız?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.reason_for_encounter.v1 recorded in docs/evidence/proposals/restoratif.md'
+      sikayet_suresi:
+        type: duration
+        required: false
+        ask_tr:
+          tr: Bu şikâyetiniz ne zamandır var?
+        follow_up_tr:
+          tr: Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; no candidate archetype recorded in docs/evidence/proposals/restoratif.md'
+  sorular:
+    slots:
+      dis_hassasiyeti:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Soğuk, sıcak ya da tatlı bir şey yiyip içtiğinizde dişleriniz sızlıyor mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/restoratif.md'
+      isirinca_ani_agri:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Isırdığınızda ya da ısırmayı bıraktığınızda dişinizde ani bir ağrı oluyor mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/restoratif.md'
+      kirik_dis_dolgu:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Dişinizde kırık, çatlak ya da düşmüş bir dolgu var mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/restoratif.md'
+      oyuk_leke:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Dişlerinizde oyuk ya da koyu renkli bir leke fark ettiniz mi?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/restoratif.md'
+      dis_asinmasi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Dişlerinizin aşınıp incelmiş ya da kısalmış göründüğünü fark ettiniz mi?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/restoratif.md'
+      asitli_icecek:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Gazlı içecek ya da meyve suyu gibi asitli içecekleri sık içiyor musunuz?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/restoratif.md'
+      reflu:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Mideden ağzınıza sık sık ekşi ya da acı su geliyor mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/restoratif.md'
+      ara_ogun_seker:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Öğün aralarında şekerli yiyecek ya da içecekleri sık tüketiyor musunuz?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/restoratif.md'
+      sabah_aksam_fircalama:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Dişlerinizi her gün sabah ve akşam fırçalıyor musunuz?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/restoratif.md'
+      florurlu_macun:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Kullandığınız diş macununda florür var mı?
+        follow_up_tr:
+          tr: Macunun kutusunda florür yazıyor mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/restoratif.md'
+      agiz_kurulugu:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Ağzınızda sık sık kuruluk hissediyor musunuz?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/restoratif.md'
+      dis_sikma_gicirdatma:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Dişlerinizi sıktığınızı ya da gıcırdattığınızı fark ettiniz mi?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/restoratif.md'
+red_flags:
+- id: rf.restoratif_l0_taslak
+  label_tr: Restoratif ön görüşme protokolü — branşa özgü kırmızı bayrak taslağı (klinik onay bekliyor)
+  when: 'TODO: restoratif branch-specific red-flag trigger requires clinical sign-off'
+  tense: ever
+  tense_anchor: sikayet_suresi
+  level: YESIL
+  route: EXPEDITE
+  notify_clinic: never
+  status: draft_needs_source
+  source_gap: 'Trigger, EK-4 level and route await clinical sign-off (invariant 17 pending-value literal). Guideline-sourced candidates recorded in docs/evidence/proposals/restoratif.md; acuity bound by EK-4 law (RG 13/9/2022 sayı 31952), snapshot absent. RED/life-threat stays in base.life_threat (invariant 7). Owner: physician of record (HB-C1, HB-C2, HB-C7).'

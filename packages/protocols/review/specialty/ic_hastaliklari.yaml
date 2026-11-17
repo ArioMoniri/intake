@@ -1,0 +1,126 @@
+# REVIEW QUEUE — QUESTIONS authored; NOT servable. Promoted to L1 only by the
+# physician of record's sign-off (HB-C1).
+# generated-by: scripts/dev/gen_specialty_packs.py from docs/evidence/proposals/ic_hastaliklari.md
+# (guideline-sourced; reviewed per docs/evidence/verification/). Symptom-capture
+# prompts only (inv 2/10) — not diagnosis, not triage. Acuity is EK-4 law +
+# physician of record; never fabricated. RED/life-threat stays in
+# base.life_threat (inv 7).
+kind: pack
+id: specialty.ic_hastaliklari
+layer: specialty
+version: 0.3.0
+schema_version: 2
+maturity: L0
+status: questions-authored; awaiting physician-of-record sign-off (HB-C1); not servable
+language: tr
+title_tr: İç Hastalıkları ön görüşme protokolü
+extends: cluster.medical
+visit_types:
+- first
+- followup
+- preop
+- report
+- pregnancy_followup
+- chronic_review
+- post_discharge
+- screening
+- second_opinion
+- teleconsult
+sections:
+  ziyaret_baglami:
+    slots:
+      basvuru_nedeni:
+        type: string
+        required: true
+        ask_tr:
+          tr: Bugün sizi doktora getiren en önemli şikâyetiniz nedir?
+        follow_up_tr:
+          tr: Bugünkü randevunuzun sebebini kısaca anlatır mısınız?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.reason_for_encounter.v1 recorded in docs/evidence/proposals/ic_hastaliklari.md'
+      sikayet_suresi:
+        type: duration
+        required: false
+        ask_tr:
+          tr: Bu şikâyetiniz ne zamandır var?
+        follow_up_tr:
+          tr: Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; no candidate archetype recorded in docs/evidence/proposals/ic_hastaliklari.md'
+  sorular:
+    slots:
+      soru_1:
+        type: string
+        required: false
+        ask_tr:
+          tr: Bu şikâyetiniz başladığından beri zamanla nasıl bir değişim gösterdi?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/ic_hastaliklari.md'
+      soru_2:
+        type: string
+        required: false
+        ask_tr:
+          tr: Son aylarda diyet yapmadan kilo verdiğinizi fark ettiniz mi?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/ic_hastaliklari.md'
+      soru_3:
+        type: string
+        required: false
+        ask_tr:
+          tr: Son zamanlarda nedenini bilmediğiniz bir ateşiniz oldu mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/ic_hastaliklari.md'
+      soru_4:
+        type: string
+        required: false
+        ask_tr:
+          tr: Geceleri sizi uyandıracak kadar çok terlediğiniz oldu mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/ic_hastaliklari.md'
+      soru_5:
+        type: string
+        required: false
+        ask_tr:
+          tr: Uzun süredir devam eden bir yorgunluk ya da halsizlik hissediyor musunuz?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/ic_hastaliklari.md'
+      soru_6:
+        type: string
+        required: false
+        ask_tr:
+          tr: Dışkınızda kan ya da dışkılamadan sonra kan geldiğini fark ettiniz mi?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/ic_hastaliklari.md'
+      soru_7:
+        type: string
+        required: false
+        ask_tr:
+          tr: Yemek yerken lokmanın boğazınızda ya da göğsünüzde takıldığını hissediyor musunuz?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/ic_hastaliklari.md'
+      soru_8:
+        type: string
+        required: false
+        ask_tr:
+          tr: Son zamanlarda aşırı susama ya da çok sık idrara çıkma fark ettiniz mi?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/ic_hastaliklari.md'
+      soru_9:
+        type: string
+        required: false
+        ask_tr:
+          tr: Doktorunuzun daha önce söylediği uzun süreli bir rahatsızlığınız var mı? Örneğin şeker hastalığı, yüksek tansiyon ya da böbrek rahatsızlığı.
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.problem_diagnosis.v1 recorded in docs/evidence/proposals/ic_hastaliklari.md'
+      soru_10:
+        type: string
+        required: false
+        ask_tr:
+          tr: Şu anda düzenli olarak kullandığınız ilaçlar var mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype ACTION.medication.v1 recorded in docs/evidence/proposals/ic_hastaliklari.md'
+      soru_11:
+        type: string
+        required: false
+        ask_tr:
+          tr: Herhangi bir ilaca karşı alerjiniz ya da kötü bir tepkiniz oldu mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.adverse_reaction_risk.v1 recorded in docs/evidence/proposals/ic_hastaliklari.md'
+red_flags:
+- id: rf.ic_hastaliklari_l0_taslak
+  label_tr: İç Hastalıkları ön görüşme protokolü — branşa özgü kırmızı bayrak taslağı (klinik onay bekliyor)
+  when: 'TODO: ic_hastaliklari branch-specific red-flag trigger requires clinical sign-off'
+  tense: ever
+  tense_anchor: sikayet_suresi
+  level: YESIL
+  route: EXPEDITE
+  notify_clinic: never
+  status: draft_needs_source
+  source_gap: 'Trigger, EK-4 level and route await clinical sign-off (invariant 17 pending-value literal). Guideline-sourced candidates recorded in docs/evidence/proposals/ic_hastaliklari.md; acuity bound by EK-4 law (RG 13/9/2022 sayı 31952), snapshot absent. RED/life-threat stays in base.life_threat (invariant 7). Owner: physician of record (HB-C1, HB-C2, HB-C7).'

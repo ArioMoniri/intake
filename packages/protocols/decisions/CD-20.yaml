@@ -1,0 +1,338 @@
+# INT-447 clinical decision CD-20. Agent-authored under owner decision D18
+# (2 Oct 2026, INT-432): simulated-patient stress testing only; a licensed
+# physician's review is required before any real patient. Every source quote
+# below appears verbatim in the named snapshot; spec_basis quotes appear
+# verbatim in the named committed file. Not a pack: nothing here is compiled
+# or served. The Turkish of each line is byte-equal to its catalogue key.
+kind: clinical_decision
+id: CD-20
+title: 'INT-414 delivery lines: cadence, silence, repair and pain lead-ins (rows 10-13, 21-26)'
+question: INT-414 (#726) adds conversational delivery lines around each question. Do the cadence lead-ins,
+  the silence lines, the repair lines (INT-293's line reused as variant a) and the pain lead-ins pass
+  PolicyGuard (no diagnosis, treatment, prognosis, reassurance or minimising), stay B1 plain Turkish in
+  the siz register, ask nothing, carry no numeral, and fit the moment they are said?
+decision: 'All ten pass unchanged. The cadence lines carry warmth in the -elim/-alım mood and point at
+  the question that follows without asking one. The silence lines are true to behaviour: the skipped question
+  stays asked and comes back on the screen. The repair lines put the misunderstanding on the system, never
+  on the patient. The pain lead-ins show interest in the pain without grading, explaining or reassuring
+  it. Each line below is its own entry with its six checks, the author''s verdict and the verifier''s
+  verdict; the Turkish is byte-equal to the catalogue key it names.'
+status: active
+scope: simulated_patient_stress_testing
+scope_note: 'Owner decision D18 (INT-432): agent sign-off for simulated-patient testing only. A licensed
+  physician''s review is required before any real patient; that requirement is unchanged by this record.'
+question_origin: 'INT-447 (#758), split from INT-432 (#735): the HB-C1 table in docs/evidence/INT-414.md
+  and the approval:human-clinical label on #726.'
+author_role: family medicine physician, patient communication and health literacy (agent; medical author)
+sources:
+- kind: guideline
+  guideline_id: TR-SB-SOY-UEP-2025
+  title: Sağlık Okuryazarlığı Ulusal Eylem Planı 2025-2028
+  version_or_date: 'T.C. Sağlık Bakanlığı Yayın No: 1331; Yayım Tarihi 10.07.2025'
+  url: https://dosyamerkez.saglik.gov.tr/Eklenti/51749/0/saglik-okuryazarligi-ulusal-eylem-plani-2025-2028-v2pdf.pdf
+  retrieved_on: '2026-10-03'
+  snapshot: packages/protocols/sources/TR-SB-SOY-UEP-2025.txt
+  section: Önsöz (foreword), the plan's aims
+  quote: Aynı zamanda sağlık iletişiminde yalın, erişilebilir ve kültürel açıdan hassas içeriklerin geliştirilmesi
+    de planda öncelikli olarak ele alınmıştır.
+  supports: lines[*].checks.b1_plain_language
+- kind: guideline
+  guideline_id: TR-SB-SOY-UEP-2025
+  title: Sağlık Okuryazarlığı Ulusal Eylem Planı 2025-2028
+  version_or_date: 'T.C. Sağlık Bakanlığı Yayın No: 1331; Yayım Tarihi 10.07.2025'
+  url: https://dosyamerkez.saglik.gov.tr/Eklenti/51749/0/saglik-okuryazarligi-ulusal-eylem-plani-2025-2028-v2pdf.pdf
+  retrieved_on: '2026-10-03'
+  snapshot: packages/protocols/sources/TR-SB-SOY-UEP-2025.txt
+  section: Activity 2.2.4.2 (Hedef 2)
+  quote: Hasta ve hasta yakınına verilen belge ve formların anlaşılır bir dille yazılması ve güncellenmesi.
+  supports: lines[*].checks.b1_plain_language
+  note: The plan's own activity for documents and forms given to patients; an intake form spoken or shown
+    to the patient is held to it.
+- kind: guideline
+  guideline_id: TR-SB-SOY-UEP-2025
+  title: Sağlık Okuryazarlığı Ulusal Eylem Planı 2025-2028
+  version_or_date: 'T.C. Sağlık Bakanlığı Yayın No: 1331; Yayım Tarihi 10.07.2025'
+  url: https://dosyamerkez.saglik.gov.tr/Eklenti/51749/0/saglik-okuryazarligi-ulusal-eylem-plani-2025-2028-v2pdf.pdf
+  retrieved_on: '2026-10-03'
+  snapshot: packages/protocols/sources/TR-SB-SOY-UEP-2025.txt
+  section: Dünyada ve Ülkemizde Sağlık Okuryazarlığı Düzeyi ve İlişkili Faktörler, Dünyadaki Durum
+  quote: sağlık profesyonellerinin hastalarla güvene dayalı bir ilişki kurma ve ilaçları hakkında sade
+    bir anlatımla bilgi verme suretiyle hastaların sağlık okuryazarlığının artırılabileceği saptanmıştır
+  supports: lines[*].checks.fits_context
+  caveat: Cited for trust and plain explanation as the communication aim; the sentence is about medicines
+    information, and nothing here informs about medicines.
+- kind: guideline
+  guideline_id: TR-SGGM-TSOY-2020
+  title: Türkiye’nin Sağlık Okuryazarlığı Düzeyi Ölçüldü
+  version_or_date: SGGM, page dated 20 Aralık 2020 (TSOY-32 national survey)
+  url: https://sggm.saglik.gov.tr/TR,57003/turkiyenin-saglik-okuryazarligi-duzeyi-olculdu.html
+  retrieved_on: '2026-10-03'
+  snapshot: packages/protocols/sources/TR-SGGM-TSOY-2020.txt
+  section: 10 kişiden 7’sinin Sağlık Okuryazarlığı Düzeyi Düşük
+  quote: Araştırma sonuçlarına göre Türkiye’de yaklaşık olarak 10 kişiden 7’sinin sağlık okuryazarlığı
+    düzeyi yetersiz veya sınırlı.
+  supports: lines[*].checks.b1_plain_language
+- kind: guideline
+  guideline_id: TR-SGGM-TSOY-2020
+  title: Türkiye’nin Sağlık Okuryazarlığı Düzeyi Ölçüldü
+  version_or_date: SGGM, page dated 20 Aralık 2020 (TSOY-32 national survey)
+  url: https://sggm.saglik.gov.tr/TR,57003/turkiyenin-saglik-okuryazarligi-duzeyi-olculdu.html
+  retrieved_on: '2026-10-03'
+  snapshot: packages/protocols/sources/TR-SGGM-TSOY-2020.txt
+  section: 10 Yaşlıdan 9’unun Sağlık Okuryazarlığı Düzeyi Düşük
+  quote: 65 ve üzeri yaş grubu için elde edilen sonuçlar, 10 yaşlıdan 9’unun sağlık okuryazarlığının yetersiz
+    veya sınırlı olduğunu göstermekte.
+  supports: lines[*].checks.b1_plain_language
+spec_basis:
+- file: CLAUDE.md
+  section: Non-negotiable invariants, 2
+  quote: Patient-facing text passes `PolicyGuard` (no diagnosis/treatment/prognosis language; one question
+    per turn; B1 Turkish).
+  supports: lines[*].checks.policyguard, lines[*].checks.not_a_question
+- file: CLAUDE.md
+  section: Non-negotiable invariants, 22
+  quote: No numeral reaches any TTS model
+  supports: lines[*].checks.no_numerals
+- file: CLAUDE.md
+  section: Clinical content rules
+  quote: 'Patient copy: ≤ B1 Turkish, empathetic, no medical jargon without explanation, never alarming
+    beyond the triage action.'
+  supports: lines[*].checks.b1_plain_language
+- file: CLAUDE.md
+  section: Clinical content rules
+  quote: Register is `siz` universally — never `sen`, reachable only by mirroring
+  supports: lines[*].checks.siz_register
+- file: CLAUDE.md
+  section: Clinical content rules
+  quote: Warmth comes from verb mood (`-elim/-alım`), not the pronoun.
+  supports: lines[*].checks.siz_register
+- file: CLAUDE.md
+  section: Clinical content rules
+  quote: conversational delivery may paraphrase the lead-in, never the item.
+  supports: lines[*].checks.fits_context
+- file: files/03_ARCHITECTURE.md
+  section: §4.2 Layer A, Realtime Talker boundary
+  quote: empathic acknowledgement ≤ 5 words; no diagnosis/treatment/prognosis language; one question per
+    turn; B1 Turkish
+  supports: lines[*].checks.fits_context
+value:
+  line_count: 10
+  changed: []
+  checks:
+    policyguard: 'PolicyGuard.filter(text, scripted=False) on the dynamic path: no violation, nothing
+      dropped, no bridge; and by reading, no diagnosis, treatment, prognosis, reassurance or minimising'
+    b1_plain_language: at most two sentences of at most fifteen words, everyday words, no medical jargon
+      (Sağlık Bakanlığı plain-language aim)
+    siz_register: siz throughout; no sen; no doubled-polite imperative; warmth from -elim/-alım and -ebilirsiniz
+    not_a_question: no '?', no mı/mi/mu/mü, no interrogative opening a listener hears as a question
+    no_numerals: no digit in tr or en (invariant 22)
+    fits_context: true to what the product does at that moment, and right for the slot, the delivery context
+      and the lane
+  lines:
+  - row: 10
+    key: dialogue.delivery.lead.a
+    slot: routine
+    delivery_context: routine
+    said_when: Cadence lead-in, at most every other quiet turn
+    lane: voice_and_screen
+    tr: Devam edelim.
+    en: Let us continue.
+    checks:
+      policyguard: pass
+      b1_plain_language: pass
+      siz_register: pass
+      not_a_question: pass
+      no_numerals: pass
+      fits_context: pass
+    author_verdict: approve
+    note: Cadence line; -elim/-alım mood carries the warmth. It asks nothing itself and points at the
+      question that follows.
+    verifier_verdict: agree
+  - row: 11
+    key: dialogue.delivery.lead.b
+    slot: routine
+    delivery_context: routine
+    said_when: Cadence lead-in, at most every other quiet turn
+    lane: voice_and_screen
+    tr: Sıradaki soruya geçelim.
+    en: Let us move on to the next question.
+    checks:
+      policyguard: pass
+      b1_plain_language: pass
+      siz_register: pass
+      not_a_question: pass
+      no_numerals: pass
+      fits_context: pass
+    author_verdict: approve
+    note: Cadence line; -elim/-alım mood carries the warmth. It asks nothing itself and points at the
+      question that follows.
+    verifier_verdict: agree
+  - row: 12
+    key: dialogue.delivery.lead.c
+    slot: routine
+    delivery_context: routine
+    said_when: Cadence lead-in, at most every other quiet turn
+    lane: voice_and_screen
+    tr: Şimdi şunu soralım.
+    en: Now let us ask this.
+    checks:
+      policyguard: pass
+      b1_plain_language: pass
+      siz_register: pass
+      not_a_question: pass
+      no_numerals: pass
+      fits_context: pass
+    author_verdict: approve
+    note: Cadence line; -elim/-alım mood carries the warmth. It asks nothing itself and points at the
+      question that follows.
+    verifier_verdict: agree
+  - row: 13
+    key: dialogue.delivery.lead.d
+    slot: routine
+    delivery_context: routine
+    said_when: Cadence lead-in, at most every other quiet turn
+    lane: voice_and_screen
+    tr: Bir de şunu öğrenmek istiyorum.
+    en: I would also like to know this.
+    checks:
+      policyguard: pass
+      b1_plain_language: pass
+      siz_register: pass
+      not_a_question: pass
+      no_numerals: pass
+      fits_context: pass
+    author_verdict: approve
+    note: Cadence line; warmth comes from the first-person wish 'öğrenmek istiyorum' rather than the -elim
+      mood. It asks nothing itself and points at the question that follows.
+    verifier_verdict: agree
+    verifier_note: The line is fine, but the record note's '-elim/-alım mood' does not describe 'istiyorum'
+      (note-only fix).
+  - row: 21
+    key: dialogue.delivery.silence.a
+    slot: silence
+    delivery_context: follows the question
+    said_when: After a turn that carried no words
+    lane: voice_and_screen
+    tr: Önceki soruya sonra ekrandan dönebilirsiniz.
+    en: You can come back to the previous question later, on the screen.
+    checks:
+      policyguard: pass
+      b1_plain_language: pass
+      siz_register: pass
+      not_a_question: pass
+      no_numerals: pass
+      fits_context: pass
+    author_verdict: approve
+    note: 'True to behaviour: a silent turn''s question stays asked and unanswered and returns on the
+      screen. Says nothing about speed or about the patient''s state.'
+    verifier_verdict: agree
+    verifier_note: 'True to stream.ts: a turn with no words leaves its question unanswered, and the session
+      ends in handoff to the on-screen manual steps (stream.test.ts:406).'
+  - row: 22
+    key: dialogue.delivery.silence.b
+    slot: silence
+    delivery_context: follows the question
+    said_when: After a turn that carried no words
+    lane: voice_and_screen
+    tr: Önceki soruyu daha sonra ekranda yanıtlayabilirsiniz.
+    en: You can answer the previous question later, on the screen.
+    checks:
+      policyguard: pass
+      b1_plain_language: pass
+      siz_register: pass
+      not_a_question: pass
+      no_numerals: pass
+      fits_context: pass
+    author_verdict: approve
+    note: 'True to behaviour: a silent turn''s question stays asked and unanswered and returns on the
+      screen. Says nothing about speed or about the patient''s state.'
+    verifier_verdict: agree
+    verifier_note: Same behaviour as silence.a, confirmed in stream.ts and stream.test.ts.
+  - row: 23
+    key: dialogue.notUnderstood
+    slot: repair
+    delivery_context: follows the question
+    said_when: Before a question re-asked because the answer mapped to nothing
+    lane: voice_and_screen
+    tr: Söylediğinizi tam anlayamadım. Aynı soruyu bir kez daha soralım.
+    en: I could not quite understand that. Let us ask the same question once more.
+    checks:
+      policyguard: pass
+      b1_plain_language: pass
+      siz_register: pass
+      not_a_question: pass
+      no_numerals: pass
+      fits_context: pass
+    author_verdict: approve
+    note: The system takes the blame for not understanding; the patient is not told they answered wrongly.
+      'bir' is a word, not a numeral.
+    verifier_verdict: agree
+    verifier_note: 'True: the question is re-asked once behind this line, a second miss goes to the typed
+      steps, and the line is not rendered twice (agent_unclear returns null).'
+  - row: 24
+    key: dialogue.delivery.repair.b
+    slot: repair
+    delivery_context: follows the question
+    said_when: Before a question re-asked because the answer mapped to nothing
+    lane: voice_and_screen
+    tr: Yanıtınızı tam anlayamadım. Soruyu bir kez daha soralım.
+    en: I did not quite understand your answer. Let us ask the question once more.
+    checks:
+      policyguard: pass
+      b1_plain_language: pass
+      siz_register: pass
+      not_a_question: pass
+      no_numerals: pass
+      fits_context: pass
+    author_verdict: approve
+    note: The system takes the blame for not understanding; the patient is not told they answered wrongly.
+      'bir' is a word, not a numeral.
+    verifier_verdict: agree
+  - row: 25
+    key: dialogue.delivery.pain.a
+    slot: pain
+    delivery_context: routine
+    said_when: Entering questions gated on a pain the patient named
+    lane: voice_and_screen
+    tr: Ağrınızı biraz daha iyi anlamak istiyorum.
+    en: I would like to understand your pain a little better.
+    checks:
+      policyguard: pass
+      b1_plain_language: pass
+      siz_register: pass
+      not_a_question: pass
+      no_numerals: pass
+      fits_context: pass
+    author_verdict: approve
+    note: Signals interest in the pain the patient named without grading, explaining or reassuring it.
+    verifier_verdict: agree
+  - row: 26
+    key: dialogue.delivery.pain.b
+    slot: pain
+    delivery_context: routine
+    said_when: Entering questions gated on a pain the patient named
+    lane: voice_and_screen
+    tr: Ağrınızla ilgili birkaç ayrıntı soralım.
+    en: Let us ask a few details about your pain.
+    checks:
+      policyguard: pass
+      b1_plain_language: pass
+      siz_register: pass
+      not_a_question: pass
+      no_numerals: pass
+      fits_context: pass
+    author_verdict: approve
+    note: Signals interest in the pain the patient named without grading, explaining or reassuring it.
+    verifier_verdict: agree
+verifier:
+  verdict: agree_with_changes
+  role: independent clinical verifier (agent; internal medicine and Turkish health literacy)
+  verified_on: '2026-10-03'
+  notes: 'Independent verification, 3 Oct 2026: every line agreed; the record-text fixes listed here were
+    applied by the author before commit, and no line verdict changed. All ten lines agreed. The silence
+    and repair claims are confirmed in stream.ts and stream.test.ts and in DialogueIntake.tsx. Text-only
+    fixes: the row 13 (lead.d) note claims -elim/-alım mood for ''istiyorum'', plus the shared source
+    label. The verifier saw only the committed output, the two source snapshots, the repository rules
+    and the INT-414 code, never the author''s reasoning; it re-fetched both sources and found every quote
+    verbatim. Scope D18: simulated-patient stress testing only; a licensed physician''s review is required
+    before any real patient.'

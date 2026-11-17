@@ -110,8 +110,10 @@ describe("INT-143 the kiosk gate (source-slice)", () => {
   it("surfaces a tamper alert and never silently degrades", () => {
     expect(gate).toContain("tamperDetected");
     expect(gate).toMatch(/tampered/);
-    // the alert is announced, not carried by layout alone (SC 4.1.3/1.4.1)
-    expect(gate).toMatch(/live=/);
+    // the alert is announced, not carried by layout alone (SC 4.1.3/1.4.1),
+    // on both platforms: the announcer sets the live region AND posts the
+    // iOS announcement (INT-362)
+    expect(gate).toMatch(/<AnnouncedText\b[^>]*\btone="error"/);
   });
 
   it("renders the large-type privacy layout and blocks screen capture", () => {
@@ -157,6 +159,43 @@ describe("INT-143 the native adapter fails closed in the managed runtime", () =>
   it("owns the idle timer and the background/foreground signal", () => {
     expect(native).toMatch(/setTimeout|setInterval/);
     expect(native).toContain("AppState");
+  });
+});
+
+describe("INT-363 the idle wipe warns first and can be extended (WCAG 2.2 SC 2.2.1)", () => {
+  const gate = read(SRC, "components", "KioskGate.tsx");
+  const native = read(SRC, "lib", "kiosk", "nativeKiosk.ts");
+
+  it("the adapter hands its timer to the warning machine instead of arming the wipe itself", () => {
+    // The machine (kioskState.ts, tested on a fake clock) decides when to warn
+    // and when to wipe; the adapter supplies only the platform's timer.
+    expect(native).toMatch(/startKioskIdleClock\(/);
+    expect(native).not.toContain("KIOSK_IDLE_WIPE_MS");
+    expect(native).toMatch(/extend\(\)/);
+  });
+
+  it("announces the warning assertively, as a warning rather than an error", () => {
+    expect(gate).toMatch(/<AnnouncedText\b[^>]*\btone="warning"[^>]*t\("kiosk\.idle\.warning"\)/);
+  });
+
+  it("offers one action that extends, and moves the screen reader's focus onto it", () => {
+    expect(gate).toMatch(/<PrimaryButton\b[^>]*ref=\{extendRef\}/);
+    expect(gate).toMatch(/t\("kiosk\.idle\.extend"\)/);
+    expect(gate).toMatch(/onPress=\{\(\) => watchRef\.current\?\.extend\(\)\}/);
+    expect(gate).toMatch(/sendAccessibilityEvent\(\s*\w+,\s*"focus"\s*\)/);
+  });
+
+  it("hides the session behind the warning from the screen reader while it stands", () => {
+    expect(gate).toMatch(/accessibilityElementsHidden=\{warned\}/);
+    expect(gate).toMatch(/importantForAccessibility=\{warned \? "no-hide-descendants" : "auto"\}/);
+  });
+
+  it("with no action the same wipe runs as before — the session and its drafts are cleared", () => {
+    expect(gate).toMatch(/phase === "wiped"\)\s*\{\s*wipeSession\(\);/);
+    // background still wipes AND flags the tamper, warning or not
+    expect(gate).toMatch(
+      /onBackground:\s*\(\)\s*=>\s*\{\s*wipeSession\(\);\s*dispatch\(\{ type: "tamper" \}\)/,
+    );
   });
 });
 

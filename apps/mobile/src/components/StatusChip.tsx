@@ -6,9 +6,9 @@
 import { StyleSheet, View } from "react-native";
 
 import { AppText, useTheme } from "@/components/Themed";
-import type { NoteStatus } from "@/lib/dev/accounts";
 import { t } from "@/lib/i18n";
 import { radius, spacing } from "@/lib/theme";
+import type { NoteStatus } from "@/lib/types/account";
 
 const statusKey = {
   draft: "status.draft",

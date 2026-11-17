@@ -66,7 +66,7 @@ def _registry(tmp_path: Any) -> TenantEmbedRegistry:
             "legal_root": "docs/legal/embed/dev",
             "device_functions": False,
             "theme": {
-                "display_name": "Vizite Dev Partner",
+                "display_name": "Önvizit Dev Partner",
                 "locale": "tr",
                 "primary_color": "#0B5FFF",
                 "accent_color": "#00303C",

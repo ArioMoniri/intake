@@ -15,11 +15,28 @@ from __future__ import annotations
 from prometheus_client import Counter, Gauge, Histogram, disable_created_metrics
 
 __all__ = [
+    "COUNCIL_ACTIONS_TOTAL",
+    "COUNCIL_MEMBER_AGREEMENT_TOTAL",
+    "COUNCIL_MEMBER_LATENCY_MS",
+    "COUNCIL_MEMBER_TOKENS_TOTAL",
+    "COUNCIL_READINGS_DROPPED_TOTAL",
+    "COUNCIL_VERIFICATIONS_TOTAL",
     "DELIVERY_INSERTION_WAIT_MS",
     "LANE_DROPPED_FRAMES",
     "POLICYGUARD_BLOCKS_TOTAL",
     "PREEMPT_RED_LATENCY_MS",
+    "PREEMPT_RED_VIOLATIONS_TOTAL",
+    "RED_WATCH_FAILURES_TOTAL",
     "TALKER_TOOL_CALLS_TOTAL",
+    "TRIAGE_LIVE_EVALUATION_FAILURES_TOTAL",
+    "VENDOR_BREAKER_STATE",
+    "VENDOR_BREAKER_TRANSITIONS_TOTAL",
+    "VENDOR_FAILOVERS_TOTAL",
+    "VOICE_CONTROL_READ_FAILURES_TOTAL",
+    "VOICE_KILL_SWITCH_FLIPS_TOTAL",
+    "VOICE_SESSIONS_METERED",
+    "VOICE_SESSION_ROUTES_TOTAL",
+    "VOICE_SPEECH_CALLS_TOTAL",
     "VOICE_TTS_CHARS",
     "WORK_FAILED_TOTAL",
     "WORK_LATENCY_MS",
@@ -79,6 +96,62 @@ WORK_FAILED_TOTAL = Counter(
     ["type"],
 )
 
+#: INT-521: the session's rules-engine evaluation could not stand. ``kind`` is
+#: closed: ``fault`` (the evaluation raised; the Work fails and the next state
+#: Work evaluates again) or ``conflict`` (a handler's own determination
+#: disagreed with the rules engine's over the served rules; the engine's
+#: stands). Either pages: a RED may be missing from a live session.
+TRIAGE_LIVE_EVALUATION_FAILURES_TOTAL = Counter(
+    "triage_live_evaluation_failures_total",
+    "Live-session rules-engine evaluations that faulted or disagreed with a handler, by kind.",
+    ["kind"],
+)
+
+
+# --- council verifier (INT-430; ADR-036) ---------------------------------------
+#
+# ``member`` is a configured member id (``[a-z0-9][a-z0-9_-]{0,31}``, set by the
+# admin console), never a model name typed by a patient; every other label is a
+# closed enumeration. Cost is not a series here: it is tokens times a price, and
+# the price book is empty until HB-O8 (b) is answered.
+
+COUNCIL_MEMBER_LATENCY_MS = Histogram(
+    "council_member_latency_ms",
+    "Council verifier draw latency by member and outcome, in milliseconds.",
+    ["member", "outcome"],
+    buckets=(50.0, 250.0, 1_000.0, 3_000.0, 10_000.0, 30_000.0, float("inf")),
+)
+
+COUNCIL_MEMBER_TOKENS_TOTAL = Counter(
+    "council_member_tokens_total",
+    "Tokens the serving endpoint reported for council verifier draws.",
+    ["member", "direction"],
+)
+
+COUNCIL_MEMBER_AGREEMENT_TOTAL = Counter(
+    "council_member_agreement_total",
+    "Council verifier verdicts per member: agree, disagree or abstain with the primary.",
+    ["member", "agreement"],
+)
+
+COUNCIL_VERIFICATIONS_TOTAL = Counter(
+    "council_verifications_total",
+    "Council verifications by how they ended (submitted, late, shed, refused).",
+    ["outcome"],
+)
+
+COUNCIL_ACTIONS_TOTAL = Counter(
+    "council_actions_total",
+    "Council verifier actions by kind and by what the engine did with them.",
+    ["action", "result"],
+)
+
+COUNCIL_READINGS_DROPPED_TOTAL = Counter(
+    "council_readings_dropped_total",
+    "Council member readings dropped before adjudication, by reason.",
+    ["reason"],
+)
+
 
 # --- observer lanes (INT-110) ---------------------------------------------------
 #
@@ -115,6 +188,29 @@ PREEMPT_RED_LATENCY_MS = Histogram(
     "preempt_red_latency_ms",
     "Rules-engine RED preemption latency, rule evaluation to script start, in milliseconds.",
     buckets=(50.0, 100.0, 150.0, 200.0, 300.0, 500.0, 1_000.0, float("inf")),
+)
+
+#: INT-531: every violation a delivered RED carried, by the closed
+#: ``RedViolation`` value. The path raises ``RedPathViolation`` after delivering;
+#: a RED the Talker's between-turn watch handed to the path has no caller for
+#: that raise to reach, so the count is how an operator sees it. A late stop is
+#: counted here and nowhere else (the latency histogram is the trigger's).
+PREEMPT_RED_VIOLATIONS_TOTAL = Counter(
+    "preempt_red_violations_total",
+    "Rules-engine REDs delivered with a budget, speech or script violation, by violation.",
+    ["violation"],
+)
+
+#: INT-531 round 2: the Talker's between-turn RED watch could not do its job.
+#: ``kind`` is closed: ``delivery`` (a pushed RED's path raised something other
+#: than a violation or a refusal), ``cancelled`` (the event loop cancelled a
+#: delivery before it finished) or ``exit`` (the watch itself ended other than
+#: by being cancelled). The first two are retried, and raised, on the next turn.
+#: Any increase means a RED may not have reached the patient.
+RED_WATCH_FAILURES_TOTAL = Counter(
+    "red_watch_failures_total",
+    "Between-turn RED watch failures: a pushed RED undelivered, or the watch ended, by kind.",
+    ["kind"],
 )
 
 
@@ -181,4 +277,89 @@ VOICE_TTS_CHARS = Histogram(
     "Characters synthesised per turn, by tenant, profile, branch and vendor.",
     ["tenant", "profile", "branch", "vendor"],
     buckets=(16.0, 32.0, 64.0, 128.0, 256.0, 512.0, 1_024.0, float("inf")),
+)
+
+
+# --- per-vendor circuit breakers and speech-lane failover (INT-100) ---------------
+#
+# files/10 §5 LLM10 names "circuit breakers per vendor" and §9's voice row
+# names "vendor errors" as a console signal; neither is a files/08 §4 id, so
+# these three carry no ``id`` — the precedent is INT-024's ``vendor_adapter_*``
+# families. Every label value is a registry component name, a closed breaker
+# state, or ``typed`` (the text lane, which is a profile rather than a
+# component). No session id, no text (invariant 6).
+
+#: One-hot: exactly one of ``closed``/``open``/``half_open`` is 1 per component.
+#: A state set rather than a numeric code, so a dashboard reads the state by
+#: name and an alert selects ``state="open"`` without knowing an encoding.
+VENDOR_BREAKER_STATE = Gauge(
+    "vendor_breaker_state",
+    "Circuit breaker state per vendor component; 1 for the current state, 0 otherwise.",
+    ["component", "state"],
+)
+
+VENDOR_BREAKER_TRANSITIONS_TOTAL = Counter(
+    "vendor_breaker_transitions_total",
+    "Circuit breaker state transitions by vendor component, from state and to state.",
+    ["component", "from_state", "to_state"],
+)
+
+#: A session left a speech lane for the next one in the registry's order, or —
+#: ``to_component="typed"`` — for the text lane because none was left.
+VENDOR_FAILOVERS_TOTAL = Counter(
+    "vendor_failovers_total",
+    "Speech-lane failovers by the lane a session left and the lane it moved to.",
+    ["from_component", "to_component"],
+)
+
+#: Sessions composed around a ``SessionMeter`` (INT-190). The cost module's
+#: per-session figure is usage in a window divided by this count over the same
+#: window, so it is emitted by the same meter that emits the usage series — a
+#: ratio of two populations would be a number about neither. One increment per
+#: session, never a session id: tenant, profile and branch only (invariant 6).
+VOICE_SESSIONS_METERED = Counter(
+    "voice_sessions_metered_total",
+    "Sessions composed with a cost meter, by tenant, profile and branch.",
+    ["tenant", "profile", "branch"],
+)
+
+
+# --- the Voice module: routing, the kill switch, speech-call errors (INT-182) -----
+#
+# files/08 §3 "Voice runtime" asks for per-profile metrics and a kill switch
+# that works without a deploy; these four are what make both observable. None
+# is a files/08 §4 id — the INT-100 precedent: catalogued, no ``id``. Every
+# label is a tenant id, a closed enumeration or a registry component name; no
+# session id, no text (invariant 6).
+
+#: One increment per session start, by the profile the runtime routed it to and
+#: why: ``default``, ``canary``, ``kill_switch`` or ``control_unreadable``.
+VOICE_SESSION_ROUTES_TOTAL = Counter(
+    "voice_session_routes_total",
+    "Session starts by tenant, routed profile and route reason.",
+    ["tenant", "profile", "reason"],
+)
+
+#: A live voice session moved to typed by the kill switch's poll
+#: (``switched``), or left in voice because it has no screen (``not_armed``).
+VOICE_KILL_SWITCH_FLIPS_TOTAL = Counter(
+    "voice_kill_switch_flips_total",
+    "Live sessions the kill switch moved to typed, or could not, by tenant and outcome.",
+    ["tenant", "outcome"],
+)
+
+#: The control store could not answer — at a session start (the session went
+#: typed) or on the poll (live sessions kept their last-known state).
+VOICE_CONTROL_READ_FAILURES_TOTAL = Counter(
+    "voice_control_read_failures_total",
+    "Voice control reads that failed, by phase and machine code.",
+    ["phase", "code"],
+)
+
+#: Every ASR or TTS call that reached a wire, by registry component, kind and
+#: outcome — the numerator and denominator of the module's error rate.
+VOICE_SPEECH_CALLS_TOTAL = Counter(
+    "voice_speech_calls_total",
+    "Speech model calls that reached a wire, by component, kind (asr/tts) and outcome.",
+    ["component", "kind", "outcome"],
 )

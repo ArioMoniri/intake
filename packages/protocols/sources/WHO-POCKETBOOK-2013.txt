@@ -1,0 +1,31 @@
+# guideline_id: WHO-POCKETBOOK-2013
+# title: Pocket book of hospital care for children: guidelines for the management of common childhood illnesses
+# publisher: World Health Organization
+# version_or_date: Second edition, 2013 (WHO IRIS handle 10665/81170, issued 2013-05-06; no later edition listed in IRIS at retrieval); ISBN 978 92 4 154837 3
+# url: https://iris.who.int/server/api/core/bitstreams/8f110da0-22e6-4ef1-90e4-c9f1b7daa363/content
+# url_record: https://iris.who.int/handle/10665/81170
+# retrieved_on: 2026-10-03
+# retrieval: item resolved through the IRIS DSpace REST API (/server/api/pid/find?id=10665/81170), PDF fetched with curl (HTTP 200, 3103071 bytes); text extracted with pdftotext (poppler); page numbers are PDF page indices; lines kept as extracted
+# scope: verbatim excerpt of the note defining lower chest wall indrawing (PDF p. 101), the severe pneumonia general danger signs (PDF p. 104) and the severe complicated measles signs (PDF p. 199); nothing paraphrased or edited; omissions marked [...]
+---
+[PDF p. 101]
+Note: Lower chest wall indrawing is when the lower chest wall goes in when the
+child breathes in; if only the soft tissue between the ribs or above the clavicle
+goes in when the child breathes, this is not lower chest wall indrawing.
+[...]
+[PDF p. 104]
+4.2.1 Severe pneumonia
+Diagnosis
+Cough or difficulty in breathing, plus at least one of the following:
+■ central cyanosis or oxygen saturation < 90% on pulse oximetry
+■ severe respiratory distress (e.g. grunting, very severe chest indrawing)
+■ signs of pneumonia with a general danger sign:
+– inability to breastfeed or drink,
+– lethargy or unconscious,
+[...]
+[PDF p. 199]
+one of the following symptoms and signs indicates
+the presence of severe complicated measles:
+■ inability to drink or breastfeed
+■ vomits everything
+■ convulsions

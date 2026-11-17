@@ -44,7 +44,7 @@ consent_text_version: v1-demo.1
 Ortak üzerinden giriş
 
 Bu ön görüşmeyi ortağınız üzerinden başlattınız. Verileriniz, ortağınız adına
-Vizite tarafından işlenir.
+Önvizit tarafından işlenir.
 """
 
 
@@ -108,7 +108,7 @@ def test_mint_then_launch_happy_path(embed_harness: ApiHarness) -> None:
     assert launched.status_code == 200, launched.text
     ctx = launched.json()
     assert ctx["tenant_id"] == DEV_TENANT
-    assert ctx["theme"]["display_name"] == "Vizite Dev Partner"
+    assert ctx["theme"]["display_name"] == "Önvizit Dev Partner"
     assert ctx["theme"]["primary_color"] == "#0B5FFF"
     assert ctx["consent_doc_set_id"] == "embed.dev-partner-alpha"
     assert ctx["device_functions"] is False

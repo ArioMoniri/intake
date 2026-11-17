@@ -6,8 +6,10 @@
  * lets the patient tap a day to read that day's visits below it. Design pass 3:
  * kicker over the groups, xl rhythm between them, air above the hero line.
  *
- * "Today" is a fixture constant so the whole screen — the upcoming/past split,
- * the calendar's today marker and its opening month — agrees on one date.
+ * "Today" is read once per render from the injected clock (lib/clock.ts): the
+ * device's date in Europe/Istanbul, so the whole screen (the upcoming/past
+ * split, the calendar's today marker and its opening month) agrees on one
+ * date, and that date is the real one (INT-409). A test passes a fixed clock.
  */
 import { useState } from "react";
 import { Link, useRouter } from "expo-router";
@@ -30,30 +32,33 @@ import {
   visitsOnDay,
   type YearMonth,
 } from "@/lib/calendar";
+import { deviceClock, todayIso, type Clock } from "@/lib/clock";
 import { getLocale, t } from "@/lib/i18n";
 import { useSession, type VisitFixture } from "@/lib/session";
 import { spacing } from "@/lib/theme";
 import { splitVisits } from "@/lib/visits";
 
-const TODAY_FIXTURE = "2026-08-27";
-
 type ViewMode = "list" | "calendar";
 
-export default function Visits() {
+interface VisitsProps {
+  /** Where "today" comes from: the device's clock unless a test fixes one. */
+  readonly clock?: Clock;
+}
+
+export default function Visits({ clock = deviceClock }: VisitsProps) {
   const router = useRouter();
   const { visits } = useSession();
+  const today = todayIso(clock);
 
   const [view, setView] = useState<ViewMode>("list");
   // Open the calendar on the soonest booked visit, and pre-select it, so a
   // patient with an appointment lands on it rather than on an empty month.
-  const [viewMonth, setViewMonth] = useState<YearMonth>(() => initialMonth(visits, TODAY_FIXTURE));
-  const [selectedDay, setSelectedDay] = useState<string>(() =>
-    initialSelectedDay(visits, TODAY_FIXTURE),
-  );
+  const [viewMonth, setViewMonth] = useState<YearMonth>(() => initialMonth(visits, today));
+  const [selectedDay, setSelectedDay] = useState<string>(() => initialSelectedDay(visits, today));
 
   // a dateless visit is upcoming, not past (INT-134) — see splitVisits
-  const { upcoming } = splitVisits(visits, TODAY_FIXTURE);
-  const past = pastVisitsRecentFirst(visits, TODAY_FIXTURE);
+  const { upcoming } = splitVisits(visits, today);
+  const past = pastVisitsRecentFirst(visits, today);
   const dayVisits = visitsOnDay(visits, selectedDay);
 
   const viewOptions: SegmentedOption[] = [
@@ -138,7 +143,7 @@ export default function Visits() {
               <>
                 <VisitCalendar
                   visits={visits}
-                  todayIso={TODAY_FIXTURE}
+                  todayIso={today}
                   viewMonth={viewMonth}
                   onChangeMonth={setViewMonth}
                   selectedIso={selectedDay}

@@ -1,0 +1,46 @@
+# guideline_id: SCOT-SRG-2025
+# title: Scottish Referral Guidelines for Suspected Cancer 2025
+# publisher: Scottish Government (Chief Executive of NHS Scotland and Director-General Health and Social Care; Chief Medical Officer; Chief Operating Officer, NHS Scotland)
+# version_or_date: Published 6 August 2025; ISBN 9781836915263; errata 13/04/2026
+# url: https://www.gov.scot/publications/scottish-referral-guidelines-suspected-cancer-2025/pages/5/
+# url_publication: https://www.gov.scot/publications/scottish-referral-guidelines-suspected-cancer-2025/
+# url_page_3: https://www.gov.scot/publications/scottish-referral-guidelines-suspected-cancer-2025/pages/3/
+# retrieved_on: 2026-10-03
+# retrieval: curl with browser UA; HTML (utf-8) text-extracted; tags stripped and whitespace runs collapsed to single spaces; blank lines dropped
+# scope: verbatim excerpt of the publication metadata (title, published date, ISBN, errata note), the revision-history sentence of the Purpose and development page and, from the Cancer Referral Guidelines page, the haematological assessment list and the lung USC referral list; nothing paraphrased or edited. '[...]' marks an omission between excerpts.
+---
+Scottish Referral Guidelines for Suspected Cancer 2025
+Published
+6 August 2025
+[...]
+ISBN
+9781836915263
+[...]
+An errata was published on 13/04/2026 as a result of one amend on page 34 of the pdf. The HTML and PDF have been updated to reflect this change.
+[...]
+The Scottish Referral Guidelines (SRGs) for Suspected Cancer were first published in 2002 and subsequently revised in 2007, 2014, and 2019. In 2023, the Scottish Government commissioned the Centre for Sustainable Delivery (CfSD) to conduct a full clinical review and update of the SRGs according to current evidence and clinical consensus.
+[...]
+Haematological Cancers
+[...]
+Assessment for Suspected Haematological Cancers
+Leukaemia (acute and chronic):
+Acute leukaemia often presents rapidly with clinical features of bone marrow failure such as fatigue, pallor, bruising, bleeding and infections which can be particularly severe. Due to extramedullary leukaemic infiltration there can be lymphadenopathy and/or hepatosplenomegaly.
+Chronic myeloid leukaemia (CML) usually develops gradually and in the early chronic phase people are often asymptomatic. CML can progress to a more accelerated phase with symptoms arising from the accumulation of abnormal cells in the bone marrow and blood. Clinical features include, anaemia, low platelets, repeated infections, splenomegaly, drenching sweats and weight loss.
+Chronic lymphocytic leukaemia (CLL) is an indolent haematological cancer that can be an incidental finding on a blood test or present with lymphadenopathy, splenomegaly, symptoms of associated cytopenia (breathlessness, fatigue, petechiae, infections) or B symptoms (weight loss, fever or drenching night sweats).
+Consider urgent clinical assessment, including full blood count (FBC), of an adult patient with any of the following unexplained features:
+Pallor
+Bleeding, bruising or petechial haemorrhage
+Fatigue
+Breathlessness
+Recurrent infections
+Fever
+Drenching night sweats
+Lymphadenopathy (lymph node 2 cm or more in size, persisting for six weeks or more, or increasing in size, or generalised lymphadenopathy)
+Hepatomegaly and/or splenomegaly
+[...]
+Lung and Pleural Cancers
+[...]
+Urgent Suspicion of Cancer (USC) Referral
+Refer a person with any of the following to the Respiratory Service as a USC referral:
+Chest x-ray (or CT scan) that is concerning for lung or pleural cancer (including unilateral pleural effusion, pleural mass and slowly resolving consolidation)
+Unexplained haemoptysis (arrange a USC chest x-ray but no need to wait for the result)

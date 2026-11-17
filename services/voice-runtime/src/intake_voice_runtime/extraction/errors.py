@@ -14,7 +14,9 @@ it expects without matching on message text.
 from __future__ import annotations
 
 __all__ = [
+    "AnchorChoicesUnresolved",
     "BoundaryEscape",
+    "CodeSlotUnbound",
     "ExtractionNotConfigured",
     "ExtractionRefused",
     "ExtractionUnavailable",
@@ -33,6 +35,28 @@ class BoundaryEscape(ExtractionRefused):
 
     Raised before any bytes are assembled, so the escaping string never reaches
     a prompt, a log line or this exception's own message.
+    """
+
+
+class CodeSlotUnbound(ExtractionRefused):
+    """A code slot whose value set the extraction lane was not handed (INT-518).
+
+    The schema constrains a code slot to its members, so a slot with none could
+    never bind: every Work that declared it would be refused, and the slot
+    stays awaiting, so every later Work is refused too. Raised when the
+    session is composed, naming each step id and value-set id (ids only).
+    """
+
+
+class AnchorChoicesUnresolved(ExtractionRefused):
+    """A date slot answered by closed choices with no decided day for a choice (INT-522).
+
+    The model may answer such a slot only with an authored choice, and only the
+    clinical decision that resolves each choice to a day (CD-05) turns it into
+    the date a tense-qualified rule reads. A choice with no decided day could
+    never bind, so the anchor would read Unknown for the whole session and the
+    rule could never fire. Raised when the session is composed, naming each
+    step id (ids only).
     """
 
 

@@ -10,12 +10,16 @@ in context with INT-132/INT-038, so every clinical read stays behind the
 consent gate from the first second (invariant 4).
 
 Honest tiering:
-- SMS delivery: no vendor contract exists (awaiting-human). The ONLY
-  adapter is :class:`DevLogDeliveryAdapter`, which records a delivery EVENT
-  (ids only — never the code, never the phone) and claims nothing more; the
-  code is reachable solely through the peek endpoint behind
-  ``INTAKE_DEV_OTP_PEEK=explicit-yes``. A vendor lands by implementing
-  :class:`OtpDeliveryAdapter` against the contract.
+- SMS delivery (INT-329): the seam is :class:`OtpDeliveryAdapter`, and it is
+  async so a vendor call never holds the event loop. Dev wires
+  :class:`DevLogDeliveryAdapter`, which records a delivery EVENT (ids only —
+  never the code, never the phone) and claims nothing more; the code is
+  reachable solely through the peek endpoint behind
+  ``INTAKE_DEV_OTP_PEEK=explicit-yes``. Outside dev the only adapter is
+  ``intake_api.otp_netgsm`` (INT-528; the owner's vendor decision, INT-358),
+  wired only when its credentials are in OpenBao and the egress policy admits
+  the vendor (the owner's patch), otherwise the tier stays 503. A failed delivery is a typed
+  :class:`OtpDeliveryError` and a generic 503, never a claimed "sent".
 - Attestation (INT-344): iOS registers an App Attest key once
   (``/attest/key``) and signs every OTP call with an assertion from it; the
   verifier is real when the Apple team id is configured and fails closed with
@@ -34,7 +38,8 @@ import time
 import uuid
 from collections.abc import Callable
 from dataclasses import dataclass, field
-from typing import Protocol
+from enum import StrEnum
+from typing import Final, Protocol
 
 import redis
 from fastapi import Request
@@ -73,21 +78,26 @@ from intake_api.errors import (
     challenge_invalid,
     dpop_invalid,
     not_found,
+    otp_delivery_unavailable,
     otp_invalid,
     otp_limited,
     phone_invalid,
     refresh_reused,
     unauthorized,
 )
+from intake_api.sms_recipients import ADMIT_ALL, RecipientGate
 
 __all__ = [
     "ATTESTATION_HEADER",
     "CONSUMER_TENANT_ID",
+    "DELIVERY_MAY_HAVE_SENT",
     "AuthWiring",
     "DeliveryReceipt",
     "DevLogDeliveryAdapter",
     "OtpAuthService",
     "OtpDeliveryAdapter",
+    "OtpDeliveryError",
+    "OtpDeliveryFailure",
     "TokenBundle",
     "ensure_consumer_tenant",
     "normalise_tr_phone",
@@ -123,20 +133,75 @@ class DeliveryReceipt:
     delivery_id: str
 
 
-class OtpDeliveryAdapter(Protocol):
-    """The SMS seam. The vendor adapter implements this once a contract
-    exists (awaiting-human — docs/evidence/INT-131.md); until then only the
-    dev adapter below is wired, and it never claims an SMS went out."""
+class OtpDeliveryFailure(StrEnum):
+    """Why a delivery failed — an id-shaped vocabulary, safe to log."""
 
-    def send(self, *, phone_e164: str, code: str) -> DeliveryReceipt: ...
+    EGRESS_DENIED = "egress_denied"
+    TIMEOUT = "timeout"
+    UNREACHABLE = "unreachable"
+    AUTH_FAILED = "auth_failed"
+    RATE_LIMITED = "rate_limited"
+    REJECTED = "rejected"
+    VENDOR_UNAVAILABLE = "vendor_unavailable"
+    MALFORMED_RESPONSE = "malformed_response"
+
+
+#: INT-576: the failures after which the vendor may already have sent the
+#: code: an answer the adapter could not read (Netgsm had sent it, on 28 Oct
+#: 2026), no answer before the timeout, or a vendor-side failure that does not
+#: say whether the message left. Sending again could put a second code in
+#: flight, so none of these is ever sent again automatically.
+DELIVERY_MAY_HAVE_SENT: Final = frozenset(
+    {
+        OtpDeliveryFailure.MALFORMED_RESPONSE,
+        OtpDeliveryFailure.TIMEOUT,
+        OtpDeliveryFailure.VENDOR_UNAVAILABLE,
+    }
+)
+
+
+class OtpDeliveryError(Exception):
+    """The SMS vendor could not deliver the code (INT-329). The tier fails
+    closed: it never claims a code was sent. Carries a reason, the HTTP status
+    and the vendor's numeric error code — never the code, the phone, a
+    credential or a vendor body (invariant 6)."""
+
+    def __init__(
+        self,
+        reason: OtpDeliveryFailure,
+        *,
+        status_code: int | None = None,
+        vendor_code: int | None = None,
+    ) -> None:
+        self.reason = reason
+        self.status_code = status_code
+        self.vendor_code = vendor_code
+        super().__init__(f"otp delivery failed: {reason} (status {status_code or '-'})")
+
+    @property
+    def retryable(self) -> bool:
+        """Whether a second send could not double-deliver: False wherever the
+        vendor may already have sent the code (:data:`DELIVERY_MAY_HAVE_SENT`).
+        Nothing sends twice today, and the patient's resend after the
+        cooldown is the only second attempt; this is what any caller that
+        ever does must honour (INT-576)."""
+        return self.reason not in DELIVERY_MAY_HAVE_SENT
+
+
+class OtpDeliveryAdapter(Protocol):
+    """The SMS seam (INT-131; async since INT-329). ``send`` returns the
+    vendor's delivery id or raises :class:`OtpDeliveryError`."""
+
+    async def send(self, *, phone_e164: str, code: str) -> DeliveryReceipt: ...
 
 
 class DevLogDeliveryAdapter:
     """Records the delivery EVENT with ids only (invariant 6): no code, no
     phone, no vendor claim. The code is reachable exclusively through the
-    peek endpoint behind INTAKE_DEV_OTP_PEEK=explicit-yes."""
+    peek endpoint behind INTAKE_DEV_OTP_PEEK=explicit-yes. Dev only: outside
+    dev it is never wired (INT-325)."""
 
-    def send(self, *, phone_e164: str, code: str) -> DeliveryReceipt:
+    async def send(self, *, phone_e164: str, code: str) -> DeliveryReceipt:
         del phone_e164, code  # never logged; the peek store is the only dev exposure
         receipt = DeliveryReceipt(delivery_id=uuid.uuid4().hex)
         logger.info(
@@ -168,6 +233,9 @@ class AuthWiring:
             AttestationReason.APP_ATTEST_NOT_CONFIGURED
         )
     )
+    # INT-528: on the synthetic host, the owner's SMS test allow-list; a
+    # number off it starts no login. Elsewhere there is no list.
+    recipients: RecipientGate = field(default_factory=lambda: ADMIT_ALL)
 
 
 async def ensure_consumer_tenant(engine: AsyncEngine) -> None:
@@ -328,6 +396,13 @@ class OtpAuthService:
         # with an empty authority, this branch is unreachable in production.
         if self._wiring.carrier_geo.evaluate(phone).refuses:
             raise phone_invalid()
+        # INT-528 — on the synthetic host SMS is real, so a number off the
+        # owner's test allow-list starts no login: no code is minted and no SMS
+        # leaves. Same place and same answer as the carrier check above, for the
+        # same reasons; the line logged names no number.
+        if not self._wiring.recipients.admits(phone):
+            logger.info("otp request refused: the number is not on the SMS test allow-list")
+            raise phone_invalid()
         code = f"{secrets.randbelow(10**OTP_CODE_DIGITS):0{OTP_CODE_DIGITS}d}"
         await asyncio.to_thread(
             self._store.store_code,
@@ -335,7 +410,12 @@ class OtpAuthService:
             code_digest(pseudonym, code),
             code if self._wiring.dev_otp_peek else None,
         )
-        receipt = self._wiring.delivery.send(phone_e164=phone, code=code)
+        try:
+            receipt = await self._wiring.delivery.send(phone_e164=phone, code=code)
+        except OtpDeliveryError:
+            # the adapter logged the reason (ids only); the caller gets one
+            # generic code whatever the cause, and nothing was "sent"
+            raise otp_delivery_unavailable() from None
         await self._audit.record(
             actor=f"phone:{self._tokenizer.log_ref(phone)}",
             action="auth.otp.requested",

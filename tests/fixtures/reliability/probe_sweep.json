@@ -1,0 +1,266 @@
+[
+  {
+    "component": "postgres",
+    "probe": "postgres_select1",
+    "status": "unhealthy",
+    "latency_ms": 155.7621667161584,
+    "detail": "select 1 failed: connection failed: connection to server at \"127.0.0.1\", port 5432 failed: could not receive data from server: Connection refused",
+    "checked_at": "2026-10-28T01:46:09Z"
+  },
+  {
+    "component": "redis",
+    "probe": "redis_ping",
+    "status": "unhealthy",
+    "latency_ms": 2.3596659302711487,
+    "detail": "redis ping failed: Error 61 connecting to 127.0.0.1:6379. Connection refused.",
+    "checked_at": "2026-10-28T01:46:09Z"
+  },
+  {
+    "component": "minio",
+    "probe": "minio_ready",
+    "status": "unhealthy",
+    "latency_ms": 0.6809178739786148,
+    "detail": "http request failed: [Errno 61] Connection refused",
+    "checked_at": "2026-10-28T01:46:09Z"
+  },
+  {
+    "component": "hapi",
+    "probe": "http_health",
+    "status": "unhealthy",
+    "latency_ms": 0.17079152166843414,
+    "detail": "http request failed: [Errno 61] Connection refused",
+    "checked_at": "2026-10-28T01:46:09Z"
+  },
+  {
+    "component": "ehrbase",
+    "probe": "http_health",
+    "status": "skipped",
+    "latency_ms": null,
+    "detail": "no probe client configured for ehrbase in this environment",
+    "checked_at": "2026-10-28T01:46:09Z"
+  },
+  {
+    "component": "openbao",
+    "probe": "openbao_seal_status",
+    "status": "unhealthy",
+    "latency_ms": 0.3476673737168312,
+    "detail": "http request failed: [Errno 61] Connection refused",
+    "checked_at": "2026-10-28T01:46:09Z"
+  },
+  {
+    "component": "api",
+    "probe": "http_health",
+    "status": "skipped",
+    "latency_ms": null,
+    "detail": "no probe client configured for api in this environment",
+    "checked_at": "2026-10-28T01:46:09Z"
+  },
+  {
+    "component": "probes",
+    "probe": "http_health",
+    "status": "skipped",
+    "latency_ms": null,
+    "detail": "no probe client configured for probes in this environment",
+    "checked_at": "2026-10-28T01:46:09Z"
+  },
+  {
+    "component": "metrics",
+    "probe": "http_health",
+    "status": "skipped",
+    "latency_ms": null,
+    "detail": "no probe client configured for metrics in this environment",
+    "checked_at": "2026-10-28T01:46:09Z"
+  },
+  {
+    "component": "learning",
+    "probe": "http_health",
+    "status": "skipped",
+    "latency_ms": null,
+    "detail": "no probe client configured for learning in this environment",
+    "checked_at": "2026-10-28T01:46:09Z"
+  },
+  {
+    "component": "voice-runtime",
+    "probe": "livekit_room_join",
+    "status": "skipped",
+    "latency_ms": null,
+    "detail": "livekit lands with INT-090",
+    "checked_at": "2026-10-28T01:46:09Z"
+  },
+  {
+    "component": "edge-tls",
+    "probe": "cert_expiry_days",
+    "status": "skipped",
+    "latency_ms": null,
+    "detail": "no probe client configured for edge-tls in this environment",
+    "checked_at": "2026-10-28T01:46:09Z"
+  },
+  {
+    "component": "backups",
+    "probe": "backup_freshness",
+    "status": "unhealthy",
+    "latency_ms": 0.023166649043560028,
+    "detail": "no artefact directory at .cache/backups",
+    "checked_at": "2026-10-28T01:46:09Z"
+  },
+  {
+    "component": "ci-runners",
+    "probe": "runner_heartbeat",
+    "status": "unhealthy",
+    "latency_ms": 0.008375383913516998,
+    "detail": "no heartbeat from intake-aws-ci",
+    "checked_at": "2026-10-28T01:46:09Z"
+  },
+  {
+    "component": "langfuse",
+    "probe": "http_health",
+    "status": "skipped",
+    "latency_ms": null,
+    "detail": "no probe client configured for langfuse in this environment",
+    "checked_at": "2026-10-28T01:46:09Z"
+  },
+  {
+    "component": "langfuse-clickhouse",
+    "probe": "http_health",
+    "status": "skipped",
+    "latency_ms": null,
+    "detail": "no probe client configured for langfuse-clickhouse in this environment",
+    "checked_at": "2026-10-28T01:46:09Z"
+  },
+  {
+    "component": "qwen3.5-9b",
+    "probe": "http_health",
+    "status": "skipped",
+    "latency_ms": null,
+    "detail": "no probe client configured for qwen3.5-9b in this environment",
+    "checked_at": "2026-10-28T01:46:09Z"
+  },
+  {
+    "component": "whisper-tr-medical",
+    "probe": "http_health",
+    "status": "skipped",
+    "latency_ms": null,
+    "detail": "no probe client configured for whisper-tr-medical in this environment",
+    "checked_at": "2026-10-28T01:46:09Z"
+  },
+  {
+    "component": "freya-tts",
+    "probe": "http_health",
+    "status": "skipped",
+    "latency_ms": null,
+    "detail": "no probe client configured for freya-tts in this environment",
+    "checked_at": "2026-10-28T01:46:09Z"
+  },
+  {
+    "component": "voxcpm2-tts",
+    "probe": "http_health",
+    "status": "skipped",
+    "latency_ms": null,
+    "detail": "no probe client configured for voxcpm2-tts in this environment",
+    "checked_at": "2026-10-28T01:46:09Z"
+  },
+  {
+    "component": "qwen3.6-35b-a3b",
+    "probe": "http_health",
+    "status": "skipped",
+    "latency_ms": null,
+    "detail": "unavailable: no host serves files/03 \u00a74.9.1 row 9 (the extraction LLM); INT-381 serves it",
+    "checked_at": "2026-10-28T01:46:09Z"
+  },
+  {
+    "component": "deid-tr-ner-v1",
+    "probe": "backup_freshness",
+    "status": "unhealthy",
+    "latency_ms": 0.00841636210680008,
+    "detail": "no artefact directory at .cache/deid-tr-ner-v1",
+    "checked_at": "2026-10-28T01:46:09Z"
+  },
+  {
+    "component": "wazuh-manager",
+    "probe": "tcp_connect",
+    "status": "skipped",
+    "latency_ms": null,
+    "detail": "no probe client configured for wazuh-manager in this environment",
+    "checked_at": "2026-10-28T01:46:09Z"
+  },
+  {
+    "component": "wazuh-indexer",
+    "probe": "tcp_connect",
+    "status": "skipped",
+    "latency_ms": null,
+    "detail": "no probe client configured for wazuh-indexer in this environment",
+    "checked_at": "2026-10-28T01:46:09Z"
+  },
+  {
+    "component": "falco",
+    "probe": "http_health",
+    "status": "skipped",
+    "latency_ms": null,
+    "detail": "no probe client configured for falco in this environment",
+    "checked_at": "2026-10-28T01:46:09Z"
+  },
+  {
+    "component": "egress-proxy",
+    "probe": "tcp_connect",
+    "status": "skipped",
+    "latency_ms": null,
+    "detail": "no probe client configured for egress-proxy in this environment",
+    "checked_at": "2026-10-28T01:46:09Z"
+  },
+  {
+    "component": "sms-egress",
+    "probe": "tcp_connect",
+    "status": "skipped",
+    "latency_ms": null,
+    "detail": "no probe client configured for sms-egress in this environment",
+    "checked_at": "2026-10-28T01:46:09Z"
+  },
+  {
+    "component": "edge-ingress",
+    "probe": "http_health",
+    "status": "skipped",
+    "latency_ms": null,
+    "detail": "no probe client configured for edge-ingress in this environment",
+    "checked_at": "2026-10-28T01:46:09Z"
+  },
+  {
+    "component": "edge-crowdsec",
+    "probe": "tcp_connect",
+    "status": "skipped",
+    "latency_ms": null,
+    "detail": "no probe client configured for edge-crowdsec in this environment",
+    "checked_at": "2026-10-28T01:46:09Z"
+  },
+  {
+    "component": "keycloak",
+    "probe": "http_health",
+    "status": "skipped",
+    "latency_ms": null,
+    "detail": "no probe client configured for keycloak in this environment",
+    "checked_at": "2026-10-28T01:46:09Z"
+  },
+  {
+    "component": "oauth2-proxy",
+    "probe": "http_health",
+    "status": "skipped",
+    "latency_ms": null,
+    "detail": "no probe client configured for oauth2-proxy in this environment",
+    "checked_at": "2026-10-28T01:46:09Z"
+  },
+  {
+    "component": "admin-web",
+    "probe": "http_health",
+    "status": "skipped",
+    "latency_ms": null,
+    "detail": "no probe client configured for admin-web in this environment",
+    "checked_at": "2026-10-28T01:46:09Z"
+  },
+  {
+    "component": "caddy",
+    "probe": "tcp_connect",
+    "status": "skipped",
+    "latency_ms": null,
+    "detail": "no probe client configured for caddy in this environment",
+    "checked_at": "2026-10-28T01:46:09Z"
+  }
+]

@@ -1,0 +1,27 @@
+# INT-428 — which exact model versions may serve a gated lane.
+#
+# Medical review, finding 12 (binding): a lane or model swap on a lane whose
+# output feeds red-flag extraction is gated on two eval runs FOR THAT EXACT
+# MODEL VERSION — the red-flag extraction goldens and the Turkish negation
+# set — both green. intake_platform.model_lanes.qualifications reads this.
+#
+# A row:
+#   - lane: llm | asr
+#   - provider: a hosted provider id, or self_hosted
+#   - model_id, version: the hosted dated snapshot, or the registry
+#     model_id and its 40-hex revision
+#   - sha256: the self-hosted weights-manifest digest (null for hosted)
+#   - rf_extraction_goldens / negation_set: {status: green|red, run_id, run_on}
+#
+# It ships with NO rows. The golden set a swap requires and the sensitivity
+# floor it must clear are a physician's decision (medical review, physician
+# decision 8), and recording a run means live model calls, which only
+# `make eval-live` may make (EVAL_BUDGET_USD). Until a row exists every swap
+# on a gated lane is refused with model_not_qualified. No agent writes a row.
+#
+# tts is not gated here: it speaks scripted, verbatim text (invariant 10) and
+# extracts nothing; the invariant-22 numeral refusal and the clip round-trip
+# gate hold it instead.
+version: 1
+gated_lanes: [llm, asr]
+qualifications: []

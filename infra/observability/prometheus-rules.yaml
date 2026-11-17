@@ -2,7 +2,8 @@
 # rules for the SLOs in docs/slo/ (INT-021; files/10 §6, files/08 §5).
 #
 # GENERATED-CONSISTENT: this file equals
-# intake_platform.slo.prometheus_rule_groups(docs/slo/api.yaml) and
+# intake_platform.slo.prometheus_rule_groups(docs/slo/<service>.yaml) for
+# EVERY SLO file, in file-name order, and
 # tests/observability/test_slo_generator.py fails on any drift. To change a
 # rule, change the SLO file and re-emit:
 #   uv run python scripts/observability/slo_report.py --emit-rules \
@@ -122,3 +123,357 @@ groups:
     annotations:
       summary: 'api latency: error budget burning at >= 1x over 3d and 6h'
       runbook: docs/runbooks/slo-burn.md#api-latency-ticket-burn
+- name: slo-langfuse-recording
+  rules:
+  - record: slo:langfuse_trace_emission:error_ratio_rate5m
+    expr: sum(rate(llm_trace_fields_refused_total[5m])) / (sum(rate(llm_trace_spans_emitted_total[5m])) + sum(rate(llm_trace_fields_refused_total[5m])))
+    labels:
+      service: langfuse
+      slo: trace_emission
+  - record: slo:langfuse_trace_emission:error_ratio_rate30m
+    expr: sum(rate(llm_trace_fields_refused_total[30m])) / (sum(rate(llm_trace_spans_emitted_total[30m])) + sum(rate(llm_trace_fields_refused_total[30m])))
+    labels:
+      service: langfuse
+      slo: trace_emission
+  - record: slo:langfuse_trace_emission:error_ratio_rate1h
+    expr: sum(rate(llm_trace_fields_refused_total[1h])) / (sum(rate(llm_trace_spans_emitted_total[1h])) + sum(rate(llm_trace_fields_refused_total[1h])))
+    labels:
+      service: langfuse
+      slo: trace_emission
+  - record: slo:langfuse_trace_emission:error_ratio_rate6h
+    expr: sum(rate(llm_trace_fields_refused_total[6h])) / (sum(rate(llm_trace_spans_emitted_total[6h])) + sum(rate(llm_trace_fields_refused_total[6h])))
+    labels:
+      service: langfuse
+      slo: trace_emission
+  - record: slo:langfuse_trace_emission:error_ratio_rate3d
+    expr: sum(rate(llm_trace_fields_refused_total[3d])) / (sum(rate(llm_trace_spans_emitted_total[3d])) + sum(rate(llm_trace_fields_refused_total[3d])))
+    labels:
+      service: langfuse
+      slo: trace_emission
+- name: slo-langfuse-alerts
+  rules:
+  - alert: LangfuseTraceEmissionFastBurn
+    expr: slo:langfuse_trace_emission:error_ratio_rate1h > (14.4 * 0.001) and slo:langfuse_trace_emission:error_ratio_rate5m > (14.4 * 0.001)
+    for: 2m
+    labels:
+      severity: page
+      service: langfuse
+      slo: trace_emission
+    annotations:
+      summary: 'langfuse trace_emission: error budget burning at >= 14.4x over 1h and 5m'
+      runbook: docs/runbooks/slo-burn.md#langfuse-trace_emission-fast-burn
+  - alert: LangfuseTraceEmissionSlowBurn
+    expr: slo:langfuse_trace_emission:error_ratio_rate6h > (6.0 * 0.001) and slo:langfuse_trace_emission:error_ratio_rate30m > (6.0 * 0.001)
+    for: 15m
+    labels:
+      severity: page
+      service: langfuse
+      slo: trace_emission
+    annotations:
+      summary: 'langfuse trace_emission: error budget burning at >= 6x over 6h and 30m'
+      runbook: docs/runbooks/slo-burn.md#langfuse-trace_emission-slow-burn
+  - alert: LangfuseTraceEmissionTicketBurn
+    expr: slo:langfuse_trace_emission:error_ratio_rate3d > (1.0 * 0.001) and slo:langfuse_trace_emission:error_ratio_rate6h > (1.0 * 0.001)
+    for: 1h
+    labels:
+      severity: ticket
+      service: langfuse
+      slo: trace_emission
+    annotations:
+      summary: 'langfuse trace_emission: error budget burning at >= 1x over 3d and 6h'
+      runbook: docs/runbooks/slo-burn.md#langfuse-trace_emission-ticket-burn
+- name: slo-learning-recording
+  rules:
+  - record: slo:learning_availability:error_ratio_rate5m
+    expr: sum(rate(http_requests_total{service="learning",status=~"5.."}[5m])) / sum(rate(http_requests_total{service="learning"}[5m]))
+    labels:
+      service: learning
+      slo: availability
+  - record: slo:learning_availability:error_ratio_rate30m
+    expr: sum(rate(http_requests_total{service="learning",status=~"5.."}[30m])) / sum(rate(http_requests_total{service="learning"}[30m]))
+    labels:
+      service: learning
+      slo: availability
+  - record: slo:learning_availability:error_ratio_rate1h
+    expr: sum(rate(http_requests_total{service="learning",status=~"5.."}[1h])) / sum(rate(http_requests_total{service="learning"}[1h]))
+    labels:
+      service: learning
+      slo: availability
+  - record: slo:learning_availability:error_ratio_rate6h
+    expr: sum(rate(http_requests_total{service="learning",status=~"5.."}[6h])) / sum(rate(http_requests_total{service="learning"}[6h]))
+    labels:
+      service: learning
+      slo: availability
+  - record: slo:learning_availability:error_ratio_rate3d
+    expr: sum(rate(http_requests_total{service="learning",status=~"5.."}[3d])) / sum(rate(http_requests_total{service="learning"}[3d]))
+    labels:
+      service: learning
+      slo: availability
+- name: slo-learning-alerts
+  rules:
+  - alert: LearningAvailabilityFastBurn
+    expr: slo:learning_availability:error_ratio_rate1h > (14.4 * 0.005) and slo:learning_availability:error_ratio_rate5m > (14.4 * 0.005)
+    for: 2m
+    labels:
+      severity: page
+      service: learning
+      slo: availability
+    annotations:
+      summary: 'learning availability: error budget burning at >= 14.4x over 1h and 5m'
+      runbook: docs/runbooks/slo-burn.md#learning-availability-fast-burn
+  - alert: LearningAvailabilitySlowBurn
+    expr: slo:learning_availability:error_ratio_rate6h > (6.0 * 0.005) and slo:learning_availability:error_ratio_rate30m > (6.0 * 0.005)
+    for: 15m
+    labels:
+      severity: page
+      service: learning
+      slo: availability
+    annotations:
+      summary: 'learning availability: error budget burning at >= 6x over 6h and 30m'
+      runbook: docs/runbooks/slo-burn.md#learning-availability-slow-burn
+  - alert: LearningAvailabilityTicketBurn
+    expr: slo:learning_availability:error_ratio_rate3d > (1.0 * 0.005) and slo:learning_availability:error_ratio_rate6h > (1.0 * 0.005)
+    for: 1h
+    labels:
+      severity: ticket
+      service: learning
+      slo: availability
+    annotations:
+      summary: 'learning availability: error budget burning at >= 1x over 3d and 6h'
+      runbook: docs/runbooks/slo-burn.md#learning-availability-ticket-burn
+- name: slo-metrics-recording
+  rules:
+  - record: slo:metrics_availability:error_ratio_rate5m
+    expr: sum(rate(http_requests_total{service="metrics",status=~"5.."}[5m])) / sum(rate(http_requests_total{service="metrics"}[5m]))
+    labels:
+      service: metrics
+      slo: availability
+  - record: slo:metrics_availability:error_ratio_rate30m
+    expr: sum(rate(http_requests_total{service="metrics",status=~"5.."}[30m])) / sum(rate(http_requests_total{service="metrics"}[30m]))
+    labels:
+      service: metrics
+      slo: availability
+  - record: slo:metrics_availability:error_ratio_rate1h
+    expr: sum(rate(http_requests_total{service="metrics",status=~"5.."}[1h])) / sum(rate(http_requests_total{service="metrics"}[1h]))
+    labels:
+      service: metrics
+      slo: availability
+  - record: slo:metrics_availability:error_ratio_rate6h
+    expr: sum(rate(http_requests_total{service="metrics",status=~"5.."}[6h])) / sum(rate(http_requests_total{service="metrics"}[6h]))
+    labels:
+      service: metrics
+      slo: availability
+  - record: slo:metrics_availability:error_ratio_rate3d
+    expr: sum(rate(http_requests_total{service="metrics",status=~"5.."}[3d])) / sum(rate(http_requests_total{service="metrics"}[3d]))
+    labels:
+      service: metrics
+      slo: availability
+- name: slo-metrics-alerts
+  rules:
+  - alert: MetricsAvailabilityFastBurn
+    expr: slo:metrics_availability:error_ratio_rate1h > (14.4 * 0.005) and slo:metrics_availability:error_ratio_rate5m > (14.4 * 0.005)
+    for: 2m
+    labels:
+      severity: page
+      service: metrics
+      slo: availability
+    annotations:
+      summary: 'metrics availability: error budget burning at >= 14.4x over 1h and 5m'
+      runbook: docs/runbooks/slo-burn.md#metrics-availability-fast-burn
+  - alert: MetricsAvailabilitySlowBurn
+    expr: slo:metrics_availability:error_ratio_rate6h > (6.0 * 0.005) and slo:metrics_availability:error_ratio_rate30m > (6.0 * 0.005)
+    for: 15m
+    labels:
+      severity: page
+      service: metrics
+      slo: availability
+    annotations:
+      summary: 'metrics availability: error budget burning at >= 6x over 6h and 30m'
+      runbook: docs/runbooks/slo-burn.md#metrics-availability-slow-burn
+  - alert: MetricsAvailabilityTicketBurn
+    expr: slo:metrics_availability:error_ratio_rate3d > (1.0 * 0.005) and slo:metrics_availability:error_ratio_rate6h > (1.0 * 0.005)
+    for: 1h
+    labels:
+      severity: ticket
+      service: metrics
+      slo: availability
+    annotations:
+      summary: 'metrics availability: error budget burning at >= 1x over 3d and 6h'
+      runbook: docs/runbooks/slo-burn.md#metrics-availability-ticket-burn
+- name: slo-probes-recording
+  rules:
+  - record: slo:probes_availability:error_ratio_rate5m
+    expr: sum(rate(http_requests_total{service="probes",status=~"5.."}[5m])) / sum(rate(http_requests_total{service="probes"}[5m]))
+    labels:
+      service: probes
+      slo: availability
+  - record: slo:probes_availability:error_ratio_rate30m
+    expr: sum(rate(http_requests_total{service="probes",status=~"5.."}[30m])) / sum(rate(http_requests_total{service="probes"}[30m]))
+    labels:
+      service: probes
+      slo: availability
+  - record: slo:probes_availability:error_ratio_rate1h
+    expr: sum(rate(http_requests_total{service="probes",status=~"5.."}[1h])) / sum(rate(http_requests_total{service="probes"}[1h]))
+    labels:
+      service: probes
+      slo: availability
+  - record: slo:probes_availability:error_ratio_rate6h
+    expr: sum(rate(http_requests_total{service="probes",status=~"5.."}[6h])) / sum(rate(http_requests_total{service="probes"}[6h]))
+    labels:
+      service: probes
+      slo: availability
+  - record: slo:probes_availability:error_ratio_rate3d
+    expr: sum(rate(http_requests_total{service="probes",status=~"5.."}[3d])) / sum(rate(http_requests_total{service="probes"}[3d]))
+    labels:
+      service: probes
+      slo: availability
+- name: slo-probes-alerts
+  rules:
+  - alert: ProbesAvailabilityFastBurn
+    expr: slo:probes_availability:error_ratio_rate1h > (14.4 * 0.005) and slo:probes_availability:error_ratio_rate5m > (14.4 * 0.005)
+    for: 2m
+    labels:
+      severity: page
+      service: probes
+      slo: availability
+    annotations:
+      summary: 'probes availability: error budget burning at >= 14.4x over 1h and 5m'
+      runbook: docs/runbooks/slo-burn.md#probes-availability-fast-burn
+  - alert: ProbesAvailabilitySlowBurn
+    expr: slo:probes_availability:error_ratio_rate6h > (6.0 * 0.005) and slo:probes_availability:error_ratio_rate30m > (6.0 * 0.005)
+    for: 15m
+    labels:
+      severity: page
+      service: probes
+      slo: availability
+    annotations:
+      summary: 'probes availability: error budget burning at >= 6x over 6h and 30m'
+      runbook: docs/runbooks/slo-burn.md#probes-availability-slow-burn
+  - alert: ProbesAvailabilityTicketBurn
+    expr: slo:probes_availability:error_ratio_rate3d > (1.0 * 0.005) and slo:probes_availability:error_ratio_rate6h > (1.0 * 0.005)
+    for: 1h
+    labels:
+      severity: ticket
+      service: probes
+      slo: availability
+    annotations:
+      summary: 'probes availability: error budget burning at >= 1x over 3d and 6h'
+      runbook: docs/runbooks/slo-burn.md#probes-availability-ticket-burn
+- name: slo-siem-recording
+  rules:
+  - record: slo:siem_alert_scrub:error_ratio_rate5m
+    expr: sum(rate(siem_alerts_refused_total[5m])) / (sum(rate(siem_alerts_ingested_total[5m])) + sum(rate(siem_alerts_refused_total[5m])))
+    labels:
+      service: siem
+      slo: alert_scrub
+  - record: slo:siem_alert_scrub:error_ratio_rate30m
+    expr: sum(rate(siem_alerts_refused_total[30m])) / (sum(rate(siem_alerts_ingested_total[30m])) + sum(rate(siem_alerts_refused_total[30m])))
+    labels:
+      service: siem
+      slo: alert_scrub
+  - record: slo:siem_alert_scrub:error_ratio_rate1h
+    expr: sum(rate(siem_alerts_refused_total[1h])) / (sum(rate(siem_alerts_ingested_total[1h])) + sum(rate(siem_alerts_refused_total[1h])))
+    labels:
+      service: siem
+      slo: alert_scrub
+  - record: slo:siem_alert_scrub:error_ratio_rate6h
+    expr: sum(rate(siem_alerts_refused_total[6h])) / (sum(rate(siem_alerts_ingested_total[6h])) + sum(rate(siem_alerts_refused_total[6h])))
+    labels:
+      service: siem
+      slo: alert_scrub
+  - record: slo:siem_alert_scrub:error_ratio_rate3d
+    expr: sum(rate(siem_alerts_refused_total[3d])) / (sum(rate(siem_alerts_ingested_total[3d])) + sum(rate(siem_alerts_refused_total[3d])))
+    labels:
+      service: siem
+      slo: alert_scrub
+- name: slo-siem-alerts
+  rules:
+  - alert: SiemAlertScrubFastBurn
+    expr: slo:siem_alert_scrub:error_ratio_rate1h > (14.4 * 0.001) and slo:siem_alert_scrub:error_ratio_rate5m > (14.4 * 0.001)
+    for: 2m
+    labels:
+      severity: page
+      service: siem
+      slo: alert_scrub
+    annotations:
+      summary: 'siem alert_scrub: error budget burning at >= 14.4x over 1h and 5m'
+      runbook: docs/runbooks/slo-burn.md#siem-alert_scrub-fast-burn
+  - alert: SiemAlertScrubSlowBurn
+    expr: slo:siem_alert_scrub:error_ratio_rate6h > (6.0 * 0.001) and slo:siem_alert_scrub:error_ratio_rate30m > (6.0 * 0.001)
+    for: 15m
+    labels:
+      severity: page
+      service: siem
+      slo: alert_scrub
+    annotations:
+      summary: 'siem alert_scrub: error budget burning at >= 6x over 6h and 30m'
+      runbook: docs/runbooks/slo-burn.md#siem-alert_scrub-slow-burn
+  - alert: SiemAlertScrubTicketBurn
+    expr: slo:siem_alert_scrub:error_ratio_rate3d > (1.0 * 0.001) and slo:siem_alert_scrub:error_ratio_rate6h > (1.0 * 0.001)
+    for: 1h
+    labels:
+      severity: ticket
+      service: siem
+      slo: alert_scrub
+    annotations:
+      summary: 'siem alert_scrub: error budget burning at >= 1x over 3d and 6h'
+      runbook: docs/runbooks/slo-burn.md#siem-alert_scrub-ticket-burn
+- name: slo-voice-runtime-recording
+  rules:
+  - record: slo:voice_runtime_availability:error_ratio_rate5m
+    expr: sum(rate(http_requests_total{service="voice-runtime",status=~"5.."}[5m])) / sum(rate(http_requests_total{service="voice-runtime"}[5m]))
+    labels:
+      service: voice-runtime
+      slo: availability
+  - record: slo:voice_runtime_availability:error_ratio_rate30m
+    expr: sum(rate(http_requests_total{service="voice-runtime",status=~"5.."}[30m])) / sum(rate(http_requests_total{service="voice-runtime"}[30m]))
+    labels:
+      service: voice-runtime
+      slo: availability
+  - record: slo:voice_runtime_availability:error_ratio_rate1h
+    expr: sum(rate(http_requests_total{service="voice-runtime",status=~"5.."}[1h])) / sum(rate(http_requests_total{service="voice-runtime"}[1h]))
+    labels:
+      service: voice-runtime
+      slo: availability
+  - record: slo:voice_runtime_availability:error_ratio_rate6h
+    expr: sum(rate(http_requests_total{service="voice-runtime",status=~"5.."}[6h])) / sum(rate(http_requests_total{service="voice-runtime"}[6h]))
+    labels:
+      service: voice-runtime
+      slo: availability
+  - record: slo:voice_runtime_availability:error_ratio_rate3d
+    expr: sum(rate(http_requests_total{service="voice-runtime",status=~"5.."}[3d])) / sum(rate(http_requests_total{service="voice-runtime"}[3d]))
+    labels:
+      service: voice-runtime
+      slo: availability
+- name: slo-voice-runtime-alerts
+  rules:
+  - alert: VoiceRuntimeAvailabilityFastBurn
+    expr: slo:voice_runtime_availability:error_ratio_rate1h > (14.4 * 0.005) and slo:voice_runtime_availability:error_ratio_rate5m > (14.4 * 0.005)
+    for: 2m
+    labels:
+      severity: page
+      service: voice-runtime
+      slo: availability
+    annotations:
+      summary: 'voice-runtime availability: error budget burning at >= 14.4x over 1h and 5m'
+      runbook: docs/runbooks/slo-burn.md#voice-runtime-availability-fast-burn
+  - alert: VoiceRuntimeAvailabilitySlowBurn
+    expr: slo:voice_runtime_availability:error_ratio_rate6h > (6.0 * 0.005) and slo:voice_runtime_availability:error_ratio_rate30m > (6.0 * 0.005)
+    for: 15m
+    labels:
+      severity: page
+      service: voice-runtime
+      slo: availability
+    annotations:
+      summary: 'voice-runtime availability: error budget burning at >= 6x over 6h and 30m'
+      runbook: docs/runbooks/slo-burn.md#voice-runtime-availability-slow-burn
+  - alert: VoiceRuntimeAvailabilityTicketBurn
+    expr: slo:voice_runtime_availability:error_ratio_rate3d > (1.0 * 0.005) and slo:voice_runtime_availability:error_ratio_rate6h > (1.0 * 0.005)
+    for: 1h
+    labels:
+      severity: ticket
+      service: voice-runtime
+      slo: availability
+    annotations:
+      summary: 'voice-runtime availability: error budget burning at >= 1x over 3d and 6h'
+      runbook: docs/runbooks/slo-burn.md#voice-runtime-availability-ticket-burn

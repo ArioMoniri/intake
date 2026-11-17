@@ -33,10 +33,9 @@ so out loud.
 :class:`OutputMeasurement` binds a magnitude to its unit in one object, so a
 receiver cannot pick up one without the other, and the magnitude is typed
 :data:`~clinical_schemas.common.JsonValue` — the one carrier whose JSON form
-INT-309/ADR-029 defines (a tagged string, ``"~d38.50"``, which survives the
-round trip with its declared scale). No second encoding is defined here, and
-when that codec lands on the shared alias this document inherits it without an
-edit.
+INT-309/ADR-030 defines (a tagged string, ``"~d38.50"``, which survives the
+round trip with its declared scale). No second encoding is defined here: the
+codec sits on the shared alias, so this document inherits it without an edit.
 
 **Invariant 6 — ids, never values.** No field of this document can carry a
 direct identifier. The hospital's own ``patient_number`` is what the *request*
@@ -102,7 +101,7 @@ class OutputMeasurement(FrozenModel):
     code: MeasureCode = Field(description="Which self-reported measure this is (files/04 §5).")
     magnitude: JsonValue = Field(
         description="Exact magnitude on the shared JSON carrier — a Decimal keeps its "
-        "declared scale across the wire (INT-309/ADR-029); never a float."
+        "declared scale across the wire (INT-309/ADR-030); never a float."
     )
     unit: str = Field(
         min_length=1,

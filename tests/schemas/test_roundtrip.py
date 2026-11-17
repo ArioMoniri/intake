@@ -456,6 +456,27 @@ def test_rules_red_requires_register_and_location() -> None:
         )
 
 
+def test_red_rule_id_names_a_fired_rule_on_red_only() -> None:
+    """INT-453: the engine names the RED it delivers. The id must be one of
+    the fired rules (near miss: an id that did not fire), and it is a RED
+    axis — never on YELLOW/GREEN."""
+    fired = [{"id": "rf.a", "evidence": "e"}, {"id": "rf.b", "evidence": "e"}]
+    red = RulesTriageResult(
+        level=TriageLevel.RED, rules=fired, register="SILENT", location="REMOTE", red_rule_id="rf.b"
+    )
+    assert red.red_rule_id == "rf.b"
+    with pytest.raises(pydantic.ValidationError, match="red_rule_id"):
+        RulesTriageResult(
+            level=TriageLevel.RED,
+            rules=fired,
+            register="SILENT",
+            location="REMOTE",
+            red_rule_id="rf.not_fired",
+        )
+    with pytest.raises(pydantic.ValidationError, match="red_rule_id"):
+        RulesTriageResult(level=TriageLevel.YELLOW, rules=fired, red_rule_id="rf.a")
+
+
 def test_rules_non_green_requires_a_fired_rule() -> None:
     """Invariant 1: RED/YELLOW must name the rules-engine rules that fired."""
     with pytest.raises(pydantic.ValidationError):

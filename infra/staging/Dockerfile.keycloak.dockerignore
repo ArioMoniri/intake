@@ -1,0 +1,10 @@
+# INT-421 + INT-378: the staff Keycloak image's build context. Deny everything, then admit the
+# provider module and its jar pin. A local build's target/ never travels: the image builds its
+# own jar and checks it against the pin.
+*
+!infra/keycloak/providers/webauthn-session-notes.sha256
+!infra/keycloak/providers/webauthn-session-notes
+infra/keycloak/providers/webauthn-session-notes/target
+**/.env
+**/.env.*
+**/node_modules

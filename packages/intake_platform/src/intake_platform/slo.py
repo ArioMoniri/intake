@@ -214,20 +214,24 @@ class MetricsCatalog(BaseModel):
     def names(self) -> frozenset[str]:
         return frozenset(metric.name for metric in self.metrics)
 
-    def covers(self, reference: str) -> bool:
-        """True when a PromQL series reference resolves to a catalogued family.
+    def family(self, reference: str) -> MetricDef | None:
+        """The catalogued family a PromQL series reference resolves to, if any.
 
         A histogram family covers its ``_bucket``/``_count``/``_sum`` series.
         """
         by_name = {metric.name: metric for metric in self.metrics}
         if reference in by_name:
-            return True
+            return by_name[reference]
         for suffix in _HISTOGRAM_SUFFIXES:
             if reference.endswith(suffix):
                 base = by_name.get(reference[: -len(suffix)])
                 if base is not None and base.type == "histogram":
-                    return True
-        return False
+                    return base
+        return None
+
+    def covers(self, reference: str) -> bool:
+        """True when a PromQL series reference resolves to a catalogued family."""
+        return self.family(reference) is not None
 
     def unknown_references(self, expr: str) -> frozenset[str]:
         return frozenset(ref for ref in metric_references(expr) if not self.covers(ref))

@@ -69,19 +69,30 @@ def edge_tier() -> Iterator[None]:
         _compose("down", "-v", check=False)
 
 
-def _wait_for_edge(timeout_s: float = 60.0) -> None:
+def edge_ready(status: int) -> bool:
+    """The tier is up only once a request for the test host is *routed*: the
+    upstream echo answers 200. Traefik's own ping health passes, and it answers
+    404 for every host, before its dynamic configuration and the Coraza
+    middleware have loaded — taking that 404 as "up" ran the corpus against a
+    tier with no router, so every attack read as served and every clinical
+    turn as refused (#963, run 40616306265). A 404 is not ready."""
+    return status == 200
+
+
+def _wait_for_edge(timeout_s: float = 120.0) -> None:
     deadline = time.monotonic() + timeout_s
-    last: Exception | None = None
+    last: str | None = None
     while time.monotonic() < deadline:
         try:
             response = httpx.get(f"{BASE_URL}/healthz", headers={"Host": HOST_HEADER}, timeout=2.0)
         except httpx.HTTPError as exc:  # the tier is still coming up
-            last = exc
+            last = type(exc).__name__
         else:
-            if response.status_code < 500:
+            if edge_ready(response.status_code):
                 return
+            last = f"HTTP {response.status_code} (not routed yet)"
         time.sleep(1.0)
-    raise AssertionError(f"the edge tier did not answer within {timeout_s}s: {last}")
+    raise AssertionError(f"the edge tier did not route within {timeout_s}s: {last}")
 
 
 def _cases() -> list[dict[str, Any]]:

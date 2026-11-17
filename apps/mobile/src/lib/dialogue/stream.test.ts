@@ -403,6 +403,31 @@ describe("dialogueStreamReducer — the honest wait exists only at the end", () 
     expect(after.turn).toEqual({ phase: "handoff" });
   });
 
+  it("a question skipped in silence always comes back: the session ends in handoff, never done", () => {
+    // INT-414 (clinical review): the silence line tells the patient they can
+    // return to the previous question later, from the screen. That promise is
+    // this reducer's behaviour — a turn with no words leaves its question
+    // asked and unanswered, which is exactly what the hand-over carries to the
+    // manual steps, and silence is never counted as a misunderstanding (so it
+    // is not re-asked by voice either).
+    const before = state({
+      turn: { phase: "listening", step: 0 }, // the complaint, asked and being answered
+      answers: { duration: { values: ["week"], quote: "" }, extra: { values: [], quote: "" } },
+    });
+    let s = runGeneral(before, { type: "utterance", workId: 7 });
+    expect(s.asked).toEqual(["complaint"]);
+    expect(s.turn).toEqual({ phase: "settling" });
+    s = runGeneral(
+      s,
+      { type: "transcript_ready", workId: 7, text: "" },
+      { type: "extract_settled", workId: 7, candidates: {} },
+    );
+    expect(s.turn).toEqual({ phase: "handoff" });
+    expect(s.answers.complaint).toBeUndefined();
+    expect(s.unclear).toEqual({});
+    expect(s.pending).toEqual({});
+  });
+
   it("settled with everything answered → done", () => {
     const before = state({
       turn: { phase: "settling" },
@@ -807,10 +832,7 @@ describe("dialogueStreamReducer — an answer given here reaches the note (INT-2
     return dialogueStreamReducer(pack, next, { type: "confirm", values: candidate.values });
   }
 
-  function currentId(
-    pack: readonly IntakeQuestion[],
-    s: DialogueStreamState,
-  ): string | undefined {
+  function currentId(pack: readonly IntakeQuestion[], s: DialogueStreamState): string | undefined {
     return "step" in s.turn ? pack[s.turn.step]?.id : undefined;
   }
 
@@ -994,8 +1016,9 @@ describe("dialogueStreamReducer — an answer given here reaches the note (INT-2
     expect(Object.keys(s.answers).sort()).toEqual(["complaint", "duration", "onset_today_when"]);
     const model = sectionPanelModel(cardio, s, []);
     expect(model.filled).toBe(3);
-    expect(model.rows.filter((row) => row.status === "answered").map((row) => row.questionId)).
-      toEqual(["complaint", "duration", "onset_today_when"]);
+    expect(
+      model.rows.filter((row) => row.status === "answered").map((row) => row.questionId),
+    ).toEqual(["complaint", "duration", "onset_today_when"]);
   });
 
   it("the gates fire here exactly as they do in the typed steps", () => {

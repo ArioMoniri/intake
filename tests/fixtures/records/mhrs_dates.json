@@ -1,0 +1,302 @@
+{
+  "about": "INT-400: how a printed date in an MHRS appointment message is read, on the server and on the device. Both parsers are held to this one file: tests/records/test_mhrs.py holds the server's parse_printed_date and parse_mhrs_sms (intake_platform.records.turkish_dates and .mhrs, INT-122) to it, and apps/mobile/src/lib/taxonomy/turkishDates.test.ts and mhrsSms.test.ts hold the device's parsePrintedDate and parseMhrsSms to it. So the two cannot drift apart. The rule is the server's (CLAUDE.md invariant 22): a numeric date whose day-first and month-first readings are two different real days is refused as ambiguous and never guessed; a two-digit year is refused because the century would be a guess; a message that states two different dates is refused; a date-shaped token that cannot be read refuses the whole message, and the first refusal met decides which one is named (month-name forms are scanned before numeric ones). No committed source states the order an MHRS SMS prints (docs/backlog/blockers.md INT-122 Ask 2), so neither parser is given an order. The rows with an order exercise the seam only. When INT-399 fixes the order from a real sample, the rows here change, and both parsers have to change with them. Every message is synthetic, and names are masked. `printed` rows give one printed value; `messages` rows give a whole pasted message, and only its date is compared here. The app's new-visit form is held to the message rows too (apps/mobile/src/lib/visits.test.ts): a pasted message leaves the date field holding the row's date or nothing, never a date the field held before the paste. `expect` is either {\"date\": ISO date} or {\"refusal\": ambiguous | not_found | unreadable}.",
+  "printed": [
+    {
+      "id": "int134_fixture_reads_two_ways",
+      "printed": "03.09.2026",
+      "order": null,
+      "expect": { "refusal": "ambiguous" }
+    },
+    {
+      "id": "dotted_reads_two_ways",
+      "printed": "03.04.2026",
+      "order": null,
+      "expect": { "refusal": "ambiguous" }
+    },
+    {
+      "id": "slashed_reads_two_ways",
+      "printed": "01/02/2026",
+      "order": null,
+      "expect": { "refusal": "ambiguous" }
+    },
+    {
+      "id": "dashed_reads_two_ways",
+      "printed": "12-11-2026",
+      "order": null,
+      "expect": { "refusal": "ambiguous" }
+    },
+    {
+      "id": "near_miss_day_over_twelve",
+      "printed": "13.09.2026",
+      "order": null,
+      "expect": { "date": "2026-09-13" }
+    },
+    {
+      "id": "near_miss_month_first_only_reading",
+      "printed": "09/13/2026",
+      "order": null,
+      "expect": { "date": "2026-09-13" }
+    },
+    {
+      "id": "near_miss_same_day_both_ways",
+      "printed": "05.05.2026",
+      "order": null,
+      "expect": { "date": "2026-05-05" }
+    },
+    {
+      "id": "last_day_of_year",
+      "printed": "31.12.2026",
+      "order": null,
+      "expect": { "date": "2026-12-31" }
+    },
+    {
+      "id": "surrounding_space_is_stripped",
+      "printed": "  13.09.2026 ",
+      "order": null,
+      "expect": { "date": "2026-09-13" }
+    },
+    {
+      "id": "year_first",
+      "printed": "2026-09-03",
+      "order": null,
+      "expect": { "date": "2026-09-03" }
+    },
+    {
+      "id": "year_first_single_digits",
+      "printed": "2026.9.3",
+      "order": null,
+      "expect": { "date": "2026-09-03" }
+    },
+    {
+      "id": "month_name",
+      "printed": "3 Eylül 2026",
+      "order": null,
+      "expect": { "date": "2026-09-03" }
+    },
+    {
+      "id": "month_name_upper",
+      "printed": "03 EYLÜL 2026",
+      "order": null,
+      "expect": { "date": "2026-09-03" }
+    },
+    {
+      "id": "month_name_upper_dotless_i",
+      "printed": "3 MAYIS 2026",
+      "order": null,
+      "expect": { "date": "2026-05-03" }
+    },
+    {
+      "id": "month_name_upper_dotted_i",
+      "printed": "3 NİSAN 2026",
+      "order": null,
+      "expect": { "date": "2026-04-03" }
+    },
+    {
+      "id": "month_name_new_year",
+      "printed": "1 Ocak 2027",
+      "order": null,
+      "expect": { "date": "2027-01-01" }
+    },
+    {
+      "id": "unicode_digits_read_as_python_reads_them",
+      "printed": "\u0661\u0663.\u0660\u0669.\u0662\u0660\u0662\u0666",
+      "order": null,
+      "expect": { "date": "2026-09-13" }
+    },
+    {
+      "id": "two_digit_year",
+      "printed": "03.09.26",
+      "order": null,
+      "expect": { "refusal": "unreadable" }
+    },
+    {
+      "id": "two_digit_year_single_digits",
+      "printed": "3.9.26",
+      "order": null,
+      "expect": { "refusal": "unreadable" }
+    },
+    {
+      "id": "no_such_day_either_way",
+      "printed": "31.02.2026",
+      "order": null,
+      "expect": { "refusal": "unreadable" }
+    },
+    {
+      "id": "day_thirty_two",
+      "printed": "32.01.2026",
+      "order": null,
+      "expect": { "refusal": "unreadable" }
+    },
+    {
+      "id": "day_zero",
+      "printed": "00.09.2026",
+      "order": null,
+      "expect": { "refusal": "unreadable" }
+    },
+    {
+      "id": "month_thirteen_both_ways",
+      "printed": "13.13.2026",
+      "order": null,
+      "expect": { "refusal": "unreadable" }
+    },
+    {
+      "id": "two_four_digit_components",
+      "printed": "2026-09-2026",
+      "order": null,
+      "expect": { "refusal": "unreadable" }
+    },
+    {
+      "id": "year_first_no_such_day",
+      "printed": "2026-02-31",
+      "order": null,
+      "expect": { "refusal": "unreadable" }
+    },
+    {
+      "id": "not_a_month_word",
+      "printed": "3 Foo 2026",
+      "order": null,
+      "expect": { "refusal": "unreadable" }
+    },
+    {
+      "id": "month_name_no_such_day",
+      "printed": "31 Şubat 2026",
+      "order": null,
+      "expect": { "refusal": "unreadable" }
+    },
+    {
+      "id": "seam_day_first",
+      "printed": "03.04.2026",
+      "order": "day_first",
+      "expect": { "date": "2026-04-03" }
+    },
+    {
+      "id": "seam_month_first",
+      "printed": "03.04.2026",
+      "order": "month_first",
+      "expect": { "date": "2026-03-04" }
+    },
+    {
+      "id": "seam_day_first_no_such_day",
+      "printed": "31.04.2026",
+      "order": "day_first",
+      "expect": { "refusal": "unreadable" }
+    }
+  ],
+  "messages": [
+    {
+      "id": "int134_ascii_shape",
+      "text": "Sayin A*** Y***, 03.09.2026 Persembe saat 14:30 icin ANKARA BILKENT SEHIR HASTANESI KARDIYOLOJI poliklinigi randevunuz olusturulmustur. Randevu no: ABC123. MHRS",
+      "expect": { "refusal": "ambiguous" }
+    },
+    {
+      "id": "int134_turkish_charset",
+      "text": "Sayın H*** K***, 15.10.2026 Perşembe saat 09.40 için İSTANBUL EĞİTİM VE ARAŞTIRMA HASTANESİ GÖZ HASTALIKLARI polikliniği randevunuz oluşturulmuştur. MHRS",
+      "expect": { "date": "2026-10-15" }
+    },
+    {
+      "id": "int134_yan_dal",
+      "text": "Sayin B*** C***, 05.09.2026 saat 10:00 icin IZMIR SEHIR HASTANESI COCUK KARDIYOLOJISI randevunuz olusturulmustur. MHRS",
+      "expect": { "refusal": "ambiguous" }
+    },
+    {
+      "id": "int134_unknown_clinic",
+      "text": "Sayin D*** E***, 07.09.2026 saat 11:20 icin BURSA DEVLET HASTANESI CILDIYE randevunuz olusturulmustur. MHRS",
+      "expect": { "refusal": "ambiguous" }
+    },
+    {
+      "id": "int134_no_date",
+      "text": "NOROLOJI randevunuz ADANA SEHIR HASTANESI icin olusturulmustur. MHRS",
+      "expect": { "refusal": "not_found" }
+    },
+    {
+      "id": "int134_no_such_day",
+      "text": "31.02.2026 saat 10:00 KARDIYOLOJI randevunuz. MHRS",
+      "expect": { "refusal": "unreadable" }
+    },
+    {
+      "id": "near_miss_day_over_twelve",
+      "text": "Sayin F*** G***, 13.09.2026 saat 14:30 icin ANKARA SEHIR HASTANESI ROMATOLOJI poliklinigi randevunuz olusturulmustur. MHRS",
+      "expect": { "date": "2026-09-13" }
+    },
+    {
+      "id": "near_miss_same_day_both_ways",
+      "text": "Sayin F*** G***, 05.05.2026 saat 14:30 icin ANKARA SEHIR HASTANESI ROMATOLOJI poliklinigi randevunuz olusturulmustur. MHRS",
+      "expect": { "date": "2026-05-05" }
+    },
+    {
+      "id": "two_different_dates",
+      "text": "13.09.2026 tarihli randevunuz 20.09.2026 icin alinmistir",
+      "expect": { "refusal": "ambiguous" }
+    },
+    {
+      "id": "one_date_printed_twice",
+      "text": "Randevunuz 13.09.2026 — 13/09/2026",
+      "expect": { "date": "2026-09-13" }
+    },
+    {
+      "id": "month_name",
+      "text": "Randevunuz 13 Eylül 2026 tarihindedir",
+      "expect": { "date": "2026-09-13" }
+    },
+    {
+      "id": "month_name_upper_dotless_i",
+      "text": "RANDEVUNUZ 3 MAYIS 2026 SAAT 10:00",
+      "expect": { "date": "2026-05-03" }
+    },
+    {
+      "id": "ascii_typed_month_is_not_a_month",
+      "text": "Randevunuz 3 Mayis 2026 saat 10:00",
+      "expect": { "refusal": "not_found" }
+    },
+    {
+      "id": "a_word_that_is_not_a_month_is_skipped",
+      "text": "3 Foo 2026 — randevu 13.09.2026",
+      "expect": { "date": "2026-09-13" }
+    },
+    {
+      "id": "an_unreadable_token_refuses_the_message",
+      "text": "Randevu 13.09.2026, kayit 03.09.26",
+      "expect": { "refusal": "unreadable" }
+    },
+    {
+      "id": "the_first_refusal_met_is_named",
+      "text": "Randevu 03.09.2026, iptal icin son gun 15.09.2026",
+      "expect": { "refusal": "ambiguous" }
+    },
+    {
+      "id": "month_names_are_scanned_before_numbers",
+      "text": "Randevu 03.04.2026 veya 31 Şubat 2026",
+      "expect": { "refusal": "unreadable" }
+    },
+    {
+      "id": "a_date_glued_to_more_digits_is_not_a_date_token",
+      "text": "Kod 03.09.2026.1 MHRS",
+      "expect": { "refusal": "not_found" }
+    },
+    {
+      "id": "no_break_space_is_space",
+      "text": "Randevunuz 3\u00a0Eylül\u00a02026",
+      "expect": { "date": "2026-09-03" }
+    },
+    {
+      "id": "unicode_digits",
+      "text": "Randevunuz \u0661\u0663.\u0660\u0669.\u0662\u0660\u0662\u0666",
+      "expect": { "date": "2026-09-13" }
+    },
+    {
+      "id": "year_first",
+      "text": "Randevu tarihi 2026-09-03 saat 10:00",
+      "expect": { "date": "2026-09-03" }
+    },
+    {
+      "id": "mhrs_two_digit_year",
+      "text": "Sayin A*** Y***, 15.10.26 Persembe saat 14:30 icin ANKARA SEHIR HASTANESI KARDIYOLOJI poliklinigi randevunuz olusturulmustur. MHRS",
+      "expect": { "refusal": "unreadable" }
+    },
+    {
+      "id": "mhrs_day_and_month_without_year",
+      "text": "Sayin A*** Y***, 15.10 Persembe saat 14:30 icin ANKARA SEHIR HASTANESI KARDIYOLOJI poliklinigi randevunuz olusturulmustur. MHRS",
+      "expect": { "refusal": "not_found" }
+    }
+  ]
+}

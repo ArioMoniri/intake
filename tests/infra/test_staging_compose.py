@@ -26,24 +26,38 @@ container. What IS decidable without booting anything:
   decision D1, INT-347), publishes no port, and takes its root pair from the
   host-generated env file with no default;
 - the restart probe refuses a process-local KEK, and the negative control
-  shows why: a file-dev KEK does not survive a process restart.
+  shows why: a file-dev KEK does not survive a process restart;
+- INT-352: the API gets the App Attest keys the operator sets, each with no
+  default, and a host-generated tokenization key. INT-528: the SMS vendor
+  (Netgsm) lives in OpenBao, never in the env file, and deploy.sh refuses an
+  Apple team id unless the API's own token can read the whole Netgsm document,
+  so a verified device is never told a code was sent that nobody sent;
+- INT-352 (audit F18): ``/version``'s third stamp, ``sbom_digest``, is the
+  sha256 of an SPDX SBOM that syft, pinned by digest, writes of the built api
+  image into the host's release directory, never into the image. compose
+  requires it to start the api; no SBOM refuses the deploy; smoke.sh fails a
+  ``dev`` in any of the three stamps and a digest that is not the sha256 of
+  the SBOM on disk. A docker shim stands in for the host to run that logic.
 
 The host-side run (init.sh, deploy.sh, smoke.sh) belongs to the owner and is
-recorded in docs/evidence/INT-345.md when it happens. Nothing here claims it
-ran.
+recorded in docs/evidence/INT-345.md and INT-352.md when it happens. Nothing
+here claims it ran.
 """
 
 from __future__ import annotations
 
+import hashlib
 import importlib.util
 import inspect
 import io
+import json
 import os
 import re
 import shutil
 import stat
 import subprocess
 import sys
+from collections.abc import Mapping
 from pathlib import Path
 from types import ModuleType
 from typing import Any, get_args
@@ -52,6 +66,7 @@ import pytest
 import yaml
 from intake_api import settings as api_settings
 from intake_api.settings import KekMode
+from intake_api.tokenization_key import TOKENIZATION_KV_PATH
 from intake_platform.envelope import (
     EnvelopeCipher,
     FileKekProvider,
@@ -77,6 +92,11 @@ SMOKE = STAGING / "smoke.sh"
 PROBE = STAGING / "staging_probe.py"
 REVISION = STAGING / "REVISION"
 GITATTRIBUTES = STAGING / ".gitattributes"
+#: INT-421: the admin tier (Keycloak, oauth2-proxy, the console image).
+ADMIN_DOCKERFILE = STAGING / "Dockerfile.admin-web"
+ADMIN_DOCKERIGNORE = STAGING / "Dockerfile.admin-web.dockerignore"
+REALM = STAGING / "keycloak" / "intake-realm.json"
+OAUTH2_PROXY_CONFIG = STAGING / "oauth2-proxy" / "alpha.yaml"
 RUNBOOK = REPO / "docs" / "runbooks" / "staging.md"
 MIGRATIONS = REPO / "migrations" / "versions"
 
@@ -95,10 +115,35 @@ ARTEFACT = (
     PROBE,
     REVISION,
     GITATTRIBUTES,
+    ADMIN_DOCKERFILE,
+    ADMIN_DOCKERIGNORE,
+    REALM,
+    OAUTH2_PROXY_CONFIG,
 )
 
 PROJECT = "intake-staging"
-SERVICES = {"api", "postgres", "redis", "openbao", "minio", "caddy"}
+SERVICES = {
+    "api",
+    "postgres",
+    "redis",
+    "openbao",
+    "minio",
+    "caddy",
+    # INT-421: the admin tier
+    "keycloak",
+    "oauth2-proxy",
+    "admin-web",
+    # INT-442: the synthetic host's forward proxy (tests/infra/test_staging_egress.py)
+    "egress-proxy",
+    # INT-560: the synthetic probes on the api image (tests/infra/test_staging_probes.py)
+    "probes",
+    # INT-528 / ADR-042: the SMS vendor's own forward proxy
+    # (tests/infra/test_staging_sms_egress.py)
+    "sms-egress",
+}
+
+#: INT-560: services that run the api's own image, so the api's SBOM describes them.
+API_IMAGE_SERVICES = {"api", "probes"}
 STAGING_ENV = "staging"
 
 #: The dev-gate prefix, derived from the API's own gate names instead of being
@@ -115,8 +160,9 @@ DEV_PREFIX = os.path.commonprefix(
 #: The KEK mode that keeps keys in process memory; everything else is Transit.
 PROCESS_LOCAL_KEK = "file-dev"
 
-#: Build-time stamps set by deploy.sh, not by the root-only .env.
-DEPLOY_STAMPED = {"INTAKE_GIT_SHA", "INTAKE_BUILT_AT"}
+#: /version's stamps, set by the host scripts, not by the root-only .env: the
+#: commit and build time (build args) and the SBOM digest (a runtime variable).
+DEPLOY_STAMPED = {"INTAKE_GIT_SHA", "INTAKE_BUILT_AT", "INTAKE_SBOM_DIGEST"}
 
 #: Committed, non-secret values that lib.sh exports for every compose call.
 LIB_EXPORTED = {"OBJECT_STORE_IMAGE"}
@@ -166,8 +212,57 @@ API_SOURCES = (
     REPO / "services" / "api" / "src" / "intake_api" / "app.py",
 )
 
-#: The one template key the owner supplies; every other one is a generated secret.
+#: The one template key the owner must supply; init.sh refuses to run without it.
 OWNER_SUPPLIED = {"STAGING_HOSTNAME"}
+
+#: INT-352: Apple App Attest (INT-344), read from the API once its base carries
+#: INT-344; until then these same names.
+APP_ATTEST_KEYS = tuple(
+    str(getattr(api_settings, constant, name))
+    for constant, name in (
+        ("ENV_APP_ATTEST_TEAM_ID", "INTAKE_APP_ATTEST_TEAM_ID"),
+        ("ENV_APP_ATTEST_BUNDLE_ID", "INTAKE_APP_ATTEST_BUNDLE_ID"),
+        ("ENV_APP_ATTEST_ENVIRONMENT", "INTAKE_APP_ATTEST_ENVIRONMENT"),
+    )
+)
+APP_ATTEST_TEAM_ID = APP_ATTEST_KEYS[0]
+
+#: INT-528: the SMS vendor (Netgsm, owner decision INT-358) is an OpenBao
+#: document the API reads with its own token, never an env-file key
+#: (invariant 14). netgsm_secrets.sh writes it.
+SMS_KV_PATH = "api/netgsm"
+SMS_FIELDS = ("usercode", "password", "msgheader")
+#: The env-file names INT-352 gave the Twilio keys. None may come back, and no
+#: Netgsm value may take their place.
+RETIRED_SMS_KEYS = ("TWILIO_ACCOUNT_SID", "TWILIO_AUTH_TOKEN", "TWILIO_FROM")
+
+#: Template keys the operator sets by hand in the root-only env file. None is
+#: generated, and each may stay empty: the API reads empty as unset and fails
+#: closed on it.
+OPERATOR_SUPPLIED = {*APP_ATTEST_KEYS}
+
+#: INT-421: generated as base64url of 32 bytes (oauth2-proxy's key form),
+#: not gen_secret's 64 hex.
+COOKIE_SECRET_KEYS = {"OAUTH2_PROXY_COOKIE_SECRET"}
+COOKIE_SECRET_FORM = re.compile(r"[A-Za-z0-9_-]{43}")
+
+#: The phone-tokenization key's old env-file name. INT-584 (owner decision D38)
+#: moved the key into OpenBao (secret/api/tokenization), so no template key,
+#: compose variable or generated value carries it any more.
+TOKENIZATION_KEY = api_settings.ENV_TOKENIZATION_KEY
+
+#: lib.sh's deploy check: an Apple team id needs the whole Netgsm document.
+SMS_GUARD = "require_sms_with_app_attest"
+
+#: The runbook section that tells the operator which keys to set.
+ATTEST_SMS_SECTION = "App Attest and SMS"
+
+#: Values an operator might type, for the guard tests. Neither is a real team
+#: id or credential; the refusals must echo neither.
+TEAM_ID_VALUE = "ABCDE12345"
+OPERATOR_VALUE = "operator-typed-value"
+#: The Netgsm document the guard reads, as `bao kv get -format=json` prints it.
+SMS_VALUES = {"usercode": "8501234567", "password": "vault-typed-value", "msgheader": "BASLIK"}
 
 #: The issue that records the object-store image and its licence.
 OBJECT_STORE_ISSUE = "INT-347"
@@ -200,6 +295,57 @@ SWAP_SECTION = "Host memory: swap off or encrypted"
 
 #: The first statement that starts OpenBao, in init.sh and in deploy.sh.
 OPENBAO_START = "compose up -d postgres redis openbao"
+
+#: INT-352 (audit F18): the SBOM generator. syft at v1.51.1, the version CI's
+#: anchore/sbom-action v0.24.1 runs, pinned by the index digest resolved from
+#: Docker Hub's v2 API on 2026-09-27. Apache-2.0, read from the raw LICENSE
+#: blob at the image's revision (docs/evidence/INT-352.md). Assembled from its
+#: parts, like the object store's reference.
+_SBOM_REPOSITORY = "anchore/syft"
+_SBOM_TAG = "v1.51.1"
+_SBOM_DIGEST = "sha256:95fe0835e5bebc6f8b1f8acef68d47d63d594ef4c0f25c097ff853b23cbac74c"
+APPROVED_SBOM_IMAGE = f"{_SBOM_REPOSITORY}:{_SBOM_TAG}@{_SBOM_DIGEST}"
+
+#: The issue a refusal about the SBOM names.
+SBOM_ISSUE = "INT-352"
+
+#: The runtime variable ``VersionInfo`` reads for ``/version``'s sbom_digest.
+SBOM_STAMP = "INTAKE_SBOM_DIGEST"
+
+#: The form /version's sbom_digest takes: an OCI-style sha256 digest.
+SBOM_DIGEST_FORM = re.compile(r"^sha256:[0-9a-f]{64}$")
+
+#: Where a release's SBOM goes when the state dir is the default one: beside
+#: the host's state, outside the build context the image is made from.
+DEFAULT_RELEASES_DIR = "/etc/intake-staging/releases"
+
+#: A stamp given a default, or "dev" assigned to it: how F18's live
+#: ``"dev"`` would come back.
+STAMP_FALLBACK = re.compile(
+    r"\$\{INTAKE_(?:GIT_SHA|BUILT_AT|SBOM_DIGEST):?-"
+    r"|(?:GIT_SHA|BUILT_AT|SBOM_DIGEST)\s*[:=]\s*[\"']?dev\b"
+)
+
+#: The one build statement: its SBOM digest cannot exist yet (see lib.sh).
+BUILD_STATEMENT = 'INTAKE_SBOM_DIGEST="$SBOM_DIGEST_DURING_BUILD" compose build api'
+#: INT-421: the console image, built from the same commit, with the same
+#: build-time value (it is not a digest either).
+ADMIN_BUILD_STATEMENT = 'INTAKE_SBOM_DIGEST="$SBOM_DIGEST_DURING_BUILD" compose build admin-web'
+#: INT-378: the staff Keycloak, INT-390's pin plus the checked WebAuthn provider jar, built
+#: from the same commit with the same build-time value.
+KEYCLOAK_BUILD_STATEMENT = 'INTAKE_SBOM_DIGEST="$SBOM_DIGEST_DURING_BUILD" compose build keycloak'
+
+#: The docker shim's built image and commit, and the SPDX document its syft
+#: prints (the shape syft's spdx-json output takes, trimmed).
+SHIM_COMMIT = "0123456789abcdef0123456789abcdef01234567"
+SHIM_IMAGE_ID = "sha256:" + "ab" * 32
+SHIM_SPDX = json.dumps(
+    {
+        "spdxVersion": "SPDX-2.3",
+        "name": f"intake-staging/api:{SHIM_COMMIT}",
+        "packages": [{"SPDXID": "SPDXRef-Package-python-uvicorn", "name": "uvicorn"}],
+    }
+)
 
 
 def _withdrawn_upstream_image() -> re.Pattern[str]:
@@ -496,6 +642,19 @@ class TestNonDevBoot:
     def test_intake_env_is_staging(self) -> None:
         assert _environment(_service("api"))["INTAKE_ENV"] == STAGING_ENV
 
+    def test_the_api_is_handed_the_safety_inbox_store(self) -> None:
+        """INT-475: the host serves the red rule set, so a hop RED must reach the
+        clinic Safety inbox — the API is given the store, on the Redis it already
+        uses, built from the generated password. Unset, every hop RED pages
+        RedInboxRouteFailed and an on-site answer is refused."""
+        from intake_platform.safety_inbox import ENV_SAFETY_INBOX_REDIS_URL
+
+        env = _environment(_service("api"))
+        assert "INTAKE_API_TRIAGE_RULES" in env, "the precondition: this host serves REDs"
+        value = env[ENV_SAFETY_INBOX_REDIS_URL]
+        assert value == "redis://:${REDIS_PASSWORD:?run init.sh}@redis:6379/0"
+        assert value == env["INTAKE_REDIS_URL"]
+
     def test_the_kek_mode_is_transit(self) -> None:
         modes = set(get_args(KekMode))
         assert PROCESS_LOCAL_KEK in modes, "the negative control names a real mode"
@@ -521,11 +680,6 @@ class TestNonDevBoot:
         for key in ("INTAKE_API_DB_URL", "INTAKE_API_AUDIT_DB_URL", "INTAKE_API_BOOTSTRAP_DB_URL"):
             assert "@postgres:5432/" in env[key], key
             assert not URL_CREDENTIAL_LITERAL.search(env[key]), key
-
-    def test_the_otp_tier_is_left_unconfigured(self) -> None:
-        """No tokenization key → no OTP tier (503). Wiring it here would wire the
-        dev delivery logger, which answers 'sent' and sends nothing."""
-        assert api_settings.ENV_TOKENIZATION_KEY not in _environment(_service("api"))
 
 
 # --- OpenBao: server mode, file storage, transit, least-privilege policy ----------------
@@ -570,17 +724,32 @@ class TestOpenBao:
         memlock = _service("openbao")["ulimits"]["memlock"]
         assert memlock in (-1, {"soft": -1, "hard": -1})
 
-    def test_the_api_policy_grants_only_tenant_transit_keys(self) -> None:
+    def test_the_api_policy_grants_tenant_transit_keys_and_one_sms_read(self) -> None:
+        """Transit for the tenant KEKs, and outside transit/ exactly one grant:
+        read on the SMS vendor's document (INT-528)."""
         prefix = inspect.signature(TransitKekProvider.__init__).parameters["key_prefix"].default
         blocks = re.findall(
             r'path\s+"([^"]+)"\s*\{\s*capabilities\s*=\s*\[([^\]]*)\]\s*\}', _text(API_POLICY)
         )
         assert blocks
+        # INT-428 (ADR-035): the hosted-lane provider keys; INT-528: read on the
+        # SMS vendor's document; INT-584 (D38): read on the phone-tokenization
+        # key. Exactly these paths with these capabilities.
+        model_lanes = {
+            f"secret/data/{TOKENIZATION_KV_PATH}": {"read"},
+            "secret/data/model-lanes/*": {"create", "update", "read"},
+            "secret/metadata/model-lanes/*": {"read", "list", "delete"},
+            f"secret/data/{SMS_KV_PATH}": {"read"},
+        }
         for path, caps in blocks:
+            granted = {c.strip().strip('"') for c in caps.split(",") if c.strip()}
+            if path in model_lanes:
+                assert granted == model_lanes[path], (path, granted)
+                continue
             assert path.startswith("transit/"), path
             assert f"/{prefix}-" in path, path
-            granted = {c.strip().strip('"') for c in caps.split(",") if c.strip()}
             assert granted <= {"create", "update", "read"}, (path, granted)
+        assert {path for path, _ in blocks} >= set(model_lanes)
 
     def test_init_enables_transit_and_creates_the_probe_kek(self) -> None:
         probe = _load_probe()
@@ -611,11 +780,17 @@ class TestOpenBao:
 
 class TestSupplyChainAndExposure:
     def test_every_pulled_image_is_pinned_by_digest(self) -> None:
-        for name, service in _compose()["services"].items():
-            if "build" in service:
+        services = _compose()["services"]
+        # an image this compose builds is never pulled (INT-560: the probes
+        # service runs the api's build); everything else is pinned
+        built = {service["image"] for service in services.values() if "build" in service}
+        for name, service in services.items():
+            if "build" in service or service["image"] in built:
                 continue
             image = _object_store_image() if name == "minio" else service["image"]
             assert PINNED.match(image), f"{name}: {image}"
+        # near miss: an unpinned image that names no build is still refused
+        assert not PINNED.match("intake-staging/api:latest")
 
     def test_every_dockerfile_base_is_pinned_by_digest(self) -> None:
         aliases = {alias for _, alias in _stages() if alias}
@@ -651,10 +826,16 @@ class TestSupplyChainAndExposure:
             assert not URL_CREDENTIAL_LITERAL.search(line), f"{path.name}:{lineno}: {line!r}"
 
     def test_secret_environment_values_are_interpolated(self) -> None:
+        """A generated secret is a required interpolation. An operator key may
+        stay empty, so it is its own plain interpolation, never a literal."""
         secretish = re.compile(r"PASSWORD|TOKEN|SECRET|_AUTH$|_KEY$")
         for name, service in _compose()["services"].items():
             for key, value in _environment(service).items():
-                if secretish.search(key):
+                if not secretish.search(key):
+                    continue
+                if key in OPERATOR_SUPPLIED:
+                    assert value == f"${{{key}}}", f"{name}.{key}"
+                else:
                     assert REQUIRED_INTERPOLATION.match(value), f"{name}.{key}"
 
     def test_the_env_template_holds_keys_only(self) -> None:
@@ -850,7 +1031,8 @@ class TestHostScripts:
 
     def test_deploy_is_the_idempotent_compose_up_then_probes(self) -> None:
         text = _text(DEPLOY)
-        assert "compose up -d --build" in text
+        # INT-352: the up runs the image the SBOM describes, never a rebuild
+        assert "compose up -d --no-build" in text
         assert "unseal_openbao" in text
         assert "https://" in text
 
@@ -1117,9 +1299,11 @@ class TestNonDevCredentials:
         assert first.returncode == 0, first.stderr
         generated = _read_env_file(env_file)
         assert set(generated) == set(_env_template()) - OWNER_SUPPLIED
-        for key, value in generated.items():
-            assert re.fullmatch(r"[0-9a-f]{64}", value), key
-        assert len(set(generated.values())) == len(generated), "each secret is its own"
+        secrets = {k: v for k, v in generated.items() if k not in OPERATOR_SUPPLIED}
+        for key, value in secrets.items():
+            form = COOKIE_SECRET_FORM if key in COOKIE_SECRET_KEYS else re.compile(r"[0-9a-f]{64}")
+            assert form.fullmatch(value), key
+        assert len(set(secrets.values())) == len(secrets), "each secret is its own"
         assert stat.S_IMODE(env_file.stat().st_mode) == 0o600
         second = _generate_env_file(env_file)
         assert second.returncode == 0, second.stderr
@@ -1278,6 +1462,636 @@ class TestObjectStore:
         assert "owner decision D1" in text
         assert OBJECT_STORE_ISSUE in text
         assert "depends on INT-347" not in text, "the deploy no longer waits on INT-347"
+
+
+# --- INT-352: App Attest and SMS reach the API, and fail closed when unset -------------
+
+
+def _operator_env(tmp_path: Path, values: dict[str, str]) -> Path:
+    """A generated env file, plus the owner's hostname and the given values."""
+    env_file = tmp_path / ".env"
+    result = _generate_env_file(env_file)
+    assert result.returncode == 0, result.stderr
+    pairs = {**_read_env_file(env_file), "STAGING_HOSTNAME": "3-91-12-7.sslip.io", **values}
+    env_file.write_text("".join(f"{k}={v}\n" for k, v in pairs.items()), encoding="utf-8")
+    return env_file
+
+
+def _run_on_env(env_file: Path, function: str) -> subprocess.CompletedProcess[str]:
+    """One lib.sh function against a scratch env file."""
+    return _bash(f'ENV_FILE="$1"; {function}', str(env_file), cwd=env_file.parent)
+
+
+#: Stands in for lib.sh's bao_as: records the token and arguments it was handed,
+#: then prints the document as `bao kv get -format=json` would, or fails as the
+#: CLI does when the document is absent or the policy refuses the read.
+_BAO_SHIM = (
+    'DOC="$2"; TOKEN_LOG="$3"; '
+    'bao_as() { printf "%s %s\\n" "$1" "${*:2}" >>"$TOKEN_LOG"; '
+    'if [[ -f $DOC ]]; then cat "$DOC"; else return 2; fi; }'
+)
+
+
+def _run_guard(
+    env_file: Path, document: Mapping[str, object] | None
+) -> subprocess.CompletedProcess[str]:
+    """The SMS guard against a scratch env file and a stand-in OpenBao."""
+    doc_file = env_file.parent / "kv-get.json"
+    if document is not None:
+        doc_file.write_text(
+            json.dumps({"data": {"data": document, "metadata": {"version": 1}}}),
+            encoding="utf-8",
+        )
+    return _bash(
+        f'ENV_FILE="$1"; {_BAO_SHIM}; {SMS_GUARD}',
+        str(env_file),
+        str(doc_file),
+        str(env_file.parent / "bao-calls.log"),
+        cwd=env_file.parent,
+    )
+
+
+class TestAttestAndSms:
+    """INT-352 and INT-528. The deployed API gets the Apple App Attest keys
+    (INT-344). The operator sets them by hand, and each may stay empty. The
+    phone-tokenization key that turns the OTP tier on is no env-file key since
+    INT-584 (D38): it lives in OpenBao (secret/api/tokenization), and
+    tests/infra/test_staging_tokenization_key.py pins how it got there. The SMS
+    vendor is not an env-file key either: Netgsm's credentials live in OpenBao
+    (secret/api/netgsm), written by netgsm_secrets.sh.
+
+    What keeps this fail-closed:
+    - an empty operator key reaches the API as empty, which the API reads as
+      unset. With no Apple team id every iOS attestation is refused, and
+      Android's is refused until HB-A3, so no request reaches SMS delivery;
+    - an Apple team id without the whole Netgsm document, readable by the
+      API's own token, would let a genuine device through to an OTP tier with
+      no vendor, so deploy.sh refuses that pairing before the API starts."""
+
+    def test_the_template_lists_every_key_with_no_value(self) -> None:
+        template = _env_template()
+        for key in sorted(OPERATOR_SUPPLIED):
+            assert key in template, key
+            assert template[key] == "", key
+
+    @pytest.mark.parametrize("key", sorted(OPERATOR_SUPPLIED))
+    def test_compose_passes_each_operator_key_with_no_default(self, key: str) -> None:
+        """Exactly `${KEY}`: no default, and not required either, so an empty
+        key neither stops compose nor becomes a value the API would trust."""
+        assert _environment(_service("api")).get(key) == f"${{{key}}}", key
+        for name in SERVICES - {"api"}:
+            assert key not in _environment(_service(name)), (name, key)
+
+    def test_the_sms_vendor_is_never_an_env_file_key(self) -> None:
+        """Invariant 14: the vendor's password is a secret, and secrets come
+        from OpenBao. Neither the retired Twilio names nor a Netgsm one may sit
+        in the template, the compose file or lib.sh."""
+        for name in SERVICES:
+            for key in _environment(_service(name)):
+                assert not key.startswith(("TWILIO_", "NETGSM_")), (name, key)
+        for key in _env_template():
+            assert not key.startswith(("TWILIO_", "NETGSM_")), key
+        lib = _code(LIB)
+        for key in RETIRED_SMS_KEYS:
+            assert key not in lib, key
+        assert f'SMS_KV_PATH="{SMS_KV_PATH}"' in lib
+        assert f"SMS_KV_FIELDS=({' '.join(SMS_FIELDS)})" in lib
+
+    def test_compose_passes_no_tokenization_key(self) -> None:
+        """INT-584 (D38): the API reads the key from OpenBao alone, so no
+        service's environment carries it and the template does not list it
+        (init.sh would mint a new one, which forks every pseudonym)."""
+        for name in SERVICES:
+            assert TOKENIZATION_KEY not in _environment(_service(name)), name
+        assert TOKENIZATION_KEY not in _env_template()
+
+    def test_init_generates_no_tokenization_key_and_leaves_operator_keys_empty(
+        self, tmp_path: Path
+    ) -> None:
+        env_file = tmp_path / ".env"
+        result = _generate_env_file(env_file)
+        assert result.returncode == 0, result.stderr
+        generated = _read_env_file(env_file)
+        assert TOKENIZATION_KEY not in generated, "made in OpenBao, never in the env file"
+        for key in OPERATOR_SUPPLIED:
+            assert generated[key] == "", f"{key} must be the operator's, never generated"
+
+    def test_a_rerun_of_init_keeps_what_the_operator_set(self, tmp_path: Path) -> None:
+        env_file = _operator_env(
+            tmp_path, {APP_ATTEST_TEAM_ID: TEAM_ID_VALUE, APP_ATTEST_KEYS[1]: OPERATOR_VALUE}
+        )
+        before = _read_env_file(env_file)
+        result = _generate_env_file(env_file)
+        assert result.returncode == 0, result.stderr
+        assert _read_env_file(env_file) == before
+
+    def test_load_env_admits_empty_operator_keys(self, tmp_path: Path) -> None:
+        result = _run_on_env(_operator_env(tmp_path, {}), "load_env")
+        assert result.returncode == 0, result.stderr
+
+    def test_load_env_still_refuses_an_empty_generated_secret(self, tmp_path: Path) -> None:
+        """Negative control: the operator keys are exempt, the secrets are not.
+        A host missing one is told to re-run init.sh, which fills in only what
+        is missing."""
+        result = _run_on_env(_operator_env(tmp_path, {"REDIS_PASSWORD": ""}), "load_env")
+        assert result.returncode != 0
+        assert "REDIS_PASSWORD is empty" in result.stderr, result.stderr
+        assert "./init.sh" in result.stderr
+
+    def test_load_env_admits_a_migrated_host_with_no_tokenization_key(self, tmp_path: Path) -> None:
+        """INT-584: once the key is in OpenBao, the env file holds none, and
+        that is the healthy state rather than a missing secret."""
+        env_file = _operator_env(tmp_path, {})
+        assert TOKENIZATION_KEY not in _read_env_file(env_file)
+        result = _run_on_env(env_file, "load_env")
+        assert result.returncode == 0, result.stderr
+
+    def test_deploy_runs_the_sms_guard_once_openbao_answers_and_before_the_api_starts(
+        self,
+    ) -> None:
+        """The guard reads OpenBao, so it runs after the unseal, the token
+        renewal and the Netgsm sync from SSM (the parameters are the values'
+        source of truth), and before the compose call that starts the API."""
+        assert re.search(rf"^{SMS_GUARD}\(\) \{{", _code(LIB), re.M)
+        code = _code(DEPLOY)
+        assert re.search(rf"^{SMS_GUARD}$", code, re.M), "deploy.sh never calls the guard"
+        api_up = code.index("compose up -d --no-build --wait --remove-orphans")
+        assert (
+            code.index("load_env")
+            < code.index("unseal_openbao")
+            < code.index("renew_api_token")
+            < code.index('netgsm_secrets.sh" --if-present')
+            < code.index(SMS_GUARD)
+            < api_up
+        )
+
+    def test_deploy_restarts_the_api_when_the_netgsm_document_changed(self) -> None:
+        """The API reads the document at boot; a rotated value must reach it."""
+        code = _code(DEPLOY)
+        sync = code.index('NETGSM_SYNC=$("$STAGING_DIR/netgsm_secrets.sh" --if-present)')
+        restart = code.index("[[ $NETGSM_SYNC == changed ]]")
+        assert sync < code.index("compose up -d --no-build --wait --remove-orphans") < restart
+
+    @pytest.mark.parametrize("document", [None, SMS_VALUES], ids=["no-sms", "sms"])
+    def test_no_team_id_is_admitted_whatever_the_vault_holds(
+        self, tmp_path: Path, document: dict[str, object] | None
+    ) -> None:
+        result = _run_guard(_operator_env(tmp_path, {}), document)
+        assert result.returncode == 0, result.stderr
+        assert not (tmp_path / "bao-calls.log").exists(), "no team id, no vault read"
+
+    def test_a_team_id_with_the_whole_document_is_admitted(self, tmp_path: Path) -> None:
+        """Positive control: the guard is a pairing check, not a refusal of
+        App Attest. It reads with the API's own token, never the root token,
+        so a missing policy grant is caught here too."""
+        env_file = _operator_env(tmp_path, {APP_ATTEST_TEAM_ID: TEAM_ID_VALUE})
+        result = _run_guard(env_file, SMS_VALUES)
+        assert result.returncode == 0, result.stderr
+        [call] = (tmp_path / "bao-calls.log").read_text(encoding="utf-8").splitlines()
+        api_token = _read_env_file(env_file)["OPENBAO_TOKEN"]
+        assert call.split(" ", 1)[0] == api_token
+        assert call.endswith(f"kv get -mount=secret -format=json {SMS_KV_PATH}"), call
+
+    @pytest.mark.parametrize(
+        "missing", [*((field,) for field in SMS_FIELDS), SMS_FIELDS], ids=[*SMS_FIELDS, "all"]
+    )
+    @pytest.mark.parametrize("form", ["absent", "blank"])
+    def test_a_team_id_without_the_whole_document_is_refused(
+        self, tmp_path: Path, missing: tuple[str, ...], form: str
+    ) -> None:
+        document: dict[str, object] = {
+            key: value for key, value in SMS_VALUES.items() if key not in missing
+        }
+        if form == "blank":
+            document.update(dict.fromkeys(missing, "  "))
+        env_file = _operator_env(tmp_path, {APP_ATTEST_TEAM_ID: TEAM_ID_VALUE})
+        result = _run_guard(env_file, document)
+        assert result.returncode != 0
+        for field in missing:
+            assert field in result.stderr, (field, result.stderr)
+        assert ATTEST_SMS_SECTION in result.stderr
+        assert "./netgsm_secrets.sh" in result.stderr
+        assert TEAM_ID_VALUE not in result.stderr, "the refusal echoes no value"
+        for value in SMS_VALUES.values():
+            assert value not in result.stderr, "the refusal echoes no value"
+
+    def test_a_document_the_api_cannot_read_is_refused_as_wholly_missing(
+        self, tmp_path: Path
+    ) -> None:
+        """No document, no KV engine, or a policy without the grant: the CLI
+        fails, and every field counts as missing."""
+        env_file = _operator_env(tmp_path, {APP_ATTEST_TEAM_ID: TEAM_ID_VALUE})
+        result = _run_guard(env_file, None)
+        assert result.returncode != 0
+        for field in SMS_FIELDS:
+            assert field in result.stderr, (field, result.stderr)
+
+    def test_the_phi_egress_gate_is_open_on_the_api_alone(self) -> None:
+        """Owner patch (INT-528): the runtime half of the gate for the
+        allow-list's one phi_path row, Netgsm OTP SMS. Only the API gets it."""
+        assert _environment(_service("api")).get("INTAKE_ALLOW_PHI_EGRESS") == "explicit-yes"
+        for name in SERVICES - {"api"}:
+            assert "INTAKE_ALLOW_PHI_EGRESS" not in _environment(_service(name)), name
+
+    def test_the_runbook_tells_the_operator_what_to_set(self) -> None:
+        runbook = _text(RUNBOOK)
+        assert re.search(rf"^## {ATTEST_SMS_SECTION}$", runbook, re.M)
+        section = runbook.split(f"## {ATTEST_SMS_SECTION}", 1)[1].split("\n## ", 1)[0]
+        needles = (*sorted(OPERATOR_SUPPLIED), "/etc/intake-staging/.env")
+        extra = ("./deploy.sh", "./init.sh", "synthetic", "./netgsm_secrets.sh")
+        for needle in (*needles, *extra, f"secret/{SMS_KV_PATH}"):
+            assert needle in section, needle
+
+
+# --- INT-352 (audit F18): /version's sbom_digest ----------------------------------------
+
+
+def _sbom_host(tmp_path: Path, mode: str = "ok") -> Path:
+    """A bin dir whose ``docker`` stands in for the host's.
+
+    - ``image inspect`` names SHIM_IMAGE_ID, or fails once <tmp>/no-image exists;
+    - ``image save --output F`` writes an archive to F;
+    - ``run`` plays syft by <tmp>/syft-mode: ok (the SPDX document), fail
+      (exit 3), empty (exit 0, no output) or not-spdx (exit 0, another format);
+    - ``compose`` records the INTAKE_SBOM_DIGEST it was given.
+
+    Every call is appended to <tmp>/docker.log."""
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    (tmp_path / "syft-mode").write_text(mode, encoding="utf-8")
+    (tmp_path / "spdx.json").write_text(SHIM_SPDX, encoding="utf-8")
+    body = (
+        'printf "%s\\n" "$*" >>"@TMP@/docker.log"\n'
+        'case "$1" in\n'
+        "  compose)\n"
+        '    printf "compose-digest=%s\\n" "${INTAKE_SBOM_DIGEST-unset}" >>"@TMP@/docker.log"\n'
+        "    exit 0 ;;\n"
+        "  image)\n"
+        '    case "$2" in\n'
+        '      inspect) [ -e "@TMP@/no-image" ] && exit 1; echo "@IMAGE@"; exit 0 ;;\n'
+        "      save)\n"
+        "        while [ $# -gt 0 ]; do\n"
+        '          if [ "$1" = --output ]; then printf archive >"$2"; exit 0; fi\n'
+        "          shift\n"
+        "        done\n"
+        "        exit 2 ;;\n"
+        "    esac ;;\n"
+        "  run)\n"
+        '    case "$(cat "@TMP@/syft-mode")" in\n'
+        '      ok) cat "@TMP@/spdx.json"; exit 0 ;;\n'
+        '      fail) echo "syft: cannot read the archive" >&2; exit 3 ;;\n'
+        "      empty) exit 0 ;;\n"
+        '      not-spdx) echo \'{"bomFormat": "CycloneDX"}\'; exit 0 ;;\n'
+        "    esac ;;\n"
+        "esac\n"
+        "exit 97\n"
+    )
+    _shim(
+        bin_dir / "docker", body.replace("@TMP@", str(tmp_path)).replace("@IMAGE@", SHIM_IMAGE_ID)
+    )
+    return bin_dir
+
+
+def _run_release(tmp_path: Path, bin_dir: Path, script: str) -> subprocess.CompletedProcess[str]:
+    """lib.sh against the shimmed host, with a scratch state dir and a commit."""
+    return subprocess.run(
+        ["bash", "-c", f'source "{LIB}"; {script}', "lib-test"],
+        capture_output=True,
+        text=True,
+        cwd=tmp_path,
+        env={
+            "PATH": f"{bin_dir}:{os.environ.get('PATH', '/usr/bin:/bin')}",
+            "HOME": str(tmp_path),
+            "INTAKE_STAGING_STATE_DIR": str(tmp_path / "state"),
+            "INTAKE_GIT_SHA": SHIM_COMMIT,
+        },
+        check=False,
+    )
+
+
+def _docker_calls(tmp_path: Path, verb: str) -> list[str]:
+    log = tmp_path / "docker.log"
+    lines = _text(log).splitlines() if log.exists() else []
+    return [line for line in lines if line.startswith(f"{verb} ")]
+
+
+def _release_dir(tmp_path: Path) -> Path:
+    return tmp_path / "state" / "releases" / SHIM_COMMIT
+
+
+def _sha256(path: Path) -> str:
+    return "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+#: A /version body with all three stamps real.
+STAMPED_VERSION = {
+    "git_sha": SHIM_COMMIT,
+    "built_at": "2026-09-27T10:00:00Z",
+    "sbom_digest": "sha256:" + "cd" * 32,
+}
+
+
+def _verdict(
+    body: str, sha: str = SHIM_COMMIT, sbom: str = STAMPED_VERSION["sbom_digest"]
+) -> subprocess.CompletedProcess[str]:
+    """smoke.sh's /version check, as lib.sh defines it."""
+    return _bash('version_verdict "$1" "$2" <<<"$3"', sha, sbom, body)
+
+
+class TestSbomStamp:
+    """INT-352, audit F18: the live API reported ``sbom_digest: "dev"``.
+
+    deploy.sh (and init.sh, which builds too) builds the api image, has syft
+    write an SPDX SBOM of it into the host's release directory, outside the
+    build context, and passes the file's sha256 to the api container as
+    ``INTAKE_SBOM_DIGEST``, beside the git_sha and built_at build stamps.
+    compose requires it, so no api container starts without one. syft runs
+    from a digest-pinned image, offline, on a saved archive of the image,
+    never on the docker socket. If it fails, or writes anything but an SPDX
+    document, the deploy stops. smoke.sh reads the SBOM on disk and fails a
+    ``dev`` in any stamp, a digest that is not that file's sha256, and an api
+    container that runs another image."""
+
+    # --- the pinned generator ---
+
+    def test_lib_pins_syft_by_digest(self) -> None:
+        result = _bash('printf "%s" "$SBOM_IMAGE"')
+        assert result.stdout == APPROVED_SBOM_IMAGE
+        assert PINNED.match(result.stdout)
+
+    @pytest.mark.parametrize(
+        "image",
+        [
+            "",
+            f"{_SBOM_REPOSITORY}:{_SBOM_TAG}",
+            f"{_SBOM_REPOSITORY}@{_SBOM_DIGEST}",
+            f"{_SBOM_REPOSITORY}:{_SBOM_TAG}@{_SBOM_DIGEST[:-1]}",
+        ],
+        ids=["unset", "tag-only", "no-tag", "short-digest"],
+    )
+    def test_the_syft_gate_refuses_an_unset_or_unpinned_image(self, image: str) -> None:
+        result = _bash('require_sbom_image "$1"', image)
+        assert result.returncode != 0
+        assert SBOM_ISSUE in result.stderr
+
+    def test_the_syft_gate_admits_a_digest_pinned_image(self) -> None:
+        """Positive control: the gate is a pin check, not a constant refusal."""
+        result = _bash('require_sbom_image "$1"', APPROVED_SBOM_IMAGE)
+        assert result.returncode == 0, result.stderr
+
+    def test_deploy_checks_the_syft_pin_before_it_touches_the_host(self) -> None:
+        code = _code(DEPLOY)
+        gate = code.index('require_sbom_image "$SBOM_IMAGE"')
+        assert code.index("require_object_store_image") < gate < code.index("require_root")
+
+    def test_an_unpinned_syft_never_runs(self, tmp_path: Path) -> None:
+        bin_dir = _sbom_host(tmp_path)
+        result = _run_release(
+            tmp_path, bin_dir, f'SBOM_IMAGE="{_SBOM_REPOSITORY}:latest"; stamp_sbom'
+        )
+        assert result.returncode != 0
+        assert SBOM_ISSUE in result.stderr
+        assert not _docker_calls(tmp_path, "run")
+
+    # --- compose and the image ---
+
+    def test_compose_passes_the_digest_to_the_api_as_a_required_stamp(self) -> None:
+        match = REQUIRED_INTERPOLATION.match(_environment(_service("api")).get(SBOM_STAMP, ""))
+        assert match and match.group(1) == SBOM_STAMP
+        # INT-560: the probes service runs the api's image, so the same SBOM
+        # describes it and its /version carries the same stamp
+        for name in API_IMAGE_SERVICES:
+            assert _service(name)["image"] == _service("api")["image"], name
+            assert _environment(_service(name))[SBOM_STAMP] == match.group(0), name
+        for name in SERVICES - API_IMAGE_SERVICES:
+            assert SBOM_STAMP not in _environment(_service(name)), name
+        assert SBOM_STAMP not in _env_template(), "a release stamp, not a host secret"
+
+    def test_the_stamp_is_the_name_versioninfo_reads(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        digest = STAMPED_VERSION["sbom_digest"]
+        monkeypatch.setenv(SBOM_STAMP, digest)
+        assert VersionInfo.from_env().sbom_digest == digest
+        monkeypatch.delenv(SBOM_STAMP)
+        # what F18 saw live: nothing passed it, so compose must require it
+        assert VersionInfo.from_env().sbom_digest == "dev"
+
+    def test_the_sbom_never_enters_the_image(self) -> None:
+        """The SBOM describes the image, so the image cannot carry it: no
+        build arg, no ENV or LABEL, and the file lands outside the context."""
+        assert "SBOM" not in str(_service("api")["build"]).upper()
+        for instruction, args in _dockerfile_instructions():
+            assert "SBOM" not in args.upper(), (instruction, args)
+        releases = _bash('printf "%s" "$RELEASES_DIR"').stdout
+        assert releases == DEFAULT_RELEASES_DIR
+        assert not Path(releases).is_relative_to(REPO)
+
+    @pytest.mark.parametrize("path", (*SCRIPTS, COMPOSE, DOCKERFILE), ids=lambda p: p.name)
+    def test_no_stamp_falls_back_to_dev(self, path: Path) -> None:
+        hits = [line.strip() for line in _text(path).splitlines() if STAMP_FALLBACK.search(line)]
+        assert not hits, f"{path.name}: {hits}"
+
+    @pytest.mark.parametrize(
+        "line",
+        [
+            "INTAKE_SBOM_DIGEST: ${INTAKE_SBOM_DIGEST:-dev}",
+            "INTAKE_SBOM_DIGEST: ${INTAKE_SBOM_DIGEST-}",
+            'export INTAKE_SBOM_DIGEST="dev"',
+            "INTAKE_SBOM_DIGEST: dev",
+            "ENV INTAKE_GIT_SHA=dev",
+        ],
+    )
+    def test_the_fallback_scan_recognises_what_it_forbids(self, line: str) -> None:
+        assert STAMP_FALLBACK.search(line)
+
+    def test_the_fallback_scan_passes_the_required_form(self) -> None:
+        """Near-miss control: the required interpolation is not a fallback."""
+        assert not STAMP_FALLBACK.search(f"{SBOM_STAMP}: ${{{SBOM_STAMP}:?set by deploy.sh}}")
+        assert not STAMP_FALLBACK.search(f"{SBOM_STAMP}=development-tier")
+
+    # --- the scripts' order ---
+
+    @pytest.mark.parametrize("script", (INIT, DEPLOY), ids=lambda p: p.name)
+    def test_the_image_is_built_and_stamped_before_any_compose_call(self, script: Path) -> None:
+        code = _code(script)
+        assert re.search(r"^build_api_image$", code, re.M), script.name
+        assert re.search(r"^stamp_sbom$", code, re.M), script.name
+        order = [code.index(step) for step in ("stamp_revision", "build_api_image", "stamp_sbom")]
+        assert order == sorted(order)
+        assert order[-1] < code.index("compose "), "compose needs the digest to load"
+
+    def test_the_only_build_is_build_api_image(self) -> None:
+        builds = [
+            line.strip()
+            for path in SCRIPTS
+            for line in _code(path).splitlines()
+            if re.search(r"\bcompose build\b", line)
+        ]
+        assert builds == [BUILD_STATEMENT, ADMIN_BUILD_STATEMENT, KEYCLOAK_BUILD_STATEMENT]
+
+    def test_deploy_runs_exactly_the_image_the_sbom_describes(self) -> None:
+        ups = re.findall(r"^compose up .*$", _code(DEPLOY), re.M)
+        assert "--no-build" in ups[-1].split()
+        assert not [up for up in ups if "--build" in up.split()], (
+            "a rebuild is not the SBOM's image"
+        )
+
+    def test_smoke_reads_the_stamp_from_disk_and_checks_it(self) -> None:
+        code = _code(SMOKE)
+        assert re.search(r"^stamp_sbom_from_disk$", code, re.M)
+        assert code.index("stamp_sbom_from_disk") < code.index("compose ")
+        for writer in ("build_api_image", "generate_sbom"):
+            assert writer not in code, f"smoke.sh never writes: {writer}"
+        assert not re.search(r"^stamp_sbom$", code, re.M)
+        assert re.search(r'version_verdict "\$INTAKE_GIT_SHA" "\$\w+"', code)
+        assert 'sha256_of "$SBOM_FILE"' in code, "the file on disk, hashed at check time"
+        assert "{{.Image}}" in code and '"$API_IMAGE_ID"' in code
+
+    # --- the stamp, run against the shimmed host ---
+
+    def test_the_build_value_reaches_only_the_build_call(self, tmp_path: Path) -> None:
+        bin_dir = _sbom_host(tmp_path)
+        result = _run_release(
+            tmp_path, bin_dir, 'build_api_image; printf "[%s]" "${INTAKE_SBOM_DIGEST-unset}"'
+        )
+        assert result.returncode == 0, result.stderr
+        assert result.stdout == "[unset]", "bound to the build, never exported"
+        builds = _docker_calls(tmp_path, "compose")
+        assert len(builds) == 1 and builds[0].endswith(" build api")
+        seen = [line for line in _text(tmp_path / "docker.log").splitlines() if "digest=" in line]
+        value = seen[0].split("=", 1)[1]
+        assert value not in ("", "dev", "unset")
+        assert not SBOM_DIGEST_FORM.match(value), "no container could mistake it for a digest"
+        assert _verdict(json.dumps({**STAMPED_VERSION, "sbom_digest": value})).returncode != 0
+
+    def test_stamp_writes_the_sbom_beside_the_release_and_exports_its_sha256(
+        self, tmp_path: Path
+    ) -> None:
+        bin_dir = _sbom_host(tmp_path)
+        result = _run_release(
+            tmp_path, bin_dir, 'stamp_sbom; printf "%s\\n%s\\n" "$INTAKE_SBOM_DIGEST" "$SBOM_FILE"'
+        )
+        assert result.returncode == 0, result.stderr
+        digest, sbom_file = result.stdout.split()
+        sbom = Path(sbom_file)
+        hex_id = SHIM_IMAGE_ID.removeprefix("sha256:")
+        assert sbom == _release_dir(tmp_path) / f"api-{hex_id}.spdx.json"
+        assert sbom.read_text(encoding="utf-8") == SHIM_SPDX
+        assert digest == _sha256(sbom)
+        assert SBOM_DIGEST_FORM.match(digest)
+        assert [p.name for p in _release_dir(tmp_path).iterdir()] == [sbom.name], "work removed"
+        assert stat.S_IMODE(_release_dir(tmp_path).stat().st_mode) == 0o700
+
+    def test_syft_runs_offline_on_a_read_only_archive_never_the_socket(
+        self, tmp_path: Path
+    ) -> None:
+        bin_dir = _sbom_host(tmp_path)
+        assert _run_release(tmp_path, bin_dir, "stamp_sbom").returncode == 0
+        saves = _docker_calls(tmp_path, "image")
+        assert [s for s in saves if s.startswith("image save ")], saves
+        assert saves[-1].endswith(f"intake-staging/api:{SHIM_COMMIT}")
+        (run,) = _docker_calls(tmp_path, "run")
+        args = run.split()
+        assert APPROVED_SBOM_IMAGE in args
+        assert "--network none" in run and "--cap-drop ALL" in run
+        assert re.search(r"image\.tar:/in/image\.tar:ro(\s|$)", run)
+        assert "docker-archive:/in/image.tar" in args
+        assert "spdx-json" in args
+        assert "docker.sock" not in _text(tmp_path / "docker.log")
+
+    @pytest.mark.parametrize("mode", ["fail", "empty", "not-spdx"])
+    def test_no_sbom_refuses_the_release_and_leaves_nothing(
+        self, tmp_path: Path, mode: str
+    ) -> None:
+        """syft failing refuses the deploy; the near-misses, a syft that
+        exits 0 with nothing or with another format, refuse it too."""
+        bin_dir = _sbom_host(tmp_path, mode)
+        result = _run_release(
+            tmp_path, bin_dir, 'stamp_sbom; printf "stamped %s\\n" "$INTAKE_SBOM_DIGEST"'
+        )
+        assert result.returncode != 0
+        assert "stamped" not in result.stdout
+        assert "refusing" in result.stderr and SBOM_ISSUE in result.stderr
+        assert list(_release_dir(tmp_path).iterdir()) == [], "no SBOM and no work dir left"
+
+    def test_a_rerun_on_the_same_image_keeps_its_sbom(self, tmp_path: Path) -> None:
+        """deploy.sh is idempotent: the same image keeps its SBOM, so the
+        digest, and with it the api container, stay as they are. syft would
+        fail on the second run here; it is never called."""
+        bin_dir = _sbom_host(tmp_path)
+        first = _run_release(tmp_path, bin_dir, 'stamp_sbom; printf "%s" "$INTAKE_SBOM_DIGEST"')
+        assert first.returncode == 0, first.stderr
+        (tmp_path / "syft-mode").write_text("fail", encoding="utf-8")
+        second = _run_release(tmp_path, bin_dir, 'stamp_sbom; printf "%s" "$INTAKE_SBOM_DIGEST"')
+        assert second.returncode == 0, second.stderr
+        assert second.stdout == first.stdout
+        assert len(_docker_calls(tmp_path, "run")) == 1
+
+    @pytest.mark.parametrize("function", ["stamp_sbom", "stamp_sbom_from_disk"])
+    def test_no_built_image_is_refused(self, tmp_path: Path, function: str) -> None:
+        bin_dir = _sbom_host(tmp_path)
+        (tmp_path / "no-image").touch()
+        result = _run_release(tmp_path, bin_dir, function)
+        assert result.returncode != 0
+        assert "no api image" in result.stderr
+        assert not _docker_calls(tmp_path, "run")
+
+    def test_smoke_reads_the_sbom_deploy_wrote_and_never_writes_one(self, tmp_path: Path) -> None:
+        bin_dir = _sbom_host(tmp_path)
+        missing = _run_release(tmp_path, bin_dir, "stamp_sbom_from_disk")
+        assert missing.returncode != 0
+        assert "./deploy.sh" in missing.stderr
+        assert not _docker_calls(tmp_path, "run"), "smoke never generates an SBOM"
+        stamped = _run_release(tmp_path, bin_dir, 'stamp_sbom; printf "%s" "$INTAKE_SBOM_DIGEST"')
+        read = _run_release(
+            tmp_path, bin_dir, 'stamp_sbom_from_disk; printf "%s" "$INTAKE_SBOM_DIGEST"'
+        )
+        assert read.returncode == 0, read.stderr
+        assert read.stdout == stamped.stdout
+
+    # --- smoke's /version verdict ---
+
+    def test_a_fully_stamped_version_passes(self) -> None:
+        result = _verdict(json.dumps(STAMPED_VERSION))
+        assert result.returncode == 0, result.stdout
+        for value in STAMPED_VERSION.values():
+            assert value in result.stdout
+
+    @pytest.mark.parametrize("field", sorted(STAMPED_VERSION))
+    @pytest.mark.parametrize("value", ["dev", "", None], ids=["dev", "empty", "null"])
+    def test_an_unstamped_field_fails(self, field: str, value: str | None) -> None:
+        result = _verdict(json.dumps({**STAMPED_VERSION, field: value}))
+        assert result.returncode != 0
+        assert field in result.stdout
+
+    @pytest.mark.parametrize("field", sorted(STAMPED_VERSION))
+    def test_a_missing_field_fails(self, field: str) -> None:
+        body = {key: value for key, value in STAMPED_VERSION.items() if key != field}
+        result = _verdict(json.dumps(body))
+        assert result.returncode != 0
+        assert field in result.stdout
+
+    def test_a_digest_one_character_off_the_sbom_on_disk_fails(self) -> None:
+        """Near-miss: a well-formed digest that is not the file's sha256."""
+        near = STAMPED_VERSION["sbom_digest"][:-1] + "e"
+        assert SBOM_DIGEST_FORM.match(near)
+        result = _verdict(json.dumps({**STAMPED_VERSION, "sbom_digest": near}))
+        assert result.returncode != 0
+        assert "SBOM on disk" in result.stdout
+
+    def test_another_commit_fails(self) -> None:
+        result = _verdict(json.dumps({**STAMPED_VERSION, "git_sha": "f" * 40}))
+        assert result.returncode != 0
+        assert "git_sha" in result.stdout
+
+    @pytest.mark.parametrize("body", ["", "<html>502</html>", "[]"], ids=["empty", "html", "list"])
+    def test_a_body_that_is_not_a_version_object_fails(self, body: str) -> None:
+        assert _verdict(body).returncode != 0
+
+    def test_the_runbook_says_where_the_sbom_is_and_what_smoke_checks(self) -> None:
+        text = _text(RUNBOOK)
+        assert "`sbom_digest` stays `dev`" not in text
+        for needle in ("sbom_digest", DEFAULT_RELEASES_DIR, _SBOM_REPOSITORY, "--no-build"):
+            assert needle in text, needle
 
 
 # --- the runbook -----------------------------------------------------------------------

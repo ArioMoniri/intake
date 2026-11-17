@@ -12,12 +12,21 @@
  * never empty. Screenshot OCR is wired but fail-closed (see
  * `ocrImportAvailable`) — the OCR layer has no verified licence yet
  * (files/03 §4.9.2(f)), and a fake reader would be worse than none.
+ *
+ * INT-537: a visit and its note are processed under the `core` açık rıza
+ * consent, and the server refuses both without it. So this is where core is
+ * asked for, in context: while the ledger has no honoured core grant the
+ * form gives way to one plain explanation and one action, which opens the
+ * core text. Nothing here grants anything — the grant happens next to the
+ * text, on the consent screen, and the form returns when it has.
  */
 import { Stack, useRouter } from "expo-router";
 import { useEffect, useMemo, useReducer, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, TextInput, View } from "react-native";
 
+import { AnnouncedText } from "@/components/Announced";
 import { useTabBarClearance } from "@/components/FloatingTabBar";
+import { GuidanceBlock } from "@/components/GuidanceBlock";
 import { Kicker } from "@/components/Kicker";
 import {
   AppText,
@@ -29,9 +38,11 @@ import {
   useStackHeader,
   useTheme,
 } from "@/components/Themed";
-import { joinParts, labelled } from "@/lib/a11y/labels";
-import { useLiveAnnouncement } from "@/lib/a11y/prefs";
+import { joinParts } from "@/lib/a11y/labels";
 import { verticalSlop } from "@/lib/a11y/target";
+import { coreGate } from "@/lib/consent/gate";
+import { purposeParam } from "@/lib/consent/purposes";
+import { ledgerSeededFor, seedLedgerForAccount, useConsentLedger } from "@/lib/consent/store";
 import { t } from "@/lib/i18n";
 import { useSession } from "@/lib/session";
 import { branchById, intakeBranches, visibleBranches } from "@/lib/taxonomy/branches";
@@ -55,6 +66,9 @@ const NOTICE_KEYS = {
   filled: "visits.new.smsFilled",
   unknown_branch: "visits.new.smsUnknownBranch",
   no_date: "visits.new.smsNoDate",
+  // INT-400: the message's date reads two ways; the date field below is left
+  // empty and the patient writes the date — the app never picks a reading
+  ambiguous_date: "visits.new.smsAmbiguousDate",
   unreadable: "visits.new.smsUnreadable",
 } as const;
 
@@ -63,11 +77,20 @@ export default function NewVisit() {
   const theme = useTheme();
   const headerOptions = useStackHeader();
   const fontScale = useFontScale();
-  const { addVisit, consents } = useSession();
+  const { account, addVisit, consents } = useSession();
+  const ledger = useConsentLedger();
   const [form, dispatch] = useReducer(newVisitFormReducer, undefined, emptyNewVisitForm);
   const [taxonomy, setTaxonomy] = useState(cachedTaxonomy);
   const [query, setQuery] = useState("");
   const [picking, setPicking] = useState(true);
+  // Hoisted above the gate's early return: hooks run in the same order.
+  const tabBarClearance = useTabBarClearance();
+
+  useEffect(() => {
+    if (account !== null) {
+      seedLedgerForAccount(account.id, consents);
+    }
+  }, [account, consents]);
 
   useEffect(() => {
     let live = true;
@@ -81,15 +104,13 @@ export default function NewVisit() {
     };
   }, []);
 
-  // One string, used for the visible line and (prefixed) for the spoken one.
+  // One string: the visible line, and (prefixed "Hata") the spoken one.
   const problemText =
     form.problem === null
       ? null
       : form.problem === "missing_fields"
         ? t("visits.new.missingFields")
         : t("visits.new.badDate");
-  // Android hears the live region on the line; this is the iOS half.
-  useLiveAnnouncement(problemText === null ? null : labelled(t("a11y.error"), problemText));
 
   const bookable = useMemo(() => intakeBranches(taxonomy.branches, taxonomy.clusters), [taxonomy]);
   const shown = useMemo(() => visibleBranches(bookable, query, BROWSE_LIMIT), [bookable, query]);
@@ -115,7 +136,15 @@ export default function NewVisit() {
     setPicking(true);
   };
 
+  const gate = coreGate(ledger);
+  // Refuse only on this account's own answer: an unseeded ledger is a fresh
+  // one, and would refuse an account that holds core.
+  const coreRefused = account !== null && ledgerSeededFor(account.id) && !gate.open;
+
   const save = () => {
+    if (!gate.open) {
+      return; // the refusal below is on screen; no visit without core
+    }
     const input = formToInput(form);
     const check = validateNewVisit(input);
     if (!check.ok) {
@@ -126,10 +155,48 @@ export default function NewVisit() {
     router.replace(`/(tabs)/visits/${visit.id}`);
   };
 
+  if (coreRefused && !gate.open) {
+    // A moved text is asked for again, never as if it were the first time;
+    // with no text served (a real tenant until counsel signs), nothing
+    // invites the patient to read one — the button opens the consent's own
+    // page, which says the text is being prepared.
+    const noText = gate.reason === "no_text";
+    return (
+      <Screen edges={["left", "right"]}>
+        <Stack.Screen options={headerOptions(t("visits.new.title"))} />
+        <ScrollView contentContainerStyle={[styles.content, { paddingBottom: tabBarClearance }]}>
+          <GuidanceBlock
+            accent
+            icon="checkmark.shield"
+            kickerKey="visits.new.core.kicker"
+            titleKey="visits.new.core.title"
+            bodyKey={
+              gate.reason === "stale"
+                ? "visits.new.core.staleBody"
+                : noText
+                  ? "visits.new.core.pendingBody"
+                  : "visits.new.core.body"
+            }
+          />
+          <PrimaryButton
+            label={t(noText ? "visits.new.core.pendingCta" : "visits.new.core.cta")}
+            onPress={() => router.push(`/(tabs)/me/consents/${purposeParam("core")}`)}
+          />
+        </ScrollView>
+      </Screen>
+    );
+  }
+
   return (
     <Screen edges={["left", "right"]}>
       <Stack.Screen options={headerOptions(t("visits.new.title"))} />
-      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: useTabBarClearance() }]} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        contentContainerStyle={[styles.content, { paddingBottom: tabBarClearance }]}
+        keyboardShouldPersistTaps="handled"
+        // SC 1.3.4 (INT-360): each field scrolls clear of the keyboard, which
+        // takes about half of a landscape window.
+        automaticallyAdjustKeyboardInsets
+      >
         <AppText role="caption" color="inkFaint">
           {t("visits.new.hint")}
         </AppText>
@@ -155,16 +222,16 @@ export default function NewVisit() {
             disabled={form.sms.trim().length === 0}
           />
           {form.smsNotice !== null ? (
-            <AppText
-              role="body"
-              color={form.smsNotice === "filled" ? "inkSoft" : "amber"}
+            <AnnouncedText
               // The paste either filled the form or did not; either way the
               // result appears above the fields the patient is looking at
-              // (SC 3.3.1).
-              live="assertive"
-            >
-              {t(NOTICE_KEYS[form.smsNotice])}
-            </AppText>
+              // (SC 3.3.1, 4.1.3). A fill is a status; a miss is an error the
+              // patient has to act on.
+              tone={form.smsNotice === "filled" ? "status" : "error"}
+              role="body"
+              color={form.smsNotice === "filled" ? "inkSoft" : "amber"}
+              message={t(NOTICE_KEYS[form.smsNotice])}
+            />
           ) : null}
           {!ocrOffered ? (
             <AppText role="caption" color="inkFaint">
@@ -311,11 +378,9 @@ export default function NewVisit() {
           </AppText>
         </Card>
 
-        {form.problem !== null ? (
+        {problemText !== null ? (
           // Visible copy unchanged; the spoken form carries "Hata".
-          <AppText role="body" color="amber" live="assertive">
-            {problemText}
-          </AppText>
+          <AnnouncedText tone="error" role="body" color="amber" message={problemText} />
         ) : null}
         <PrimaryButton label={t("visits.new.save")} onPress={save} />
       </ScrollView>

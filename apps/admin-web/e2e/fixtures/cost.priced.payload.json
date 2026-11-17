@@ -1,0 +1,1599 @@
+{
+  "currency": "USD",
+  "config": {
+    "path": "tests/fixtures/cost/unit-prices.priced.yaml",
+    "sha256": "164c2b7d88b65107f984fe17c817c8623f5646b61876e3590167778512e3d607",
+    "blocker": "HB-O8"
+  },
+  "source": {
+    "configured": true,
+    "reason": "Prometheus instant queries over the cost module's fixed query table"
+  },
+  "sessions_metric": "voice_sessions_metered_total",
+  "allocation_rule": "a component with no profile label is allocated evenly across every session metered in the window",
+  "components": [
+    {
+      "component": "asr",
+      "vendor": "self-hosted",
+      "vendor_note": null,
+      "unit": "audio_second",
+      "attribution": "direct",
+      "profiles": ["residency_tr"],
+      "usage_metric": "voice_stt_audio_s",
+      "usage_metric_status": "planned",
+      "usage_note": null,
+      "price": {
+        "state": "configured",
+        "usd_per_unit": 3.0,
+        "source": "synthetic test rate, not a price",
+        "as_of": "2026-09-26"
+      }
+    },
+    {
+      "component": "tts_dynamic",
+      "vendor": "self-hosted",
+      "vendor_note": null,
+      "unit": "character",
+      "attribution": "direct",
+      "profiles": ["residency_tr"],
+      "usage_metric": "voice_tts_chars",
+      "usage_metric_status": "live",
+      "usage_note": null,
+      "price": {
+        "state": "configured",
+        "usd_per_unit": 2.0,
+        "source": "synthetic test rate, not a price",
+        "as_of": "2026-09-26"
+      }
+    },
+    {
+      "component": "llm_talker",
+      "vendor": "self-hosted",
+      "vendor_note": null,
+      "unit": "token",
+      "attribution": "direct",
+      "profiles": ["residency_tr", "typed"],
+      "usage_metric": "voice_talker_tokens",
+      "usage_metric_status": "planned",
+      "usage_note": null,
+      "price": {
+        "state": "configured",
+        "usd_per_unit": 1.0,
+        "source": "synthetic test rate, not a price",
+        "as_of": "2026-09-26"
+      }
+    },
+    {
+      "component": "llm_extraction",
+      "vendor": "self-hosted",
+      "vendor_note": null,
+      "unit": "token",
+      "attribution": "direct",
+      "profiles": ["residency_tr", "typed"],
+      "usage_metric": null,
+      "usage_metric_status": null,
+      "usage_note": "no catalogued series exports extraction tokens",
+      "price": {
+        "state": "configured",
+        "usd_per_unit": 1.0,
+        "source": "synthetic test rate, not a price",
+        "as_of": "2026-09-26"
+      }
+    },
+    {
+      "component": "clip_synthesis",
+      "vendor": "elevenlabs",
+      "vendor_note": null,
+      "unit": "character",
+      "attribution": "allocated",
+      "profiles": [],
+      "usage_metric": null,
+      "usage_metric_status": null,
+      "usage_note": "no catalogued clip-synthesis series",
+      "price": {
+        "state": "configured",
+        "usd_per_unit": 4.0,
+        "source": "synthetic test rate, not a price",
+        "as_of": "2026-09-26"
+      }
+    },
+    {
+      "component": "sms",
+      "vendor": null,
+      "vendor_note": "no SMS provider has been chosen",
+      "unit": "message",
+      "attribution": "allocated",
+      "profiles": [],
+      "usage_metric": "notification_dispatch_total",
+      "usage_metric_status": "live",
+      "usage_note": null,
+      "price": {
+        "state": "not_configured",
+        "usd_per_unit": null,
+        "source": null,
+        "as_of": null
+      }
+    },
+    {
+      "component": "gpu_host_onvizit_api",
+      "vendor": "aws",
+      "vendor_note": null,
+      "unit": "host_hour",
+      "attribution": "allocated",
+      "profiles": [],
+      "usage_metric": null,
+      "usage_metric_status": null,
+      "usage_note": "no catalogued host-uptime series",
+      "price": {
+        "state": "configured",
+        "usd_per_unit": 5.0,
+        "source": "synthetic test rate, not a price",
+        "as_of": "2026-09-26"
+      }
+    },
+    {
+      "component": "gpu_host_team",
+      "vendor": null,
+      "vendor_note": "no provider or billing is recorded",
+      "unit": "host_hour",
+      "attribution": "allocated",
+      "profiles": [],
+      "usage_metric": null,
+      "usage_metric_status": null,
+      "usage_note": "no catalogued host-uptime series",
+      "price": {
+        "state": "not_configured",
+        "usd_per_unit": null,
+        "source": null,
+        "as_of": null
+      }
+    },
+    {
+      "component": "hosted_llm_input",
+      "vendor": "openai",
+      "vendor_note": null,
+      "unit": "token",
+      "attribution": "allocated",
+      "profiles": [],
+      "usage_metric": "model_lane_tokens_total",
+      "usage_metric_status": "live",
+      "usage_note": null,
+      "price": {
+        "state": "configured",
+        "usd_per_unit": 6.0,
+        "source": "synthetic test rate, not a price",
+        "as_of": "2026-10-02"
+      }
+    },
+    {
+      "component": "hosted_llm_output",
+      "vendor": "openai",
+      "vendor_note": null,
+      "unit": "token",
+      "attribution": "allocated",
+      "profiles": [],
+      "usage_metric": "model_lane_tokens_total",
+      "usage_metric_status": "live",
+      "usage_note": null,
+      "price": {
+        "state": "configured",
+        "usd_per_unit": 6.0,
+        "source": "synthetic test rate, not a price",
+        "as_of": "2026-10-02"
+      }
+    },
+    {
+      "component": "hosted_asr_input",
+      "vendor": "openai",
+      "vendor_note": null,
+      "unit": "token",
+      "attribution": "allocated",
+      "profiles": [],
+      "usage_metric": "model_lane_tokens_total",
+      "usage_metric_status": "live",
+      "usage_note": null,
+      "price": {
+        "state": "configured",
+        "usd_per_unit": 6.0,
+        "source": "synthetic test rate, not a price",
+        "as_of": "2026-10-02"
+      }
+    },
+    {
+      "component": "hosted_asr_output",
+      "vendor": "openai",
+      "vendor_note": null,
+      "unit": "token",
+      "attribution": "allocated",
+      "profiles": [],
+      "usage_metric": "model_lane_tokens_total",
+      "usage_metric_status": "live",
+      "usage_note": null,
+      "price": {
+        "state": "configured",
+        "usd_per_unit": 6.0,
+        "source": "synthetic test rate, not a price",
+        "as_of": "2026-10-02"
+      }
+    },
+    {
+      "component": "hosted_tts",
+      "vendor": "openai",
+      "vendor_note": null,
+      "unit": "character",
+      "attribution": "allocated",
+      "profiles": [],
+      "usage_metric": "model_lane_characters_total",
+      "usage_metric_status": "live",
+      "usage_note": null,
+      "price": {
+        "state": "configured",
+        "usd_per_unit": 6.0,
+        "source": "synthetic test rate, not a price",
+        "as_of": "2026-10-02"
+      }
+    }
+  ],
+  "windows": [
+    {
+      "period": "day",
+      "window": "1d",
+      "sessions": {
+        "state": "observed",
+        "reason": null,
+        "by_profile": {
+          "residency_tr": 40.0,
+          "typed": 10.0
+        }
+      },
+      "per_session": [
+        {
+          "component": "asr",
+          "vendor": "self-hosted",
+          "profile": "residency_tr",
+          "attribution": "direct",
+          "unit": "audio_second",
+          "usage_state": "not_emitted",
+          "price_state": "configured",
+          "quantity_per_session": null,
+          "usd_per_session": null,
+          "reasons": ["usage series voice_stt_audio_s is catalogued as planned and not emitted yet"]
+        },
+        {
+          "component": "tts_dynamic",
+          "vendor": "self-hosted",
+          "profile": "residency_tr",
+          "attribution": "direct",
+          "unit": "character",
+          "usage_state": "observed",
+          "price_state": "configured",
+          "quantity_per_session": 1200.0,
+          "usd_per_session": 2400.0,
+          "reasons": []
+        },
+        {
+          "component": "llm_talker",
+          "vendor": "self-hosted",
+          "profile": "residency_tr",
+          "attribution": "direct",
+          "unit": "token",
+          "usage_state": "not_emitted",
+          "price_state": "configured",
+          "quantity_per_session": null,
+          "usd_per_session": null,
+          "reasons": [
+            "usage series voice_talker_tokens is catalogued as planned and not emitted yet"
+          ]
+        },
+        {
+          "component": "llm_extraction",
+          "vendor": "self-hosted",
+          "profile": "residency_tr",
+          "attribution": "direct",
+          "unit": "token",
+          "usage_state": "not_metered",
+          "price_state": "configured",
+          "quantity_per_session": null,
+          "usd_per_session": null,
+          "reasons": ["usage not metered: no catalogued series exports extraction tokens"]
+        },
+        {
+          "component": "clip_synthesis",
+          "vendor": "elevenlabs",
+          "profile": "residency_tr",
+          "attribution": "allocated",
+          "unit": "character",
+          "usage_state": "not_metered",
+          "price_state": "configured",
+          "quantity_per_session": null,
+          "usd_per_session": null,
+          "reasons": ["usage not metered: no catalogued clip-synthesis series"]
+        },
+        {
+          "component": "sms",
+          "vendor": null,
+          "profile": "residency_tr",
+          "attribution": "allocated",
+          "unit": "message",
+          "usage_state": "observed",
+          "price_state": "not_configured",
+          "quantity_per_session": 0.5,
+          "usd_per_session": null,
+          "reasons": ["price not configured"]
+        },
+        {
+          "component": "gpu_host_onvizit_api",
+          "vendor": "aws",
+          "profile": "residency_tr",
+          "attribution": "allocated",
+          "unit": "host_hour",
+          "usage_state": "not_metered",
+          "price_state": "configured",
+          "quantity_per_session": null,
+          "usd_per_session": null,
+          "reasons": ["usage not metered: no catalogued host-uptime series"]
+        },
+        {
+          "component": "gpu_host_team",
+          "vendor": null,
+          "profile": "residency_tr",
+          "attribution": "allocated",
+          "unit": "host_hour",
+          "usage_state": "not_metered",
+          "price_state": "not_configured",
+          "quantity_per_session": null,
+          "usd_per_session": null,
+          "reasons": ["price not configured", "usage not metered: no catalogued host-uptime series"]
+        },
+        {
+          "component": "hosted_llm_input",
+          "vendor": "openai",
+          "profile": "residency_tr",
+          "attribution": "allocated",
+          "unit": "token",
+          "usage_state": "observed",
+          "price_state": "configured",
+          "quantity_per_session": 0.04,
+          "usd_per_session": 0.24,
+          "reasons": []
+        },
+        {
+          "component": "hosted_llm_output",
+          "vendor": "openai",
+          "profile": "residency_tr",
+          "attribution": "allocated",
+          "unit": "token",
+          "usage_state": "observed",
+          "price_state": "configured",
+          "quantity_per_session": 0.02,
+          "usd_per_session": 0.12,
+          "reasons": []
+        },
+        {
+          "component": "hosted_asr_input",
+          "vendor": "openai",
+          "profile": "residency_tr",
+          "attribution": "allocated",
+          "unit": "token",
+          "usage_state": "observed",
+          "price_state": "configured",
+          "quantity_per_session": 0.04,
+          "usd_per_session": 0.24,
+          "reasons": []
+        },
+        {
+          "component": "hosted_asr_output",
+          "vendor": "openai",
+          "profile": "residency_tr",
+          "attribution": "allocated",
+          "unit": "token",
+          "usage_state": "observed",
+          "price_state": "configured",
+          "quantity_per_session": 0.02,
+          "usd_per_session": 0.12,
+          "reasons": []
+        },
+        {
+          "component": "hosted_tts",
+          "vendor": "openai",
+          "profile": "residency_tr",
+          "attribution": "allocated",
+          "unit": "character",
+          "usage_state": "observed",
+          "price_state": "configured",
+          "quantity_per_session": 0.06,
+          "usd_per_session": 0.36,
+          "reasons": []
+        },
+        {
+          "component": "llm_talker",
+          "vendor": "self-hosted",
+          "profile": "typed",
+          "attribution": "direct",
+          "unit": "token",
+          "usage_state": "not_emitted",
+          "price_state": "configured",
+          "quantity_per_session": null,
+          "usd_per_session": null,
+          "reasons": [
+            "usage series voice_talker_tokens is catalogued as planned and not emitted yet"
+          ]
+        },
+        {
+          "component": "llm_extraction",
+          "vendor": "self-hosted",
+          "profile": "typed",
+          "attribution": "direct",
+          "unit": "token",
+          "usage_state": "not_metered",
+          "price_state": "configured",
+          "quantity_per_session": null,
+          "usd_per_session": null,
+          "reasons": ["usage not metered: no catalogued series exports extraction tokens"]
+        },
+        {
+          "component": "clip_synthesis",
+          "vendor": "elevenlabs",
+          "profile": "typed",
+          "attribution": "allocated",
+          "unit": "character",
+          "usage_state": "not_metered",
+          "price_state": "configured",
+          "quantity_per_session": null,
+          "usd_per_session": null,
+          "reasons": ["usage not metered: no catalogued clip-synthesis series"]
+        },
+        {
+          "component": "sms",
+          "vendor": null,
+          "profile": "typed",
+          "attribution": "allocated",
+          "unit": "message",
+          "usage_state": "observed",
+          "price_state": "not_configured",
+          "quantity_per_session": 0.5,
+          "usd_per_session": null,
+          "reasons": ["price not configured"]
+        },
+        {
+          "component": "gpu_host_onvizit_api",
+          "vendor": "aws",
+          "profile": "typed",
+          "attribution": "allocated",
+          "unit": "host_hour",
+          "usage_state": "not_metered",
+          "price_state": "configured",
+          "quantity_per_session": null,
+          "usd_per_session": null,
+          "reasons": ["usage not metered: no catalogued host-uptime series"]
+        },
+        {
+          "component": "gpu_host_team",
+          "vendor": null,
+          "profile": "typed",
+          "attribution": "allocated",
+          "unit": "host_hour",
+          "usage_state": "not_metered",
+          "price_state": "not_configured",
+          "quantity_per_session": null,
+          "usd_per_session": null,
+          "reasons": ["price not configured", "usage not metered: no catalogued host-uptime series"]
+        },
+        {
+          "component": "hosted_llm_input",
+          "vendor": "openai",
+          "profile": "typed",
+          "attribution": "allocated",
+          "unit": "token",
+          "usage_state": "observed",
+          "price_state": "configured",
+          "quantity_per_session": 0.04,
+          "usd_per_session": 0.24,
+          "reasons": []
+        },
+        {
+          "component": "hosted_llm_output",
+          "vendor": "openai",
+          "profile": "typed",
+          "attribution": "allocated",
+          "unit": "token",
+          "usage_state": "observed",
+          "price_state": "configured",
+          "quantity_per_session": 0.02,
+          "usd_per_session": 0.12,
+          "reasons": []
+        },
+        {
+          "component": "hosted_asr_input",
+          "vendor": "openai",
+          "profile": "typed",
+          "attribution": "allocated",
+          "unit": "token",
+          "usage_state": "observed",
+          "price_state": "configured",
+          "quantity_per_session": 0.04,
+          "usd_per_session": 0.24,
+          "reasons": []
+        },
+        {
+          "component": "hosted_asr_output",
+          "vendor": "openai",
+          "profile": "typed",
+          "attribution": "allocated",
+          "unit": "token",
+          "usage_state": "observed",
+          "price_state": "configured",
+          "quantity_per_session": 0.02,
+          "usd_per_session": 0.12,
+          "reasons": []
+        },
+        {
+          "component": "hosted_tts",
+          "vendor": "openai",
+          "profile": "typed",
+          "attribution": "allocated",
+          "unit": "character",
+          "usage_state": "observed",
+          "price_state": "configured",
+          "quantity_per_session": 0.06,
+          "usd_per_session": 0.36,
+          "reasons": []
+        }
+      ],
+      "by_vendor": [
+        {
+          "vendor": "self-hosted",
+          "profile": "residency_tr",
+          "state": "incomplete",
+          "usd_per_session": null,
+          "missing": ["asr", "llm_talker", "llm_extraction"]
+        },
+        {
+          "vendor": "elevenlabs",
+          "profile": "residency_tr",
+          "state": "incomplete",
+          "usd_per_session": null,
+          "missing": ["clip_synthesis"]
+        },
+        {
+          "vendor": null,
+          "profile": "residency_tr",
+          "state": "incomplete",
+          "usd_per_session": null,
+          "missing": ["sms", "gpu_host_team"]
+        },
+        {
+          "vendor": "aws",
+          "profile": "residency_tr",
+          "state": "incomplete",
+          "usd_per_session": null,
+          "missing": ["gpu_host_onvizit_api"]
+        },
+        {
+          "vendor": "openai",
+          "profile": "residency_tr",
+          "state": "complete",
+          "usd_per_session": 1.08,
+          "missing": []
+        },
+        {
+          "vendor": "self-hosted",
+          "profile": "typed",
+          "state": "incomplete",
+          "usd_per_session": null,
+          "missing": ["llm_talker", "llm_extraction"]
+        },
+        {
+          "vendor": "elevenlabs",
+          "profile": "typed",
+          "state": "incomplete",
+          "usd_per_session": null,
+          "missing": ["clip_synthesis"]
+        },
+        {
+          "vendor": null,
+          "profile": "typed",
+          "state": "incomplete",
+          "usd_per_session": null,
+          "missing": ["sms", "gpu_host_team"]
+        },
+        {
+          "vendor": "aws",
+          "profile": "typed",
+          "state": "incomplete",
+          "usd_per_session": null,
+          "missing": ["gpu_host_onvizit_api"]
+        },
+        {
+          "vendor": "openai",
+          "profile": "typed",
+          "state": "complete",
+          "usd_per_session": 1.08,
+          "missing": []
+        }
+      ],
+      "by_profile": [
+        {
+          "profile": "residency_tr",
+          "state": "incomplete",
+          "usd_per_session": null,
+          "missing": [
+            "asr",
+            "llm_talker",
+            "llm_extraction",
+            "clip_synthesis",
+            "sms",
+            "gpu_host_onvizit_api",
+            "gpu_host_team"
+          ]
+        },
+        {
+          "profile": "typed",
+          "state": "incomplete",
+          "usd_per_session": null,
+          "missing": [
+            "llm_talker",
+            "llm_extraction",
+            "clip_synthesis",
+            "sms",
+            "gpu_host_onvizit_api",
+            "gpu_host_team"
+          ]
+        }
+      ],
+      "spend": [
+        {
+          "component": "asr",
+          "vendor": "self-hosted",
+          "unit": "audio_second",
+          "usage_state": "not_emitted",
+          "price_state": "configured",
+          "quantity": null,
+          "usd": null,
+          "reasons": ["usage series voice_stt_audio_s is catalogued as planned and not emitted yet"]
+        },
+        {
+          "component": "tts_dynamic",
+          "vendor": "self-hosted",
+          "unit": "character",
+          "usage_state": "observed",
+          "price_state": "configured",
+          "quantity": 48000.0,
+          "usd": 96000.0,
+          "reasons": []
+        },
+        {
+          "component": "llm_talker",
+          "vendor": "self-hosted",
+          "unit": "token",
+          "usage_state": "not_emitted",
+          "price_state": "configured",
+          "quantity": null,
+          "usd": null,
+          "reasons": [
+            "usage series voice_talker_tokens is catalogued as planned and not emitted yet"
+          ]
+        },
+        {
+          "component": "llm_extraction",
+          "vendor": "self-hosted",
+          "unit": "token",
+          "usage_state": "not_metered",
+          "price_state": "configured",
+          "quantity": null,
+          "usd": null,
+          "reasons": ["usage not metered: no catalogued series exports extraction tokens"]
+        },
+        {
+          "component": "clip_synthesis",
+          "vendor": "elevenlabs",
+          "unit": "character",
+          "usage_state": "not_metered",
+          "price_state": "configured",
+          "quantity": null,
+          "usd": null,
+          "reasons": ["usage not metered: no catalogued clip-synthesis series"]
+        },
+        {
+          "component": "sms",
+          "vendor": null,
+          "unit": "message",
+          "usage_state": "observed",
+          "price_state": "not_configured",
+          "quantity": 25.0,
+          "usd": null,
+          "reasons": ["price not configured"]
+        },
+        {
+          "component": "gpu_host_onvizit_api",
+          "vendor": "aws",
+          "unit": "host_hour",
+          "usage_state": "not_metered",
+          "price_state": "configured",
+          "quantity": null,
+          "usd": null,
+          "reasons": ["usage not metered: no catalogued host-uptime series"]
+        },
+        {
+          "component": "gpu_host_team",
+          "vendor": null,
+          "unit": "host_hour",
+          "usage_state": "not_metered",
+          "price_state": "not_configured",
+          "quantity": null,
+          "usd": null,
+          "reasons": ["price not configured", "usage not metered: no catalogued host-uptime series"]
+        },
+        {
+          "component": "hosted_llm_input",
+          "vendor": "openai",
+          "unit": "token",
+          "usage_state": "observed",
+          "price_state": "configured",
+          "quantity": 2.0,
+          "usd": 12.0,
+          "reasons": []
+        },
+        {
+          "component": "hosted_llm_output",
+          "vendor": "openai",
+          "unit": "token",
+          "usage_state": "observed",
+          "price_state": "configured",
+          "quantity": 1.0,
+          "usd": 6.0,
+          "reasons": []
+        },
+        {
+          "component": "hosted_asr_input",
+          "vendor": "openai",
+          "unit": "token",
+          "usage_state": "observed",
+          "price_state": "configured",
+          "quantity": 2.0,
+          "usd": 12.0,
+          "reasons": []
+        },
+        {
+          "component": "hosted_asr_output",
+          "vendor": "openai",
+          "unit": "token",
+          "usage_state": "observed",
+          "price_state": "configured",
+          "quantity": 1.0,
+          "usd": 6.0,
+          "reasons": []
+        },
+        {
+          "component": "hosted_tts",
+          "vendor": "openai",
+          "unit": "character",
+          "usage_state": "observed",
+          "price_state": "configured",
+          "quantity": 3.0,
+          "usd": 18.0,
+          "reasons": []
+        }
+      ]
+    },
+    {
+      "period": "month",
+      "window": "30d",
+      "sessions": {
+        "state": "observed",
+        "reason": null,
+        "by_profile": {
+          "residency_tr": 900.0,
+          "typed": 300.0
+        }
+      },
+      "per_session": [
+        {
+          "component": "asr",
+          "vendor": "self-hosted",
+          "profile": "residency_tr",
+          "attribution": "direct",
+          "unit": "audio_second",
+          "usage_state": "not_emitted",
+          "price_state": "configured",
+          "quantity_per_session": null,
+          "usd_per_session": null,
+          "reasons": ["usage series voice_stt_audio_s is catalogued as planned and not emitted yet"]
+        },
+        {
+          "component": "tts_dynamic",
+          "vendor": "self-hosted",
+          "profile": "residency_tr",
+          "attribution": "direct",
+          "unit": "character",
+          "usage_state": "observed",
+          "price_state": "configured",
+          "quantity_per_session": 1200.0,
+          "usd_per_session": 2400.0,
+          "reasons": []
+        },
+        {
+          "component": "llm_talker",
+          "vendor": "self-hosted",
+          "profile": "residency_tr",
+          "attribution": "direct",
+          "unit": "token",
+          "usage_state": "not_emitted",
+          "price_state": "configured",
+          "quantity_per_session": null,
+          "usd_per_session": null,
+          "reasons": [
+            "usage series voice_talker_tokens is catalogued as planned and not emitted yet"
+          ]
+        },
+        {
+          "component": "llm_extraction",
+          "vendor": "self-hosted",
+          "profile": "residency_tr",
+          "attribution": "direct",
+          "unit": "token",
+          "usage_state": "not_metered",
+          "price_state": "configured",
+          "quantity_per_session": null,
+          "usd_per_session": null,
+          "reasons": ["usage not metered: no catalogued series exports extraction tokens"]
+        },
+        {
+          "component": "clip_synthesis",
+          "vendor": "elevenlabs",
+          "profile": "residency_tr",
+          "attribution": "allocated",
+          "unit": "character",
+          "usage_state": "not_metered",
+          "price_state": "configured",
+          "quantity_per_session": null,
+          "usd_per_session": null,
+          "reasons": ["usage not metered: no catalogued clip-synthesis series"]
+        },
+        {
+          "component": "sms",
+          "vendor": null,
+          "profile": "residency_tr",
+          "attribution": "allocated",
+          "unit": "message",
+          "usage_state": "observed",
+          "price_state": "not_configured",
+          "quantity_per_session": 0.5833333333333334,
+          "usd_per_session": null,
+          "reasons": ["price not configured"]
+        },
+        {
+          "component": "gpu_host_onvizit_api",
+          "vendor": "aws",
+          "profile": "residency_tr",
+          "attribution": "allocated",
+          "unit": "host_hour",
+          "usage_state": "not_metered",
+          "price_state": "configured",
+          "quantity_per_session": null,
+          "usd_per_session": null,
+          "reasons": ["usage not metered: no catalogued host-uptime series"]
+        },
+        {
+          "component": "gpu_host_team",
+          "vendor": null,
+          "profile": "residency_tr",
+          "attribution": "allocated",
+          "unit": "host_hour",
+          "usage_state": "not_metered",
+          "price_state": "not_configured",
+          "quantity_per_session": null,
+          "usd_per_session": null,
+          "reasons": ["price not configured", "usage not metered: no catalogued host-uptime series"]
+        },
+        {
+          "component": "hosted_llm_input",
+          "vendor": "openai",
+          "profile": "residency_tr",
+          "attribution": "allocated",
+          "unit": "token",
+          "usage_state": "observed",
+          "price_state": "configured",
+          "quantity_per_session": 0.05,
+          "usd_per_session": 0.30000000000000004,
+          "reasons": []
+        },
+        {
+          "component": "hosted_llm_output",
+          "vendor": "openai",
+          "profile": "residency_tr",
+          "attribution": "allocated",
+          "unit": "token",
+          "usage_state": "observed",
+          "price_state": "configured",
+          "quantity_per_session": 0.025,
+          "usd_per_session": 0.15000000000000002,
+          "reasons": []
+        },
+        {
+          "component": "hosted_asr_input",
+          "vendor": "openai",
+          "profile": "residency_tr",
+          "attribution": "allocated",
+          "unit": "token",
+          "usage_state": "observed",
+          "price_state": "configured",
+          "quantity_per_session": 0.05,
+          "usd_per_session": 0.30000000000000004,
+          "reasons": []
+        },
+        {
+          "component": "hosted_asr_output",
+          "vendor": "openai",
+          "profile": "residency_tr",
+          "attribution": "allocated",
+          "unit": "token",
+          "usage_state": "observed",
+          "price_state": "configured",
+          "quantity_per_session": 0.025,
+          "usd_per_session": 0.15000000000000002,
+          "reasons": []
+        },
+        {
+          "component": "hosted_tts",
+          "vendor": "openai",
+          "profile": "residency_tr",
+          "attribution": "allocated",
+          "unit": "character",
+          "usage_state": "observed",
+          "price_state": "configured",
+          "quantity_per_session": 0.075,
+          "usd_per_session": 0.44999999999999996,
+          "reasons": []
+        },
+        {
+          "component": "llm_talker",
+          "vendor": "self-hosted",
+          "profile": "typed",
+          "attribution": "direct",
+          "unit": "token",
+          "usage_state": "not_emitted",
+          "price_state": "configured",
+          "quantity_per_session": null,
+          "usd_per_session": null,
+          "reasons": [
+            "usage series voice_talker_tokens is catalogued as planned and not emitted yet"
+          ]
+        },
+        {
+          "component": "llm_extraction",
+          "vendor": "self-hosted",
+          "profile": "typed",
+          "attribution": "direct",
+          "unit": "token",
+          "usage_state": "not_metered",
+          "price_state": "configured",
+          "quantity_per_session": null,
+          "usd_per_session": null,
+          "reasons": ["usage not metered: no catalogued series exports extraction tokens"]
+        },
+        {
+          "component": "clip_synthesis",
+          "vendor": "elevenlabs",
+          "profile": "typed",
+          "attribution": "allocated",
+          "unit": "character",
+          "usage_state": "not_metered",
+          "price_state": "configured",
+          "quantity_per_session": null,
+          "usd_per_session": null,
+          "reasons": ["usage not metered: no catalogued clip-synthesis series"]
+        },
+        {
+          "component": "sms",
+          "vendor": null,
+          "profile": "typed",
+          "attribution": "allocated",
+          "unit": "message",
+          "usage_state": "observed",
+          "price_state": "not_configured",
+          "quantity_per_session": 0.5833333333333334,
+          "usd_per_session": null,
+          "reasons": ["price not configured"]
+        },
+        {
+          "component": "gpu_host_onvizit_api",
+          "vendor": "aws",
+          "profile": "typed",
+          "attribution": "allocated",
+          "unit": "host_hour",
+          "usage_state": "not_metered",
+          "price_state": "configured",
+          "quantity_per_session": null,
+          "usd_per_session": null,
+          "reasons": ["usage not metered: no catalogued host-uptime series"]
+        },
+        {
+          "component": "gpu_host_team",
+          "vendor": null,
+          "profile": "typed",
+          "attribution": "allocated",
+          "unit": "host_hour",
+          "usage_state": "not_metered",
+          "price_state": "not_configured",
+          "quantity_per_session": null,
+          "usd_per_session": null,
+          "reasons": ["price not configured", "usage not metered: no catalogued host-uptime series"]
+        },
+        {
+          "component": "hosted_llm_input",
+          "vendor": "openai",
+          "profile": "typed",
+          "attribution": "allocated",
+          "unit": "token",
+          "usage_state": "observed",
+          "price_state": "configured",
+          "quantity_per_session": 0.05,
+          "usd_per_session": 0.30000000000000004,
+          "reasons": []
+        },
+        {
+          "component": "hosted_llm_output",
+          "vendor": "openai",
+          "profile": "typed",
+          "attribution": "allocated",
+          "unit": "token",
+          "usage_state": "observed",
+          "price_state": "configured",
+          "quantity_per_session": 0.025,
+          "usd_per_session": 0.15000000000000002,
+          "reasons": []
+        },
+        {
+          "component": "hosted_asr_input",
+          "vendor": "openai",
+          "profile": "typed",
+          "attribution": "allocated",
+          "unit": "token",
+          "usage_state": "observed",
+          "price_state": "configured",
+          "quantity_per_session": 0.05,
+          "usd_per_session": 0.30000000000000004,
+          "reasons": []
+        },
+        {
+          "component": "hosted_asr_output",
+          "vendor": "openai",
+          "profile": "typed",
+          "attribution": "allocated",
+          "unit": "token",
+          "usage_state": "observed",
+          "price_state": "configured",
+          "quantity_per_session": 0.025,
+          "usd_per_session": 0.15000000000000002,
+          "reasons": []
+        },
+        {
+          "component": "hosted_tts",
+          "vendor": "openai",
+          "profile": "typed",
+          "attribution": "allocated",
+          "unit": "character",
+          "usage_state": "observed",
+          "price_state": "configured",
+          "quantity_per_session": 0.075,
+          "usd_per_session": 0.44999999999999996,
+          "reasons": []
+        }
+      ],
+      "by_vendor": [
+        {
+          "vendor": "self-hosted",
+          "profile": "residency_tr",
+          "state": "incomplete",
+          "usd_per_session": null,
+          "missing": ["asr", "llm_talker", "llm_extraction"]
+        },
+        {
+          "vendor": "elevenlabs",
+          "profile": "residency_tr",
+          "state": "incomplete",
+          "usd_per_session": null,
+          "missing": ["clip_synthesis"]
+        },
+        {
+          "vendor": null,
+          "profile": "residency_tr",
+          "state": "incomplete",
+          "usd_per_session": null,
+          "missing": ["sms", "gpu_host_team"]
+        },
+        {
+          "vendor": "aws",
+          "profile": "residency_tr",
+          "state": "incomplete",
+          "usd_per_session": null,
+          "missing": ["gpu_host_onvizit_api"]
+        },
+        {
+          "vendor": "openai",
+          "profile": "residency_tr",
+          "state": "complete",
+          "usd_per_session": 1.35,
+          "missing": []
+        },
+        {
+          "vendor": "self-hosted",
+          "profile": "typed",
+          "state": "incomplete",
+          "usd_per_session": null,
+          "missing": ["llm_talker", "llm_extraction"]
+        },
+        {
+          "vendor": "elevenlabs",
+          "profile": "typed",
+          "state": "incomplete",
+          "usd_per_session": null,
+          "missing": ["clip_synthesis"]
+        },
+        {
+          "vendor": null,
+          "profile": "typed",
+          "state": "incomplete",
+          "usd_per_session": null,
+          "missing": ["sms", "gpu_host_team"]
+        },
+        {
+          "vendor": "aws",
+          "profile": "typed",
+          "state": "incomplete",
+          "usd_per_session": null,
+          "missing": ["gpu_host_onvizit_api"]
+        },
+        {
+          "vendor": "openai",
+          "profile": "typed",
+          "state": "complete",
+          "usd_per_session": 1.35,
+          "missing": []
+        }
+      ],
+      "by_profile": [
+        {
+          "profile": "residency_tr",
+          "state": "incomplete",
+          "usd_per_session": null,
+          "missing": [
+            "asr",
+            "llm_talker",
+            "llm_extraction",
+            "clip_synthesis",
+            "sms",
+            "gpu_host_onvizit_api",
+            "gpu_host_team"
+          ]
+        },
+        {
+          "profile": "typed",
+          "state": "incomplete",
+          "usd_per_session": null,
+          "missing": [
+            "llm_talker",
+            "llm_extraction",
+            "clip_synthesis",
+            "sms",
+            "gpu_host_onvizit_api",
+            "gpu_host_team"
+          ]
+        }
+      ],
+      "spend": [
+        {
+          "component": "asr",
+          "vendor": "self-hosted",
+          "unit": "audio_second",
+          "usage_state": "not_emitted",
+          "price_state": "configured",
+          "quantity": null,
+          "usd": null,
+          "reasons": ["usage series voice_stt_audio_s is catalogued as planned and not emitted yet"]
+        },
+        {
+          "component": "tts_dynamic",
+          "vendor": "self-hosted",
+          "unit": "character",
+          "usage_state": "observed",
+          "price_state": "configured",
+          "quantity": 1080000.0,
+          "usd": 2160000.0,
+          "reasons": []
+        },
+        {
+          "component": "llm_talker",
+          "vendor": "self-hosted",
+          "unit": "token",
+          "usage_state": "not_emitted",
+          "price_state": "configured",
+          "quantity": null,
+          "usd": null,
+          "reasons": [
+            "usage series voice_talker_tokens is catalogued as planned and not emitted yet"
+          ]
+        },
+        {
+          "component": "llm_extraction",
+          "vendor": "self-hosted",
+          "unit": "token",
+          "usage_state": "not_metered",
+          "price_state": "configured",
+          "quantity": null,
+          "usd": null,
+          "reasons": ["usage not metered: no catalogued series exports extraction tokens"]
+        },
+        {
+          "component": "clip_synthesis",
+          "vendor": "elevenlabs",
+          "unit": "character",
+          "usage_state": "not_metered",
+          "price_state": "configured",
+          "quantity": null,
+          "usd": null,
+          "reasons": ["usage not metered: no catalogued clip-synthesis series"]
+        },
+        {
+          "component": "sms",
+          "vendor": null,
+          "unit": "message",
+          "usage_state": "observed",
+          "price_state": "not_configured",
+          "quantity": 700.0,
+          "usd": null,
+          "reasons": ["price not configured"]
+        },
+        {
+          "component": "gpu_host_onvizit_api",
+          "vendor": "aws",
+          "unit": "host_hour",
+          "usage_state": "not_metered",
+          "price_state": "configured",
+          "quantity": null,
+          "usd": null,
+          "reasons": ["usage not metered: no catalogued host-uptime series"]
+        },
+        {
+          "component": "gpu_host_team",
+          "vendor": null,
+          "unit": "host_hour",
+          "usage_state": "not_metered",
+          "price_state": "not_configured",
+          "quantity": null,
+          "usd": null,
+          "reasons": ["price not configured", "usage not metered: no catalogued host-uptime series"]
+        },
+        {
+          "component": "hosted_llm_input",
+          "vendor": "openai",
+          "unit": "token",
+          "usage_state": "observed",
+          "price_state": "configured",
+          "quantity": 60.0,
+          "usd": 360.0,
+          "reasons": []
+        },
+        {
+          "component": "hosted_llm_output",
+          "vendor": "openai",
+          "unit": "token",
+          "usage_state": "observed",
+          "price_state": "configured",
+          "quantity": 30.0,
+          "usd": 180.0,
+          "reasons": []
+        },
+        {
+          "component": "hosted_asr_input",
+          "vendor": "openai",
+          "unit": "token",
+          "usage_state": "observed",
+          "price_state": "configured",
+          "quantity": 60.0,
+          "usd": 360.0,
+          "reasons": []
+        },
+        {
+          "component": "hosted_asr_output",
+          "vendor": "openai",
+          "unit": "token",
+          "usage_state": "observed",
+          "price_state": "configured",
+          "quantity": 30.0,
+          "usd": 180.0,
+          "reasons": []
+        },
+        {
+          "component": "hosted_tts",
+          "vendor": "openai",
+          "unit": "character",
+          "usage_state": "observed",
+          "price_state": "configured",
+          "quantity": 90.0,
+          "usd": 540.0,
+          "reasons": []
+        }
+      ]
+    }
+  ],
+  "budgets": [
+    {
+      "budget_id": "all-vendors-day",
+      "scope": "all_vendors",
+      "vendor": null,
+      "period": "day",
+      "window": "1d",
+      "limit": {
+        "state": "configured",
+        "usd": 1.0,
+        "source": "synthetic test limit, not a budget",
+        "as_of": "2026-09-26"
+      },
+      "spend_state": "lower_bound",
+      "spend_usd": 96054.0,
+      "status": "exceeded",
+      "missing": [
+        "asr",
+        "llm_talker",
+        "llm_extraction",
+        "clip_synthesis",
+        "sms",
+        "gpu_host_onvizit_api",
+        "gpu_host_team"
+      ],
+      "reason": "a lower bound on the spend is already above the limit",
+      "alerts": ["CostBudgetExceeded", "CostBudgetIncomplete"]
+    },
+    {
+      "budget_id": "all-vendors-month",
+      "scope": "all_vendors",
+      "vendor": null,
+      "period": "month",
+      "window": "30d",
+      "limit": {
+        "state": "not_configured",
+        "usd": null,
+        "source": null,
+        "as_of": null
+      },
+      "spend_state": "lower_bound",
+      "spend_usd": 2161620.0,
+      "status": "not_configured",
+      "missing": [
+        "asr",
+        "llm_talker",
+        "llm_extraction",
+        "clip_synthesis",
+        "sms",
+        "gpu_host_onvizit_api",
+        "gpu_host_team"
+      ],
+      "reason": "budget not configured",
+      "alerts": ["CostBudgetNotConfigured"]
+    },
+    {
+      "budget_id": "self-hosted-day",
+      "scope": "vendor",
+      "vendor": "self-hosted",
+      "period": "day",
+      "window": "1d",
+      "limit": {
+        "state": "configured",
+        "usd": 50000.0,
+        "source": "synthetic test limit, not a budget",
+        "as_of": "2026-09-26"
+      },
+      "spend_state": "lower_bound",
+      "spend_usd": 96000.0,
+      "status": "exceeded",
+      "missing": ["asr", "llm_talker", "llm_extraction"],
+      "reason": "a lower bound on the spend is already above the limit",
+      "alerts": ["CostBudgetExceeded", "CostBudgetIncomplete"]
+    },
+    {
+      "budget_id": "self-hosted-month",
+      "scope": "vendor",
+      "vendor": "self-hosted",
+      "period": "month",
+      "window": "30d",
+      "limit": {
+        "state": "configured",
+        "usd": 10000000.0,
+        "source": "synthetic test limit, not a budget",
+        "as_of": "2026-09-26"
+      },
+      "spend_state": "lower_bound",
+      "spend_usd": 2160000.0,
+      "status": "not_evaluable",
+      "missing": ["asr", "llm_talker", "llm_extraction"],
+      "reason": "cannot be evaluated: no spend is known for asr, llm_talker, llm_extraction",
+      "alerts": ["CostBudgetExceeded", "CostBudgetIncomplete"]
+    },
+    {
+      "budget_id": "elevenlabs-day",
+      "scope": "vendor",
+      "vendor": "elevenlabs",
+      "period": "day",
+      "window": "1d",
+      "limit": {
+        "state": "not_configured",
+        "usd": null,
+        "source": null,
+        "as_of": null
+      },
+      "spend_state": "unknown",
+      "spend_usd": null,
+      "status": "not_configured",
+      "missing": ["clip_synthesis"],
+      "reason": "budget not configured",
+      "alerts": ["CostBudgetNotConfigured"]
+    },
+    {
+      "budget_id": "elevenlabs-month",
+      "scope": "vendor",
+      "vendor": "elevenlabs",
+      "period": "month",
+      "window": "30d",
+      "limit": {
+        "state": "configured",
+        "usd": 100.0,
+        "source": "synthetic test limit, not a budget",
+        "as_of": "2026-09-26"
+      },
+      "spend_state": "unknown",
+      "spend_usd": null,
+      "status": "not_evaluable",
+      "missing": ["clip_synthesis"],
+      "reason": "cannot be evaluated: no spend is known for clip_synthesis",
+      "alerts": ["CostBudgetIncomplete"]
+    },
+    {
+      "budget_id": "aws-day",
+      "scope": "vendor",
+      "vendor": "aws",
+      "period": "day",
+      "window": "1d",
+      "limit": {
+        "state": "not_configured",
+        "usd": null,
+        "source": null,
+        "as_of": null
+      },
+      "spend_state": "unknown",
+      "spend_usd": null,
+      "status": "not_configured",
+      "missing": ["gpu_host_onvizit_api"],
+      "reason": "budget not configured",
+      "alerts": ["CostBudgetNotConfigured"]
+    },
+    {
+      "budget_id": "aws-month",
+      "scope": "vendor",
+      "vendor": "aws",
+      "period": "month",
+      "window": "30d",
+      "limit": {
+        "state": "not_configured",
+        "usd": null,
+        "source": null,
+        "as_of": null
+      },
+      "spend_state": "unknown",
+      "spend_usd": null,
+      "status": "not_configured",
+      "missing": ["gpu_host_onvizit_api"],
+      "reason": "budget not configured",
+      "alerts": ["CostBudgetNotConfigured"]
+    },
+    {
+      "budget_id": "openai-day",
+      "scope": "vendor",
+      "vendor": "openai",
+      "period": "day",
+      "window": "1d",
+      "limit": {
+        "state": "configured",
+        "usd": 900.0,
+        "source": "synthetic test limit, not a budget",
+        "as_of": "2026-10-02"
+      },
+      "spend_state": "complete",
+      "spend_usd": 54.0,
+      "status": "within",
+      "missing": [],
+      "reason": "the complete spend is within the limit",
+      "alerts": ["CostBudgetExceeded"]
+    },
+    {
+      "budget_id": "openai-month",
+      "scope": "vendor",
+      "vendor": "openai",
+      "period": "month",
+      "window": "30d",
+      "limit": {
+        "state": "configured",
+        "usd": 9000.0,
+        "source": "synthetic test limit, not a budget",
+        "as_of": "2026-10-02"
+      },
+      "spend_state": "complete",
+      "spend_usd": 1620.0,
+      "status": "within",
+      "missing": [],
+      "reason": "the complete spend is within the limit",
+      "alerts": ["CostBudgetExceeded"]
+    }
+  ],
+  "alerts": {
+    "rules_path": "infra/observability/cost-rules.yaml",
+    "rules": [
+      {
+        "alert": "CostBudgetExceeded",
+        "budget_id": "all-vendors-day",
+        "severity": "ticket"
+      },
+      {
+        "alert": "CostBudgetIncomplete",
+        "budget_id": "all-vendors-day",
+        "severity": "ticket"
+      },
+      {
+        "alert": "CostBudgetNotConfigured",
+        "budget_id": "all-vendors-month",
+        "severity": "ticket"
+      },
+      {
+        "alert": "CostBudgetExceeded",
+        "budget_id": "self-hosted-day",
+        "severity": "ticket"
+      },
+      {
+        "alert": "CostBudgetIncomplete",
+        "budget_id": "self-hosted-day",
+        "severity": "ticket"
+      },
+      {
+        "alert": "CostBudgetExceeded",
+        "budget_id": "self-hosted-month",
+        "severity": "ticket"
+      },
+      {
+        "alert": "CostBudgetIncomplete",
+        "budget_id": "self-hosted-month",
+        "severity": "ticket"
+      },
+      {
+        "alert": "CostBudgetNotConfigured",
+        "budget_id": "elevenlabs-day",
+        "severity": "ticket"
+      },
+      {
+        "alert": "CostBudgetIncomplete",
+        "budget_id": "elevenlabs-month",
+        "severity": "ticket"
+      },
+      {
+        "alert": "CostBudgetNotConfigured",
+        "budget_id": "aws-day",
+        "severity": "ticket"
+      },
+      {
+        "alert": "CostBudgetNotConfigured",
+        "budget_id": "aws-month",
+        "severity": "ticket"
+      },
+      {
+        "alert": "CostBudgetExceeded",
+        "budget_id": "openai-day",
+        "severity": "ticket"
+      },
+      {
+        "alert": "CostBudgetExceeded",
+        "budget_id": "openai-month",
+        "severity": "ticket"
+      }
+    ]
+  }
+}

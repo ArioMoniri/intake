@@ -1,0 +1,21 @@
+# guideline_id: NICE-NG148
+# title: Acute kidney injury: prevention, detection and management
+# publisher: National Institute for Health and Care Excellence (NICE)
+# version_or_date: NICE guideline NG148; published 18 December 2019; last updated 16 October 2024
+# url: https://www.nice.org.uk/guidance/ng148/chapter/Recommendations
+# retrieved_on: 2026-10-03
+# retrieval: curl with browser UA; HTML (utf-8) text-extracted; tags stripped and whitespace runs collapsed to single spaces as a browser renders them; blank lines dropped; non-breaking spaces (U+00A0) rendered as plain spaces; non-breaking hyphens (U+2011) kept as served
+# scope: verbatim excerpt of the page header and recommendation 1.3.1 (detecting acute kidney injury); nothing paraphrased or edited. '[...]' marks an omission between excerpts.
+---
+Reference number: NG148
+Published:
+18 December 2019
+Last updated:
+16 October 2024
+[...]
+1.3.1
+Detect acute kidney injury, in line with the (p)RIFLE (paediatric Risk, Injury, Failure, Loss, End stage renal disease), AKIN (Acute Kidney Injury Network) or KDIGO (Kidney Disease: Improving Global Outcomes) definitions, by using any of the following criteria:
+a rise in serum creatinine of 26 micromol/litre or greater within 48 hours
+a 50% or greater rise in serum creatinine known or presumed to have occurred within the past 7 days (see also an algorithm for early identification of acute kidney injury, endorsed by NHS England)
+a fall in urine output to less than 0.5 ml/kg/hour for more than 6 hours in adults and more than 8 hours in children and young people
+a 25% or greater fall in eGFR in children and young people within the past 7 days. [2013]

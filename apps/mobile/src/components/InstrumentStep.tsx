@@ -26,7 +26,9 @@
  */
 import { Pressable, StyleSheet, View } from "react-native";
 
+import { AnnouncedRegion } from "@/components/Announced";
 import { AppText, Card } from "@/components/Themed";
+import { joinParts } from "@/lib/a11y/labels";
 import { MIN_TAP } from "@/lib/a11y/target";
 import { t } from "@/lib/i18n";
 import { instrumentItemOffer, type InstrumentItemRef } from "@/lib/intake/instruments";
@@ -52,15 +54,24 @@ export function InstrumentStep({ instrument, options, onSelect }: InstrumentStep
   const administrable = item !== null && item.choicesTr.length === options.length;
 
   if (!administrable) {
+    // SC 4.1.3, on both platforms (INT-362). Not merged: the title stays a
+    // heading of its own, and the announcement carries both lines.
     return (
-      <View style={styles.block} accessibilityLiveRegion="polite">
+      <AnnouncedRegion
+        tone="status"
+        message={joinParts(
+          t("intake.instrument.unavailable.title"),
+          t("intake.instrument.unavailable.body"),
+        )}
+        style={styles.block}
+      >
         <AppText role="title" heading>
           {t("intake.instrument.unavailable.title")}
         </AppText>
         <AppText role="body" color="inkSoft">
           {t("intake.instrument.unavailable.body")}
         </AppText>
-      </View>
+      </AnnouncedRegion>
     );
   }
 

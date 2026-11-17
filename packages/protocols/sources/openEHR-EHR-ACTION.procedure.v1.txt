@@ -1,0 +1,28 @@
+# guideline_id: openEHR-EHR-ACTION.procedure.v1
+# title: Procedure (openEHR Clinical Knowledge Manager archetype)
+# publisher: openEHR Foundation (CKM cid 1013.1.204, lifecycle PUBLISHED)
+# version_or_date: revision 1.5.3; build_uid 3c27f0de-6c9d-4ce1-9fab-051969ccc6c6; MD5-CAM-1.0.1 91AEB451145319A9810AA9703E608596
+# url: https://ckm.openehr.org/ckm/archetypes/1013.1.204
+# url_adl: https://ckm.openehr.org/ckm/rest/v1/archetypes/1013.1.204/adl
+# retrieved_on: 2026-10-03
+# retrieval: curl of the CKM REST ADL export (ADL 1.4, utf-8, BOM and CR stripped); CKM REST search metadata reports revision 1.5.3 as revisionLatestPublished
+# scope: verbatim ADL lines - archetype id, lifecycle and revision lines, and the English term definitions of at0000 (Procedure), at0002 (Procedure name) and at0063 (Body site), each cut at its description line; nothing paraphrased or edited. '[...]' marks an omission between excerpts.
+---
+archetype (adl_version=1.4; uid=82e79f18-76b9-4b5c-a930-1115eecbc4b7)
+	openEHR-EHR-ACTION.procedure.v1
+[...]
+	lifecycle_state = <"published">
+[...]
+		["revision"] = <"1.5.3">
+[...]
+				["at0000"] = <
+					text = <"Procedure">
+					description = <"A clinical activity carried out for screening, investigative, diagnostic, curative, therapeutic, evaluative or palliative purposes.">
+[...]
+				["at0002"] = <
+					text = <"Procedure name">
+					description = <"Identification of the procedure by name.">
+[...]
+				["at0063"] = <
+					text = <"Body site">
+					description = <"Identification of the body site for the procedure.">

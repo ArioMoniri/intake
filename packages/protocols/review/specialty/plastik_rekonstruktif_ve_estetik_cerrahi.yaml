@@ -1,0 +1,127 @@
+# REVIEW QUEUE — QUESTIONS authored; NOT servable. Promoted to L1 only by the
+# physician of record's sign-off (HB-C1).
+# generated-by: scripts/dev/gen_specialty_packs.py from docs/evidence/proposals/plastik_rekonstruktif_ve_estetik_cerrahi.md
+# (guideline-sourced; reviewed per docs/evidence/verification/). Symptom-capture
+# prompts only (inv 2/10) — not diagnosis, not triage. Acuity is EK-4 law +
+# physician of record; never fabricated. RED/life-threat stays in
+# base.life_threat (inv 7).
+kind: pack
+id: specialty.plastik_rekonstruktif_ve_estetik_cerrahi
+layer: specialty
+version: 0.3.0
+schema_version: 2
+maturity: L0
+status: questions-authored; awaiting physician-of-record sign-off (HB-C1); not servable
+language: tr
+title_tr: Plastik, Rekonstrüktif ve Estetik Cerrahi ön görüşme protokolü
+extends: cluster.surgical
+visit_types:
+- first
+- followup
+- preop
+- report
+- pregnancy_followup
+- chronic_review
+- post_discharge
+- screening
+- second_opinion
+- teleconsult
+sections:
+  ziyaret_baglami:
+    slots:
+      basvuru_nedeni:
+        type: string
+        required: true
+        ask_tr:
+          tr: Bugün plastik cerrahi polikliniğine gelme nedeninizi kısaca anlatır mısınız?
+        follow_up_tr:
+          tr: Sizi hekime getiren en önemli şikâyetiniz nedir?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.reason_for_encounter.v1 recorded in docs/evidence/proposals/plastik_rekonstruktif_ve_estetik_cerrahi.md'
+      sikayet_suresi:
+        type: duration
+        required: false
+        ask_tr:
+          tr: Bu şikâyetiniz ne zamandır var?
+        follow_up_tr:
+          tr: Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; no candidate archetype recorded in docs/evidence/proposals/plastik_rekonstruktif_ve_estetik_cerrahi.md'
+  sorular:
+    slots:
+      soru_1:
+        type: string
+        required: false
+        ask_tr:
+          tr: Şikâyetiniz bir yaralanma, yanık ya da ameliyattan sonra mı başladı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/plastik_rekonstruktif_ve_estetik_cerrahi.md'
+      soru_2:
+        type: string
+        required: false
+        ask_tr:
+          tr: Şikâyetiniz olan bölgeden daha önce ameliyat oldunuz mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/plastik_rekonstruktif_ve_estetik_cerrahi.md'
+      soru_3:
+        type: string
+        required: false
+        ask_tr:
+          tr: Daha önce yüzünüze ya da vücudunuza dolgu gibi bir enjeksiyon yapıldı mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/plastik_rekonstruktif_ve_estetik_cerrahi.md'
+      meme_protezi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Memelerinizde protez, yani silikon var mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/plastik_rekonstruktif_ve_estetik_cerrahi.md'
+      protez_tarafi_sislik:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Protezinizin olduğu tarafta geçmeyen bir şişlik ya da yeni bir sertlik fark ettiniz mi?
+        ask_if: meme_protezi == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/plastik_rekonstruktif_ve_estetik_cerrahi.md'
+      soru_6:
+        type: string
+        required: false
+        ask_tr:
+          tr: Derinizde yeni çıkan ya da boyutu, şekli veya rengi değişen bir ben var mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/plastik_rekonstruktif_ve_estetik_cerrahi.md'
+      soru_7:
+        type: string
+        required: false
+        ask_tr:
+          tr: Vücudunuzda uzun süredir iyileşmeyen bir yara var mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/plastik_rekonstruktif_ve_estetik_cerrahi.md'
+      soru_8:
+        type: string
+        required: false
+        ask_tr:
+          tr: Eski yara izleriniz kabarıp ilk yaranın sınırlarından taşacak kadar büyüdü mü?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/plastik_rekonstruktif_ve_estetik_cerrahi.md'
+      soru_9:
+        type: string
+        required: false
+        ask_tr:
+          tr: Bir yara ya da yanık izi eklemlerinizin hareketini kısıtlıyor mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/plastik_rekonstruktif_ve_estetik_cerrahi.md'
+      soru_10:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Son aylarda kilonuzda belirgin bir değişiklik oldu mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/plastik_rekonstruktif_ve_estetik_cerrahi.md'
+      soru_11:
+        type: string
+        required: false
+        ask_tr:
+          tr: Bu bölgeye daha önce ışın tedavisi, yani radyoterapi uygulandı mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/plastik_rekonstruktif_ve_estetik_cerrahi.md'
+red_flags:
+- id: rf.plastik_rekonstruktif_ve_estetik_cerrahi_l0_taslak
+  label_tr: Plastik, Rekonstrüktif ve Estetik Cerrahi ön görüşme protokolü — branşa özgü kırmızı bayrak taslağı (klinik onay bekliyor)
+  when: 'TODO: plastik_rekonstruktif_ve_estetik_cerrahi branch-specific red-flag trigger requires clinical sign-off'
+  tense: ever
+  tense_anchor: sikayet_suresi
+  level: YESIL
+  route: EXPEDITE
+  notify_clinic: never
+  status: draft_needs_source
+  source_gap: 'Trigger, EK-4 level and route await clinical sign-off (invariant 17 pending-value literal). Guideline-sourced candidates recorded in docs/evidence/proposals/plastik_rekonstruktif_ve_estetik_cerrahi.md; acuity bound by EK-4 law (RG 13/9/2022 sayı 31952), snapshot absent. RED/life-threat stays in base.life_threat (invariant 7). Owner: physician of record (HB-C1, HB-C2, HB-C7).'

@@ -89,6 +89,36 @@ describe("motion budget (02 §5.2a)", () => {
       expect(ms, name).toBeLessThanOrEqual(motion.fadeMs);
     }
   });
+
+  // INT-335 (MOTION-6). A loop token is a FULL period. SC 2.3.1 draws the
+  // line at three flashes a second: a 333 ms cycle, so a 167 ms half. Every
+  // loop the app runs takes its period from here (e2e/a11y.spec.ts BK15), so
+  // this one assertion bounds all of them.
+  it("every loop half-period exceeds 167 ms", () => {
+    const periods = Object.entries(motion.loop);
+    expect(periods.length).toBeGreaterThan(0);
+    for (const [name, ms] of periods) {
+      expect(Number.isFinite(ms), name).toBe(true);
+      expect(ms / 2, name).toBeGreaterThan(167);
+    }
+  });
+
+  // INT-341 (MOTION-12): press feedback is an instant opacity step, read from
+  // one token set. The values are the reconciled ones (motion-verification
+  // §2.2); the composer's disabled send was normalised onto them (0.4 → 0.5).
+  it("the disabled opacity stays distinguishable from the pressed opacity", () => {
+    expect(motion.press).toEqual({ opacity: 0.85, rowOpacity: 0.7, disabledOpacity: 0.5 });
+    const { disabledOpacity } = motion.press;
+    // A disabled control stays on screen, so it can still say what it is.
+    expect(disabledOpacity).toBeGreaterThan(0);
+    for (const pressed of [motion.press.opacity, motion.press.rowOpacity]) {
+      // A press is visible at all…
+      expect(pressed).toBeLessThan(1);
+      // …and never as dim as a control that cannot be pressed, so a finger
+      // on an enabled control does not read as the control switching off.
+      expect(disabledOpacity).toBeLessThan(pressed);
+    }
+  });
 });
 
 describe("dynamic type", () => {

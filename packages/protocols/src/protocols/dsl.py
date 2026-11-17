@@ -5,7 +5,8 @@ compiler outputs), files/04 §1 (voice fields v1.1), files/12 §2 (core types,
 ``source:`` per rule), files/13 §13 (delivery), files/02 §5.3 via the rule
 schema documented inline in files/protocols/base.life_threat.yaml (route,
 register, location-keyed actions, do-nots). A field the blueprint does not
-name does not exist here.
+name does not exist here, with one recorded exception: ``Slot.data_category``
+comes from the owner's D3 decision of 2026-09-26 (INT-349).
 
 Naming note (files/protocols/base.life_threat.yaml, schema_reconciliation):
 the life-threat set spells the predicate ``gate:`` and the provenance block
@@ -40,6 +41,7 @@ from protocols.types import (
     AbandonmentHandler,
     AckStyle,
     CrisisNumber,
+    DataCategory,
     Delivery,
     EK4Level,
     NotifyClinic,
@@ -197,6 +199,13 @@ class Slot(FrozenModel):
     delivery: Delivery | None = Field(
         default=None, description="voice|text_first|text_only (files/13 §13)."
     )
+    data_category: DataCategory = Field(
+        default=DataCategory.GENERAL_HEALTH,
+        description="What kind of personal data the answer is, from the closed "
+        "set of owner decision D3 (INT-349). Anything but general_health is "
+        "envelope-encrypted at rest, and the compiler refuses to serve the slot "
+        "while its category row in docs/legal/data-categories.yaml is incomplete.",
+    )
     openehr_path: str | None = Field(
         default=None,
         description="The openEHR archetype-path annotation ADR-002 keeps on every "
@@ -275,8 +284,12 @@ class Instrument(FrozenModel):
 class SourceBlock(FrozenModel):
     """Per-rule provenance (files/12 §2.5; files/04 §8.1 rule 3; CLAUDE.md
     clinical content rules). The quote must appear verbatim in a committed
-    snapshot under packages/protocols/sources/ — enforced by the compiler
-    slice (INT-041), not here."""
+    snapshot under packages/protocols/sources/, and the url and retrieved_on
+    must be the snapshot header's. Not enforced here, where the repository is
+    out of reach: ``protocols.source_snapshots`` is the check, and
+    ``protocols.compile.load_life_threat_set`` runs it on every life-threat
+    rule at load (INT-465). A chain pack's red-flag rules cite no snapshot
+    today; when one does, its loader runs the same check."""
 
     guideline_id: TrText = Field(description="Guideline identifier (files/12 §2.5).")
     guideline_title: TrText | None = Field(
@@ -469,16 +482,20 @@ class UnknownAction(FrozenModel):
         "locale's entry: a language in which this asked two questions would be a "
         "language deciding which action resolves (CLAUDE.md invariant 21)."
     )
-    on_yes: Literal["ON_SITE", "REMOTE"] = Field(
-        description="Branch taken on yes (files/protocols/base.life_threat.yaml)."
+    on_yes: Literal["ON_SITE"] = Field(
+        description='Branch taken on yes to "Şu anda hastanede misiniz?": ON_SITE '
+        "(files/protocols/base.life_threat.yaml; INT-465 round 4, tightening only)."
     )
-    on_no: Literal["ON_SITE", "REMOTE"] = Field(
-        description="Branch taken on no (files/protocols/base.life_threat.yaml)."
+    on_no: Literal["REMOTE"] = Field(
+        description="Branch taken on no: REMOTE (files/protocols/base.life_threat.yaml; "
+        "INT-465 round 4, tightening only)."
     )
-    on_no_answer: Literal["ON_SITE", "REMOTE"] = Field(
+    on_no_answer: Literal["REMOTE"] = Field(
         description="Safe branch if and only if the question was asked and went "
         "unanswered — never a silent assumption (files/protocols/"
-        "base.life_threat.yaml)."
+        "base.life_threat.yaml). Always REMOTE (INT-465; files/04 §8.1 rule 7; "
+        "CD-24 generic_red_unknown_no_answer_goes_remote): guessing that a patient "
+        "who did not answer is already in the hospital is the unsafe direction."
     )
 
 

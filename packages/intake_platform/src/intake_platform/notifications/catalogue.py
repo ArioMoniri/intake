@@ -152,7 +152,7 @@ def _template(
 
 #: The app's own name is the whole title. A subject line that said anything
 #: else would be the first place a symptom crept back in.
-_TITLE: Final = "Vizite"
+_TITLE: Final = "Önvizit"
 
 TEMPLATES: Final[Mapping[ReminderKind, Template]] = MappingProxyType(
     {

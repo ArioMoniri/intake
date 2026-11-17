@@ -1,0 +1,210 @@
+# INT-432 clinical decision CD-08. Agent-authored under owner decision D18
+# (2 Oct 2026): simulated-patient stress testing only; a licensed physician's
+# review is required before any real patient. Every source quote below appears
+# verbatim in the named snapshot; spec_basis quotes appear verbatim in the named
+# committed file. Not a pack: nothing here is compiled or served.
+kind: clinical_decision
+id: CD-08
+title: "YELLOW_REVIEW routing: recipient role, channel, SLA and failure path"
+question: >-
+  Who receives a YELLOW_REVIEW (an LLM candidate flag, capped at YELLOW_REVIEW
+  and visible to clinicians only), through which channel, within what response
+  time, what happens out of hours, and what happens when nobody responds?
+decision: >-
+  A YELLOW_REVIEW goes, unconditionally, to the booked clinic's named inbox
+  (channel clinic_inbox, files/04 §4.2). Its recipient is a role, never a
+  person: a clinician of the tenant facility (tabip, hemşire, ebe, acil tıp
+  teknikeri or acil tıp teknisyeni, titles taken from the Tebliğ's definition of
+  sağlık personeli) who holds the in-service triage training that Tebliğ MADDE
+  8(2) requires of anyone performing triage, rostered by the tenant to that
+  inbox. The reviewer sets the urgency of any follow-up by clinical judgement,
+  as NICE NG143 1.3.4 leaves the urgency of an intermediate-risk finding
+  identified remotely to the assessing healthcare professional. The acil servis
+  triage desk is not the recipient: regulatory triage is defined for patients
+  presenting to the acil servis, and a YELLOW_REVIEW is not an EK-4 level.
+  A YELLOW_REVIEW is never shown to the patient and never stands in for a
+  patient-facing action; patient-facing urgency comes only from the rules engine.
+  It never expires and is never auto-cleared; it closes only on a clinician's
+  recorded outcome, and if the visit starts first it is shown in the pre-visit
+  note. The response SLA, out-of-hours coverage, and the escalation role and
+  window stay draft_needs_source: no current guideline or Turkish regulation
+  sets them for a pre-visit clinic inbox. The same inbox, role and constraints
+  carry the other clinician-only items the INT-432 decisions route here: a
+  red-flag-relevant result that lands after the session (review design change
+  6); a scripted probe armed but left unanswered at session end (CD-03); a
+  chest-pain slot still UNCLEAR after its follow-up that leaves both chest-pain
+  arms Unknown (CD-04, kind chest_pain_arms_unresolved); and a proxy session
+  whose seven chest-pain slots stay unasked until the DSL can select proxy copy,
+  for a subject in the chest-pain rules' adult age band or of unknown age
+  (CD-01, kind proxy_chest_pain_screen_unasked). Each item kind is labelled and
+  pinned to the note, never dropped, and its SLA may differ; all stay draft.
+  The proxy item only makes the gap visible to a clinician; it does not close
+  it (CD-01 finding F13).
+status: draft_needs_source
+scope: simulated_patient_stress_testing
+scope_note: >-
+  Owner decision D18 (2 Oct 2026): agent-only sign-off, for simulated-patient
+  stress testing only. A licensed physician's review is required before any real
+  patient.
+question_origin: >-
+  INT-428/INT-430 strict medical review (2 Oct 2026), physician decision 7 (the
+  YELLOW_REVIEW recipient and its SLA), against files/04 §4.2 defect 1; the
+  late-landing addendum of the same review's design change 6; and the
+  unanswered armed probe that sibling decision CD-03 defers to physician
+  decision 7; and the two chest-pain item kinds raised under sibling decisions
+  CD-01 and CD-04.
+author_role: "emergency medicine operations / clinical informatics physician (agent)"
+sources:
+  - kind: guideline
+    guideline_id: TR-ACIL-TEBLIG-2022
+    title: "Yataklı Sağlık Tesislerinde Acil Servis Hizmetlerinin Uygulama Usul ve Esasları Hakkında Tebliğ"
+    version_or_date: "RG 13/9/2022 sayı 31952; amended RG 13/5/2023 sayı 32189 and RG 11/10/2024 sayı 32689"
+    url: "https://mevzuat.gov.tr/MevzuatMetin/yonetmelik/9.5.39719.pdf"
+    retrieved_on: 2026-10-03
+    quote: "Triyaj yapacak personele hizmet içi eğitim verilmiş olmalıdır."
+    snapshot: packages/protocols/sources/TR-ACIL-TEBLIG-2022.txt
+    supports: recipient_role.competency
+    caveat: >-
+      The Tebliğ binds triage in the acil servis of yataklı sağlık tesisleri
+      (MADDE 2). It is cited for the only Turkish regulatory definition of the
+      competence to prioritise patients by urgency, not as a claim that reviewing
+      a YELLOW_REVIEW is acil servis triage.
+  - kind: guideline
+    guideline_id: TR-ACIL-TEBLIG-2022
+    title: "Yataklı Sağlık Tesislerinde Acil Servis Hizmetlerinin Uygulama Usul ve Esasları Hakkında Tebliğ"
+    version_or_date: "RG 13/9/2022 sayı 31952; amended RG 13/5/2023 sayı 32189 and RG 11/10/2024 sayı 32689"
+    url: "https://mevzuat.gov.tr/MevzuatMetin/yonetmelik/9.5.39719.pdf"
+    retrieved_on: 2026-10-03
+    quote: "n) (Değişik:RG-11/10/2024-32689) Sağlık personeli: Tabip, hemşire, acil tıp teknikeri, acil tıp teknisyeni, ebe, eczacı,"
+    snapshot: packages/protocols/sources/TR-ACIL-TEBLIG-2022.txt
+    supports: recipient_role.eligible_titles
+  - kind: guideline
+    guideline_id: TR-ACIL-TEBLIG-2022
+    title: "Yataklı Sağlık Tesislerinde Acil Servis Hizmetlerinin Uygulama Usul ve Esasları Hakkında Tebliğ"
+    version_or_date: "RG 13/9/2022 sayı 31952; amended RG 13/5/2023 sayı 32189 and RG 11/10/2024 sayı 32689"
+    url: "https://mevzuat.gov.tr/MevzuatMetin/yonetmelik/9.5.39719.pdf"
+    retrieved_on: 2026-10-03
+    quote: "p) Triyaj: Acil servislere başvuran hastaların, görevli sağlık personeli tarafından"
+    snapshot: packages/protocols/sources/TR-ACIL-TEBLIG-2022.txt
+    supports: recipient_role.not_the_acil_triage_desk
+  - kind: guideline
+    guideline_id: NICE-NG143
+    title: "Fever in under 5s: assessment and initial management"
+    version_or_date: "NICE guideline NG143; published 07 November 2019; last updated 26 November 2021; minor changes July 2022, October 2022, March 2024 and November 2025"
+    url: "https://www.nice.org.uk/guidance/ng143/chapter/Recommendations"
+    retrieved_on: 2026-10-03
+    quote: "The urgency of this assessment should be determined by the clinical judgement of the healthcare professional carrying out the remote assessment."
+    snapshot: packages/protocols/sources/NICE-NG143.txt
+    supports: recipient_role.sets_follow_up_urgency
+    caveat: >-
+      Recommendation 1.3.4 covers remote assessment of a febrile child under five
+      with amber but no red features. It is cited for two things only: that the
+      reviewer of a remotely identified intermediate-risk finding is a
+      healthcare professional who sets the urgency of the response, and that
+      the guideline itself sets no time for that response (see source_gap).
+  - kind: guideline
+    guideline_id: NICE-NG143
+    title: "Fever in under 5s: assessment and initial management"
+    version_or_date: "NICE guideline NG143; published 07 November 2019; last updated 26 November 2021; minor changes July 2022, October 2022, March 2024 and November 2025"
+    url: "https://www.nice.org.uk/guidance/ng143/chapter/Recommendations"
+    retrieved_on: 2026-10-03
+    quote: "Children with any 'red' features but who are not considered to have an immediately life-threatening illness should be urgently assessed by a healthcare professional in a face-to-face setting within 2 hours."
+    snapshot: packages/protocols/sources/NICE-NG143.txt
+    supports: "source_gap (the only time NG143 sets is for red features, which a YELLOW_REVIEW cannot carry)"
+spec_basis:
+  - file: files/04_CLINICAL_PROTOCOLS.md
+    section: "§4.2 defect 1"
+    quote: "a named clinic inbox with a stated response SLA"
+    supports: channel
+  - file: files/04_CLINICAL_PROTOCOLS.md
+    section: "§4.2 defect 1"
+    quote: "\"notify\" currently has no recipient, no hours, no SLA and no failure path."
+    supports: "the four fields this decision must state"
+  - file: files/03_ARCHITECTURE.md
+    section: "§8 Triage engine (deterministic, auditable)"
+    quote: "a candidate becomes at most `YELLOW_REVIEW` (clinician-visible). No LLM path to RED, and no LLM path to `preempt`."
+    supports: out_of_hours.constraints
+  - file: files/12_DSL_V2_AND_RUNTIME_SPEC.md
+    section: "§2.3 CLINICIAN_ONLY — a third channel, enforced by the type system"
+    quote: "becomes a `ClinicianOnlyDirective` and is **not an `EK4Level` at all**"
+    supports: recipient_role.not_the_acil_triage_desk
+  - file: CLAUDE.md
+    section: "How we work"
+    quote: "build the mechanism, wire the gate, make it fail closed, leave the content empty."
+    supports: fail_closed_while_draft
+source_gap: >-
+  sla, out_of_hours.coverage, failure_path.escalation_role and
+  failure_path.escalation_after: NICE NG143 1.3.4 leaves the urgency of
+  follow-up for an intermediate-risk finding identified remotely to the
+  clinical judgement of the assessing professional and sets a time only for red
+  features (1.3.3), which a YELLOW_REVIEW can never carry (invariant 1). The
+  Tebliğ's EK-4 states one numeric time target, for KIRMIZI Kategori 2
+  (files/04 §3), and a YELLOW_REVIEW is not an EK-4 level (files/12). No Turkish
+  regulation found sets a response time, out-of-hours cover or an escalation
+  chain for a pre-visit clinic inbox. Any value written here would be invented.
+value:
+  applies_to:
+    - yellow_review_candidate
+    - late_landing_rf_addendum
+    - armed_probe_unanswered_at_session_end
+    - chest_pain_arms_unresolved
+    - proxy_chest_pain_screen_unasked
+  item_kind_notes:
+    chest_pain_arms_unresolved: "raised under CD-04 when a CD-01 chest-pain slot is still UNCLEAR after its follow-up, which can leave both chest-pain arms Unknown; pinned to the note, never dropped"
+    proxy_chest_pain_screen_unasked: "raised under CD-01 (value.proxy_unasked_inbox_item) when a proxy session (identity_check.subject_role 'yakınım adına') leaves the seven chest-pain slots unasked until the DSL can select proxy copy, and only when the subject is in the adult age band of rf.chest_pain_cardiac_features and rf.chest_pain_no_cardiac_history or the subject's age is unknown; never raised for a subject known to be outside that band (for example a child intake), where neither chest-pain rule applies; pinned to the note, never dropped. The item makes the gap visible to a clinician but does not close it: until the DSL selects proxy copy neither chest-pain RED rule can fire in a proxy session (CD-01 finding F13), and in simulated stress testing a proxy persona with chest pain is reported as unscreened, never as negative"
+  recipient_role:
+    role_id: tenant_clinic_triage_trained_clinician
+    definition: >-
+      A clinician of the tenant facility who holds the in-service triage
+      training Tebliğ MADDE 8(2) requires, rostered by the tenant to the booked
+      clinic's inbox.
+    eligible_titles: [tabip, hemşire, ebe, acil tıp teknikeri, acil tıp teknisyeni]
+    excluded_titles: [eczacı, eczane teknikeri, tıbbi protez ve ortez teknisyeni/teknikeri, hemşire yardımcısı, ebe yardımcısı, sağlık bakım teknisyeni, tıbbi sekreter]
+    competency: in_service_triage_training
+    named_person_allowed: false
+    not_the_acil_triage_desk: true
+    sets_follow_up_urgency: true
+    inference_disclosure: >-
+      The Tebliğ's sağlık personeli list includes non-clinical and assistant
+      titles and does not itself say which of them may triage. Restricting the
+      recipient to the five clinical titles above is this author's tightening,
+      not the regulation's text.
+  channel: clinic_inbox
+  sla: "TODO: acknowledgement SLA per clinic-inbox item kind requires clinical sign-off"
+  out_of_hours:
+    coverage: "TODO: out-of-hours clinic-inbox coverage requires clinical sign-off"
+    constraints:
+      - never_shown_to_patient
+      - never_a_patient_facing_urgency_path
+      - never_dropped_or_expired_out_of_hours
+      - shown_in_pre_visit_note_if_unreviewed_at_visit_start
+  failure_path:
+    escalation_role: "TODO: escalation role for an unacknowledged clinic-inbox item requires clinical sign-off"
+    escalation_after: "TODO: escalation window for an unacknowledged clinic-inbox item requires clinical sign-off"
+    constraints:
+      - never_auto_cleared
+      - closes_only_on_recorded_clinician_outcome
+      - inbox_delivery_failure_counts_as_sla_breach
+      - sla_breach_is_an_emitted_event
+      - never_lowers_or_replaces_a_rules_engine_level
+value_status:
+  applies_to: active
+  item_kind_notes: active
+  recipient_role: active
+  channel: active
+  sla: draft_needs_source
+  out_of_hours.coverage: draft_needs_source
+  out_of_hours.constraints: active
+  failure_path.escalation_role: draft_needs_source
+  failure_path.escalation_after: draft_needs_source
+  failure_path.constraints: active
+fail_closed_while_draft: >-
+  Every clinic-inbox item is still delivered to the inbox and pinned to the
+  pre-visit note while the SLA and escalation stay draft; a missing SLA never
+  drops or delays delivery. The tenant configuration reports the inbox as not
+  ready (no stated SLA, no escalation role) instead of inventing one.
+verifier:
+  verdict: agree
+  role: "independent clinical verifier (agent; EM/IM/paediatrics)"
+  verified_on: 2026-10-03
+  notes: "Independent verification: round 1 agree; round 2 agree; round 3 agree (age-band scope copied from CD-01). Every quote re-checked against the live source; the verifier saw only the committed output and the sources, never the authors' reasoning. Scope D18: simulated-patient stress testing only; a licensed physician's review is required before any real patient."

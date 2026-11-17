@@ -1,0 +1,157 @@
+# REVIEW QUEUE — QUESTIONS authored; NOT servable. Promoted to L1 only by the
+# physician of record's sign-off (HB-C1).
+# generated-by: scripts/dev/gen_specialty_packs.py from docs/evidence/proposals/gebe_poliklinigi.md
+# (guideline-sourced; reviewed per docs/evidence/verification/). Symptom-capture
+# prompts only (inv 2/10) — not diagnosis, not triage. Acuity is EK-4 law +
+# physician of record; never fabricated. RED/life-threat stays in
+# base.life_threat (inv 7).
+kind: pack
+id: specialty.gebe_poliklinigi
+layer: specialty
+version: 0.3.0
+schema_version: 2
+maturity: L0
+status: questions-authored; awaiting physician-of-record sign-off (HB-C1); not servable
+language: tr
+title_tr: Gebe polikliniği ön görüşme protokolü
+extends: cluster.womens_health
+visit_types:
+- first
+- followup
+- preop
+- report
+- pregnancy_followup
+- chronic_review
+- post_discharge
+- screening
+- second_opinion
+- teleconsult
+sections:
+  ziyaret_baglami:
+    slots:
+      basvuru_nedeni:
+        type: string
+        required: true
+        ask_tr:
+          tr: Bugünkü gebelik kontrolünüzde en çok konuşmak istediğiniz konu nedir?
+        follow_up_tr:
+          tr: Bugünkü randevunuzun sebebini kısaca anlatır mısınız?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.reason_for_encounter.v1 recorded in docs/evidence/proposals/gebe_poliklinigi.md'
+      sikayet_suresi:
+        type: duration
+        required: false
+        ask_tr:
+          tr: Bu konu ne zamandır devam ediyor?
+        follow_up_tr:
+          tr: Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; no candidate archetype recorded in docs/evidence/proposals/gebe_poliklinigi.md'
+  sorular:
+    slots:
+      tahmini_dogum_tarihi:
+        type: date
+        required: false
+        ask_tr:
+          tr: Size söylenen tahmini doğum tarihiniz nedir?
+        follow_up_tr:
+          tr: Ultrason raporunuzdaki tahmini doğum tarihini söyler misiniz?
+        delivery: text_first
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/gebe_poliklinigi.md'
+      onceki_gebelik:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Bu gebelikten önce hiç hamile kaldınız mı?
+        delivery: text_first
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/gebe_poliklinigi.md'
+      onceki_gebelik_sorunu:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Önceki gebeliklerinizde ya da doğumlarınızda bir sorun yaşadınız mı?
+        ask_if: onceki_gebelik == true
+        delivery: text_first
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/gebe_poliklinigi.md'
+      onceki_gebelik_sorunu_aciklama:
+        type: string
+        required: false
+        ask_tr:
+          tr: Yaşadığınız sorunu kısaca anlatır mısınız?
+        ask_if: onceki_gebelik_sorunu == true
+        delivery: text_first
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/gebe_poliklinigi.md'
+      rahim_ameliyati:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Daha önce sezaryen ya da rahminizden başka bir ameliyat oldunuz mu?
+        delivery: text_first
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/gebe_poliklinigi.md'
+      suregelen_saglik_sorunu:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Şeker, tansiyon ya da tiroid gibi süregelen bir sağlık sorununuz var mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.problem_diagnosis.v1 recorded in docs/evidence/proposals/gebe_poliklinigi.md'
+      suregelen_saglik_sorunu_adi:
+        type: string
+        required: false
+        ask_tr:
+          tr: Bu sağlık sorununun adını söyleyebilir misiniz?
+        ask_if: suregelen_saglik_sorunu == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.problem_diagnosis.v1 recorded in docs/evidence/proposals/gebe_poliklinigi.md'
+      bulanti_kusma_zorlanma:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Bulantı ya da kusma yüzünden yemek yemekte ya da su içmekte zorlanıyor musunuz?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/gebe_poliklinigi.md'
+      gebelikte_kanama:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Bu gebelikte vajinal kanamanız ya da lekelenmeniz oldu mu?
+        delivery: text_first
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/gebe_poliklinigi.md'
+      bebek_hareketi_hissediliyor:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Bebeğinizin hareketlerini hissetmeye başladınız mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/gebe_poliklinigi.md'
+      bebek_hareketlerinde_azalma:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Son günlerde bebeğinizin hareketlerinde azalma oldu mu?
+        ask_if: bebek_hareketi_hissediliyor == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/gebe_poliklinigi.md'
+      su_gelmesi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Bu gebelikte iç çamaşırınızı ıslatan su gibi bir akıntı oldu mu?
+        delivery: text_first
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/gebe_poliklinigi.md'
+      siddetli_bas_agrisi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Son günlerde geçmeyen şiddetli bir baş ağrınız oldu mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/gebe_poliklinigi.md'
+      yuz_el_sisligi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Yüzünüzde, ellerinizde ya da göz kapaklarınızda yeni bir şişlik fark ettiniz mi?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/gebe_poliklinigi.md'
+red_flags:
+- id: rf.gebe_poliklinigi_l0_taslak
+  label_tr: Gebe polikliniği ön görüşme protokolü — branşa özgü kırmızı bayrak taslağı (klinik onay bekliyor)
+  when: 'TODO: gebe_poliklinigi branch-specific red-flag trigger requires clinical sign-off'
+  tense: ever
+  tense_anchor: sikayet_suresi
+  level: YESIL
+  route: EXPEDITE
+  notify_clinic: never
+  status: draft_needs_source
+  source_gap: 'Trigger, EK-4 level and route await clinical sign-off (invariant 17 pending-value literal). Guideline-sourced candidates recorded in docs/evidence/proposals/gebe_poliklinigi.md; acuity bound by EK-4 law (RG 13/9/2022 sayı 31952), snapshot absent. RED/life-threat stays in base.life_threat (invariant 7). Owner: physician of record (HB-C1, HB-C2, HB-C7).'

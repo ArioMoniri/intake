@@ -1,0 +1,19 @@
+# guideline_id: NICE-PH50
+# title: Domestic violence and abuse: multi-agency working
+# publisher: National Institute for Health and Care Excellence (NICE)
+# version_or_date: Public health guideline PH50; published 26 February 2014 (no replacement notice on the page at retrieval)
+# url: https://www.nice.org.uk/guidance/ph50/chapter/Recommendations
+# retrieved_on: 2026-10-03
+# retrieval: curl with a browser user-agent (HTTP 200); HTML (utf-8) text-extracted with a block-level parser: tags stripped, entities decoded, one line per HTML block, whitespace runs collapsed to single spaces, non-breaking spaces (U+00A0) rendered as plain spaces, non-breaking hyphens (U+2011) kept as served, blank lines dropped
+# scope: verbatim excerpt of the page header and Recommendation 6; nothing paraphrased or edited; omissions marked [...]
+---
+Reference number: PH50
+Published: 26 February 2014
+[...]
+Recommendation 6 Ensure trained staff ask people about domestic violence and abuse
+Health and social care service managers and professionals should:
+Ensure frontline staff in all services are trained to recognise the indicators of domestic violence and abuse and can ask relevant questions to help people disclose their past or current experiences of such violence or abuse. The enquiry should be made in private on a one-to-one basis in an environment where the person feels safe, and in a kind, sensitive manner.
+Ensure people who may be experiencing domestic violence and abuse can be seen on their own (a person may have multiple abusers and friends or family members may be colluding in the abuse).
+Ensure trained staff in antenatal, postnatal, reproductive care, sexual health, alcohol or drug misuse, mental health, children's and vulnerable adults' services ask service users whether they have experienced domestic violence and abuse. This should be a routine part of good clinical practice, even where there are no indicators of such violence and abuse.
+Ensure staff know, or have access to, information about the services, policies and procedures of all relevant local agencies for people who experience or perpetrate domestic violence and abuse.
+Ensure all services have formal referral pathways in place for domestic violence and abuse. These should support: people who disclose that they have been subjected to it; the perpetrators; and children who have been affected by it (see recommendation 4).

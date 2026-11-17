@@ -1,0 +1,31 @@
+# osv-scanner configuration for the Keycloak provider's pom (INT-378).
+#
+# osv-scanner reads the config beside each manifest, so the repository root's
+# osv-scanner.toml never applies to this pom: an entry there is reported as an
+# unused ignore. tests/ci/test_security_gates.py counts this file's entries in
+# the same osv pin as the root file's, so it cannot grow quietly.
+#
+# One entry, one advisory of one package, and it expires.
+# - The record has an open OSV range (introduced 26.5.0, no end).
+# - So every Keycloak since 26.5.0 matches it, the newest (26.7.5, 26.8.0)
+#   included, and no version move clears it.
+# - GitHub, its source, bounds the range below 26.5.5.
+# When the date passes, the gate turns red again. Removing it sooner is always
+# correct.
+
+[[IgnoredVulns]]
+id = "GHSA-794g-x443-36f7"
+ignoreUntil = 2026-11-02T00:00:00Z
+reason = """\
+OWNER-APPLIED, TIME-BOXED EXCEPTION for keycloak-services 26.7.4 only, \
+committed by the owner from owner-643-keycloak-exception.patch \
+(CVE-2026-2092: the SAML broker endpoint accepts an encrypted assertion inside \
+an unsigned response). It is not a live advisory for this version. GitHub's own \
+record bounds the range at >= 26.5.0, < 26.5.5, and the fix, \
+keycloak/keycloak#46912 (release/26.5.5, release/26.6.0), is in 26.7.4. OSV's \
+copy drops the upper bound (docs/evidence/INT-390.md). It is not reachable \
+either. This pom compiles against keycloak-services as provided, with every \
+transitive dependency excluded, and bundles none of it. Neither committed realm \
+(infra/keycloak/dev-realm.json, the staging realm) has an identity provider or \
+a SAML client, so there is no identity provider and no SAML broker endpoint to \
+reach (docs/evidence/INT-378.md)."""

@@ -1,0 +1,39 @@
+# guideline_id: TR-SB-SOY-UEP-2025
+# title: Sağlık Okuryazarlığı Ulusal Eylem Planı 2025-2028
+# publisher: T.C. Sağlık Bakanlığı, Sağlığın Geliştirilmesi Genel Müdürlüğü
+# version_or_date: T.C. Sağlık Bakanlığı Yayın No: 1331; e-ISBN 978-975-590-949-3; Yayım Tarihi 10.07.2025
+# url: https://dosyamerkez.saglik.gov.tr/Eklenti/51749/0/saglik-okuryazarligi-ulusal-eylem-plani-2025-2028-v2pdf.pdf
+# url_landing: https://sggm.saglik.gov.tr/TR-116420/saglik-okuryazarligi-eylem-plani-2025-2028.html
+# retrieved_on: 2026-10-03
+# retrieval: curl with browser UA; PDF text-extracted with pdftotext (poppler, reading order); blank lines dropped; line wrapping as extracted
+# scope: verbatim excerpt of the title page, the foreword paragraph on the plan's aims, the literature paragraph on plain explanation by health professionals, the heading of Hedef 2 and activity 2.2.4.2; nothing paraphrased or edited. '[...]' marks an omission between excerpts. Quoted with the source named, as the publication's notice requires.
+---
+SAĞLIK
+OKURYAZARLIĞI
+ULUSAL EYLEM PLANI
+2025-2028
+[...]
+T.C. Sağlık Bakanlığı Yayın No: 1331
+e-ISBN: 978-975-590-949-3
+Kapak Tasarımı: Sağlığın Geliştirilmesi Genel Müdürlüğü
+Basım: Sağlığın Geliştirilmesi Genel Müdürlüğü Dijital Baskı Merkezi
+Yayım Tarihi: 10.07.2025
+[...]
+Sağlık Okuryazarlığı Ulusal Eylem Planı; sağlık okuryazarlığı düzeyinin artırılması, bilgi kaynaklarının
+erişilebilirliğinin geliştirilmesi, sağlık çalışanlarının bu alandaki yetkinliklerinin artırılması ve
+kurumsal kapasitenin güçlendirilmesini amaçlamaktadır. Her bir amaç; ölçülebilir hedefler,
+uygulanabilir stratejiler ve izlenebilir faaliyetlerle desteklenmiş; kısa, orta ve uzun vadeli somut
+adımlarla yapılandırılmıştır.
+Eylem planında ayrıca; yaş gruplarına ve farklı sosyoekonomik düzeylere göre farklılaşan sağlık
+okuryazarlığı ihtiyaçlarına özel yaklaşımlar geliştirilmiştir. Aynı zamanda sağlık iletişiminde yalın,
+erişilebilir ve kültürel açıdan hassas içeriklerin geliştirilmesi de planda öncelikli olarak ele alınmıştır.
+[...]
+Hastaların sağlık okuryazarlığını artırmak amacıyla yapılan çalışmalarda, sağlık
+profesyonellerinin hastalarla güvene dayalı bir ilişki kurma ve ilaçları hakkında sade bir
+anlatımla bilgi verme suretiyle hastaların sağlık okuryazarlığının artırılabileceği saptanmıştır
+(John et al., 2023; Seangpraw, 2023).
+[...]
+Hedef 2. Doğru, erişilebilir ve eyleme geçirilebilir sağlık bilgilerinin geliştirilmesi ve yaygınlaştırılması
+[...]
+2.2.4.2. Hasta ve hasta yakınına verilen belge ve
+formların anlaşılır bir dille yazılması ve güncellenmesi.

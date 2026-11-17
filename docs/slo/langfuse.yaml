@@ -11,8 +11,11 @@
 # and what a patient's privacy actually rests on, is the emission boundary in
 # intake_platform.observability.spans. So that is what carries the objective:
 #
-#   trace_emission   spans that left the boundary against spans that left it
-#                    plus field values it refused. A refusal means a caller
+#   trace_emission   field values the boundary refused against spans that left
+#                    it plus those refusals — the ERROR ratio, like every SLI
+#                    here (INT-181 corrected it from the good ratio, which the
+#                    burn-rate rules would have read as a budget burning at
+#                    ~1000x on a healthy boundary). A refusal means a caller
 #                    handed the trace store something that is not an
 #                    identifier, which under HB-L6 is the failure that
 #                    matters. The alert is a page rather than a ticket because
@@ -40,7 +43,7 @@ owner: platform
 slos:
   - name: trace_emission
     sli: >-
-      sum(rate(llm_trace_spans_emitted_total[5m]))
+      sum(rate(llm_trace_fields_refused_total[5m]))
       /
       (sum(rate(llm_trace_spans_emitted_total[5m]))
        + sum(rate(llm_trace_fields_refused_total[5m])))

@@ -1,0 +1,132 @@
+# REVIEW QUEUE — QUESTIONS authored; NOT servable. Promoted to L1 only by the
+# physician of record's sign-off (HB-C1).
+# generated-by: scripts/dev/gen_specialty_packs.py from docs/evidence/proposals/getat.md
+# (guideline-sourced; reviewed per docs/evidence/verification/). Symptom-capture
+# prompts only (inv 2/10) — not diagnosis, not triage. Acuity is EK-4 law +
+# physician of record; never fabricated. RED/life-threat stays in
+# base.life_threat (inv 7).
+kind: pack
+id: specialty.getat
+layer: specialty
+version: 0.3.0
+schema_version: 2
+maturity: L0
+status: questions-authored; awaiting physician-of-record sign-off (HB-C1); not servable
+language: tr
+title_tr: GETAT ön görüşme protokolü
+extends: cluster.medical
+visit_types:
+- first
+- followup
+- preop
+- report
+- pregnancy_followup
+- chronic_review
+- post_discharge
+- screening
+- second_opinion
+- teleconsult
+sections:
+  ziyaret_baglami:
+    slots:
+      basvuru_nedeni:
+        type: string
+        required: true
+        ask_tr:
+          tr: Bugün geleneksel ve tamamlayıcı tıp polikliniğine gelme nedeninizi kısaca anlatır mısınız?
+        follow_up_tr:
+          tr: Sizi hekime getiren en önemli şikâyetiniz nedir?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.reason_for_encounter.v1 recorded in docs/evidence/proposals/getat.md'
+      sikayet_suresi:
+        type: duration
+        required: false
+        ask_tr:
+          tr: Bu şikâyetiniz ne zamandır var?
+        follow_up_tr:
+          tr: Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; no candidate archetype recorded in docs/evidence/proposals/getat.md'
+  sorular:
+    slots:
+      onceki_getat_uygulamasi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Daha önce akupunktur, kupa, sülük ya da ozon gibi bir uygulama yaptırdınız mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/getat.md'
+      getat_uygulama_turleri:
+        type: string
+        required: false
+        ask_tr:
+          tr: Hangi uygulamaları yaptırdığınızı kısaca anlatır mısınız?
+        ask_if: onceki_getat_uygulamasi == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/getat.md'
+      suren_getat_uygulamasi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Bu uygulamalardan herhangi birine şu anda da devam ediyor musunuz?
+        ask_if: onceki_getat_uygulamasi == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/getat.md'
+      saglik_kurulusunda_yapildi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Bu uygulamalar bir hastanede ya da sağlık kuruluşunda mı yapıldı?
+        ask_if: onceki_getat_uygulamasi == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/getat.md'
+      uygulama_sonrasi_sorun:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Bir uygulamadan sonra beklemediğiniz bir yakınma ya da sorun yaşadınız mı?
+        ask_if: onceki_getat_uygulamasi == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.adverse_reaction_risk.v1 recorded in docs/evidence/proposals/getat.md'
+      tibbi_tedaviye_ara:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Bu uygulamalar nedeniyle hekiminizin önerdiği bir tedaviye ara verdiniz mi?
+        ask_if: onceki_getat_uygulamasi == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/getat.md'
+      hekim_haberdar:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Sizi takip eden hekiminiz bu uygulamaları yaptırdığınızı biliyor mu?
+        ask_if: onceki_getat_uygulamasi == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/getat.md'
+      acik_yara:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Cildinizde açık bir yara ya da yeni bir ameliyat yarası var mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/getat.md'
+      damar_tikanikligi_oykusu:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Size daha önce damar tıkanıklığı ya da bacakta pıhtı olduğu söylendi mi?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.problem_diagnosis.v1 recorded in docs/evidence/proposals/getat.md'
+      kansizlik_oykusu:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Size daha önce kansızlık olduğu söylendi mi?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.problem_diagnosis.v1 recorded in docs/evidence/proposals/getat.md'
+      kalp_hastaligi_oykusu:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Size daha önce bir kalp hastalığı olduğu söylendi mi?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.problem_diagnosis.v1 recorded in docs/evidence/proposals/getat.md'
+red_flags:
+- id: rf.getat_l0_taslak
+  label_tr: GETAT ön görüşme protokolü — branşa özgü kırmızı bayrak taslağı (klinik onay bekliyor)
+  when: 'TODO: getat branch-specific red-flag trigger requires clinical sign-off'
+  tense: ever
+  tense_anchor: sikayet_suresi
+  level: YESIL
+  route: EXPEDITE
+  notify_clinic: never
+  status: draft_needs_source
+  source_gap: 'Trigger, EK-4 level and route await clinical sign-off (invariant 17 pending-value literal). Guideline-sourced candidates recorded in docs/evidence/proposals/getat.md; acuity bound by EK-4 law (RG 13/9/2022 sayı 31952), snapshot absent. RED/life-threat stays in base.life_threat (invariant 7). Owner: physician of record (HB-C1, HB-C2, HB-C7).'

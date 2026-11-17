@@ -99,7 +99,7 @@ def sim_protocol(mode: IntakeMode = IntakeMode.FAST) -> ResolvedProtocol:
     return resolve_protocol(
         pack_id=SIM_PACK_ID if mode is IntakeMode.FAST else SIM_DETAILED_PACK_ID,
         registry=load_registry(_TREE),
-        life_threat=load_life_threat_set(_LIFE_THREAT),
+        life_threat=load_life_threat_set(_LIFE_THREAT, allow_fixture_snapshots=True),
         template=load_opt(_TEMPLATE),
         # SYN-OLCEK is invented for this fixture; the licence registry is
         # closed (an unknown instrument is UNKNOWN, never GO), so the test

@@ -12,8 +12,11 @@
 # intake_platform.siem.normalise, and it is the one place in this tier where a
 # failure is a privacy failure rather than an availability one:
 #
-#   alert_scrub      alerts admitted to the console feed against admitted plus
-#                    refused. A refusal means a detector emitted a shape the
+#   alert_scrub      alerts refused at the boundary against admitted plus
+#                    refused — the ERROR ratio, like every SLI here (INT-181
+#                    corrected it from the good ratio, which the burn-rate
+#                    rules would have read as a budget burning at ~1000x on a
+#                    healthy feed). A refusal means a detector emitted a shape the
 #                    boundary cannot reduce to ids — an unknown Falco priority,
 #                    a Wazuh level off the 0-15 scale, a payload with no rule
 #                    block. Each one is an alert the Security module never
@@ -43,7 +46,7 @@ owner: platform
 slos:
   - name: alert_scrub
     sli: >-
-      sum(rate(siem_alerts_ingested_total[5m]))
+      sum(rate(siem_alerts_refused_total[5m]))
       /
       (sum(rate(siem_alerts_ingested_total[5m]))
        + sum(rate(siem_alerts_refused_total[5m])))

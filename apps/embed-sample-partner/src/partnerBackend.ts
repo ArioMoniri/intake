@@ -2,14 +2,14 @@
  * INT-320 follow-up — the sample partner's server-to-server backend (ADR-029).
  *
  * This is the half of the embed handshake that holds a credential. A partner
- * never puts a Vizite secret in the browser: the "Start pre-visit" button calls
+ * never puts an Önvizit secret in the browser: the "Start pre-visit" button calls
  * the partner's OWN backend (this module), and only this backend authenticates
- * to Vizite and mints a launch ticket via the real
+ * to Önvizit and mints a launch ticket via the real
  * ``POST /embed/v1/launch-tickets``. The browser receives only the three public
  * launch fields (ticket, launch_url, expires_at) — never the token, never the
  * upstream error body.
  *
- * Dev tier: the partner-backend credential is the Vizite dev admin bearer
+ * Dev tier: the partner-backend credential is the Önvizit dev admin bearer
  * (``INTAKE_DEV_TOKEN_ADMIN``). A live partner authenticates with OIDC
  * client-credentials / mTLS instead (awaiting-human, ADR-029); this module's
  * shape does not change when it does — only where ``adminToken`` comes from.
@@ -27,7 +27,7 @@ export interface LaunchResponse {
 }
 
 export interface MintOptions {
-  /** Base URL of the Vizite API, e.g. ``http://127.0.0.1:8000`` in dev. */
+  /** Base URL of the Önvizit API, e.g. ``http://127.0.0.1:8000`` in dev. */
   apiBase: string;
   /** The partner-backend credential. Held only here, server-side; it is never
    * returned to the browser. */
@@ -41,7 +41,7 @@ export interface MintOptions {
 
 /** A refusal from the partner backend. ``status`` is the HTTP status this
  * backend returns to its own page — never the upstream status verbatim, so a
- * Vizite-internal detail is not reflected to the browser. */
+ * Önvizit-internal detail is not reflected to the browser. */
 export class PartnerBackendError extends Error {
   readonly status: number;
 
@@ -56,32 +56,32 @@ function trimTrailingSlash(base: string): string {
   return base.endsWith("/") ? base.slice(0, -1) : base;
 }
 
-/** Validate the wire shape Vizite returns. The SDK re-validates in the browser
+/** Validate the wire shape Önvizit returns. The SDK re-validates in the browser
  * (and additionally enforces an https ``launch_url`` before opening it); this
  * backend only asserts the contract so a malformed upstream body never reaches
  * the page as a "success". */
 function parseLaunchResponse(body: unknown): LaunchResponse {
   if (typeof body !== "object" || body === null) {
-    throw new PartnerBackendError("Vizite returned a non-object launch response", 502);
+    throw new PartnerBackendError("Önvizit returned a non-object launch response", 502);
   }
   const record = body as Record<string, unknown>;
   const ticket = record["ticket"];
   const launch_url = record["launch_url"];
   const expires_at = record["expires_at"];
   if (typeof ticket !== "string" || ticket.length === 0) {
-    throw new PartnerBackendError("Vizite launch response is missing a ticket", 502);
+    throw new PartnerBackendError("Önvizit launch response is missing a ticket", 502);
   }
   if (typeof launch_url !== "string" || launch_url.length === 0) {
-    throw new PartnerBackendError("Vizite launch response is missing launch_url", 502);
+    throw new PartnerBackendError("Önvizit launch response is missing launch_url", 502);
   }
   if (typeof expires_at !== "number") {
-    throw new PartnerBackendError("Vizite launch response is missing expires_at", 502);
+    throw new PartnerBackendError("Önvizit launch response is missing expires_at", 502);
   }
   return { ticket, launch_url, expires_at };
 }
 
 /**
- * Mint a launch ticket for {@link MintOptions.tenantId} against the real Vizite
+ * Mint a launch ticket for {@link MintOptions.tenantId} against the real Önvizit
  * embed endpoint. Returns the validated public launch response. Throws
  * {@link PartnerBackendError} on any reach failure, non-2xx upstream, or
  * malformed body — none of which leak the token or the upstream body.
@@ -105,14 +105,14 @@ export async function mintLaunchTicket(options: MintOptions): Promise<LaunchResp
   } catch {
     // the token is in the request we could not send; surface a generic reach
     // error, never the cause (which may echo the header)
-    throw new PartnerBackendError("could not reach the Vizite embed API", 502);
+    throw new PartnerBackendError("could not reach the Önvizit embed API", 502);
   }
   if (!response.ok) {
     // 401/403 (bad admin bearer), 404 (tenant not registered), 503 (signing key
     // not seeded / embed unconfigured) all land here — the operator reads the
     // status from this backend's own log, the browser gets a generic refusal
     throw new PartnerBackendError(
-      `Vizite refused the mint (upstream status ${response.status})`,
+      `Önvizit refused the mint (upstream status ${response.status})`,
       502,
     );
   }
@@ -132,7 +132,7 @@ export interface TicketHttpResult {
 }
 
 /**
- * The one route the partner page calls (``POST /vizite/ticket``). Wraps
+ * The one route the partner page calls (``POST /onvizit/ticket``). Wraps
  * {@link mintLaunchTicket} into an HTTP-shaped result: a 200 with the public
  * launch response, or a refusal with an id-shaped error. The credential and the
  * upstream body never appear in {@link TicketHttpResult.body}.
@@ -142,7 +142,7 @@ export async function handleTicketRequest(options: MintOptions): Promise<TicketH
     return {
       status: 500,
       body: { error: "partner_backend_unconfigured" },
-      logLine: "partner_backend_unconfigured: set VIZITE_ADMIN_TOKEN to the dev admin bearer",
+      logLine: "partner_backend_unconfigured: set ONVIZIT_ADMIN_TOKEN to the dev admin bearer",
     };
   }
   try {

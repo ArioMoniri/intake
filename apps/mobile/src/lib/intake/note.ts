@@ -145,6 +145,12 @@ export interface NoteState {
   answers: Answer[];
   /** sectionId -> shared; absent means shared (default-on, visible label). */
   scopes: Record<string, boolean>;
+  /**
+   * `sent` is the patient's decision: the note is frozen on this phone. It is
+   * NOT evidence the note reached anyone — that is the note outbox's to say
+   * (lib/intake/delivery, INT-587), and only its confirmed delivery may be
+   * shown as "Gönderildi" (`effectiveStatus`).
+   */
   status: "draft" | "sent";
   /**
    * Device health summary lines the patient explicitly attached (INT-208).
@@ -185,6 +191,12 @@ export type NoteAction =
   | { type: "privacy"; alone: boolean }
   | { type: "checkpoint" }
   | { type: "resume" }
+  /**
+   * INT-587: take a sent note back to a draft. Dispatched only where the note
+   * outbox says nothing can have reached the server (delivery/outbox
+   * `reopenable`) — at the share-consent step, or after a refusal.
+   */
+  | { type: "reopen" }
   /** Decide a carried fact for this visit; `null` takes the answer back. */
   | { type: "fact"; factId: string; decision: FactDecision | null };
 
@@ -224,13 +236,13 @@ export function noteReducer(state: NoteState, action: NoteAction): NoteState {
       return state.status === "sent" ? state : { ...state, healthLines: [...action.lines] };
     case "send":
       return { ...state, status: "sent" };
+    case "reopen":
+      return state.status === "sent" ? { ...state, status: "draft" } : state;
     case "mode":
       // A sent note is frozen — the same rule as attachHealth. Picking a
       // mode (INT-321) records the choice, which is what dismisses the
       // up-front chooser — for either value, so "kısa" is a choice too.
-      return state.status === "sent"
-        ? state
-        : { ...state, mode: action.mode, modeChosen: true };
+      return state.status === "sent" ? state : { ...state, mode: action.mode, modeChosen: true };
     case "privacy": {
       if (state.status === "sent") {
         return state;
@@ -552,15 +564,29 @@ export function sentSections(state: NoteState, account: NoteAccount): NoteSectio
   ).filter((s) => state.scopes[s.id] !== false);
 }
 
-/** Display status: a locally sent note wins over the fixture's ladder step. */
+/**
+ * Display status: a sent note wins over the fixture's ladder step — but only
+ * once the server has CONFIRMED the delivery (INT-587). `delivered` is the
+ * note outbox's verdict for this visit; until it is true a note the patient
+ * sent is still, truthfully, a draft that has not reached anyone.
+ */
 export function effectiveStatus(
   fixtureStatus: "draft" | "sent" | "viewed" | "filed" | null,
   state: NoteState | undefined,
+  delivered: boolean,
 ): "draft" | "sent" | "viewed" | "filed" | null {
-  if (state?.status === "sent" && (fixtureStatus === "draft" || fixtureStatus === null)) {
+  if (
+    state?.status === "sent" &&
+    delivered &&
+    (fixtureStatus === "draft" || fixtureStatus === null)
+  ) {
     return "sent";
   }
-  if (state && state.answers.length > 0 && fixtureStatus === null) {
+  if (
+    state !== undefined &&
+    (state.answers.length > 0 || state.status === "sent") &&
+    fixtureStatus === null
+  ) {
     return "draft";
   }
   return fixtureStatus;

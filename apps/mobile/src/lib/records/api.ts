@@ -19,6 +19,14 @@ import { sha256 } from "@noble/hashes/sha2.js";
 import { File } from "expo-file-system";
 
 import { AuthApiError, authedFetch } from "@/lib/auth/api";
+import {
+  decisionBody,
+  isAcknowledgement,
+  parseExtraction,
+  type CardDecision,
+  type ExtractionFeed,
+  type ExtractionSource,
+} from "@/lib/records/extraction";
 import { stripJpegMetadata } from "@/lib/records/jpeg";
 
 /** Server allow-list mirror (intake_platform.documents.ALLOWED_CONTENT_TYPES). */
@@ -50,6 +58,8 @@ export interface ServerVisit {
 
 export type RecordsErrorKind =
   | "consent"
+  /** INT-537: the server visit itself needs `core` — a different switch. */
+  | "core_consent"
   | "session"
   | "network"
   | "not_found"
@@ -61,10 +71,14 @@ export type RecordsErrorKind =
 
 export class RecordsApiError extends Error {
   readonly kind: RecordsErrorKind;
+  /** The HTTP status behind a `generic` refusal, when there was one — so a
+   * caller that retries (INT-587's note outbox) can tell a 5xx from a 4xx. */
+  readonly status: number | null;
 
-  constructor(kind: RecordsErrorKind) {
+  constructor(kind: RecordsErrorKind, status: number | null = null) {
     super(kind); // the kind IS the message — codes, never narrative
     this.kind = kind;
+    this.status = status;
   }
 }
 
@@ -144,7 +158,9 @@ async function parseBody(response: Response): Promise<Record<string, unknown>> {
 function mapError(status: number, body: Record<string, unknown>): RecordsApiError {
   const code = typeof body.error === "string" ? body.error : "";
   if (status === 403 && code === "consent_required") {
-    return new RecordsApiError("consent");
+    // the refusal names its scope id (and nothing else); a visit route
+    // refuses on core, which the patient grants on another switch
+    return new RecordsApiError(body.scope === "core" ? "core_consent" : "consent");
   }
   if (status === 404) {
     return new RecordsApiError("not_found");
@@ -170,7 +186,7 @@ function mapError(status: number, body: Record<string, unknown>): RecordsApiErro
   if (status === 401 || code === "session") {
     return new RecordsApiError("session");
   }
-  return new RecordsApiError("generic");
+  return new RecordsApiError("generic", status);
 }
 
 /** authedFetch with its transport errors re-typed into this module's kinds. */
@@ -370,8 +386,7 @@ export async function upload(visitId: string, file: PickedFile): Promise<UploadO
   // nothing in this repository has declared. The strip comes first because the
   // digest is declared to the server from the bytes that actually travel.
   const picked = await new File(file.uri).bytes();
-  const bytes =
-    pre.contentType === "image/jpeg" ? stripJpegMetadata(picked) : picked;
+  const bytes = pre.contentType === "image/jpeg" ? stripJpegMetadata(picked) : picked;
   if (bytes.byteLength > MAX_DOCUMENT_BYTES) {
     throw new RecordsApiError("size");
   }
@@ -422,6 +437,54 @@ export async function downloadUrl(visitId: string, docId: string): Promise<Downl
   }
   return { kind: "url", url: body.url };
 }
+
+// --- extraction: confirm cards in, verdicts out (INT-138) --------------------------------------
+
+/**
+ * What has been read out of one document, from the route that publishes it
+ * (services/api `record_items.py`). The payload goes through the closed-shape
+ * reader and nothing else: a card that cannot point at its page, or a feed
+ * carrying a level-shaped key, is refused here as it is on the server.
+ */
+export async function readExtraction(visitId: string, docId: string): Promise<ExtractionFeed> {
+  const response = await call(`/v1/visits/${visitId}/documents/${docId}/extraction`);
+  const body = await parseBody(response);
+  if (!response.ok) {
+    throw mapError(response.status, body);
+  }
+  return parseExtraction(body);
+}
+
+/**
+ * The patient's verdict on one card. True only when the server echoes this
+ * card and this verdict back — a refusal, a success naming something else, or
+ * no answer at all leaves the card pending (no optimistic write). The body is
+ * `decisionBody` and nothing more: no value, no unit, no actor.
+ */
+export async function recordDecision(
+  visitId: string,
+  docId: string,
+  cardId: string,
+  decision: CardDecision,
+): Promise<boolean> {
+  let response: Response;
+  try {
+    response = await call(`/v1/visits/${visitId}/documents/${docId}/extraction/decisions`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(decisionBody(cardId, decision)),
+    });
+  } catch {
+    return false; // unreachable: not saved, and the card says so
+  }
+  return response.ok && isAcknowledgement(await parseBody(response), cardId, decision);
+}
+
+/** The production extraction source: the two routes above, and nothing else. */
+export const apiExtractionSource: ExtractionSource = {
+  read: readExtraction,
+  record: recordDecision,
+};
 
 // --- display names (the patient's own data, kept ON DEVICE only) ------------------------------
 

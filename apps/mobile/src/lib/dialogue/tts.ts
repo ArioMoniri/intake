@@ -11,8 +11,8 @@
  *
  * Cache contract: one synthesis per clip per session, name-keyed; clear()
  * drops the whole directory. These are AGENT-voice clips (synthesized from
- * catalog strings) — invariant 3 governs PATIENT audio, which keeps the
- * delete-after-upload posture in lib/voice.ts untouched. The expo-bound
+ * catalog strings) — invariant 3 governs PATIENT audio, which never touches
+ * a file at all (lib/capture, INT-559). The expo-bound
  * filesystem and host probing live in clips.ts; everything here is pure and
  * node-testable.
  *
@@ -23,6 +23,7 @@
  * primitive. See speechShaping.ts for the shaping contract and
  * docs/evidence/INT-237.md for the measurements.
  */
+import type { DeliveryContext } from "./deliveryContext";
 import { assembleClip, shapeForDelivery } from "./speechShaping";
 
 export const TTS_PORT = 8803;
@@ -284,27 +285,21 @@ export interface ClipFs {
 }
 
 export interface ClipStore {
-  /** Path to the cached clip, synthesizing at most once per session. */
-  ensure(name: string, text: string): Promise<string>;
+  /**
+   * Path to the cached clip, synthesizing at most once per session. `context`
+   * is how the clip is delivered (INT-414/INT-415) and is handed to the
+   * synthesizer untouched; it never changes the words, and a caller that
+   * speaks one text in two contexts names two clips.
+   */
+  ensure(name: string, text: string, context?: DeliveryContext): Promise<string>;
   /** Deletes the whole clip directory (unmount AND session end). */
   clear(): Promise<void>;
 }
 
-/**
- * A prebaked-clip source consulted before the synthesizer (INT-demo ElevenLabs
- * dev lane). Given a clip's cache name and its verbatim text, it answers with a
- * ready clip's URI or `null`. `null` means "not prebaked" and the store
- * synthesizes on the live lane exactly as before; it must never throw, because
- * a resolver on the speech path degrades to the live voice, it does not end the
- * turn.
- */
-export type PrebakedClip = (name: string, text: string) => Promise<string | null>;
-
 export function createClipStore(
   dir: string,
   fs: ClipFs,
-  synth: (text: string) => Promise<Uint8Array>,
-  prebaked?: PrebakedClip,
+  synth: (text: string, context?: DeliveryContext) => Promise<Uint8Array>,
 ): ClipStore {
   const root = dir.endsWith("/") ? dir : `${dir}/`;
   // Concurrent ensures of one clip share a single synthesis: the session
@@ -313,29 +308,18 @@ export function createClipStore(
   // ensure can retry honestly.
   const running = new Map<string, Promise<string>>();
   return {
-    async ensure(name, text) {
-      assertSpeakableTr(text); // defense in depth: no digit reaches synth OR the prebaked lookup
+    async ensure(name, text, context) {
+      assertSpeakableTr(text); // defense in depth: no digit reaches synth
       const inFlight = running.get(name);
       if (inFlight !== undefined) {
         return inFlight;
       }
       const task = (async () => {
-        // A bundled ElevenLabs clip for this exact text wins over the live
-        // lane — it is offline, keyed on the verbatim text (invariant 10), and
-        // its URI is played directly, so nothing is written under `root` and
-        // `clear()` never touches it. A miss (or any hiccup) returns null and
-        // the live-lane path below runs unchanged.
-        if (prebaked !== undefined) {
-          const ready = await prebaked(name, text);
-          if (ready !== null) {
-            return ready;
-          }
-        }
         const path = `${root}${name}`;
         if (await fs.exists(path)) {
           return path;
         }
-        const bytes = await synth(text);
+        const bytes = await synth(text, context);
         await fs.mkdirp(root);
         await fs.writeBase64(path, bytesToBase64(bytes));
         return path;

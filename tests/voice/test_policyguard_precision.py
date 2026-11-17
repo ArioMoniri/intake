@@ -8,7 +8,7 @@ load-bearing:
   product. The ``sen`` detector matched ``\\w+din``, so the Talker could not
   say it.
 * ``…hekiminize ulaşsın`` — the third-person optative, matched by ``\\w+sın``.
-* ``Vizite tanı koymaz`` — the *disclaimer*, matched by ``\\btanı\\s+koy``.
+* ``Önvizit tanı koymaz`` — the *disclaimer*, matched by ``\\btanı\\s+koy``.
 
 And two findings land on RED action scripts (``Acil Servis'e gidin``), where
 CLAUDE.md invariant 21 makes the bare imperative plural mandatory: a guard
@@ -69,7 +69,7 @@ AUDIT_FINDINGS: tuple[tuple[str, str], ...] = (
     ("app.tagline", "Muayeneden önce, anlattıklarınız hekiminize ulaşsın."),
     (
         "app.disclaimer",
-        "Vizite tanı koymaz. Anlattıklarınız hekim değerlendirmesinin yerine geçmez.",
+        "Önvizit tanı koymaz. Anlattıklarınız hekim değerlendirmesinin yerine geçmez.",
     ),
     ("welcome.phoneCta", "Telefonla devam edin"),
     ("auth.phone.invalid", "Numarayı kontrol edin; 05 ile başlamalı."),
@@ -94,7 +94,7 @@ AUDIT_FINDINGS: tuple[tuple[str, str], ...] = (
     ("review.resume", "Kaldığınız yerden devam edin"),
     ("visit.reviewNote", "Notu kontrol edin"),
     ("consent.firstRun.continue", "Devam edin"),
-    ("consent.basis.service", "Vizite'yi kullanmayı bırakırsanız sona erer."),
+    ("consent.basis.service", "Önvizit'i kullanmayı bırakırsanız sona erer."),
     ("health.attach.confirm", "Bu özet, vizit notunuzun taslağına eklensin mi?"),
     (
         "base.life_threat rules[0].action.ON_SITE.action_tr",
@@ -164,6 +164,23 @@ def test_the_whole_life_threat_pack_passes(guard: PolicyGuard) -> None:
         found = _classes(guard, value) & CLINICAL
         offenders.extend((path, cls) for cls in found)
     assert offenders == []
+
+
+def test_the_generic_red_copy_passes(guard: PolicyGuard) -> None:
+    """INT-465: CD-24's generic RED copy, rendered as the device shows it, passes the
+    guard's clinical and register classes. Before round 3 only base.life_threat was swept."""
+    from protocols.generic_red import generic_red_strings, load_generic_red
+    from protocols.red_render import render_red_text
+
+    copy = load_generic_red(_REPO / "packages/protocols/generic/generic_red.yaml")
+    rendered = [render_red_text(s, acil_location_tr=None) for s in generic_red_strings(copy)]
+    assert rendered
+    offenders = [(text, sorted(_classes(guard, text) & CLINICAL)) for text in rendered]
+    assert [o for o in offenders if o[1]] == []
+    # Near miss: a known diagnosis claim run through the same sweep is still flagged.
+    assert ViolationClass.DIAGNOSIS in _classes(
+        guard, render_red_text("Kalp krizi geçiriyorsunuz.", acil_location_tr=None)
+    )
 
 
 # --- near-miss positive controls: the guard still catches the real thing --------------
@@ -344,9 +361,9 @@ def test_nouns_that_end_in_the_same_syllables_are_not_address(
 @pytest.mark.parametrize(
     "sentence",
     [
-        "Vizite tanı koymaz.",
+        "Önvizit tanı koymaz.",
         "Bu uygulama teşhis koymaz.",
-        "Vizite size tanı koymuyor.",
+        "Önvizit size tanı koymuyor.",
         "Burada tanı konmadı.",
         "Doktorunuz size bir tanı söyledi mi?",
     ],
@@ -363,7 +380,7 @@ def test_a_disclaimer_is_not_a_diagnosis(guard: PolicyGuard, sentence: str) -> N
     [
         "Randevu tarihiniz belli değilse boş bırakın.",
         "Tam sürümü kullanın ya da yazarak devam edin.",
-        "Vizite'yi kullanmayı bırakırsanız sona erer.",
+        "Önvizit'i kullanmayı bırakırsanız sona erer.",
         "Bölümleri kontrol edin.",
         "Düzenli kullandığınız bir ilaç var mı?",
         "Daha önce bu şikâyet için tedavi gördünüz mü?",

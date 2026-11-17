@@ -1,0 +1,137 @@
+# REVIEW QUEUE — QUESTIONS authored; NOT servable. Promoted to L1 only by the
+# physician of record's sign-off (HB-C1).
+# generated-by: scripts/dev/gen_specialty_packs.py from docs/evidence/proposals/kadin_hastaliklari_ve_dogum.md
+# (guideline-sourced; reviewed per docs/evidence/verification/). Symptom-capture
+# prompts only (inv 2/10) — not diagnosis, not triage. Acuity is EK-4 law +
+# physician of record; never fabricated. RED/life-threat stays in
+# base.life_threat (inv 7).
+kind: pack
+id: specialty.kadin_hastaliklari_ve_dogum
+layer: specialty
+version: 0.3.0
+schema_version: 2
+maturity: L0
+status: questions-authored; awaiting physician-of-record sign-off (HB-C1); not servable
+language: tr
+title_tr: Kadın Hastalıkları ve Doğum ön görüşme protokolü
+extends: cluster.womens_health
+visit_types:
+- first
+- followup
+- preop
+- report
+- pregnancy_followup
+- chronic_review
+- post_discharge
+- screening
+- second_opinion
+- teleconsult
+sections:
+  ziyaret_baglami:
+    slots:
+      basvuru_nedeni:
+        type: string
+        required: true
+        ask_tr:
+          tr: Bugünkü randevunuzda en çok konuşmak istediğiniz konu nedir?
+        follow_up_tr:
+          tr: Bugünkü randevunuzun sebebini kısaca anlatır mısınız?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.reason_for_encounter.v1 recorded in docs/evidence/proposals/kadin_hastaliklari_ve_dogum.md'
+      sikayet_suresi:
+        type: duration
+        required: false
+        ask_tr:
+          tr: Bu şikâyetiniz ne zamandır var?
+        follow_up_tr:
+          tr: Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; no candidate archetype recorded in docs/evidence/proposals/kadin_hastaliklari_ve_dogum.md'
+  sorular:
+    slots:
+      son_adet_tarihi:
+        type: date
+        required: false
+        ask_tr:
+          tr: Son adetinizin ilk günü hangi tarihteydi?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/kadin_hastaliklari_ve_dogum.md'
+      gebelik_durumu:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Şu anda hamile olma ihtimaliniz var mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/kadin_hastaliklari_ve_dogum.md'
+      adet_disi_kanama:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Adet döneminiz dışında vajinal kanamanız oldu mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/kadin_hastaliklari_ve_dogum.md'
+      gebelikte_kanama:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Hamileyseniz, bu hamilelikte hiç vajinal kanamanız oldu mu?
+        ask_if: gebelik_durumu == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/kadin_hastaliklari_ve_dogum.md'
+      menopoz_sonrasi_kanama:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Adetleriniz tamamen kesildiyse, sonrasında hiç vajinal kanamanız oldu mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/kadin_hastaliklari_ve_dogum.md'
+      alt_karin_agrisi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Karnınızın alt kısmında ya da kasıklarınızda ağrınız var mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/kadin_hastaliklari_ve_dogum.md'
+      gebelikte_siddetli_bas_agrisi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Hamileyseniz, son günlerde şiddetli bir baş ağrınız oldu mu?
+        ask_if: gebelik_durumu == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/kadin_hastaliklari_ve_dogum.md'
+      gebelikte_gorme_bozuklugu:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Hamileyseniz, görmenizde bulanıklık ya da gözünüzün önünde ışık çakması oldu mu?
+        ask_if: gebelik_durumu == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/kadin_hastaliklari_ve_dogum.md'
+      bebek_hareketlerinde_azalma:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Hamileyseniz, bebeğinizin hareketlerinde azalma fark ettiniz mi?
+        ask_if: gebelik_durumu == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/kadin_hastaliklari_ve_dogum.md'
+      gebelikte_su_gelmesi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Hamileyseniz, iç çamaşırınızı ıslatan su gibi bir akıntı fark ettiniz mi?
+        ask_if: gebelik_durumu == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/kadin_hastaliklari_ve_dogum.md'
+      ates_var_mi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Son günlerde ateşiniz oldu mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/kadin_hastaliklari_ve_dogum.md'
+      duzenli_ilac:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Şu anda düzenli olarak kullandığınız ilaçlar var mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype ACTION.medication.v1 recorded in docs/evidence/proposals/kadin_hastaliklari_ve_dogum.md'
+red_flags:
+- id: rf.kadin_hastaliklari_ve_dogum_l0_taslak
+  label_tr: Kadın Hastalıkları ve Doğum ön görüşme protokolü — branşa özgü kırmızı bayrak taslağı (klinik onay bekliyor)
+  when: 'TODO: kadin_hastaliklari_ve_dogum branch-specific red-flag trigger requires clinical sign-off'
+  tense: ever
+  tense_anchor: sikayet_suresi
+  level: YESIL
+  route: EXPEDITE
+  notify_clinic: never
+  status: draft_needs_source
+  source_gap: 'Trigger, EK-4 level and route await clinical sign-off (invariant 17 pending-value literal). Guideline-sourced candidates recorded in docs/evidence/proposals/kadin_hastaliklari_ve_dogum.md; acuity bound by EK-4 law (RG 13/9/2022 sayı 31952), snapshot absent. RED/life-threat stays in base.life_threat (invariant 7). Owner: physician of record (HB-C1, HB-C2, HB-C7).'

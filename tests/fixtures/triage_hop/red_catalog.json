@@ -1,0 +1,49 @@
+{
+  "scripts": {
+    "base.generic_red.remote": {
+      "primary": "CALL_112",
+      "show112": true,
+      "actionTr": "Hemen 112 Acil Çağrı Merkezi'ni arayın.",
+      "doNotsTr": ["Randevuyu beklemeyin."],
+      "whyTr": "Verilen cevaplara göre beklemeden değerlendirme gerekiyor. 112 ambulansıyla getirilen hastalar, acil serviste ayrıca öncelik sırası için bekletilmez."
+    },
+    "base.generic_red.on_site": {
+      "primary": "GO_TO_IN_HOUSE_ACIL",
+      "show112": false,
+      "actionTr": "Acil Servis'e gidin. Randevuyu beklemeyin. Görevlilere haber verildi.",
+      "doNotsTr": [
+        "Poliklinik sırasında beklemeyin.",
+        "Tek başınıza gitmeyin; bir görevliden yardım isteyin."
+      ],
+      "whyTr": "Verilen cevaplara göre beklemeden değerlendirme gerekiyor. Acil serviste hastaların önceliği girişte belirlenir ve en öncelikli hastalar bekletilmeden içeri alınır."
+    },
+    "rf.sentetik_yasamsal.remote": {
+      "primary": "CALL_112",
+      "show112": true,
+      "actionTr": "Hemen yardım isteyin.",
+      "doNotsTr": ["Yalnız kalmayın."],
+      "whyTr": "Bu bir sentetik test metnidir."
+    },
+    "rf.sentetik_yasamsal.on_site": {
+      "primary": "GO_TO_IN_HOUSE_ACIL",
+      "show112": false,
+      "actionTr": "Görevlilere haber verin.",
+      "doNotsTr": [],
+      "whyTr": "Bu bir sentetik test metnidir."
+    }
+  },
+  "questions": {
+    "base.generic_red.unknown": {
+      "askTr": "Şu anda hastanede misiniz?",
+      "onYes": "ON_SITE",
+      "onNo": "REMOTE",
+      "onNoAnswer": "REMOTE"
+    },
+    "rf.sentetik_yasamsal.unknown": {
+      "askTr": "Şu anda hastanede misiniz?",
+      "onYes": "ON_SITE",
+      "onNo": "REMOTE",
+      "onNoAnswer": "REMOTE"
+    }
+  }
+}

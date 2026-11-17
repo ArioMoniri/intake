@@ -272,10 +272,14 @@ describe("the proxy acknowledgement is an acknowledgement of role, never of repr
 
 describe("the proxy flag is on the record, and the copy explains it before the session", () => {
   it("the note-facing consequence is stated up front", () => {
+    // INT-588: the screen lists the effects through the build-aware helper, so
+    // a release build (no spoken questions) does not list the text-only one.
     const screen = read(APP, "(tabs)/me/companion.tsx");
-    expect(screen).toContain('t("companion.effect.proxy")');
-    expect(screen).toContain('t("companion.effect.textOnly")');
-    expect(screen).toContain('t("companion.effect.noSafeguarding")');
+    expect(screen).toContain("companionEffectKeys(outcome, currentBuildMode())");
+    const helper = read(SRC, "lib", "buildCopy.ts");
+    expect(helper).toContain('"companion.effect.proxy"');
+    expect(helper).toContain('"companion.effect.textOnly"');
+    expect(helper).toContain('"companion.effect.noSafeguarding"');
   });
 
   it("the entry row exists on Profilim", () => {

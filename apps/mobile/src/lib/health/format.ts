@@ -5,6 +5,12 @@
  * number + unit joined into ONE non-breaking atom. Numerals are allowed in
  * on-screen data values; what is banned is a numeral reaching any TTS
  * path — nothing in lib/health touches speech (test-enforced).
+ *
+ * `formatQuantity` is also the app's clinical quantity renderer: the intake's
+ * measured answers print through it (`measurementLine`), and INT-385 holds it
+ * to the same table as the server's `quantity_atom`
+ * (`tests/fixtures/records/quantity_render.json`). The decimal point is the
+ * locale's, digits are never grouped, and no digit is dropped or added.
  */
 import { t, type Locale } from "../i18n";
 import type { HealthRange, HealthSummary, RawHealthSamples } from "./types";
@@ -14,10 +20,32 @@ const EN_DASH = "–";
 
 const INTL_LOCALE: Record<Locale, string> = { tr: "tr-TR", en: "en-US" };
 
+/** The widest fraction every Intl implementation accepts (ES2020's limit). */
+const MAX_FRACTION_DIGITS = 20;
+
+/**
+ * How many digits `value` has after the point, in the shortest decimal that
+ * reads back as the same number. `Number.prototype.toString` writes exactly
+ * that shortest form, with an exponent at the extremes (`5e-7`, `1e+21`).
+ *
+ * The digit count is the value's own. A fixed cap of one digit printed 0.05 as
+ * `0,1` (INT-385): a clinical quantity rounded on its way to the screen. A
+ * wide fixed width would instead print the binary expansion's noise.
+ */
+function fractionDigits(value: number): number {
+  const [mantissa, exponent] = Math.abs(value).toString().split("e");
+  const point = mantissa.indexOf(".");
+  const written = point === -1 ? 0 : mantissa.length - point - 1;
+  const shift = exponent === undefined ? 0 : Number(exponent);
+  return Math.min(MAX_FRACTION_DIGITS, Math.max(0, written - shift));
+}
+
 function formatNumber(value: number, locale: Locale): string {
+  const digits = fractionDigits(value);
   return new Intl.NumberFormat(INTL_LOCALE[locale], {
     useGrouping: false,
-    maximumFractionDigits: 1,
+    minimumFractionDigits: digits,
+    maximumFractionDigits: digits,
   }).format(value);
 }
 

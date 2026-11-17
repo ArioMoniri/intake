@@ -39,7 +39,11 @@ The layers, so that no single config mistake silently widens the boundary:
 
 :func:`guarded_transport` wraps ``httpx`` so services adopt enforcement by
 construction, and :func:`guarded_client` builds a client with redirects off
-(files/10 §4). A transport carrying personal data may not be pointed at the
+(files/10 §4). :func:`guarded_async_transport` / :func:`guarded_async_client`
+are the same enforcer for an async caller (INT-329): both transports run one
+admission step (``_admit``) and differ only in how the admitted request is
+sent, so there is no second implementation of the decision to drift (ADR-025).
+A transport carrying personal data may not be pointed at the
 forward proxy at all — see :func:`guarded_transport` — because that is the one
 configuration in which neither enforcement point does the resolve-and-pin.
 
@@ -63,16 +67,19 @@ rather than documenting.
 
 from __future__ import annotations
 
+import asyncio
 import ipaddress
 import logging
 import os
 import socket
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from enum import StrEnum
+from functools import partial
 from pathlib import Path
-from typing import Literal, Protocol
+from types import MappingProxyType
+from typing import Final, Literal, Protocol
 
 import httpx
 import yaml
@@ -80,7 +87,9 @@ from prometheus_client import Counter
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 __all__ = [
+    "DEDICATED_PERSONAL_PROXIES",
     "DENIED_RANGES",
+    "PURPOSE_PROXIES",
     "VENDOR_LLM_DOMAINS",
     "AllowlistEntry",
     "Authorization",
@@ -101,6 +110,8 @@ __all__ = [
     "TransferRecord",
     "assert_dev_only_vendors",
     "default_resolver",
+    "guarded_async_client",
+    "guarded_async_transport",
     "guarded_client",
     "guarded_transport",
     "load_allowlist",
@@ -187,6 +198,7 @@ class EgressPurpose(StrEnum):
     ``infra/security/egress-allowlist.yaml`` for the four vendor purposes, and
     the connector destination schema for ``CLINICAL_RECORD_PUSH``, whose
     destinations are per-tenant data rather than committed rows.
+    ``SMS_OTP_DELIVERY``'s row is the PHI tier's one row (INT-528).
     """
 
     PACKAGE_REGISTRY = "package_registry"
@@ -210,6 +222,12 @@ class EgressPurpose(StrEnum):
     #: Like the push purpose, its destinations are per-tenant registry data,
     #: so it never appears in ``infra/security/egress-allowlist.yaml`` either.
     CONNECTOR_AUTHORIZATION = "connector_authorization"
+    #: INT-329. The OTP tier's SMS vendor: the patient's phone number and a
+    #: one-time code leave for the SMS processor, so a row serving this purpose
+    #: is personal-data egress. Its one row is Netgsm's, on the PHI tier with a
+    #: ``phi_exception_approval`` naming the owner's decision (INT-358,
+    #: INT-528), and it opens only with the runtime gate.
+    SMS_OTP_DELIVERY = "sms_otp_delivery"
     #: Reading a patient's own record back OUT of a hospital system, rather
     #: than pushing one in. Separated from ``CLINICAL_RECORD_PUSH`` for the
     #: reason ADR-025 gives for separating any two purposes — a purpose is a
@@ -226,6 +244,14 @@ class EgressPurpose(StrEnum):
     #: refuses every hostname. The two policies therefore reach disjoint sets
     #: of destinations and neither is a route around the other.
     CLINICAL_RECORD_READ = "clinical_record_read"
+    #: INT-428 / ADR-035. A hosted model lane (LLM, ASR or TTS) — the owner's
+    #: temporary relaxation of invariant 19 until the GPU lanes are healthy.
+    #: Its rows sit in the ``dev`` tier with ``phi_allowed: false``: a
+    #: synthetic tenant's traffic is ``NON_PERSONAL`` and clears them, and a
+    #: real PHI tenant's traffic is ``PHI`` and is refused here as a second,
+    #: independent key behind the ADR-035 guard. A vendor LLM host on the PHI
+    #: tier stays impossible (:func:`assert_dev_only_vendors`).
+    HOSTED_MODEL_INFERENCE = "hosted_model_inference"
 
 
 class DataClass(StrEnum):
@@ -689,6 +715,59 @@ def _pinned_request(request: httpx.Request, pin: Pin) -> httpx.Request:
     )
 
 
+def _admit(
+    policy: EgressPolicy,
+    context: EgressContext,
+    transfer_log: TransferLog,
+    pin_here: bool,
+    request: httpx.Request,
+) -> httpx.Request:
+    """The one admission step every guarded transport runs before sending.
+
+    Decides the request (allow-list, purpose, data class; resolve once and pin
+    unless the forward proxy owns that job), writes exactly one transfer
+    record, and returns the request to send — the pinned copy when this
+    process pinned. A refusal increments the paging counter and raises
+    :class:`EgressDenied` before any byte leaves. The sync and async transports
+    both call this and nothing else, so they cannot decide differently.
+    """
+    host = request.url.host
+    port = request.url.port or _DEFAULT_SCHEME_PORTS.get(request.url.scheme, 0)
+    if pin_here:
+        authorization = policy.authorize(host, port, context)
+        decision, pin = authorization.decision, authorization.pin
+    else:
+        # Behind the forward proxy the hostname must survive to the CONNECT
+        # line — the proxy matches on it, and an IP literal would be denied by
+        # its own ACLs. files/10 §4 gives that tier the resolve-and-pin job
+        # ("resolves once and pins, re-validating on connect"), so doing it
+        # here as well would break the composition rather than double it. The
+        # allow-list, purpose and data-class checks still run in process; the
+        # proxy's `denied_nets dst` ACL is what refuses a hostname that
+        # resolves into a private or metadata range.
+        decision, pin = policy.check(host, port, context), None
+    # bytes_out only for requests that actually leave; a denied request
+    # transferred nothing. Header-declared size — never the body itself.
+    bytes_out = int(request.headers.get("content-length", 0)) if decision.allowed else 0
+    transfer_log.record(
+        TransferRecord(
+            ts=datetime.now(UTC),
+            host=decision.host,
+            port=decision.port,
+            purpose=decision.purpose,
+            data_class=context.data_class,
+            bytes_out=bytes_out,
+            decision="allow" if decision.allowed else "deny",
+            reason=decision.reason,
+            tier=policy.tier,
+        )
+    )
+    if not decision.allowed:
+        EGRESS_DENIED_TOTAL.inc()
+        raise EgressDenied(f"egress denied for {decision.host}:{decision.port} — {decision.reason}")
+    return _pinned_request(request, pin) if pin is not None else request
+
+
 class _GuardedTransport(httpx.BaseTransport):
     """httpx transport that consults the policy before any bytes leave.
 
@@ -713,47 +792,108 @@ class _GuardedTransport(httpx.BaseTransport):
         self._pin_here = pin_here
 
     def handle_request(self, request: httpx.Request) -> httpx.Response:
-        host = request.url.host
-        port = request.url.port or _DEFAULT_SCHEME_PORTS.get(request.url.scheme, 0)
-        if self._pin_here:
-            authorization = self._policy.authorize(host, port, self._context)
-            decision, pin = authorization.decision, authorization.pin
-        else:
-            # Behind the forward proxy the hostname must survive to the CONNECT
-            # line — the proxy matches on it, and an IP literal would be denied
-            # by its own ACLs. files/10 §4 gives that tier the resolve-and-pin
-            # job ("resolves once and pins, re-validating on connect"), so
-            # doing it here as well would break the composition rather than
-            # double it. The allow-list, purpose and data-class checks still
-            # run in process; the proxy's `denied_nets dst` ACL is what refuses
-            # a hostname that resolves into a private or metadata range.
-            decision, pin = self._policy.check(host, port, self._context), None
-        # bytes_out only for requests that actually leave; a denied request
-        # transferred nothing. Header-declared size — never the body itself.
-        bytes_out = int(request.headers.get("content-length", 0)) if decision.allowed else 0
-        self._transfer_log.record(
-            TransferRecord(
-                ts=datetime.now(UTC),
-                host=decision.host,
-                port=decision.port,
-                purpose=decision.purpose,
-                data_class=self._context.data_class,
-                bytes_out=bytes_out,
-                decision="allow" if decision.allowed else "deny",
-                reason=decision.reason,
-                tier=self._policy.tier,
-            )
-        )
-        if not decision.allowed:
-            EGRESS_DENIED_TOTAL.inc()
-            raise EgressDenied(
-                f"egress denied for {decision.host}:{decision.port} — {decision.reason}"
-            )
-        outbound = _pinned_request(request, pin) if pin is not None else request
+        outbound = _admit(self._policy, self._context, self._transfer_log, self._pin_here, request)
         return self._inner.handle_request(outbound)
 
     def close(self) -> None:
         self._inner.close()
+
+
+class _GuardedAsyncTransport(httpx.AsyncBaseTransport):
+    """The async twin (INT-329): the same :func:`_admit`, an awaited send.
+
+    Admission runs in a worker thread because resolution is a blocking
+    ``getaddrinfo``; everything after it — the connection, TLS, the exchange —
+    belongs to the inner async transport, so the event loop is never held.
+    Redirect hops re-enter ``handle_async_request`` and are admitted afresh.
+    """
+
+    def __init__(
+        self,
+        policy: EgressPolicy,
+        context: EgressContext,
+        inner: httpx.AsyncBaseTransport,
+        transfer_log: TransferLog,
+        pin_here: bool = True,
+    ) -> None:
+        self._policy = policy
+        self._context = context
+        self._inner = inner
+        self._transfer_log = transfer_log
+        self._pin_here = pin_here
+
+    async def handle_async_request(self, request: httpx.Request) -> httpx.Response:
+        admit = partial(_admit, self._policy, self._context, self._transfer_log, self._pin_here)
+        outbound = await asyncio.to_thread(admit, request)
+        return await self._inner.handle_async_request(outbound)
+
+    async def aclose(self) -> None:
+        await self._inner.aclose()
+
+
+#: ADR-042: the one purpose whose personal-data call may ride a forward proxy,
+#: and the one proxy it may ride. ``sms-egress`` is the synthetic host's
+#: SMS-only proxy (infra/staging/compose.yaml): it sits on a network shared
+#: with the API alone, renders the allow-list's SMS row and nothing else
+#: (scripts/security/render_sms_egress_conf.py), closes the rebinding window
+#: itself and refuses the denied ranges at connect. Exact string match: no
+#: other scheme, host or port qualifies, and no other purpose has an entry.
+DEDICATED_PERSONAL_PROXIES: Final[Mapping[EgressPurpose, str]] = MappingProxyType(
+    {EgressPurpose.SMS_OTP_DELIVERY: "http://sms-egress:3128"}
+)
+
+#: INT-442 x ADR-042: the synthetic host has two forward proxies, and a purpose
+#: that rides one rides only its own, whatever the data class. The SMS call
+#: rides ``sms-egress`` (above); a hosted-model call (ADR-035) rides
+#: ``egress-proxy``, the default-deny proxy rendered from the allow-list's
+#: hosted rows. Either may also go direct, where the process resolves and pins
+#: itself. A dedicated proxy carries nothing but its own purpose, so the SMS
+#: proxy refuses a hosted-model call even though that call is not personal data,
+#: and the shared proxy never carries the SMS call. Each proxy's rendered config
+#: refuses the other's host at the network as well.
+PURPOSE_PROXIES: Final[Mapping[EgressPurpose, str]] = MappingProxyType(
+    {
+        **DEDICATED_PERSONAL_PROXIES,
+        EgressPurpose.HOSTED_MODEL_INFERENCE: "http://egress-proxy:3128",
+    }
+)
+
+
+def _refuse_personal_proxy(context: EgressContext, proxy: str | None) -> None:
+    """A personal-data transport may not delegate its pin (INT-203), except the
+    one pair ADR-042 admits: the SMS purpose through its dedicated proxy."""
+    if proxy is not None and DEDICATED_PERSONAL_PROXIES.get(context.purpose) == proxy:
+        return
+    if context.data_class.is_personal and proxy is not None:
+        raise ValueError(
+            f"a {context.data_class} transport cannot delegate its pin to the forward "
+            "proxy: the vendor allow-list the proxy enforces has no connector rows and "
+            "its phi_path tier is empty, so this call would lose the in-process "
+            "resolve-and-pin and gain nothing (files/10 §4; ADR-025)"
+        )
+
+
+def _refuse_crossed_proxy(context: EgressContext, proxy: str | None) -> None:
+    """A routed purpose rides only its own proxy, and a dedicated proxy carries
+    only its own purpose (:data:`PURPOSE_PROXIES`), whatever the data class."""
+    if proxy is None:
+        return
+    bound = PURPOSE_PROXIES.get(context.purpose)
+    if bound is not None and proxy != bound:
+        raise ValueError(
+            f"a {context.purpose} transport rides only its own forward proxy "
+            "(PURPOSE_PROXIES; ADR-042, INT-442), never another"
+        )
+    if bound is None and proxy in DEDICATED_PERSONAL_PROXIES.values():
+        raise ValueError(
+            "this forward proxy is dedicated to another purpose and carries no "
+            f"{context.purpose} call (DEDICATED_PERSONAL_PROXIES; ADR-042)"
+        )
+
+
+def _refuse_proxy(context: EgressContext, proxy: str | None) -> None:
+    _refuse_personal_proxy(context, proxy)
+    _refuse_crossed_proxy(context, proxy)
 
 
 def guarded_transport(
@@ -791,15 +931,16 @@ def guarded_transport(
     would lose the in-process resolve-and-pin and gain no network-tier check in
     exchange — the two enforcement points would each assume the other had done
     it. Refused at construction rather than at the first send, so the mistake
-    surfaces where it is made instead of in a receipt.
+    surfaces where it is made instead of in a receipt. The one exception is
+    :data:`DEDICATED_PERSONAL_PROXIES` (ADR-042): the SMS purpose through the
+    SMS-only proxy, which renders that purpose's row and resolves at connect.
+
+    **A routed purpose rides only its own proxy** (:data:`PURPOSE_PROXIES`):
+    the SMS call only ``sms-egress``, a hosted-model call only
+    ``egress-proxy``, whatever the data class; and the SMS proxy carries no
+    other purpose at all.
     """
-    if context.data_class.is_personal and proxy is not None:
-        raise ValueError(
-            f"a {context.data_class} transport cannot delegate its pin to the forward "
-            "proxy: the vendor allow-list the proxy enforces has no connector rows and "
-            "its phi_path tier is empty, so this call would lose the in-process "
-            "resolve-and-pin and gain nothing (files/10 §4; ADR-025)"
-        )
+    _refuse_proxy(context, proxy)
     if inner is None:
         inner = httpx.HTTPTransport(proxy=proxy) if proxy else httpx.HTTPTransport()
     return _GuardedTransport(
@@ -834,6 +975,52 @@ def guarded_client(
     """
     return httpx.Client(
         transport=guarded_transport(policy, context, inner, transfer_log, proxy),
+        follow_redirects=follow_redirects,
+        timeout=timeout if timeout is not None else httpx.Timeout(10.0),
+    )
+
+
+def guarded_async_transport(
+    policy: EgressPolicy,
+    context: EgressContext,
+    inner: httpx.AsyncBaseTransport | None = None,
+    transfer_log: TransferLog | None = None,
+    proxy: str | None = None,
+) -> httpx.AsyncBaseTransport:
+    """:func:`guarded_transport` for an async caller (INT-329).
+
+    Same parameters, same refusals — a personal-data transport may not take
+    ``proxy`` except ADR-042's pair, and a routed purpose rides only its own —
+    and the same admission step. ``inner`` is an async transport:
+    tests pass ``httpx.MockTransport``; the default is a standard
+    ``httpx.AsyncHTTPTransport``.
+    """
+    _refuse_proxy(context, proxy)
+    if inner is None:
+        inner = httpx.AsyncHTTPTransport(proxy=proxy) if proxy else httpx.AsyncHTTPTransport()
+    return _GuardedAsyncTransport(
+        policy,
+        context,
+        inner,
+        transfer_log if transfer_log is not None else LoggingTransferLog(),
+        pin_here=proxy is None,
+    )
+
+
+def guarded_async_client(
+    policy: EgressPolicy,
+    context: EgressContext,
+    inner: httpx.AsyncBaseTransport | None = None,
+    transfer_log: TransferLog | None = None,
+    proxy: str | None = None,
+    *,
+    follow_redirects: bool = False,
+    timeout: httpx.Timeout | float | None = None,
+) -> httpx.AsyncClient:
+    """An ``httpx.AsyncClient`` over :func:`guarded_async_transport`, redirects
+    off: the same deliberately narrow surface as :func:`guarded_client`."""
+    return httpx.AsyncClient(
+        transport=guarded_async_transport(policy, context, inner, transfer_log, proxy),
         follow_redirects=follow_redirects,
         timeout=timeout if timeout is not None else httpx.Timeout(10.0),
     )

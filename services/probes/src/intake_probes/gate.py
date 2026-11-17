@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
+from datetime import datetime
 from pathlib import Path
 
 from pydantic import BaseModel, ConfigDict, TypeAdapter
@@ -44,6 +45,9 @@ class ProbeResultRecord(BaseModel):
     status: ProbeStatus
     latency_ms: float | None = None
     detail: str = ""
+    #: the instant the probe started (INT-181); absent in a sweep written
+    #: before the runner stamped one, which a reader treats as "age unknown"
+    checked_at: datetime | None = None
 
 
 _RESULTS_ADAPTER: TypeAdapter[list[ProbeResultRecord]] = TypeAdapter(list[ProbeResultRecord])

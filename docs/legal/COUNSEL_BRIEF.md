@@ -536,6 +536,15 @@ give it a contract basis. Both cannot be the operative ground. This is an engine
 defect to reconcile before the text is drafted, because the text must state the basis
 the system actually relies on.
 
+**Basis reconciled (INT-536, 17 Oct 2026).** The storage now states the ground the routes
+enforce:
+- `events` gives its basis per `event_type`: `csat.v1` and `nps.v1` rest on KVKK m.5/1
+  açık rıza under scope `satisfaction` (`db/inventory.py` `EVENT_TYPE_BASES`).
+- `csat_texts` carries the açık rıza grounds.
+- The `satisfaction` retention class says m.5/1, with m.6/3-a for the comment.
+
+The retention half below is still open.
+
 **Retention.** Two different answers exist in code, which is the second half of the same
 defect. The `events` columns claim `telemetry window: 30 d hot / 1 y cold`
 (`db/inventory.py:90`), while the dedicated retention class says
@@ -773,7 +782,7 @@ project forbids, and it would be indistinguishable from counsel's own once merge
 ```
 — `services/api/src/intake_api/dsar/strings.py:1-9`
 
-Nine keys are unauthored (`dsar/strings.py:25-49`):
+Thirteen keys are unauthored (`dsar/strings.py:34-62`):
 
 | key | what it labels |
 |---|---|
@@ -786,6 +795,15 @@ Nine keys are unauthored (`dsar/strings.py:25-49`):
 | `dsar_export.section.shares` | section heading |
 | `dsar_export.section.rectifications` | section heading |
 | `dsar_export.section.requests` | section heading |
+| `dsar_export.section.learned_facts` | section heading: the learned facts files/09 §3 calls "exported/deletable" |
+| `dsar_export.section.feedback` | section heading: the patient's satisfaction comment |
+| `dsar_export.section.preferences` | section heading: the notification opt-out and quiet window |
+| `dsar_export.section.guardians` | section heading: the guardian↔minor link (gate shut today) |
+
+*(Updated 27 Sep 2026 by INT-395. The survey found nine keys; INT-395 added the last four,
+because the export now lists every table the inventory annotations put under the
+subject's access right and no existing heading fits these four. Each is one more
+heading, with no wording drafted; the export refuses without it exactly as before.)*
 
 **The one substantive question inside that list**, recorded verbatim at
 `dsar/strings.py:11-14`: `dsar_export.footer` is deliberately its own key rather than a
@@ -826,7 +844,8 @@ have to state:
   says so, and the text will have to state a retention.
 - **The `satisfaction` basis and retention disagree with themselves** (§2.9): registry
   says açık rıza, storage and retention class say m.5/2-c contract; column annotation
-  says 30 d / 1 y, retention class says with-account.
+  says 30 d / 1 y, retention class says with-account. *The basis half is reconciled by
+  INT-536; the retention half remains.*
 - **`docs/legal/` has no `opinions/` directory**, although files/06's preamble says
   nothing is deferred "without a written counsel opinion in `docs/legal/opinions/`"
   (`files/06_COMPLIANCE_TR.md:3`).

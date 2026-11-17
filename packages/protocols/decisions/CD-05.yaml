@@ -1,0 +1,152 @@
+kind: clinical_decision
+id: CD-05
+title: "Tense anchor per RED rule and the scripted anchor question"
+question: "For each RED rule, which slot anchors its tense, how is the anchor asked as a scripted closed choice, how does each choice resolve against the session reference time, and how do NICE CG95's twelve-hour and seventy-two-hour windows map onto the engine's calendar-day tenses?"
+decision: "Only the two active chest-pain rules are evaluable; both anchor on chest_pain.onset_at, which holds the time of the most recent episode (NICE CG95 1.2.1.1 asks when the last episode was). The paediatric-airway and crisis rules are draft and their anchors stay draft_needs_source. The anchor is asked as one scripted closed choice whose four non-overlapping bands are NICE's own: 'şu anda var', 'son on iki saat içinde', 'on iki saatten önce ama son üç gün içinde', 'üç günden daha önce'. The illustrative calendar words of the physician review (şu an / bugün / bu hafta / daha önce) are not used, because 'bugün' cannot express a twelve-hour band that crosses midnight and 'bu hafta' changes meaning with the weekday. The engine's tense windows are calendar days, with now and today both equal to the reference day (context.py temporal_within). 'şu anda var' and 'son on iki saat içinde' resolve to the reference day: NICE refers both for emergency assessment when an ECG is not available, which is every pre-visit session, so the now-tensed K2 rule may fire even when the twelve hours began the previous calendar day. 'üç günden daha önce' resolves to the reference day minus three, the most acute day consistent with 'more than seventy-two hours ago'; neither active rule fires, matching NICE 1.2.1.10, which sends that patient to detailed clinical assessment rather than emergency or same-day referral. The final resolution of 'on iki saatten önce ama son üç gün içinde' (twelve to seventy-two hours) stays draft_needs_source: NICE 1.2.1.8 asks for urgent same-day assessment, the K2 rule has only tense now (resolving to the reference day sends the patient to 112 for a pain one or two days old, the over-alarm files/04 §8.1 rule 4 warns against), resolving to an earlier day fires nothing (under-triage against NICE), and the Tense enum has no seventy-two-hour member. While it is draft the band is never left Unknown: it resolves to the reference day, accepting over-triage as the fail-closed direction inside D18's simulated scope, and the record labels the resolution as the while-draft one. An answer that fits no choice, or 'bilmiyorum', is recorded UNCLEAR and resolved to the more acute reading, the reference day. The council never fills an anchor and a document never feeds one."
+status: active
+scope: simulated_patient_stress_testing
+author_role: "emergency medicine and internal medicine/cardiology physician (agent)"
+inference_disclosure: "Resolving an ambiguous or unknown anchor to the more acute band is a design rule from the 2 Oct 2026 physician pre-review (design change 4), which is not a committed repository file; NICE CG84's 'if in doubt' sentence is cited as the nearest NICE statement of the same direction, from a guideline on gastroenteritis in children under five, not as a chest-pain source. Mapping each band onto calendar days (reference_day for both twelve-hour bands, reference day minus three for 'more than seventy-two hours') and resolving the twelve-to-seventy-two-hour band to the reference day while it is draft are this author's operationalisation; the latter accepts over-triage only within D18's simulated scope."
+spec_basis:
+  - file: packages/protocols/src/protocols/triage/context.py
+    section: "temporal_within docstring"
+    quote: "``today``   — the reference day itself"
+    supports: "engine_calendar"
+  - file: files/04_CLINICAL_PROTOCOLS.md
+    section: "§8.1 rule 4"
+    quote: "is a false alarm clinicians learn to ignore."
+    supports: "choices (twelve-to-seventy-two-hour band): why the final resolution stays draft"
+  - file: CLAUDE.md
+    section: "How we work"
+    quote: "build the mechanism, wire the gate, make it fail closed, leave the content empty."
+    supports: "choices (twelve-to-seventy-two-hour band): while_draft"
+sources:
+  - kind: guideline
+    guideline_id: NICE-CG95
+    title: "Recent-onset chest pain of suspected cardiac origin: assessment and diagnosis"
+    version_or_date: "CG95, published 24 March 2010, last updated 30 November 2016; minor changes January 2020, August 2020, November 2020 and October 2022"
+    url: "https://www.nice.org.uk/guidance/cg95/chapter/Recommendations"
+    retrieved_on: 2026-10-02
+    quote: "If they are pain free, check when their last episode of pain was, particularly if they have had pain in the last 12 hours."
+    snapshot: packages/protocols/sources/NICE-CG95.txt
+  - kind: guideline
+    guideline_id: NICE-CG95
+    title: "Recent-onset chest pain of suspected cardiac origin: assessment and diagnosis"
+    version_or_date: "CG95, published 24 March 2010, last updated 30 November 2016; minor changes January 2020, August 2020, November 2020 and October 2022"
+    url: "https://www.nice.org.uk/guidance/cg95/chapter/Recommendations"
+    retrieved_on: 2026-10-02
+    quote: "they currently have chest pain or"
+    snapshot: packages/protocols/sources/NICE-CG95.txt
+  - kind: guideline
+    guideline_id: NICE-CG95
+    title: "Recent-onset chest pain of suspected cardiac origin: assessment and diagnosis"
+    version_or_date: "CG95, published 24 March 2010, last updated 30 November 2016; minor changes January 2020, August 2020, November 2020 and October 2022"
+    url: "https://www.nice.org.uk/guidance/cg95/chapter/Recommendations"
+    retrieved_on: 2026-10-02
+    quote: "they are currently pain free, but had chest pain in the last 12 hours, and a resting"
+    snapshot: packages/protocols/sources/NICE-CG95.txt
+  - kind: guideline
+    guideline_id: NICE-CG95
+    title: "Recent-onset chest pain of suspected cardiac origin: assessment and diagnosis"
+    version_or_date: "CG95, published 24 March 2010, last updated 30 November 2016; minor changes January 2020, August 2020, November 2020 and October 2022"
+    url: "https://www.nice.org.uk/guidance/cg95/chapter/Recommendations"
+    retrieved_on: 2026-10-02
+    quote: "the last episode of pain was 12 to 72 hours ago."
+    snapshot: packages/protocols/sources/NICE-CG95.txt
+  - kind: guideline
+    guideline_id: NICE-CG95
+    title: "Recent-onset chest pain of suspected cardiac origin: assessment and diagnosis"
+    version_or_date: "CG95, published 24 March 2010, last updated 30 November 2016; minor changes January 2020, August 2020, November 2020 and October 2022"
+    url: "https://www.nice.org.uk/guidance/cg95/chapter/Recommendations"
+    retrieved_on: 2026-10-02
+    quote: "If a recent ACS is suspected in people whose last episode of chest pain was more than 72 hours ago and who have no complications such as pulmonary oedema:"
+    snapshot: packages/protocols/sources/NICE-CG95.txt
+  - kind: openehr_ckm
+    archetype_id: openEHR-EHR-OBSERVATION.symptom_sign_screening.v1
+    revision: "1.0.7"
+    url: "https://ckm.openehr.org/ckm/archetypes/1013.1.4432"
+    retrieved_on: 2026-10-03
+    quote: "the interval of time during which the specific symptom or sign occured"
+    snapshot: packages/protocols/sources/openEHR-EHR-OBSERVATION.symptom_sign_screening.v1.txt
+  - kind: guideline
+    guideline_id: NICE-CG84
+    title: "Diarrhoea and vomiting caused by gastroenteritis in under 5s: diagnosis and management"
+    version_or_date: "Clinical guideline CG84; published 22 April 2009; minor changes January 2019 and October 2022"
+    url: "https://www.nice.org.uk/guidance/cg84/chapter/Recommendations"
+    retrieved_on: 2026-10-03
+    quote: "If in doubt, manage as if there are symptoms and/or signs with red flags."
+    snapshot: packages/protocols/sources/NICE-CG84.txt
+    supports: "unresolved_answer, ambiguity"
+    caveat: "Paediatric gastroenteritis scope (children under five, dehydration and shock). Cited only for the direction NICE takes under doubt (manage as the more severe category), not as a chest-pain or timing source; the snapshot is a byte-identical copy of the one committed for CD-07..CD-10."
+value:
+  anchors:
+    - rule: rf.chest_pain_cardiac_features
+      tense: now
+      anchor: chest_pain.onset_at
+      anchor_semantics: "most recent episode, or ongoing now"
+      status: active
+      sources: [NICE-CG95]
+    - rule: rf.chest_pain_no_cardiac_history
+      tense: today
+      anchor: chest_pain.onset_at
+      anchor_semantics: "most recent episode, or ongoing now"
+      status: active
+      sources: [NICE-CG95]
+    - rule: rf.paediatric_airway_obstruction
+      tense: now
+      anchor: airway.onset_at
+      anchor_question: "TODO: the airway anchor question and how it resolves requires clinical sign-off"
+      status: draft_needs_source
+      source_gap: "The rule itself is draft_needs_source (no paediatric source for its trigger set) and needs a paediatrician's signature (HB-C1); no anchor can be resolved for a rule that cannot be served."
+    - rule: rf.crisis_disclosure_signposting
+      tense: now
+      anchor: transcript.utterance_at
+      anchor_question: "TODO: whether a system utterance timestamp is an acceptable anchor for the crisis rule requires clinical sign-off"
+      status: draft_needs_source
+      source_gap: "The rule is draft_needs_source and blocked on the files/04 §4.2 escalation policy (HB-C8). Its anchor is a system timestamp of the utterance, not a patient answer, so the closed choice below does not apply to it."
+  anchor_question_tr: "Göğsünüzdeki bu ağrı ya da rahatsızlık en son ne zaman oldu?"
+  engine_calendar: "temporal_within compares calendar days against reference_time.date(): now and today are both the reference day; within_7d and within_30d count days back; an undated or future anchor reads Unknown"
+  choices:
+    - choice_tr: "şu anda var"
+      nice_band: "current chest pain (CG95 1.2.1.7, emergency referral)"
+      resolves_to: reference_day
+      status: active
+      sources: [NICE-CG95]
+    - choice_tr: "son on iki saat içinde"
+      nice_band: "pain free now, chest pain in the last twelve hours, ECG not available (CG95 1.2.1.7, emergency referral)"
+      resolves_to: reference_day
+      note: "deliberately the reference day even when the episode fell on the previous calendar day, so the twelve-hour band is not split at midnight; the record keeps the patient's choice beside the resolved date"
+      status: active
+      sources: [NICE-CG95]
+    - choice_tr: "on iki saatten önce ama son üç gün içinde"
+      nice_band: "last episode twelve to seventy-two hours ago (CG95 1.2.1.8, urgent same-day assessment)"
+      resolves_to: "TODO: resolving a last episode twelve to seventy-two hours old onto the calendar-day tenses requires clinical sign-off"
+      while_draft:
+        resolves_to: reference_day
+        basis: "ambiguity: more_acute; over-triage is the fail-closed direction within D18's simulated scope, and Unknown would leave the band silent"
+        record_label: "while_draft_resolution"
+        never_unknown: true
+      status: draft_needs_source
+      source_gap: "NICE CG95 1.2.1.8 gives this band urgent same-day assessment. rf.chest_pain_cardiac_features has only tense now, so a final resolution to the reference day routes the patient to EMERGENCY_NOW (the over-alarm files/04 §8.1 rule 4 warns against), and resolving to any earlier day fires neither active rule (under-triage against NICE). Closing it needs a same-day cardiac-features arm and a tense member for seventy-two hours, both rule and DSL changes for the signing clinician."
+      sources: [NICE-CG95]
+    - choice_tr: "üç günden daha önce"
+      nice_band: "last episode more than seventy-two hours ago (CG95 1.2.1.10, detailed clinical assessment; referral by clinical judgement)"
+      resolves_to: reference_day_minus_3
+      note: "the most acute calendar day consistent with 'more than seventy-two hours'; neither active rule fires, and a draft within_7d rule would still read True"
+      status: active
+      sources: [NICE-CG95]
+  unresolved_answer:
+    applies_to: "an answer matching no choice, or 'bilmiyorum'"
+    answer_state: UNCLEAR
+    resolves_to: reference_day
+    basis: "more-acute rule of the 2 Oct 2026 physician pre-review (inference_disclosure); NICE CG84's 'if in doubt' direction, cited with its paediatric-scope caveat"
+    status: active
+    sources: [NICE-CG84, NICE-CG95]
+  ambiguity: more_acute
+  document_may_feed_anchor: false
+  council_may_fill: false
+verifier:
+  verdict: agree
+  role: "independent clinical verifier (agent; EM/IM/paediatrics)"
+  verified_on: 2026-10-03
+  notes: "Independent verification: round 1 agree_with_changes; round 2 agree. Every quote re-checked against the live source; the verifier saw only the committed output and the sources, never the authors' reasoning. Scope D18: simulated-patient stress testing only; a licensed physician's review is required before any real patient."

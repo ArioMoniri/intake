@@ -1,10 +1,12 @@
 # docs/slo/probes.yaml — SLOs for services/probes (INT-022; invariant 15).
 #
 # Same conventions as docs/slo/api.yaml (schema: intake_platform.slo.SLOFile).
-# The probes service exposes the shared http middleware, so its SLI rides the
-# catalogued http_requests_total family. Burn-rate rules for this file join
-# infra/observability/prometheus-rules.yaml when the live stack lands
-# (INT-023) — the generator is pinned to api.yaml today and grows there.
+# The probes service exposes the shared http middleware (mounted by the INT-021
+# close-out — until then nothing served this SLI), so its SLI rides the
+# catalogued http_requests_total family. Its burn-rate rules and its
+# golden-signal dashboard are generated from this file (INT-021 close-out:
+# infra/observability/prometheus-rules.yaml and
+# infra/observability/grafana/dashboards/, both drift-gated).
 service: probes
 owner: platform
 slos:

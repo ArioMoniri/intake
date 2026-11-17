@@ -1,0 +1,137 @@
+{
+  "keycloak": {
+    "dist_sha256": "04823c336b797a7e18889a44262a7a64e6bf624cbbcc518c85e2622176ff2eee",
+    "version": "26.7.4"
+  },
+  "logins": {
+    "intake-webauthn-session-notes": {
+      "access_token_claims": {
+        "aaguid": "369f3488-0dbf-4041-aac0-6ea5a73786fd",
+        "acr": "1",
+        "allowed-origins": [
+          "http://127.0.0.1:3000",
+          "http://localhost:3000"
+        ],
+        "amr": [
+          "pwd",
+          "hwk"
+        ],
+        "aud": [
+          "api",
+          "account"
+        ],
+        "auth_time": 1793230461,
+        "azp": "admin-web",
+        "credential_id": "lcWBeehC12Su5QihdJzJpRuCQiTSlzgDmBboQ___OM4",
+        "email": "int378-staff@intake.invalid",
+        "email_verified": true,
+        "exp": 1793230761,
+        "family_name": "Staff",
+        "given_name": "Synthetic",
+        "iat": 1793230461,
+        "iss": "http://127.0.0.1:18085/realms/intake-dev",
+        "jti": "onrtac:74d02d13-eff9-e5c7-8ee3-6e5469afae6d",
+        "name": "Synthetic Staff",
+        "org": "org-int378",
+        "preferred_username": "int378-staff",
+        "realm_access": {
+          "roles": [
+            "offline_access",
+            "uma_authorization",
+            "default-roles-intake-dev",
+            "tenant_clinical_responsible"
+          ]
+        },
+        "resource_access": {
+          "account": {
+            "roles": [
+              "manage-account",
+              "manage-account-links",
+              "view-profile"
+            ]
+          }
+        },
+        "scope": "openid profile email",
+        "sid": "GyQFVmgyYOcYueADvHyVoEXL",
+        "sub": "29d101f7-54ee-4620-8762-4b7547691037",
+        "tenant": "05d910f1-7695-4a7d-8196-1a99148b7028",
+        "typ": "Bearer"
+      },
+      "console": {
+        "aaguid": "369f3488-0dbf-4041-aac0-6ea5a73786fd",
+        "admitted": true,
+        "credential_id": "lcWBeehC12Su5QihdJzJpRuCQiTSlzgDmBboQ___OM4",
+        "roles": [
+          "tenant_clinical_responsible"
+        ],
+        "tenant": "05d910f1-7695-4a7d-8196-1a99148b7028"
+      },
+      "realm": "intake-dev"
+    },
+    "webauthn-authenticator": {
+      "access_token_claims": {
+        "acr": "1",
+        "allowed-origins": [
+          "http://127.0.0.1:3000",
+          "http://localhost:3000"
+        ],
+        "amr": [
+          "pwd",
+          "hwk"
+        ],
+        "aud": [
+          "api",
+          "account"
+        ],
+        "auth_time": 1793230462,
+        "azp": "admin-web",
+        "email": "int378-staff@intake.invalid",
+        "email_verified": true,
+        "exp": 1793230762,
+        "family_name": "Staff",
+        "given_name": "Synthetic",
+        "iat": 1793230462,
+        "iss": "http://127.0.0.1:18085/realms/intake-dev-stock",
+        "jti": "onrtac:54ead3ce-b7ea-15b2-b557-ac050c98aaab",
+        "name": "Synthetic Staff",
+        "org": "org-int378",
+        "preferred_username": "int378-staff",
+        "realm_access": {
+          "roles": [
+            "offline_access",
+            "uma_authorization",
+            "tenant_clinical_responsible",
+            "default-roles-intake-dev-stock"
+          ]
+        },
+        "resource_access": {
+          "account": {
+            "roles": [
+              "manage-account",
+              "manage-account-links",
+              "view-profile"
+            ]
+          }
+        },
+        "scope": "openid profile email",
+        "sid": "m7VhyC9q-K2Ae8JmHbohAzOC",
+        "sub": "703b935d-b179-495c-b4fc-904786062c3e",
+        "tenant": "05d910f1-7695-4a7d-8196-1a99148b7028",
+        "typ": "Bearer"
+      },
+      "console": {
+        "admitted": false,
+        "reason": "claim 'aaguid' is absent or not id-shaped",
+        "refusal": "MalformedClaims"
+      },
+      "realm": "intake-dev-stock"
+    }
+  },
+  "provider_jar_sha256": "3ca703b66c79734521cfa2a2ff56909cccebf793488256b979f10898887cd323",
+  "realm_file_sha256": "e49001fcff761db49a69f845b93b8f3949cde7933c8f20b045402c3db546a836",
+  "recorded_by": "scripts/keycloak/record_webauthn_login.py (INT-378)",
+  "software_authenticator": {
+    "aaguid": "369f3488-0dbf-4041-aac0-6ea5a73786fd",
+    "credential_id": "lcWBeehC12Su5QihdJzJpRuCQiTSlzgDmBboQ___OM4"
+  }
+}

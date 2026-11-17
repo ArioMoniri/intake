@@ -1,0 +1,150 @@
+# REVIEW QUEUE — QUESTIONS authored; NOT servable. Promoted to L1 only by the
+# physician of record's sign-off (HB-C1).
+# generated-by: scripts/dev/gen_specialty_packs.py from docs/evidence/proposals/el_cerrahisi.md
+# (guideline-sourced; reviewed per docs/evidence/verification/). Symptom-capture
+# prompts only (inv 2/10) — not diagnosis, not triage. Acuity is EK-4 law +
+# physician of record; never fabricated. RED/life-threat stays in
+# base.life_threat (inv 7).
+kind: pack
+id: specialty.el_cerrahisi
+layer: specialty
+version: 0.3.0
+schema_version: 2
+maturity: L0
+status: questions-authored; awaiting physician-of-record sign-off (HB-C1); not servable
+language: tr
+title_tr: El Cerrahisi ön görüşme protokolü
+extends: cluster.surgical
+visit_types:
+- first
+- followup
+- preop
+- report
+- pregnancy_followup
+- chronic_review
+- post_discharge
+- screening
+- second_opinion
+- teleconsult
+sections:
+  ziyaret_baglami:
+    slots:
+      basvuru_nedeni:
+        type: string
+        required: true
+        ask_tr:
+          tr: Bugün el cerrahisi bölümüne gelme nedeninizi kendi cümlelerinizle kısaca anlatır mısınız?
+        follow_up_tr:
+          tr: Sizi hekime getiren en önemli şikâyetiniz nedir?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.reason_for_encounter.v1 recorded in docs/evidence/proposals/el_cerrahisi.md'
+      sikayet_suresi:
+        type: duration
+        required: false
+        ask_tr:
+          tr: Bu şikâyetiniz ne zamandır var?
+        follow_up_tr:
+          tr: Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; no candidate archetype recorded in docs/evidence/proposals/el_cerrahisi.md'
+  sorular:
+    slots:
+      yaralanma_sonrasi_basladi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Elinizdeki ya da bileğinizdeki şikâyet bir yaralanmadan sonra mı başladı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/el_cerrahisi.md'
+      soru_2:
+        type: string
+        required: false
+        ask_tr:
+          tr: Ağrı ya da rahatsızlığı en çok elinizin veya kolunuzun hangi bölgesinde hissediyorsunuz?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/el_cerrahisi.md'
+      kizariklik_sislik_sicaklik:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Elinizde ya da parmağınızda kızarıklık, şişlik veya sıcaklık artışı fark ettiniz mi?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/el_cerrahisi.md'
+      duzeltince_parmak_agrisi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Parmağınızı düzeltmeye çalıştığınızda belirgin bir ağrınız oluyor mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; no candidate archetype recorded in docs/evidence/proposals/el_cerrahisi.md'
+      bukulu_duran_parmak:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Parmağınız kendiliğinden bükülü mü duruyor?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/el_cerrahisi.md'
+      el_sikayeti_ile_ates:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: El şikâyetinizle birlikte ateşiniz çıktı mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/el_cerrahisi.md'
+      genel_hastalik_hissi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: El şikâyetinizle birlikte kendinizi genel olarak hasta hissettiniz mi?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/el_cerrahisi.md'
+      orantisiz_agri:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Elinizdeki ya da ön kolunuzdaki ağrı, beklediğinizden çok daha şiddetli mi?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; no candidate archetype recorded in docs/evidence/proposals/el_cerrahisi.md'
+      parmak_hareketiyle_artan_agri:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Parmaklarınızı hareket ettirdiğinizde elinizdeki ağrı belirgin şekilde artıyor mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; no candidate archetype recorded in docs/evidence/proposals/el_cerrahisi.md'
+      uyusma_renk_degisimi_soguk:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Elinizde ya da parmaklarınızda yeni uyuşma, solukluk, morarma veya soğukluk var mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; no candidate archetype recorded in docs/evidence/proposals/el_cerrahisi.md'
+      hareket_islev_kaybi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Elinizi ya da parmaklarınızı her zamanki gibi hareket ettirmekte veya günlük işlerinizi yapmakta zorlanıyor musunuz?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/el_cerrahisi.md'
+      kesik_isirik_delici_yaralanma:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Son zamanlarda elinize bir kesik, ısırık ya da delici bir yaralanma oldu mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/el_cerrahisi.md'
+      diyabet_tanisi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Size daha önce şeker hastalığı (diyabet) tanısı konuldu mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.problem_diagnosis.v1 recorded in docs/evidence/proposals/el_cerrahisi.md'
+      onceki_el_ameliyati:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Daha önce elinizden ameliyat oldunuz mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.problem_diagnosis.v1 recorded in docs/evidence/proposals/el_cerrahisi.md'
+      duzenli_ilac:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Şu anda düzenli olarak kullandığınız ilaçlar var mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype ACTION.medication.v1 recorded in docs/evidence/proposals/el_cerrahisi.md'
+red_flags:
+- id: rf.el_cerrahisi_l0_taslak
+  label_tr: El Cerrahisi ön görüşme protokolü — branşa özgü kırmızı bayrak taslağı (klinik onay bekliyor)
+  when: 'TODO: el_cerrahisi branch-specific red-flag trigger requires clinical sign-off'
+  tense: ever
+  tense_anchor: sikayet_suresi
+  level: YESIL
+  route: EXPEDITE
+  notify_clinic: never
+  status: draft_needs_source
+  source_gap: 'Trigger, EK-4 level and route await clinical sign-off (invariant 17 pending-value literal). Guideline-sourced candidates recorded in docs/evidence/proposals/el_cerrahisi.md; acuity bound by EK-4 law (RG 13/9/2022 sayı 31952), snapshot absent. RED/life-threat stays in base.life_threat (invariant 7). Owner: physician of record (HB-C1, HB-C2, HB-C7).'

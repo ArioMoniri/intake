@@ -1,0 +1,8 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Önvizit">
+  <rect width="1024" height="1024" fill="#0E9C8F"/>
+  <!-- Önvizit monogram: a single geometric V with a softly rounded valley.
+       One idea, flat, one weight — crafted letterform, no clichés. -->
+  <path d="M320 322 L476 650 Q512 726 548 650 L704 322"
+        fill="none" stroke="#FFFFFF" stroke-width="104"
+        stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

@@ -5,7 +5,8 @@ files/12 §2.1 (EK-4 acuity), files/12 §2.4 (tense), files/12 §1 + files/03 §
 (pack layers / resolution order), files/09 §1-2 (visit types, maturity),
 files/13 §13 (delivery), files/04 §1 (voice hints), files/02 §5.3 via the
 rule schema in files/protocols/base.life_threat.yaml (route, notify_clinic),
-files/04 §8.1 rule 3 (rule status). The RED axes (register, location) are
+files/04 §8.1 rule 3 (rule status), and the owner's D3 decision of
+2026-09-26 for the data categories (INT-349). The RED axes (register, location) are
 re-exported from the INT-031 clinical schemas so the DSL and TriageResult
 share one definition (CLAUDE.md invariant 21).
 """
@@ -23,6 +24,7 @@ __all__ = [
     "AbandonmentHandler",
     "AckStyle",
     "CrisisNumber",
+    "DataCategory",
     "Delivery",
     "EK4Level",
     "Maturity",
@@ -239,6 +241,55 @@ class Delivery(enum.StrEnum):
     VOICE = "voice"
     TEXT_FIRST = "text_first"
     TEXT_ONLY = "text_only"
+
+
+class DataCategory(enum.StrEnum):
+    """What kind of personal data a slot's answer is (INT-349; owner decision
+    D3 of 2026-09-26).
+
+    A closed set. ``general_health`` is the default, and its answers ride the
+    ``slots.value`` column inventory as they always have. Each other member is
+    a category the owner approved for the specialty review queue on
+    2026-09-26 and that counsel has not yet placed. Its answers are
+    envelope-encrypted at rest, and a slot carrying it is not servable until
+    its row in docs/legal/data-categories.yaml is complete. A new member is a
+    new category of personal data, which CLAUDE.md makes a stop-and-ask
+    rather than an engineer's addition.
+    """
+
+    GENERAL_HEALTH = "general_health"
+    """The patient's own symptoms, history and medicines: the pre-visit intake
+    as it stood before D3."""
+
+    PERSONAL_SAFETY = "personal_safety"
+    """Forensic and personal-safety questions (adli tıp)."""
+
+    SEXUAL_HEALTH = "sexual_health"
+    """Genital and sexual-health symptoms (deri)."""
+
+    SUBSTANCE_USE = "substance_use"
+    """Use of substances other than alcohol (ruh sağlığı, klinik psikoloji)."""
+
+    HOUSEHOLD = "household"
+    """Household basic needs and household contacts (sosyal pediatri, halk
+    sağlığı, nükleer tıp). The other members of the household are data
+    subjects too."""
+
+    RELATIVES_HEALTH = "relatives_health"
+    """Relatives' family health history and consanguinity (tıbbi genetik,
+    onkoloji, pediatri, immünoloji, nefroloji, hematoloji, metabolizma,
+    gastroenteroloji). The relatives are data subjects too."""
+
+    PARTNER_FERTILITY = "partner_fertility"
+    """The partner's fertility data (üreme endokrinolojisi, tıbbi genetik). The
+    partner is a data subject too."""
+
+    OCCUPATIONAL = "occupational"
+    """Employer, occupational exposure and the purpose of a report (iş ve
+    meslek hastalıkları, sağlık kurulu)."""
+
+    LITERACY = "literacy"
+    """Reading and learning difficulty (hemşirelik eğitim, sosyal pediatri)."""
 
 
 class AckStyle(enum.StrEnum):

@@ -1,0 +1,17 @@
+# guideline_id: UEG-ESNM-ACHALASIA-2020
+# title: European Guideline on Achalasia - UEG and ESNM recommendations
+# publisher: United European Gastroenterology (UEG) and European Society of Neurogastroenterology and Motility (ESNM), with ESGAR and EAES; Oude Nijhuis RAB, Zaninotto G, Roman S, et al.
+# version_or_date: United European Gastroenterol J. 2020 Feb 5;8(1):13-34; doi 10.1177/2050640620903213 (PMC7005998)
+# url: https://pmc.ncbi.nlm.nih.gov/articles/PMC7005998/
+# retrieved_on: 2026-10-03
+# retrieval: curl with browser UA from PubMed Central; HTML (utf-8) text-extracted; tags stripped and whitespace runs collapsed to single spaces; blank lines dropped. A PubMed search on 2026-10-03 (achalasia[ti] AND guideline, 2021-2026) returned no superseding UEG/ESNM diagnostic guideline (the 2026 EAES item is a treatment protocol).
+# scope: verbatim excerpt of the journal citation line, the title, the first sentence of the introduction and the paragraph on GORD symptoms in achalasia; nothing paraphrased or edited. '[...]' marks an omission between excerpts.
+---
+United European Gastroenterol J
+. 2020 Feb 5;8(1):13–34. doi: 10.1177/2050640620903213
+[...]
+European Guideline on Achalasia – UEG and ESNM recommendations
+[...]
+Achalasia is a primary motility disorder in which insufficient relaxation of the lower oesophageal sphincter (LOS) and absent peristalsis result in stasis of ingested foods and subsequently, lead to oesophageal symptoms of dysphagia, regurgitation, chest pain or weight loss.1 Achalasia occurs as an effect of destruction of enteric neurons controlling the LOS and oesophageal body musculature by an unknown cause, most likely inflammatory. Idiopathic achalasia is a rare disease and affects individuals of both sexes and all ages. The annual incidence is estimated between 1.07–2.2 cases per 100,000 individuals with prevalence rates estimated between 10–15.7 per 100,000 individuals.2–4
+[...]
+GORD symptoms such as heartburn and regurgitation are not reliable to diagnose GORD in achalasia patients, especially as regurgitation is also a hallmark of achalasia and poor oesophageal emptying. Upper endoscopy can reveal oesophagitis and Barrett’s mucosa as proof of GORD. Another way to diagnose GORD is 24-h oesophageal pH monitoring. The interpretation of this examination requires a careful review of pH tracings to eliminate periods of oesophageal fermentation.53 The correlation between oesophageal symptoms and objective diagnosis of GORD (including oesophagitis and oesophageal acid exposure) is poor.62,123,133–135 Upper GI endoscopy, TBE and 24-h pH monitoring might be complementary.

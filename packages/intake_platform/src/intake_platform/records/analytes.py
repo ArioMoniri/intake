@@ -44,6 +44,7 @@ __all__ = [
     "ANALYTE_TRIGGERS",
     "Analyte",
     "AnalyteAmbiguous",
+    "analyte_key",
     "fold_tr",
     "resolve_analyte",
 ]
@@ -115,3 +116,21 @@ def resolve_analyte(printed_name: str) -> Analyte | None:
             "(invariant 6)."
         )
     return resolved
+
+
+def analyte_key(printed_name: str) -> str:
+    """The key an analyte is looked up by: the whole token sequence, never a part.
+
+    The two guarded analytes key by identity — ``Üre`` is ``urea`` and ``Üre
+    Nitrojeni`` is ``bun``, whatever their casing — so an expectation authored
+    for BUN is the one ``Üre Nitrojeni`` is checked against (INT-124). Every
+    other name keys by its Turkish-folded, space-normalised spelling, so
+    ``ALT (SGPT)`` is not ``ALT`` and finds no row: the guard reports that as
+    unchecked rather than borrowing a neighbour's row. A near miss on the
+    guarded token raises :class:`AnalyteAmbiguous`, exactly as
+    :func:`resolve_analyte` does.
+    """
+    resolved = resolve_analyte(printed_name)
+    if resolved is not None:
+        return resolved.value
+    return _normalise(printed_name)

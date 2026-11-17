@@ -1,0 +1,146 @@
+# REVIEW QUEUE — QUESTIONS authored; NOT servable. Promoted to L1 only by the
+# physician of record's sign-off (HB-C1).
+# generated-by: scripts/dev/gen_specialty_packs.py from docs/evidence/proposals/tibbi_genetik.md
+# (guideline-sourced; reviewed per docs/evidence/verification/). Symptom-capture
+# prompts only (inv 2/10) — not diagnosis, not triage. Acuity is EK-4 law +
+# physician of record; never fabricated. RED/life-threat stays in
+# base.life_threat (inv 7).
+kind: pack
+id: specialty.tibbi_genetik
+layer: specialty
+version: 0.3.0
+schema_version: 2
+maturity: L0
+status: questions-authored; awaiting physician-of-record sign-off (HB-C1); not servable
+language: tr
+title_tr: Tıbbi Genetik ön görüşme protokolü
+extends: cluster.medical
+visit_types:
+- first
+- followup
+- preop
+- report
+- pregnancy_followup
+- chronic_review
+- post_discharge
+- screening
+- second_opinion
+- teleconsult
+sections:
+  ziyaret_baglami:
+    slots:
+      basvuru_nedeni:
+        type: string
+        required: true
+        ask_tr:
+          tr: Bugün sizi tıbbi genetik polikliniğine getiren konu nedir?
+        follow_up_tr:
+          tr: Bugünkü randevunuzun sebebini kısaca anlatır mısınız?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.reason_for_encounter.v1 recorded in docs/evidence/proposals/tibbi_genetik.md'
+      sikayet_suresi:
+        type: duration
+        required: false
+        ask_tr:
+          tr: Bu şikâyetiniz ne zamandır var?
+        follow_up_tr:
+          tr: Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; no candidate archetype recorded in docs/evidence/proposals/tibbi_genetik.md'
+  sorular:
+    slots:
+      yonlendiren_bolum:
+        type: string
+        required: false
+        ask_tr:
+          tr: Sizi genetik polikliniğine hangi bölüm ya da hekim yönlendirdi?
+        follow_up_tr:
+          tr: Yönlendiren bölümün adını hatırlıyorsanız söyler misiniz?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/tibbi_genetik.md'
+      kendinde_genetik_tani:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Size daha önce genetik ya da aileden geçen bir hastalık tanısı konuldu mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.problem_diagnosis.v1 recorded in docs/evidence/proposals/tibbi_genetik.md'
+      onceki_genetik_test:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Size daha önce kromozom ya da DNA testi gibi bir genetik test yapıldı mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/tibbi_genetik.md'
+      ailede_genetik_hastalik:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Ailenizde genetik ya da aileden geçen bir hastalık tanısı almış biri var mı?
+        delivery: text_first
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; no candidate archetype recorded in docs/evidence/proposals/tibbi_genetik.md'
+      ailedeki_hastalik_adi:
+        type: string
+        required: false
+        ask_tr:
+          tr: Bu hastalığın adını biliyorsanız söyler misiniz?
+        follow_up_tr:
+          tr: Adını bilmiyorsanız nasıl bir sorun olduğunu anlatır mısınız?
+        ask_if: ailede_genetik_hastalik == true
+        delivery: text_first
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; no candidate archetype recorded in docs/evidence/proposals/tibbi_genetik.md'
+      anne_baba_akrabaligi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Bu soruyu her hastamıza soruyoruz. Anne ve babanız arasında akrabalık var mı?
+        delivery: text_first
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; no candidate archetype recorded in docs/evidence/proposals/tibbi_genetik.md'
+      es_akrabaligi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Evliyseniz ya da evlenmeyi planlıyorsanız, eşinizle aranızda akrabalık var mı?
+        delivery: text_first
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; no candidate archetype recorded in docs/evidence/proposals/tibbi_genetik.md'
+      evlilik_oncesi_tasiyicilik:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Evlilik öncesi yapılan kan taramasında siz ya da eşiniz taşıyıcı çıktınız mı?
+        delivery: text_first
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/tibbi_genetik.md'
+      tekrarlayan_gebelik_kaybi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Siz ya da eşiniz daha önce birden fazla kez gebelik kaybı yaşadınız mı?
+        delivery: text_first
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/tibbi_genetik.md'
+      ailede_dogustan_sorun:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Ailenizde doğuştan bir sağlık sorunu ya da gelişim geriliği olan biri var mı?
+        delivery: text_first
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; no candidate archetype recorded in docs/evidence/proposals/tibbi_genetik.md'
+      ailede_erken_kanser:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Ailenizde genç yaşta kanser tanısı almış biri var mı?
+        delivery: text_first
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; no candidate archetype recorded in docs/evidence/proposals/tibbi_genetik.md'
+      ailede_ani_aciklanamayan_kayip:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Ailenizde genç yaşta, nedeni açıklanamayan ani bir kayıp yaşandı mı?
+        delivery: text_first
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; no candidate archetype recorded in docs/evidence/proposals/tibbi_genetik.md'
+red_flags:
+- id: rf.tibbi_genetik_l0_taslak
+  label_tr: Tıbbi Genetik ön görüşme protokolü — branşa özgü kırmızı bayrak taslağı (klinik onay bekliyor)
+  when: 'TODO: tibbi_genetik branch-specific red-flag trigger requires clinical sign-off'
+  tense: ever
+  tense_anchor: sikayet_suresi
+  level: YESIL
+  route: EXPEDITE
+  notify_clinic: never
+  status: draft_needs_source
+  source_gap: 'Trigger, EK-4 level and route await clinical sign-off (invariant 17 pending-value literal). Guideline-sourced candidates recorded in docs/evidence/proposals/tibbi_genetik.md; acuity bound by EK-4 law (RG 13/9/2022 sayı 31952), snapshot absent. RED/life-threat stays in base.life_threat (invariant 7). Owner: physician of record (HB-C1, HB-C2, HB-C7).'

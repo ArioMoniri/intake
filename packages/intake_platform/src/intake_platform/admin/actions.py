@@ -30,10 +30,27 @@ from dataclasses import dataclass
 from intake_platform.admin.roles import TIER3_APPROVER_ROLES, AdminRole
 
 __all__ = [
+    "ACCESS_REVIEW_SIGN",
     "BREAK_GLASS_OPEN",
+    "CICD_CEREMONIES",
     "DANGEROUS_ACTIONS",
+    "DEPLOY_FREEZE_ENGAGE",
+    "DEPLOY_FREEZE_LIFT",
     "MODEL_BENCHMARK_RUN",
+    "MODEL_LANES_CEREMONIES",
+    "MODEL_LANES_HOSTED_DISABLE",
+    "MODEL_LANES_HOSTED_RELEASE",
+    "MODEL_LANES_KEY_SET",
+    "MODEL_LANES_ROUTE_SWITCH",
+    "MODEL_LANES_SELF_HOSTED_ENGAGE",
+    "OFFBOARD",
     "SAFETY_FLAG_ENABLE",
+    "SAFETY_QUEUE_ACKNOWLEDGE",
+    "VOICE_CANARY_SET",
+    "VOICE_CEREMONIES",
+    "VOICE_KILL_SWITCH_ENGAGE",
+    "VOICE_KILL_SWITCH_RELEASE",
+    "VOICE_PROFILE_SWITCH",
     "ActionDirection",
     "ActionTier",
     "DangerousAction",
@@ -192,10 +209,308 @@ SAFETY_FLAG_ENABLE = DangerousAction(
     alert_metric="admin.four_eyes_self_approval_attempt_total",
 )
 
+# --- INT-182: the Voice module (files/08 §3 "Voice runtime", §8.2) ----------------
+#
+# Asymmetric exactly as §8.2 and §0c F17 decided it. The kill switch moves a
+# tenant to `typed` — the SAFER transport — and is tier 1: one `sre_oncall` or
+# `clinical_lead`, audited, no approver. `platform_owner` is the platform
+# authority above both and may take the safe direction alone too (INT-188's
+# `SAFETY_FLAG_DISABLE_ROLES` precedent). Everything that moves a tenant TOWARD
+# voice — releasing the switch, changing the default profile ("tenant
+# voice-profile change" is on §8.2's tier-2 row), setting a canary weight — is
+# tier 2: two humans on distinct authenticators.
+#
+# Who may request and approve is read off files/08 §2.1, not invented: the
+# voice channel is a clinical surface, so the requesters are the all-tenant
+# roles accountable for it (`platform_owner`, `clinical_lead`), and the second
+# key may also be `qms_owner` (IEC 62304 change control on what the device
+# does). `sre_oncall`'s §2.1 scope is "T1 safe-direction actions" and it is on
+# neither side of a tier-2 voice ceremony; `platform_admin` has "no clinical
+# surfaces"; `tenant_admin` is hospital IT, the adversary §0c F8 names.
+
+_VOICE_REQUESTERS: frozenset[AdminRole] = frozenset(
+    {AdminRole.PLATFORM_OWNER, AdminRole.CLINICAL_LEAD}
+)
+_VOICE_APPROVERS: frozenset[AdminRole] = frozenset(
+    {AdminRole.PLATFORM_OWNER, AdminRole.CLINICAL_LEAD, AdminRole.QMS_OWNER}
+)
+_VOICE_RUNBOOK = "docs/runbooks/voice-kill-switch.md"
+_VOICE_ALERT = "admin.voice_control_changes_total"
+
+VOICE_KILL_SWITCH_ENGAGE = DangerousAction(
+    id="admin.voice.kill_switch.engage",
+    tier=ActionTier.T1,
+    direction=ActionDirection.SAFE,
+    actor_roles=frozenset(
+        {AdminRole.SRE_ONCALL, AdminRole.CLINICAL_LEAD, AdminRole.PLATFORM_OWNER}
+    ),
+    approver_roles=frozenset(),
+    approver_must_differ_org=False,
+    runbook=_VOICE_RUNBOOK,
+    alert_metric=_VOICE_ALERT,
+)
+
+VOICE_KILL_SWITCH_RELEASE = DangerousAction(
+    id="admin.voice.kill_switch.release",
+    tier=ActionTier.T2,
+    direction=ActionDirection.DANGEROUS,
+    actor_roles=_VOICE_REQUESTERS,
+    approver_roles=_VOICE_APPROVERS,
+    approver_must_differ_org=False,
+    runbook=_VOICE_RUNBOOK,
+    alert_metric=_VOICE_ALERT,
+)
+
+VOICE_PROFILE_SWITCH = DangerousAction(
+    id="admin.voice.profile.switch",
+    tier=ActionTier.T2,
+    direction=ActionDirection.DANGEROUS,
+    actor_roles=_VOICE_REQUESTERS,
+    approver_roles=_VOICE_APPROVERS,
+    approver_must_differ_org=False,
+    runbook=_VOICE_RUNBOOK,
+    alert_metric=_VOICE_ALERT,
+)
+
+VOICE_CANARY_SET = DangerousAction(
+    id="admin.voice.canary.set",
+    tier=ActionTier.T2,
+    direction=ActionDirection.DANGEROUS,
+    actor_roles=_VOICE_REQUESTERS,
+    approver_roles=_VOICE_APPROVERS,
+    approver_must_differ_org=False,
+    runbook=_VOICE_RUNBOOK,
+    alert_metric=_VOICE_ALERT,
+)
+
+#: The three voice actions that open a four-eyes ceremony.
+VOICE_CEREMONIES: tuple[DangerousAction, ...] = (
+    VOICE_KILL_SWITCH_RELEASE,
+    VOICE_PROFILE_SWITCH,
+    VOICE_CANARY_SET,
+)
+
+# --- INT-187: the CI/CD & releases module (files/08 §3, §8.2) -----------------------
+#
+# files/08 §8.2 lists "deploy freeze" on the tier-1 row: the safe direction,
+# one `sre_oncall` or `clinical_lead`, audited, no approver — and
+# `platform_owner`, the platform authority above both, may take the safe
+# direction alone too (the INT-188 / INT-182 precedent). Lifting a freeze is
+# the direction that lets changes reach patients again, so it is tier 2: two
+# humans on distinct authenticators.
+#
+# Who may request and approve a lift is read off files/08 §2.1: a deploy is
+# infrastructure, so the requesters are the roles that own it
+# (`platform_owner`, and `platform_admin` — "infrastructure, no clinical
+# surfaces"); the second key is `platform_owner` or `qms_owner`, because a
+# release is IEC 62304 change control and §9 makes `qms_owner` "a release-gate
+# role, not a courtesy". `sre_oncall`'s scope is "T1 safe-direction actions"
+# and it stands on neither side of a tier-2 ceremony; `clinical_lead` may
+# freeze, but a clinical role does not decide that a build is fit to ship.
+
+_FREEZE_RUNBOOK = "docs/runbooks/deploy-freeze.md"
+_FREEZE_ALERT = "admin.deploy_freeze_changes_total"
+
+DEPLOY_FREEZE_ENGAGE = DangerousAction(
+    id="admin.cicd.freeze.engage",
+    tier=ActionTier.T1,
+    direction=ActionDirection.SAFE,
+    actor_roles=frozenset(
+        {AdminRole.SRE_ONCALL, AdminRole.CLINICAL_LEAD, AdminRole.PLATFORM_OWNER}
+    ),
+    approver_roles=frozenset(),
+    approver_must_differ_org=False,
+    runbook=_FREEZE_RUNBOOK,
+    alert_metric=_FREEZE_ALERT,
+)
+
+DEPLOY_FREEZE_LIFT = DangerousAction(
+    id="admin.cicd.freeze.lift",
+    tier=ActionTier.T2,
+    direction=ActionDirection.DANGEROUS,
+    actor_roles=frozenset({AdminRole.PLATFORM_OWNER, AdminRole.PLATFORM_ADMIN}),
+    approver_roles=frozenset({AdminRole.PLATFORM_OWNER, AdminRole.QMS_OWNER}),
+    approver_must_differ_org=False,
+    runbook=_FREEZE_RUNBOOK,
+    alert_metric=_FREEZE_ALERT,
+)
+
+#: The CI/CD action that opens a four-eyes ceremony.
+CICD_CEREMONIES: tuple[DangerousAction, ...] = (DEPLOY_FREEZE_LIFT,)
+
+# --- INT-428: the Model lanes module (ADR-035) --------------------------------------
+#
+# Which backend serves the llm, asr and tts lanes: the self-hosted GPU lane,
+# a hosted provider (synthetic tenants only, ADR-035) or the mock lane. The
+# asymmetry is files/08 §8.2's, read off invariant 19: toward self-hosting is
+# the safe direction (less egress, less vendor reach), so disabling every
+# hosted lane and the one-click "switch to GPU" are tier 1 — one key, no
+# approver. Toward a hosted provider is the dangerous direction: a route
+# switch, setting a provider key and releasing the hosted kill switch are
+# tier 2, two humans on distinct authenticators.
+#
+# Requesters are the infrastructure roles (`platform_owner`, `platform_admin`,
+# files/08 §2.1); the second key is `platform_owner`, `qms_owner` (IEC 62304
+# change control) or `compliance_officer` — a hosted lane is a cross-border
+# transfer question first. `sre_oncall` and `clinical_lead` may take the safe
+# direction alone, as on the voice kill switch.
+
+_LANES_REQUESTERS: frozenset[AdminRole] = frozenset(
+    {AdminRole.PLATFORM_OWNER, AdminRole.PLATFORM_ADMIN}
+)
+_LANES_APPROVERS: frozenset[AdminRole] = frozenset(
+    {AdminRole.PLATFORM_OWNER, AdminRole.QMS_OWNER, AdminRole.COMPLIANCE_OFFICER}
+)
+_LANES_SAFE_ACTORS: frozenset[AdminRole] = frozenset(
+    {
+        AdminRole.SRE_ONCALL,
+        AdminRole.CLINICAL_LEAD,
+        AdminRole.PLATFORM_OWNER,
+        AdminRole.PLATFORM_ADMIN,
+    }
+)
+_LANES_RUNBOOK = "docs/runbooks/model-lanes.md"
+_LANES_ALERT = "admin.model_lane_changes_total"
+
+MODEL_LANES_HOSTED_DISABLE = DangerousAction(
+    id="admin.model_lanes.hosted.disable",
+    tier=ActionTier.T1,
+    direction=ActionDirection.SAFE,
+    actor_roles=_LANES_SAFE_ACTORS,
+    approver_roles=frozenset(),
+    approver_must_differ_org=False,
+    runbook=_LANES_RUNBOOK,
+    alert_metric=_LANES_ALERT,
+)
+
+MODEL_LANES_SELF_HOSTED_ENGAGE = DangerousAction(
+    id="admin.model_lanes.self_hosted.engage",
+    tier=ActionTier.T1,
+    direction=ActionDirection.SAFE,
+    actor_roles=_LANES_SAFE_ACTORS,
+    approver_roles=frozenset(),
+    approver_must_differ_org=False,
+    runbook=_LANES_RUNBOOK,
+    alert_metric=_LANES_ALERT,
+)
+
+MODEL_LANES_HOSTED_RELEASE = DangerousAction(
+    id="admin.model_lanes.hosted.release",
+    tier=ActionTier.T2,
+    direction=ActionDirection.DANGEROUS,
+    actor_roles=_LANES_REQUESTERS,
+    approver_roles=_LANES_APPROVERS,
+    approver_must_differ_org=False,
+    runbook=_LANES_RUNBOOK,
+    alert_metric=_LANES_ALERT,
+)
+
+MODEL_LANES_ROUTE_SWITCH = DangerousAction(
+    id="admin.model_lanes.route.switch",
+    tier=ActionTier.T2,
+    direction=ActionDirection.DANGEROUS,
+    actor_roles=_LANES_REQUESTERS,
+    approver_roles=_LANES_APPROVERS,
+    approver_must_differ_org=False,
+    runbook=_LANES_RUNBOOK,
+    alert_metric=_LANES_ALERT,
+)
+
+MODEL_LANES_KEY_SET = DangerousAction(
+    id="admin.model_lanes.key.set",
+    tier=ActionTier.T2,
+    direction=ActionDirection.DANGEROUS,
+    actor_roles=_LANES_REQUESTERS,
+    approver_roles=_LANES_APPROVERS,
+    approver_must_differ_org=False,
+    runbook=_LANES_RUNBOOK,
+    alert_metric=_LANES_ALERT,
+)
+
+#: The model-lane actions that open a four-eyes ceremony.
+MODEL_LANES_CEREMONIES: tuple[DangerousAction, ...] = (
+    MODEL_LANES_HOSTED_RELEASE,
+    MODEL_LANES_ROUTE_SWITCH,
+    MODEL_LANES_KEY_SET,
+)
+
+#: files/08 §2.7 and §3 Access & identity ("generate and countersign the
+#: quarterly review"), INT-366. A countersigned review is what lifts the §2.7
+#: read-only downgrade from `platform_owner` and `tenant_admin`, so signing it
+#: moves the system toward the MORE capable state: tier 2, two humans on two
+#: authenticators. The signer is the section's §2.7 reviewer
+#: (`compliance_officer`, or the tenant's `tenant_clinical_responsible` for its
+#: clinician accounts); the countersigner is a second key, and for the
+#: `platform_owner` section one from another organisation — §2.7's "external
+#: signature", which the route enforces per section on top of this entry.
+ACCESS_REVIEW_SIGN = DangerousAction(
+    id="admin.access.review.sign",
+    tier=ActionTier.T2,
+    direction=ActionDirection.DANGEROUS,
+    actor_roles=frozenset({AdminRole.COMPLIANCE_OFFICER, AdminRole.TENANT_CLINICAL_RESPONSIBLE}),
+    approver_roles=frozenset({AdminRole.COMPLIANCE_OFFICER, AdminRole.QMS_OWNER}),
+    approver_must_differ_org=False,
+    runbook="docs/runbooks/access-review.md",
+    alert_metric="admin.access_review_age_days",
+)
+
+#: files/08 §2.4 and §8.2, INT-366. Offboarding disables an account and
+#: revokes what it holds — the safe direction, and §8.2 lists "token revoke"
+#: among the tier-1 actions: one key, no approver, audited. A second key here
+#: would be an availability control on the removal of access, which is the
+#: asymmetry §8.2 exists to prevent. `sre_oncall` holds "revoke a token" alone
+#: (§2.1); `compliance_officer` runs the review whose findings end access; and
+#: `platform_owner` is everything. It pages through its own counter.
+OFFBOARD = DangerousAction(
+    id="admin.access.offboard",
+    tier=ActionTier.T1,
+    direction=ActionDirection.SAFE,
+    actor_roles=frozenset(
+        {AdminRole.SRE_ONCALL, AdminRole.COMPLIANCE_OFFICER, AdminRole.PLATFORM_OWNER}
+    ),
+    approver_roles=frozenset(),
+    approver_must_differ_org=False,
+    runbook="docs/runbooks/access-review.md",
+    alert_metric="admin.offboarding_total",
+)
+
+#: files/08 §3 "Safety queue" and §0c F19, INT-406 (invariant 49). The one
+#: action the queue takes: *"acknowledge (`tenant_clinical_responsible`)"*.
+#: Tier 1 and SAFE. It adds no capability to anything — it records that the
+#: tenant's clinical responsible has seen a RED, and stops the clock that pages
+#: — and a second key on it would be an availability control placed on the
+#: answer to a safety alert, the exact failure §0c F17 names. The actor is the
+#: one role §3 gives it, scoped to its own tenant by the claim; the alert it
+#: answers is the unacknowledged-RED page.
+SAFETY_QUEUE_ACKNOWLEDGE = DangerousAction(
+    id="admin.safety_queue.acknowledge",
+    tier=ActionTier.T1,
+    direction=ActionDirection.SAFE,
+    actor_roles=frozenset({AdminRole.TENANT_CLINICAL_RESPONSIBLE}),
+    approver_roles=frozenset(),
+    approver_must_differ_org=False,
+    runbook="docs/runbooks/red-acknowledgement.md",
+    alert_metric="clinic.red_unacknowledged_total",
+)
+
 DANGEROUS_ACTIONS: dict[str, DangerousAction] = {
     BREAK_GLASS_OPEN.id: BREAK_GLASS_OPEN,
     MODEL_BENCHMARK_RUN.id: MODEL_BENCHMARK_RUN,
     SAFETY_FLAG_ENABLE.id: SAFETY_FLAG_ENABLE,
+    VOICE_KILL_SWITCH_ENGAGE.id: VOICE_KILL_SWITCH_ENGAGE,
+    VOICE_KILL_SWITCH_RELEASE.id: VOICE_KILL_SWITCH_RELEASE,
+    VOICE_PROFILE_SWITCH.id: VOICE_PROFILE_SWITCH,
+    VOICE_CANARY_SET.id: VOICE_CANARY_SET,
+    DEPLOY_FREEZE_ENGAGE.id: DEPLOY_FREEZE_ENGAGE,
+    DEPLOY_FREEZE_LIFT.id: DEPLOY_FREEZE_LIFT,
+    ACCESS_REVIEW_SIGN.id: ACCESS_REVIEW_SIGN,
+    OFFBOARD.id: OFFBOARD,
+    SAFETY_QUEUE_ACKNOWLEDGE.id: SAFETY_QUEUE_ACKNOWLEDGE,
+    MODEL_LANES_HOSTED_DISABLE.id: MODEL_LANES_HOSTED_DISABLE,
+    MODEL_LANES_SELF_HOSTED_ENGAGE.id: MODEL_LANES_SELF_HOSTED_ENGAGE,
+    MODEL_LANES_HOSTED_RELEASE.id: MODEL_LANES_HOSTED_RELEASE,
+    MODEL_LANES_ROUTE_SWITCH.id: MODEL_LANES_ROUTE_SWITCH,
+    MODEL_LANES_KEY_SET.id: MODEL_LANES_KEY_SET,
 }
 
 

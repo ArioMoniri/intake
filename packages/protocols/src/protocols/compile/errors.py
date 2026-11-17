@@ -42,6 +42,11 @@ class RefusalCode(enum.StrEnum):
     ON_SITE_OFFERS_112 = "ON_SITE_OFFERS_112"
     UNKNOWN_NOT_ONE_QUESTION = "UNKNOWN_NOT_ONE_QUESTION"
 
+    # --- data categories: closed tag, counsel's register row (INT-349; inv. 18)
+    DATA_CATEGORY_UNKNOWN = "DATA_CATEGORY_UNKNOWN"
+    DATA_CATEGORY_REGISTER_INCOMPLETE = "DATA_CATEGORY_REGISTER_INCOMPLETE"
+    DATA_CATEGORY_RELAXED = "DATA_CATEGORY_RELAXED"
+
     # --- delivery annotations with an open human blocker (INT-255)
     CRISIS_ESCALATION_POLICY_ABSENT = "CRISIS_ESCALATION_POLICY_ABSENT"
     ACTION_OPEN_QUESTION = "ACTION_OPEN_QUESTION"
@@ -50,6 +55,8 @@ class RefusalCode(enum.StrEnum):
     MONOTONICITY_VIOLATION = "MONOTONICITY_VIOLATION"
     LIFE_THREAT_SET_EXTENDED = "LIFE_THREAT_SET_EXTENDED"
     OVERLAY_CONFLICT = "OVERLAY_CONFLICT"
+    # a suppress_slot in any layer removed a slot a red flag reads (INT-382)
+    RULE_READS_REMOVED_SLOT = "RULE_READS_REMOVED_SLOT"
 
     # --- patient overlays (INT-258; files/04 §2.3; CLAUDE.md invariant 7)
     OVERLAY_WRONG_LAYER = "OVERLAY_WRONG_LAYER"
@@ -72,6 +79,16 @@ class RefusalCode(enum.StrEnum):
     OPENEHR_BINDING_AMBIGUOUS = "OPENEHR_BINDING_AMBIGUOUS"
     OPENEHR_PATH_UNRESOLVED = "OPENEHR_PATH_UNRESOLVED"
     GATE_NOT_PROJECTABLE = "GATE_NOT_PROJECTABLE"
+
+    # --- gate references (INT-355; files/03 §5-6; files/13 §9.5 "opens only on TRUE")
+    GATE_REF_AMBIGUOUS = "GATE_REF_AMBIGUOUS"
+    GATE_REF_UNKNOWN = "GATE_REF_UNKNOWN"
+
+    # --- gate values (INT-441; INT-489): a code slot is compared only against a
+    # member of its committed value set
+    GATE_VALUE_OUTSIDE_VALUESET = "GATE_VALUE_OUTSIDE_VALUESET"
+    GATE_VALUESET_UNCOMMITTED = "GATE_VALUESET_UNCOMMITTED"
+    CHOICE_OUTSIDE_VALUESET = "CHOICE_OUTSIDE_VALUESET"
 
 
 class Refusal(FrozenModel):

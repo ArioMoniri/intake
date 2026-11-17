@@ -3,8 +3,9 @@
 The console is the largest privilege in the system, so this package ships the
 properties rather than the screens: the files/08 §2.1 role set, the
 ``DangerousAction`` tiers, the four-eyes pending-action protocol, the
-break-glass content rules, the IP allow-list, and the append-only seam onto
-the one hash-chained audit record.
+break-glass content rules, the IP allow-list, the append-only seam onto the
+one hash-chained audit record, and the files/08 §2.3 second-factor policy
+every staff token is held to (INT-365).
 
 ``ADMIN_ROUTES`` is the route descriptor table: :mod:`intake_api.admin` builds
 its FastAPI router from it rather than declaring routes of its own, so a route
@@ -66,6 +67,7 @@ from intake_platform.admin.roles import (
     RoleSpec,
     role_spec,
 )
+from intake_platform.admin.second_factor import SecondFactorRequired, requires_webauthn
 from intake_platform.admin.wiring import ADMIN_ROUTES, AdminRoute, AdminWiring
 
 __all__ = [
@@ -105,6 +107,7 @@ __all__ = [
     "RoleNotPermitted",
     "RoleScope",
     "RoleSpec",
+    "SecondFactorRequired",
     "TenantScopeRefused",
     "admin_resource_ref",
     "build_break_glass_justification",
@@ -112,5 +115,6 @@ __all__ = [
     "detail_digest",
     "effective_tenant",
     "principal_from_claims",
+    "requires_webauthn",
     "role_spec",
 ]

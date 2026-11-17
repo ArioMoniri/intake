@@ -43,7 +43,7 @@ def template() -> OperationalTemplate:
 
 @pytest.fixture
 def life_threat() -> LifeThreatSet:
-    return load_life_threat_set(SIGNED_LIFE_THREAT)
+    return load_life_threat_set(SIGNED_LIFE_THREAT, allow_fixture_snapshots=True)
 
 
 @pytest.fixture
@@ -56,6 +56,6 @@ def patched_life_threat(tmp_path: Path) -> Callable[[Mapping[str, Any]], LifeThr
             raw[key] = value
         path = tmp_path / "life_threat_patched.yaml"
         path.write_text(yaml.safe_dump(raw, allow_unicode=True, sort_keys=True), encoding="utf-8")
-        return load_life_threat_set(path)
+        return load_life_threat_set(path, allow_fixture_snapshots=True)
 
     return _patch

@@ -1,0 +1,135 @@
+# REVIEW QUEUE — QUESTIONS authored; NOT servable. Promoted to L1 only by the
+# physician of record's sign-off (HB-C1).
+# generated-by: scripts/dev/gen_specialty_packs.py from docs/evidence/proposals/obezite_poliklinigi.md
+# (guideline-sourced; reviewed per docs/evidence/verification/). Symptom-capture
+# prompts only (inv 2/10) — not diagnosis, not triage. Acuity is EK-4 law +
+# physician of record; never fabricated. RED/life-threat stays in
+# base.life_threat (inv 7).
+kind: pack
+id: specialty.obezite_poliklinigi
+layer: specialty
+version: 0.3.0
+schema_version: 2
+maturity: L0
+status: questions-authored; awaiting physician-of-record sign-off (HB-C1); not servable
+language: tr
+title_tr: Obezite polikliniği ön görüşme protokolü
+extends: cluster.medical
+visit_types:
+- first
+- followup
+- preop
+- report
+- pregnancy_followup
+- chronic_review
+- post_discharge
+- screening
+- second_opinion
+- teleconsult
+sections:
+  ziyaret_baglami:
+    slots:
+      basvuru_nedeni:
+        type: string
+        required: true
+        ask_tr:
+          tr: Bugün bu polikliniğe gelme nedeninizi kısaca anlatır mısınız?
+        follow_up_tr:
+          tr: Sizi hekime getiren en önemli şikâyetiniz nedir?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.reason_for_encounter.v1 recorded in docs/evidence/proposals/obezite_poliklinigi.md'
+      sikayet_suresi:
+        type: duration
+        required: false
+        ask_tr:
+          tr: Bu şikâyetiniz ne zamandır var?
+        follow_up_tr:
+          tr: Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; no candidate archetype recorded in docs/evidence/proposals/obezite_poliklinigi.md'
+  sorular:
+    slots:
+      kilo_alma_donemi:
+        type: string
+        required: false
+        ask_tr:
+          tr: Kilo almaya hayatınızın hangi döneminde başladınız?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/obezite_poliklinigi.md'
+      onceki_kilo_verme_denemesi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Daha önce kilo vermeyi denediniz mi?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/obezite_poliklinigi.md'
+      kilo_verme_yontemleri:
+        type: string
+        required: false
+        ask_tr:
+          tr: Daha önce kilo vermek için neler denediniz?
+        ask_if: onceki_kilo_verme_denemesi == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/obezite_poliklinigi.md'
+      kilo_vermeyi_zorlastiran:
+        type: string
+        required: false
+        ask_tr:
+          tr: Bu denemelerde sizi en çok zorlayan şey neydi?
+        ask_if: onceki_kilo_verme_denemesi == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/obezite_poliklinigi.md'
+      ogun_yeri:
+        type: string
+        required: false
+        ask_tr:
+          tr: Öğünlerinizi çoğunlukla nerede yiyorsunuz?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/obezite_poliklinigi.md'
+      kontrolsuz_yeme:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Kendinizi durduramadan kısa sürede çok fazla yediğiniz oluyor mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/obezite_poliklinigi.md'
+      kendini_kusturma:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Yediklerinizi çıkarmak için kendinizi kusturduğunuz oldu mu?
+        delivery: text_first
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/obezite_poliklinigi.md'
+      tanikli_apne:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Uyurken nefesinizin durduğunu fark eden biri oldu mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/obezite_poliklinigi.md'
+      gunduz_istemsiz_uyuma:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Gün içinde istemeden uyuyakaldığınız oluyor mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/obezite_poliklinigi.md'
+      kilo_alimi_doneminde_yeni_ilac:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Kilo almaya başladığınız dönemde yeni bir ilaç kullanmaya başladınız mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype ACTION.medication.v1 recorded in docs/evidence/proposals/obezite_poliklinigi.md'
+      duzenli_egzersiz:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Düzenli olarak yürüyüş ya da egzersiz yapıyor musunuz?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/obezite_poliklinigi.md'
+      aliskanlik_degisimine_hazirlik:
+        type: string
+        required: false
+        ask_tr:
+          tr: Yaşam alışkanlıklarınızı değiştirmeye kendinizi ne kadar hazır hissediyorsunuz?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/obezite_poliklinigi.md'
+red_flags:
+- id: rf.obezite_poliklinigi_l0_taslak
+  label_tr: Obezite polikliniği ön görüşme protokolü — branşa özgü kırmızı bayrak taslağı (klinik onay bekliyor)
+  when: 'TODO: obezite_poliklinigi branch-specific red-flag trigger requires clinical sign-off'
+  tense: ever
+  tense_anchor: sikayet_suresi
+  level: YESIL
+  route: EXPEDITE
+  notify_clinic: never
+  status: draft_needs_source
+  source_gap: 'Trigger, EK-4 level and route await clinical sign-off (invariant 17 pending-value literal). Guideline-sourced candidates recorded in docs/evidence/proposals/obezite_poliklinigi.md; acuity bound by EK-4 law (RG 13/9/2022 sayı 31952), snapshot absent. RED/life-threat stays in base.life_threat (invariant 7). Owner: physician of record (HB-C1, HB-C2, HB-C7).'

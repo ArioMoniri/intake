@@ -404,7 +404,7 @@ def test_no_store_listing_is_committed_yet_and_the_loader_says_so() -> None:
 
 
 def test_a_listing_binds_its_own_bytes(tmp_path: Path) -> None:
-    path = _write_listing(tmp_path, {"description": "Vizite, ziyaret öncesi notunuzu hazırlar."})
+    path = _write_listing(tmp_path, {"description": "Önvizit, ziyaret öncesi notunuzu hazırlar."})
     loaded = listing_mod.load_listing(path)
     assert loaded.text_hash == hashlib.sha256(path.read_bytes()).hexdigest()
     assert loaded.locale == "tr"
@@ -475,14 +475,14 @@ def test_a_listing_claiming_a_device_function_is_caught(copy_line: str) -> None:
 @pytest.mark.parametrize(
     "copy_line",
     [
-        "Vizite, hekiminize iletmek üzere anlattıklarınızı düzenler.",
+        "Önvizit, hekiminize iletmek üzere anlattıklarınızı düzenler.",
         "Acil bir durum yaşıyorsanız 112'yi arayın veya en yakın acil servise başvurun.",
         "Bu belge hastanın beyanına dayanır; hekim değerlendirmesinin yerine geçmez.",
         "Yapay zekâ tarafından üretilmiş sinyal — tanı değildir.",
         "İçerik yapay zekâ desteğiyle yapılandırılmıştır ve tanı niteliği taşımaz.",
         "Ziyaret öncesi hazırlığınızı kolaylaştırır.",
-        "Vizite bir tıbbi cihaz değildir.",
-        "Vizite is not a medical device.",
+        "Önvizit bir tıbbi cihaz değildir.",
+        "Önvizit is not a medical device.",
         "Uygulama triyaj yapmaz.",
         "Bu uygulama depresyon puanı hesaplamaz.",
     ],
@@ -759,7 +759,8 @@ def test_the_gate_catches_a_figure_planted_in_a_store_artefact(tmp_path: Path) -
         'fields:\n  description: "%97 doğrulukla yazıya döker (WER 3.0)."\n', encoding="utf-8"
     )
     hits = claims.scan_tree(tmp_path / "docs" / "legal", ("performance",))
-    assert {h.pattern for h in hits} == {"wer", "accuracy_tr"}
+    # INT-536: the CI gate's strict-tier arms fire on the same line too
+    assert {h.pattern for h in hits} == {"wer", "accuracy_tr", "ci_term_en", "ci_claim_tr"}
 
 
 def test_only_text_shaped_files_are_scanned(tmp_path: Path) -> None:

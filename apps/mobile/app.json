@@ -3,9 +3,9 @@
     "name": "Önvizit",
     "slug": "intake-mobile",
     "version": "0.1.0",
-    "orientation": "portrait",
+    "orientation": "default",
     "icon": "./assets/images/icon.png",
-    "scheme": "intake",
+    "scheme": ["onvizit", "intake"],
     "userInterfaceStyle": "automatic",
     "locales": {
       "tr": "./src/locales/app-tr.json",
@@ -14,19 +14,12 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.ariomoniri.intakemobile",
-      "entitlements": {
-        "com.apple.developer.devicecheck.appattest-environment": "production"
-      },
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false,
-        "NSMicrophoneUsageDescription": "Önvizit, şikâyetlerinizi sesli olarak paylaşabilmeniz için mikrofonu yalnızca siz konuşurken kullanır.",
-        "NSHealthShareUsageDescription": "Önvizit, hekiminize ileteceğiniz ön görüşme notuna eklemek üzere sağlık verilerinizi (örneğin adım, kalp hızı, uyku) yalnızca sizin onayınızla okur.",
-        "NSHealthUpdateUsageDescription": "Önvizit sağlık verilerinizi yalnızca sizin açık onayınızla ve isteğiniz üzerine günceller.",
-        "NSCameraUsageDescription": "Önvizit, belge ya da rapor fotoğrafı eklemek isterseniz kamerayı yalnızca sizin isteğinizle kullanır.",
-        "NSLocalNetworkUsageDescription": "Önvizit, ses hizmetlerine bağlanmak için yerel ağınızı kullanabilir."
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
+      "package": "com.ariomoniri.intakemobile",
       "adaptiveIcon": {
         "backgroundColor": "#FAF8F4",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -42,9 +35,7 @@
         "android.permission.MODIFY_AUDIO_SETTINGS",
         "android.permission.ACCESS_NETWORK_STATE",
         "android.permission.BLUETOOTH_CONNECT",
-        "android.permission.CAMERA",
-        "android.permission.FOREGROUND_SERVICE",
-        "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK"
+        "android.permission.CAMERA"
       ]
     },
     "web": {
@@ -65,8 +56,8 @@
       [
         "@kingstinct/react-native-healthkit",
         {
-          "NSHealthShareUsageDescription": "Önvizit; adım, nabız ve uyku verilerinizi yalnızca bu cihazda görüntülemek ve ancak sizin onayınızla vizit notunuza eklemek için okur.",
-          "NSHealthUpdateUsageDescription": false,
+          "NSHealthShareUsageDescription": "Önvizit adım, dinlenme nabzı ve uyku verilerinizi yalnızca okur. Bu veriler bu telefonda gösterilir. Notunuza ancak siz eklerseniz girer; notunuzu gönderirseniz onunla birlikte gider.",
+          "NSHealthUpdateUsageDescription": "Önvizit Sağlık uygulamasına hiçbir veri yazmaz ve oradaki verilerinizi değiştirmez. Yalnızca okuma izni ister.",
           "background": false
         }
       ],
@@ -99,7 +90,6 @@
       ],
       "certificatePins": [],
       "glitchtipDsn": "",
-      "router": {},
       "eas": {
         "projectId": "307d4cf2-c447-4855-8110-da59fb5ed170"
       }

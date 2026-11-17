@@ -1,0 +1,37 @@
+# guideline_id: NICE-NG222
+# title: Depression in adults: treatment and management
+# publisher: National Institute for Health and Care Excellence (NICE)
+# version_or_date: NICE guideline NG222; published 29 June 2022; minor changes February 2023, April 2023, May 2024, September 2024, October 2025 and December 2025 (Update information)
+# url: https://www.nice.org.uk/guidance/ng222/chapter/Recommendations
+# url_update_information: https://www.nice.org.uk/guidance/ng222/chapter/Update-information
+# retrieved_on: 2026-10-03
+# retrieval: curl with a browser user-agent (HTTP 200 on every page); HTML (utf-8) tags stripped, entities decoded, runs of spaces collapsed, one line per HTML block; characters kept as served (including U+2011 non-breaking hyphens and U+2013 dashes)
+# scope: verbatim excerpt of the page header and recommendations 1.2.6 and 1.2.7 to its fourth bullet, then the first Update information entry and the list of minor changes since publication; nothing paraphrased or edited. '[...]' marks an omission between excerpts.
+---
+Depression in adults: treatment and management
+NICE guideline
+Reference number: NG222
+Published:
+29 June 2022
+[...]
+Initial assessment
+1.2.6
+Conduct a comprehensive assessment that does not rely simply on a symptom count when assessing a person who may have depression, but also takes into account severity of symptoms, previous history, duration and course of illness. Also, take into account both the degree of functional impairment and/or disability associated with the possible depression and the length of the episode. [2009, amended 2022]
+1.2.7
+Discuss with the person how the factors below may have affected the development, course and severity of their depression in addition to assessing symptoms and associated functional impairment:
+any history of depression and coexisting mental health or physical disorders
+any history of mood elevation (to determine if the depression may be part of bipolar disorder); see the NICE guideline on bipolar disorder
+any past experience of, and response to, previous treatments
+personal strengths and resources, including supportive relationships
+[...]
+Update information
+June 2022: This guideline updates and replaces NICE guideline CG90 (published October 2009).
+[...]
+Minor changes since publication
+December 2025 : We amended the information on antidepressant medication in tables 1 and 2 to emphasise the need for regular reviews in relation to length of treatment and give details of when the first review should happen.
+October 2025: We amended recommendation 1.5.3 to clarify our advice on first-line treatment for less severe depression.
+September 2024: We added links to relevant technology appraisal guidance in the sections on further-line treatment and treatment-resistant depression .
+May 2024: We have simplified the guideline by removing recommendations on general principles of care that are covered in other NICE guidelines (for example, the NICE guideline on service user experience in adult mental health ).
+This is a presentational change only, and no changes to practice are intended.
+April 2023: In recommendation 1.4.11 we clarified the timing of the first review after starting antidepressant medication for people aged 18 to 25 years or where there is a particular concern for risk of suicide.
+February 2023: We made a correction to the terms used section for the DSM-5 definition of depression.

@@ -1,0 +1,25 @@
+# guideline_id: NICE-CG116
+# title: Food allergy in under 19s: assessment and diagnosis
+# publisher: National Institute for Health and Care Excellence (NICE)
+# version_or_date: Clinical guideline CG116; published 23 February 2011; minor change October 2018 (Update information)
+# url: https://www.nice.org.uk/guidance/cg116/chapter/Recommendations
+# url_update_information: https://www.nice.org.uk/guidance/cg116/chapter/Update-information
+# retrieved_on: 2026-10-03
+# retrieval: curl with a browser user-agent (HTTP 200 on every page); HTML (utf-8) tags stripped, entities decoded, runs of spaces collapsed, one line per HTML block; characters kept as served (including U+2011 non-breaking hyphens and U+2013 dashes)
+# scope: verbatim excerpt of the page header and the opening of recommendation 1.1.3 (allergy-focused clinical history), then the Update information list; nothing paraphrased or edited. '[...]' marks an omission between excerpts.
+---
+Food allergy in under 19s: assessment and diagnosis
+Clinical guideline
+Reference number: CG116
+Published:
+23 February 2011
+[...]
+1.1.3
+If food allergy is suspected (by a healthcare professional or the parent, carer, child or young person), a healthcare professional with the appropriate competencies (either a GP or other healthcare professional) should take an allergy-focused clinical history tailored to the presenting symptoms and age of the child or young person. This should include:
+any personal history of atopic disease (asthma, eczema or allergic rhinitis)
+any individual and family history of atopic disease (such as asthma, eczema or allergic rhinitis) or food allergy in parents or siblings
+details of any foods that are avoided and the reasons why
+[...]
+Update information
+Minor changes since publication
+October 2018: After a surveillance review, links to other NICE guidance have been updated as needed and new links added in some recommendations. Some terminology has also been updated.

@@ -1,0 +1,335 @@
+# TASLAK — hukuk danışmanı onayı gerektirir / DRAFT — requires counsel sign-off; not in force
+#
+# docs/legal/drafts/data-categories.draft.yaml — PROPOSED values for the eight
+# rows of docs/legal/data-categories.yaml (INT-349 register; INT-356 asks
+# counsel to fill it). Prepared by a drafting agent on 2026-09-27 for Turkish
+# counsel (KVKK / health law) to review. It is not legal advice, it is not
+# signed, and nothing reads it.
+#
+# WHY THE SHAPE DIFFERS FROM THE SERVED REGISTER
+#   Each row keeps its proposal under `proposal:` and adds `article_relied_on`,
+#   `rationale` and `counsel_decisions`. protocols.data_register refuses a row
+#   with an extra key, so pointing the served loader at this file fails closed
+#   (tests/legal/test_legal_drafts.py pins that). `counsel_reviewed_at` is null
+#   in every row: a proposal is not a review. Counsel's accepted wording is
+#   copied into docs/legal/data-categories.yaml by a separate PR, with counsel's
+#   review date, after sign-off (README.md, "Sign-off procedure").
+#
+# WHAT THE PROPOSALS REST ON (repository facts, not law)
+#   - files/06 §0.1: INTAKE is the controller of the consumer app and a
+#     processor under a written DPA in hospital deployments.
+#   - Every answer in these eight categories is written with field-level
+#     envelope encryption (docs/evidence/INT-349.md; services/api store).
+#   - packages/intake_platform/src/intake_platform/retention/retention_policy.yaml,
+#     class `clinical_record`: life of the record, patient-deletable, 30-day
+#     grace, then crypto-shred.
+#   - The consent purposes are the closed list of
+#     packages/intake_platform/src/intake_platform/consent/registry.py; a clinician
+#     sees answers only through a patient-granted share:{recipient,visit,sections,expiry}.
+#   - The PHI-path egress tier admits no external host
+#     (docs/legal/special-category-measures.yaml, measure 5a control
+#     `no-software-email-path`), so no vendor receives these answers.
+#   - No purpose covers INTAKE staff reading patient content (HB-L6;
+#     files/08 §2.6).
+#
+# SOURCES (primary; retrieved 2026-09-27 unless stated)
+#   KVKK 6698, m.3, 4, 5, 6(1), 6(4), 8, 10, 11, 12, 28 — Adalet Bakanlığı text
+#     https://mgm.adalet.gov.tr/Resimler/SayfaDokuman/211020191355056698%20KVKK.pdf
+#     (a pre-2024 consolidation: m.6(2)-(3) and m.9 are superseded by Law 7499)
+#   Law 7499, MADDE 33 (new m.6(3)), MADDE 34 (new m.9), MADDE 40 (in force
+#     01.06.2024) — RG 12.03.2024, sayı 32487
+#     https://www.resmigazete.gov.tr/eskiler/2024/03/20240312-1.htm
+#   Aydınlatma Tebliği m.4, 5, 6 — RG 10.03.2018, sayı 30356
+#     https://www.resmigazete.gov.tr/eskiler/2018/03/20180310-5.htm
+#   Kişisel Sağlık Verileri Hakkında Yönetmelik m.2, 5, 6(6), 11 — RG 21.06.2019,
+#     sayı 30808 https://www.resmigazete.gov.tr/eskiler/2019/06/20190621-3.htm
+#     and its amendment, RG 03.12.2025, sayı 33096
+#     https://www.resmigazete.gov.tr/eskiler/2025/12/20251203-2.htm
+#   Board decision 2025/1572 (VERBİS exception for micro controllers whose main
+#     activity is special-category processing)
+#     https://www.kvkk.gov.tr/Icerik/8388/KAMUOYU-DUYURUSU
+#   Board principle decision 2026/347 (separate aydınlatma and açık rıza texts),
+#     RG 24.03.2026, sayı 33203 — TITLE ONLY: the gazette PDF has no text layer
+#     and the body was not read. https://www.kvkk.gov.tr/Icerik/7201/ilke-kararlari
+
+draft_version: "2026-09-27.draft-1"
+prepared_for: "INT-356 (GitHub #568)"
+served_file: "docs/legal/data-categories.yaml"
+
+common_to_every_row:
+  role_split: >-
+    Every proposal below is written twice over, because the controller differs:
+    in a consumer tenant INTAKE is controller and needs its own KVKK m.6(3)
+    ground; in a hospital tenant the hospital is controller, its ground is its
+    own, and INTAKE processes under the DPA (KVKK m.12(2) makes the two jointly
+    responsible for the security measures).
+  why_not_m6_3_e_for_intake: >-
+    KVKK m.6(3)(e), as amended by Law 7499 MADDE 33, covers processing "Sır
+    saklama yükümlülüğü altında bulunan kişiler veya yetkili kurum ve
+    kuruluşlarca ... tıbbi teşhis, tedavi ve bakım hizmetlerinin yürütülmesi"
+    for. The drafter's reading, for counsel to confirm or overturn, is that
+    INTAKE as a software company is not that person (files/08 §2.6 reaches the
+    same view for support staff), so in a consumer tenant the patient's own
+    answers rest on m.6(3)(a) açık rıza.
+  separate_texts: >-
+    Aydınlatma Tebliği m.5(1)(f) requires the aydınlatma and the açık rıza to be
+    carried out separately where processing rests on açık rıza. Board principle
+    decision 2026/347 is titled to the same effect; its body was not read.
+  verbis: >-
+    files/06 §1 (KVKK-16v) says VERBİS registration is mandatory regardless of
+    size. Board decision 2025/1572 (04.09.2025), as announced by the Kurum,
+    exempts a controller whose main activity is special-category processing
+    when it has fewer than 10 employees and an annual balance-sheet total under
+    10 million TL. Whether INTAKE falls inside that exception is a counsel
+    decision on the owner's figures; files/06 is not edited here.
+  ksvy_scope: >-
+    KSVY m.2 covers private persons processing personal health data "Sağlık
+    Bakanlığı tarafından yürütülmekte olan süreç ve uygulamalara ilişkin
+    faaliyetlerini". Whether the consumer app is inside that scope is open
+    (files/06 §1 KSVY row applies it); the proposals do not depend on it, except
+    that KSVY m.6(6) (higher-privacy health data designated by the Ministry) is
+    cited as a reason for narrower default sharing.
+
+categories:
+  - category: personal_safety
+    proposal:
+      basis: >-
+        Consumer tenant: KVKK m.6(3)(a) açık rıza of the patient. Hospital
+        tenant: the hospital's own m.6(3) ground (candidate m.6(3)(e)), named in
+        the DPA; INTAKE processes as processor.
+      retention: >-
+        Retention class `clinical_record`: life of the record, patient-deletable,
+        30-day grace, then crypto-shred. A copy delivered to a hospital follows
+        the hospital's retention as controller.
+      recipients: >-
+        Only the treating clinicians of the tenant the patient shares the visit
+        with, through a share:{recipient,visit,sections,expiry} grant, with this
+        section off by default in the share view. No INTAKE staff, no vendor.
+        INTAKE discloses nothing to a public authority unless a statute named by
+        counsel requires it; any reporting duty of the clinician or hospital is
+        theirs, not the platform's.
+      consent_scope: >-
+        `core`, on condition that the core açık rıza text names this category in
+        plain words and each item offers "yanıtlamak istemiyorum" at no cost.
+      other_subject_basis_and_notice: null
+    article_relied_on: "KVKK m.6(1) (sağlık); m.6(3)(a) as amended by Law 7499 MADDE 33; m.6(4)"
+    rationale: >-
+      Injury, violence and safety answers describe the patient's health, and
+      INTAKE, not being a person under a secrecy obligation, needs the
+      patient's explicit consent for them in a consumer tenant.
+    counsel_decisions:
+      - "Does a personal-safety answer that names or describes the person who harmed the patient make that person a data subject, and if so must the items forbid free text that identifies them?"
+      - "Does any answer here fall under 'ceza mahkûmiyeti ve güvenlik tedbirleri' in m.6(1), and does that change the ground?"
+      - "May this category ride `core`, or does it need its own açık rıza purpose?"
+    counsel_reviewed_at: null
+
+  - category: sexual_health
+    proposal:
+      basis: >-
+        Consumer tenant: KVKK m.6(3)(a) açık rıza of the patient. Hospital
+        tenant: the hospital's own m.6(3) ground (candidate m.6(3)(e)).
+      retention: >-
+        Retention class `clinical_record`, as for personal_safety.
+      recipients: >-
+        Treating clinicians of the shared tenant only, through a share grant,
+        with this section off by default in the share view (KSVY m.6(6)
+        recognises higher-privacy health data). No INTAKE staff, no vendor.
+      consent_scope: >-
+        `core`, on condition that the core açık rıza text names "cinsel sağlık"
+        in plain words; alternative: a separate açık rıza purpose.
+      other_subject_basis_and_notice: null
+    article_relied_on: "KVKK m.6(1) (sağlık, cinsel hayat); m.6(3)(a) as amended by Law 7499 MADDE 33"
+    rationale: >-
+      Genital and sexual-health symptoms are health data and data on sexual
+      life, both named in m.6(1), so the consumer ground is explicit consent.
+    counsel_decisions:
+      - "Is `core` enough when its text names the category, or is a separate açık rıza purpose required?"
+      - "Should the share view keep this section off by default, as proposed?"
+    counsel_reviewed_at: null
+
+  - category: substance_use
+    proposal:
+      basis: >-
+        Consumer tenant: KVKK m.6(3)(a) açık rıza of the patient. Hospital
+        tenant: the hospital's own m.6(3) ground (candidate m.6(3)(e)).
+      retention: >-
+        Retention class `clinical_record`, as for personal_safety.
+      recipients: >-
+        Treating clinicians of the shared tenant only, through a share grant,
+        with this section off by default in the share view. No INTAKE staff, no
+        vendor, no public authority on INTAKE's initiative.
+      consent_scope: >-
+        `core`, on condition that the core açık rıza text names this category;
+        alternative: a separate açık rıza purpose.
+      other_subject_basis_and_notice: null
+    article_relied_on: "KVKK m.6(1) (sağlık); m.6(3)(a) as amended by Law 7499 MADDE 33"
+    rationale: >-
+      Use of substances other than alcohol, asked in a mental-health intake, is
+      health data, and a breach of it can expose the patient to harm beyond the
+      clinic, so the proposal keeps the narrowest recipients.
+    counsel_decisions:
+      - "Given that an answer may describe conduct that is itself an offence, may the patient's açık rıza carry it, and what must the aydınlatma say about disclosure to authorities?"
+    counsel_reviewed_at: null
+
+  - category: household
+    proposal:
+      basis: >-
+        The patient's own answers: basic-needs items (not listed in m.6(1)) on
+        KVKK m.5(1) açık rıza, health-linked items on m.6(3)(a), both taken in
+        the same consent step. Hospital tenant: the hospital's own grounds.
+      retention: >-
+        Retention class `clinical_record`, as for personal_safety.
+      recipients: >-
+        Treating clinicians of the shared tenant only, through a share grant.
+        No INTAKE staff, no vendor, and no social-service body on INTAKE's
+        initiative.
+      consent_scope: >-
+        `core`, on condition that the core açık rıza text names household basic
+        needs and household contacts in plain words.
+      other_subject_basis_and_notice: >-
+        Design rule first: items collect no name, contact detail or identifier
+        of a household member, only presence, count and age band where the
+        specialty needs it. Where an item still describes an identifiable
+        member's health: in a hospital tenant, the hospital as controller on its
+        own ground (candidate m.6(3)(e)); in a consumer tenant, no ground is
+        proposed and the item is not served until counsel names one, because
+        the patient's açık rıza is not the member's. Notice to the member:
+        Aydınlatma Tebliği m.6(1) (data not obtained from the data subject)
+        requires it within a reasonable time of collection, or at first contact,
+        or at the first transfer; KVKK m.28(2) contains no exception for
+        disproportionate effort. Proposed route: a short hane üyelerine
+        bilgilendirme text the patient can show or forward, plus the
+        controller's public aydınlatma metni naming household members as a
+        data-subject group.
+    article_relied_on: "KVKK m.5(1); m.6(3)(a) and (e) as amended by Law 7499 MADDE 33; m.10; Aydınlatma Tebliği m.6(1); m.28(2)"
+    rationale: >-
+      The patient's own basic-needs answers are ordinary personal data, while
+      household contacts can reveal another person's health, for which the
+      patient's consent is no ground at all.
+    counsel_decisions:
+      - "Are basic-needs answers (food, housing) special-category data when recorded in a health intake, or ordinary data under m.5?"
+      - "Do presence-count-age-band answers about household members, with no identifier, still make those members data subjects?"
+      - "Which ground, if any, lets INTAKE as consumer controller record a household member's health, and does the proposed notice route discharge m.10 and Tebliğ m.6?"
+    counsel_reviewed_at: null
+
+  - category: relatives_health
+    proposal:
+      basis: >-
+        The patient's own answers about themselves: KVKK m.6(3)(a) açık rıza.
+        Consanguinity describes the patient's parents as well, so it is treated
+        as other-subject data below. Hospital tenant: the hospital's own ground.
+      retention: >-
+        Retention class `clinical_record`, as for personal_safety.
+      recipients: >-
+        Treating clinicians of the shared tenant only, through a share grant.
+        No INTAKE staff, no vendor, and no relative.
+      consent_scope: >-
+        `core`, on condition that the core açık rıza text names family health
+        history and consanguinity.
+      other_subject_basis_and_notice: >-
+        A health fact about a named relation (anne, baba, kardeş) is health data
+        of an identifiable relative. Hospital tenant: the hospital as controller
+        on its own ground; the proposal is m.6(3)(e), because family history is
+        collected for the patient's own diagnosis and treatment by persons under
+        a secrecy obligation. Consumer tenant: no ground is proposed and these
+        items are not served until counsel names one. Notice to relatives:
+        Aydınlatma Tebliği m.6(1), as for household; proposed route: the
+        controller's public aydınlatma metni names hasta yakınları as a
+        data-subject group, and the patient is offered a short akrabalara
+        bilgilendirme text to pass on.
+    article_relied_on: "KVKK m.6(1), m.6(3)(a) and (e) as amended by Law 7499 MADDE 33; m.10; Aydınlatma Tebliği m.6(1); m.28(2)"
+    rationale: >-
+      Family history is the relatives' health data as much as the patient's
+      context, and only a controller with its own m.6(3) standing for the
+      relatives can hold it.
+    counsel_decisions:
+      - "Is family-history data about a named relation personal data of that relative under KVKK m.3(1)(d)?"
+      - "Does m.6(3)(e) carry relatives' health data for a hospital collecting it for the patient's own care?"
+      - "Is there any ground under which INTAKE as consumer controller may hold it, or must consumer tenants never serve these items?"
+      - "Does publishing a relatives group in the aydınlatma metni, plus a pass-on text, discharge Tebliğ m.6(1) in the absence of a disproportionate-effort exception?"
+    counsel_reviewed_at: null
+
+  - category: partner_fertility
+    proposal:
+      basis: >-
+        The patient's own answers: KVKK m.6(3)(a) açık rıza. Hospital tenant:
+        the hospital's own ground.
+      retention: >-
+        Retention class `clinical_record`, as for personal_safety.
+      recipients: >-
+        Treating clinicians of the shared tenant only, through a share grant,
+        with the partner section off by default in the share view. No INTAKE
+        staff, no vendor.
+      consent_scope: >-
+        `core` for the patient's own answers; the partner's answers ride the
+        partner's own consent, never the patient's.
+      other_subject_basis_and_notice: >-
+        The partner is identifiable, usually reachable and often a co-patient of
+        the same clinic, so the proposal asks the partner directly: the
+        partner's own açık rıza under m.6(3)(a), after the partner's own
+        aydınlatma, taken in the partner's own session. Where the clinic treats
+        the couple, the hospital may instead rely on its own ground for the
+        partner as its patient (candidate m.6(3)(e)). Partner data reported by
+        the patient alone, without the partner's step, is not served until
+        counsel decides.
+    article_relied_on: "KVKK m.6(1) (sağlık, cinsel hayat); m.6(3)(a) and (e) as amended by Law 7499 MADDE 33; m.10; Aydınlatma Tebliği m.5(1)(f), m.6(1)"
+    rationale: >-
+      The partner's fertility is the partner's health and sexual-life data, and
+      the partner can be asked, so the partner's own consent is the proposal.
+    counsel_decisions:
+      - "Is the partner's own açık rıza, taken in a separate step, the required ground in a consumer tenant, or may a hospital treating the couple rely on m.6(3)(e)?"
+      - "May any partner fact reported by the patient alone be recorded at all?"
+    counsel_reviewed_at: null
+
+  - category: occupational
+    proposal:
+      basis: >-
+        Consumer tenant: employer name on KVKK m.5(1) açık rıza; occupational
+        exposure and the purpose of a report on m.6(3)(a) açık rıza, in the same
+        consent step. Hospital tenant: the hospital's own grounds; a sağlık
+        kurulu issuing a report acts on its own legal footing.
+      retention: >-
+        Retention class `clinical_record`, as for personal_safety.
+      recipients: >-
+        Treating clinicians of the shared tenant only, through a share grant.
+        Never the employer: INTAKE sends nothing to an employer, and any report
+        the hospital issues is the hospital's own act as controller.
+      consent_scope: >-
+        `core`, on condition that the core açık rıza text names employer,
+        occupational exposure and report purpose.
+      other_subject_basis_and_notice: null
+    article_relied_on: "KVKK m.5(1); m.6(1) (sağlık); m.6(3)(a) as amended by Law 7499 MADDE 33"
+    rationale: >-
+      Exposure history is health data and the employer is the recipient a
+      patient most needs protection from, so the proposal names the employer as
+      excluded.
+    counsel_decisions:
+      - "Is the employer's name, given by an employee, personal data of any natural person that needs its own notice?"
+      - "For sağlık kurulu tenants, does the hospital's ground (m.6(3)(e) or (f)) cover the report purpose, and does the DPA need to say so?"
+    counsel_reviewed_at: null
+
+  - category: literacy
+    proposal:
+      basis: >-
+        Consumer tenant: KVKK m.6(3)(a) açık rıza, treating a reading or
+        learning difficulty as health data; general reading preference that is
+        not a difficulty on m.5(1) açık rıza in the same step. Hospital tenant:
+        the hospital's own ground.
+      retention: >-
+        Retention class `clinical_record`, as for personal_safety.
+      recipients: >-
+        Treating clinicians of the shared tenant only, through a share grant.
+        No INTAKE staff, no vendor.
+      consent_scope: >-
+        `core`, on condition that the core açık rıza text names reading and
+        learning difficulty.
+      other_subject_basis_and_notice: null
+    article_relied_on: "KVKK m.5(1); m.6(1) (sağlık); m.6(3)(a) as amended by Law 7499 MADDE 33"
+    rationale: >-
+      A learning difficulty is a health condition while a reading preference is
+      not, and the proposal treats the item as special category unless counsel
+      rules otherwise.
+    counsel_decisions:
+      - "Is a reported reading or learning difficulty health data under m.6(1), or ordinary data?"
+      - "May the answer, beyond reaching the clinician, also adapt how the app presents text to the patient, and must the aydınlatma say so?"
+    counsel_reviewed_at: null

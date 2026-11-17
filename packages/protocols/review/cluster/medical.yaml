@@ -1,0 +1,189 @@
+# REVIEW QUEUE — QUESTIONS authored; NOT servable. Promoted to L1 only by the
+# physician of record's sign-off (HB-C1).
+# generated-by: scripts/dev/gen_specialty_packs.py from docs/evidence/proposals/cluster_medical.md
+# (guideline-sourced; reviewed per docs/evidence/verification/). Symptom-capture
+# prompts only (inv 2/10) — not diagnosis, not triage. Acuity is EK-4 law +
+# physician of record; never fabricated. RED/life-threat stays in
+# base.life_threat (inv 7).
+kind: pack
+id: cluster.medical
+layer: cluster
+version: 0.3.0
+schema_version: 2
+maturity: L0
+status: questions-authored; awaiting physician-of-record sign-off (HB-C1); not servable
+language: tr
+title_tr: Dahili Bilimler
+extends: base.intake
+visit_types:
+- first
+- followup
+- report
+sections:
+  ziyaret_baglami:
+    slots:
+      basvuru_nedeni:
+        type: string
+        required: true
+        ask_tr:
+          tr: Bugünkü randevunuzda en çok konuşmak istediğiniz konu nedir?
+        follow_up_tr:
+          tr: Bugünkü randevunuzun sebebini kısaca anlatır mısınız?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.reason_for_encounter.v1 recorded in docs/evidence/proposals/cluster_medical.md'
+      sikayet_suresi:
+        type: duration
+        required: false
+        ask_tr:
+          tr: Bu şikâyetiniz ne zamandır var?
+        follow_up_tr:
+          tr: Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; no candidate archetype recorded in docs/evidence/proposals/cluster_medical.md'
+  sorular:
+    slots:
+      diyabet_tanisi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Size daha önce şeker hastalığı tanısı konuldu mu?
+        follow_up_tr:
+          tr: Doktorunuz size şeker hastası olduğunuzu söyledi mi?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.problem_diagnosis.v1 recorded in docs/evidence/proposals/cluster_medical.md'
+      hipoglisemi_atagi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Son kontrolünüzden bu yana şekerinizin düştüğü bir durum yaşadınız mı?
+        follow_up_tr:
+          tr: Titreme, soğuk terleme ya da ani açlık hissi yaşadınız mı?
+        ask_if: diyabet_tanisi == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/cluster_medical.md'
+      ayak_yarasi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Ayağınızda iyileşmeyen bir yara var mı?
+        follow_up_tr:
+          tr: Ayağınızda uzun süredir kapanmayan bir yara ya da açıklık var mı?
+        ask_if: diyabet_tanisi == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/cluster_medical.md'
+      yuksek_tansiyon_tanisi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Size daha önce yüksek tansiyon tanısı konuldu mu?
+        follow_up_tr:
+          tr: Doktorunuz tansiyonunuzun yüksek olduğunu söyledi mi?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.problem_diagnosis.v1 recorded in docs/evidence/proposals/cluster_medical.md'
+      evde_tansiyon_olcumu:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Evde tansiyonunuzu düzenli olarak ölçüyor musunuz?
+        ask_if: yuksek_tansiyon_tanisi == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/cluster_medical.md'
+      evde_tansiyon_yuksek:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Evde ölçtüğünüz tansiyon son zamanlarda her zamankinden yüksek çıkıyor mu?
+        ask_if: evde_tansiyon_olcumu == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/cluster_medical.md'
+      astim_koah_tanisi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Size daha önce astım ya da KOAH denen akciğer hastalığı tanısı konuldu mu?
+        follow_up_tr:
+          tr: Doktorunuz size astım ya da KOAH olduğunu söyledi mi?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.problem_diagnosis.v1 recorded in docs/evidence/proposals/cluster_medical.md'
+      kurtarici_ilac_artisi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Son kontrolünüzden bu yana nefes açıcı spreyinize her zamankinden sık ihtiyaç duydunuz mu?
+        follow_up_tr:
+          tr: Nefes darlığında hemen kullandığınız spreyi daha sık kullandınız mı?
+        ask_if: astim_koah_tanisi == true
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype ACTION.medication.v1 recorded in docs/evidence/proposals/cluster_medical.md'
+      bobrek_hastaligi_tanisi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Size daha önce uzun süren bir böbrek hastalığı tanısı konuldu mu?
+        follow_up_tr:
+          tr: Doktorunuz böbreklerinizin iyi çalışmadığını söyledi mi?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.problem_diagnosis.v1 recorded in docs/evidence/proposals/cluster_medical.md'
+      tiroit_hastaligi_tanisi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Size daha önce tiroit bezinizle ilgili bir hastalık tanısı konuldu mu?
+        follow_up_tr:
+          tr: Doktorunuz guatr ya da tiroit sorunu olduğunu söyledi mi?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.problem_diagnosis.v1 recorded in docs/evidence/proposals/cluster_medical.md'
+      son_gunlerde_ates:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Son günlerde ateşiniz oldu mu?
+        follow_up_tr:
+          tr: Üşüme, titreme ya da ateş basması hissettiniz mi?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/cluster_medical.md'
+      istemsiz_kilo_kaybi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Son aylarda istemeden kilo verdiniz mi?
+        follow_up_tr:
+          tr: Diyet yapmadığınız hâlde kilonuz azaldı mı?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/cluster_medical.md'
+      gece_terlemesi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Son zamanlarda geceleri çarşafınızı ıslatacak kadar terlediniz mi?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/cluster_medical.md'
+      bagisiklik_tedavisinde_enfeksiyon:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Bağışıklığınızı baskılayan tedavi sırasında yeni bir enfeksiyon belirtisi fark ettiniz mi?
+        follow_up_tr:
+          tr: Öksürük, idrarda yanma ya da yarada kızarıklık gibi bir değişiklik oldu mu?
+        ask_if: immunosuppression != 'hayir'
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/cluster_medical.md'
+      ilac_doz_atlama:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Geçen hafta içinde ilaçlarınızdan bir dozu atladığınız oldu mu?
+        follow_up_tr:
+          tr: Bu çok sık olur. Almayı unuttuğunuz ya da bilerek almadığınız bir doz oldu mu?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype ACTION.medication.v1 recorded in docs/evidence/proposals/cluster_medical.md'
+      ilac_kaygisi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: İlaçlarınızla ilgili sizi kaygılandıran bir yan etki ya da sorun var mı?
+        follow_up_tr:
+          tr: Bir ilacın size iyi gelmediğini düşünüyor musunuz?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype ACTION.medication.v1 recorded in docs/evidence/proposals/cluster_medical.md'
+      gunluk_islev_kisitlanmasi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Sağlık sorununuz yüzünden günlük işlerinizi yapmakta zorlanıyor musunuz?
+        follow_up_tr:
+          tr: Yemek, giyinme ya da ev işleri gibi günlük işlerde zorlanıyor musunuz?
+        openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/cluster_medical.md'
+red_flags:
+- id: rf.cluster_medical_l0_taslak
+  label_tr: Dahili Bilimler — kümeye özgü kırmızı bayrak taslağı (klinik onay bekliyor)
+  when: 'TODO: cluster_medical branch-specific red-flag trigger requires clinical sign-off'
+  tense: ever
+  tense_anchor: sikayet_suresi
+  level: YESIL
+  route: EXPEDITE
+  notify_clinic: never
+  status: draft_needs_source
+  source_gap: 'Trigger, EK-4 level and route await clinical sign-off (invariant 17 pending-value literal). Guideline-sourced candidates recorded in docs/evidence/proposals/cluster_medical.md; acuity bound by EK-4 law (RG 13/9/2022 sayı 31952), snapshot absent. RED/life-threat stays in base.life_threat (invariant 7). Owner: physician of record (HB-C1, HB-C2, HB-C7).'

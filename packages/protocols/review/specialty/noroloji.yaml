@@ -1,0 +1,128 @@
+# L0 — QUESTIONS authored; NOT servable until physician-of-record sign-off (HB-C1).
+# TRIAGE deferred. Provenance (honest):
+# Pre-visit QUESTIONS below are AI-assembled from guidelines (Türk Nöroloji
+# Derneği "İnme" booklet; NICE NG128 stroke/TIA; NG228 SAH/thunderclap; NG217
+# first seizure; SNNOOP10 — verbatim citations in docs/evidence/proposals/
+# noroloji.md), clinician-DIRECTED by the product owner (A. Moniri)
+# under explicit in-session instruction, to be double-verified. Symptom-capture
+# prompts only (invariant 2/10) — not diagnosis, not triage.
+#
+# TRIAGE IS NOT AUTHORED HERE and is NOT fabricated. IMPORTANT: the acute
+# life-threats these questions touch (stroke/FAST, thunderclap headache,
+# meningitis pattern, first seizure) are owned by base.life_threat, which is
+# NOT extended here (invariant 7). Q3/Q4 (one-sided weakness, speech), Q5
+# (thunderclap), Q6 (headache+fever), Q7 (seizure) supply INPUTS the existing
+# base gates read; the RED determination stays in base.life_threat + the rules
+# engine. Red-flag acuity is bound by EK-4 (RG 13/9/2022 sayı 31952) — binding
+# Turkish LAW, no snapshot committed — and owned by the physician of record
+# (HB-C1/C2/C7). The red_flags stub stays draft_needs_source (excluded, inv 17).
+kind: pack
+id: specialty.noroloji
+layer: specialty
+version: 0.2.0
+schema_version: 2
+maturity: L0
+status: questions-authored; awaiting physician-of-record sign-off (HB-C1); not servable
+language: tr
+title_tr: Nöroloji ön görüşme protokolü
+extends: cluster.medical
+visit_types:
+- first
+- followup
+- preop
+- report
+- pregnancy_followup
+- chronic_review
+- post_discharge
+- screening
+- second_opinion
+- teleconsult
+sections:
+  ziyaret_baglami:
+    slots:
+      basvuru_nedeni:
+        type: string
+        required: true
+        ask_tr:
+          tr: Bugün nöroloji bölümüne gelme nedeninizi kendi cümlelerinizle kısaca anlatır mısınız?
+        follow_up_tr:
+          tr: Sizi hekime getiren en önemli şikâyetiniz nedir?
+        openehr_deferred_reason: "INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.reason_for_encounter.v1 recorded in docs/evidence/proposals/noroloji.md"
+      baslangic_sekli:
+        type: string
+        required: false
+        ask_tr:
+          tr: Sizi en çok rahatsız eden bu durum aniden mi yoksa zamanla yavaş yavaş mı başladı?
+        openehr_deferred_reason: "INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/noroloji.md"
+      sikayet_suresi:
+        type: duration
+        required: false
+        ask_tr:
+          tr: Bu şikâyetiniz ne zamandır var?
+        follow_up_tr:
+          tr: Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?
+        openehr_deferred_reason: "INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/noroloji.md"
+  norolojik_belirtiler:
+    slots:
+      tek_tarafli_gucsuzluk:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Yüzünüzde, kolunuzda ya da bacağınızda, yalnızca bir tarafta güçsüzlük veya uyuşma oldu mu?
+        openehr_deferred_reason: "INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/noroloji.md"
+      konusma_guclugu:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Son zamanlarda konuşurken ya da söylenenleri anlarken zorlandığınız oldu mu?
+        openehr_deferred_reason: "INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/noroloji.md"
+      ani_siddetli_bas_agrisi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Bazı baş ağrıları saniyeler ya da birkaç dakika içinde en şiddetli hâline ulaşır. Hiç böyle ani ve çok şiddetli bir baş ağrınız oldu mu?
+        openehr_deferred_reason: "INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/noroloji.md"
+      bas_agrisi_ates:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Son zamanlarda ateşle birlikte baş ağrınız oldu mu?
+        openehr_deferred_reason: "INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/noroloji.md"
+      nobet_bilinc_kaybi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Yakın zamanda bilincinizi kaybettiğiniz ya da vücudunuzda istemsiz kasılma-titreme olan bir atak yaşadınız mı?
+        openehr_deferred_reason: "INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/noroloji.md"
+      ani_gorme_kaybi:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Gözlerinizde ani görme kaybı veya çift görme oldu mu?
+        openehr_deferred_reason: "INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/noroloji.md"
+  ilac_ve_gecmis:
+    slots:
+      norolojik_tani:
+        type: boolean
+        required: false
+        ask_tr:
+          tr: Daha önce size inme ya da sara gibi bir sinir sistemi hastalığı tanısı konuldu mu?
+        openehr_deferred_reason: "INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.problem_diagnosis.v1 recorded in docs/evidence/proposals/noroloji.md"
+      norolojik_tani_adi:
+        type: string
+        required: false
+        ask_if: "norolojik_tani == true"
+        ask_tr:
+          tr: Bu hastalığın adını söyleyebilir misiniz?
+        openehr_deferred_reason: "INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.problem_diagnosis.v1 recorded in docs/evidence/proposals/noroloji.md"
+red_flags:
+- id: rf.noroloji_l0_taslak
+  label_tr: Nöroloji — branşa özgü kırmızı bayrak taslağı (klinik onay bekliyor)
+  when: 'TODO: noroloji branch-specific red-flag trigger requires clinical sign-off'
+  tense: ever
+  tense_anchor: sikayet_suresi
+  level: YESIL
+  route: EXPEDITE
+  notify_clinic: never
+  status: draft_needs_source
+  source_gap: 'Rule set not yet authored: trigger, EK-4 level and route await clinical sign-off. The `when` field carries the sole permitted pending-value literal (CLAUDE.md invariant 17). The acute life-threats (stroke/FAST, thunderclap SAH, meningitis pattern, first seizure) belong to base.life_threat and are NOT authored here (invariant 7); this pack only supplies the intake questions that feed those base gates. Guideline-sourced candidates recorded in docs/evidence/proposals/noroloji.md; acuity is bound by EK-4 law (RG 13/9/2022 sayı 31952), no snapshot committed. Owner: physician of record (HB-C1, HB-C2, HB-C7).'
