@@ -1,0 +1,54 @@
+# guideline_id: openEHR-EHR-EVALUATION.adverse_reaction_risk.v2
+# title: Adverse reaction risk (openEHR Clinical Knowledge Manager archetype)
+# publisher: openEHR Foundation (CKM cid 1013.1.7022, lifecycle PUBLISHED)
+# version_or_date: revision 2.0.2; build_uid 482bdcef-5e18-4505-9ded-b3413b054824; MD5-CAM-1.0.1 9EF636F951CD7E56F009E24CD7840632
+# url: https://ckm.openehr.org/ckm/archetypes/1013.1.7022
+# url_adl: https://ckm.openehr.org/ckm/rest/v1/archetypes/1013.1.7022/adl
+# retrieved_on: 2026-10-03
+# retrieval: curl of the CKM REST ADL export (ADL 1.4, utf-8, BOM and CR stripped); CKM REST search metadata reports revision 2.0.2 as revisionLatestPublished
+# scope: verbatim ADL lines - archetype id, the opening of the English purpose/use description, lifecycle and revision lines, and the English term definitions of at0000, at0002 and at0120-at0123; nothing paraphrased or edited. '[...]' marks an omission between excerpts.
+---
+archetype (adl_version=1.4; uid=6c812c8c-ca00-496a-97dd-6e4916bd1ccf)
+	openEHR-EHR-EVALUATION.adverse_reaction_risk.v2
+[...]
+			purpose = <"To record the clinical assessment of the propensity for an individual to experience an adverse reaction if exposed, or re-exposed, to a specified substance or class of substances.">
+			use = <"Use to record a clinical assessment of a propensity for an adverse reaction upon future exposure to a specified substance or class of substances including, but not limited to, incipients and excipients in medicinal preparations, biological products, metal salts, and organic chemical compounds. 
+
+This archetype is intended to provide a single place within the health record to document the propensity for the full range of reactions, from trivial to life-threatening:
+- immune-mediated: Types I-IV (including allergic reactions and hypersensitivities); or 
+- non-immune-mediated: including pseudo-allergic reactions, side effects, intolerances, and drug toxicities.
+[...]
+	lifecycle_state = <"published">
+[...]
+		["revision"] = <"2.0.2">
+[...]
+				["at0000"] = <
+					text = <"Adverse reaction risk">
+					description = <"Clinical assessment of the propensity for an individual to experience a harmful or undesirable physiological response if exposed, or re-exposed, to a substance.">
+					comment = <"Substances include, but are not limited to: a therapeutic substance administered correctly at an appropriate dosage for the individual; food; material derived from plants or animals; or venom from insect stings.">
+					source = <"openEHR,FHIR">
+				>
+[...]
+				["at0002"] = <
+					text = <"Substance">
+					description = <"Identification of a substance, or substance class, that is considered to put the individual at risk of an adverse reaction event.">
+					comment = <"Both an individual substance and a substance class are valid entries in 'Substance'. A substance may be a compound of simpler substances, for example a medicinal product. It is strongly recommended that the 'Substance' is coded with a terminology capable of triggering decision support, where possible. For example: Snomed CT, DM+D, RxNorm, NDFRT, ATC, New Zealand Universal List of Medicines and Australian Medicines Terminology. Free text entry should only be used if there is no appropriate terminology available.">
+				>
+[...]
+				["at0120"] = <
+					text = <"Category">
+					description = <"Category of the identified 'Substance'.">
+					comment = <"This data element has been included because it is currently being captured in some clinical systems. This data can be derived from the Substance where coding systems are used, and is effectively redundant in that situation.">
+				>
+				["at0121"] = <
+					text = <"Food">
+					description = <"Any substance consumed to provide nutritional support for the body, such as peanut or egg.">
+				>
+				["at0122"] = <
+					text = <"Medication">
+					description = <"Any substance administered to achieve a physiological effect.">
+				>
+				["at0123"] = <
+					text = <"Other">
+					description = <"Any other substance encountered including venom, latex and other environmental substances.">
+				>

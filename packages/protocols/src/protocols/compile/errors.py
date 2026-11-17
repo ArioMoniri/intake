@@ -55,6 +55,8 @@ class RefusalCode(enum.StrEnum):
     MONOTONICITY_VIOLATION = "MONOTONICITY_VIOLATION"
     LIFE_THREAT_SET_EXTENDED = "LIFE_THREAT_SET_EXTENDED"
     OVERLAY_CONFLICT = "OVERLAY_CONFLICT"
+    # a suppress_slot in any layer removed a slot a red flag reads (INT-382)
+    RULE_READS_REMOVED_SLOT = "RULE_READS_REMOVED_SLOT"
 
     # --- patient overlays (INT-258; files/04 §2.3; CLAUDE.md invariant 7)
     OVERLAY_WRONG_LAYER = "OVERLAY_WRONG_LAYER"
@@ -81,6 +83,12 @@ class RefusalCode(enum.StrEnum):
     # --- gate references (INT-355; files/03 §5-6; files/13 §9.5 "opens only on TRUE")
     GATE_REF_AMBIGUOUS = "GATE_REF_AMBIGUOUS"
     GATE_REF_UNKNOWN = "GATE_REF_UNKNOWN"
+
+    # --- gate values (INT-441; INT-489): a code slot is compared only against a
+    # member of its committed value set
+    GATE_VALUE_OUTSIDE_VALUESET = "GATE_VALUE_OUTSIDE_VALUESET"
+    GATE_VALUESET_UNCOMMITTED = "GATE_VALUESET_UNCOMMITTED"
+    CHOICE_OUTSIDE_VALUESET = "CHOICE_OUTSIDE_VALUESET"
 
 
 class Refusal(FrozenModel):

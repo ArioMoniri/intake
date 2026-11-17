@@ -227,7 +227,7 @@ def test_non_dev_never_wires_the_dev_log_delivery_adapter(environment: str) -> N
     """With no SMS vendor configured, a non-dev API leaves the OTP tier
     unconfigured (every /v1/auth route answers 503 otp_auth_unconfigured)
     rather than answering 202 for a code that never leaves the building.
-    INT-329 wires Twilio when it IS configured (tests/api/test_otp_twilio_wiring.py);
+    INT-528 wires Netgsm when it IS configured (tests/api/test_otp_netgsm_wiring.py);
     the dev logger is never the fallback."""
     assert _auth_from_settings(_settings(environment=environment), secrets=_EmptyVault()) is None
 

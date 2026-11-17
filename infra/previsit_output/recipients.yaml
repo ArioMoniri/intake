@@ -1,0 +1,46 @@
+# The previsit-output recipient registry — who may FETCH a finished previsit.
+#
+# This file is DATA, not code, and it is the only way an approved reader comes
+# into existence. `intake_platform.previsit_output` loads and validates it;
+# nothing else in the system can name an organisation allowed to pull a
+# patient's completed previsit out of this database.
+#
+# It is the inbound twin of infra/connectors/destinations.yaml, and it exists
+# for the same reason. A hospital reading a previsit is a SHARE of clinical
+# data to another organisation (CLAUDE.md invariant 4), and the fact that the
+# caller authenticated says nothing about whether such a share was ever agreed.
+# Being on this list is not sufficient either: the patient's own consent scope
+# (`share:previsit_output`) is checked per patient, per fetch, on top of it.
+#
+# What a row costs — three refs, each naming something a human has produced:
+#
+#   dpa_ref        an executed data-processing agreement with the receiving
+#                  hospital, naming this read interface specifically
+#   approval_ref   the recorded tier-3 approval that registered the reader
+#                  (files/10 §8: two humans, different organisations,
+#                  write-ahead audit, pages)
+#   retention_ref  the clause of that DPA stating HOW LONG THE HOSPITAL KEEPS
+#                  the copy it fetched
+#
+# The third one is the field this repository could not fill in for itself, and
+# it is deliberately required rather than defaulted. files/06 §3 states how
+# long INTAKE keeps a record — "life of the record; patient-deletable, 30-day
+# grace, then crypto-shred" — and says nothing at all about a copy that has
+# left our boundary. In a hospital deployment the hospital is the controller
+# of what it holds (KvkkRole.PROCESSOR, files/06 §1), so the period is a term
+# of the agreement, not a number an engineer may pick. CLAUDE.md is explicit
+# that persisting a new category of personal data, and any retention decision,
+# is a stop-and-ask; so the row demands the clause and the loader refuses a row
+# without one.
+#
+# One reader per tenant. A second row would make "which agreement is this
+# fetch under" ambiguous at the moment the fetch is written to the audit
+# chain, so it is refused at load rather than resolved by ordering.
+#
+# None of the three exists today: no DPA is executed for a read interface, no
+# reader is approved, and no retention clause exists to name. So the list is
+# empty, every fetch is refused with `previsit_output_recipient_unregistered`,
+# and that is the fail-closed state rather than a gap (invariant 17: build the
+# mechanism, wire the gate, make it fail closed, leave the content empty).
+version: 1
+recipients: []

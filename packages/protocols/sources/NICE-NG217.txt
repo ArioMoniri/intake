@@ -1,0 +1,22 @@
+# guideline_id: NICE-NG217
+# title: Epilepsies in children, young people and adults
+# publisher: National Institute for Health and Care Excellence (NICE)
+# version_or_date: NICE guideline NG217; published 27 April 2022; last updated 05 August 2026
+# url: https://www.nice.org.uk/guidance/ng217/chapter/1-Diagnosis-and-assessment-of-epilepsy
+# retrieved_on: 2026-10-03
+# retrieval: curl with browser UA; HTML (utf-8) text-extracted; tags stripped and whitespace runs collapsed to single spaces as a browser renders them; blank lines dropped; non-breaking spaces (U+00A0) rendered as plain spaces; non-breaking hyphens (U+2011) kept as served
+# scope: verbatim excerpt of the page header and recommendation 1.1.1 (Referral after a first seizure); nothing paraphrased or edited. '[...]' marks an omission between excerpts.
+---
+Reference number: NG217
+Published:
+27 April 2022
+Last updated:
+05 August 2026
+[...]
+1.1 Referral after a first seizure or remission and assessing risk of a second seizure
+Referral after a first seizure
+For recommendations on immediate guidance and referral for children under 2 years with suspected or confirmed infantile spasms, see the section on infantile spasms syndrome.
+1.1.1
+Refer children, young people and adults urgently (for an appointment within 2 weeks) for an assessment after a first suspected seizure:
+For adults, refer to a clinician with expertise in assessing first seizures and diagnosing epilepsy.
+For children and young people, refer to a paediatrician with expertise in assessing first seizures and diagnosing epilepsy. [2022]

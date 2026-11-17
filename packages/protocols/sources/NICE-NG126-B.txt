@@ -1,0 +1,75 @@
+# guideline_id: NICE-NG126
+# title: Ectopic pregnancy and miscarriage: diagnosis and initial management
+# publisher: National Institute for Health and Care Excellence (NICE)
+# version_or_date: NICE guideline NG126; published 17 April 2019; last updated 17 June 2026
+# url: https://www.nice.org.uk/guidance/ng126/chapter/Symptoms-and-signs-of-ectopic-pregnancy-and-initial-assessment
+# retrieved_on: 2026-10-03
+# retrieval: curl with a browser user-agent (HTTP 200); HTML (utf-8) text-extracted with a block-level parser: tags stripped, entities decoded, one line per HTML block, whitespace runs collapsed to single spaces, non-breaking spaces (U+00A0) rendered as plain spaces, non-breaking hyphens (U+2011) kept as served, blank lines dropped
+# scope: verbatim excerpt of the page header and section 1.4 (recommendations 1.4.1-1.4.12); nothing paraphrased or edited; omissions marked [...]. Filename carries -B because a separate NICE-NG126.txt excerpt is authored on another INT-448 branch; both declare the same guideline_id.
+---
+Reference number: NG126
+Published: 17 April 2019
+Last updated: 17 June 2026
+[...]
+1.4 Presentation, assessment and referral
+1.4.1
+Refer women who are haemodynamically unstable, or in whom there is significant concern about the degree of pain or bleeding, directly to A&E. [2012]
+1.4.2
+Be aware that atypical presentation for ectopic pregnancy is common. [2012]
+1.4.3
+Be aware that ectopic pregnancy can present with a variety of symptoms. Even if a symptom is less common, it may still be significant. Symptoms of ectopic pregnancy include:
+common symptoms:
+abdominal or pelvic pain
+amenorrhoea or missed period
+vaginal bleeding with or without clots
+other reported symptoms:
+breast tenderness
+gastrointestinal symptoms
+dizziness, fainting or syncope
+shoulder tip pain
+urinary symptoms
+passage of tissue
+rectal pressure or pain on defecation. [2012]
+1.4.4
+Be aware that ectopic pregnancy can present with a variety of signs on examination by a healthcare professional. Signs of ectopic pregnancy include:
+more common signs:
+pelvic tenderness
+adnexal tenderness
+abdominal tenderness
+other reported signs:
+cervical motion tenderness
+rebound tenderness or peritoneal signs
+pallor
+abdominal distension
+enlarged uterus
+tachycardia (more than 100 beats per minute) or hypotension (less than 100/60 mmHg)
+shock or collapse
+orthostatic hypotension. [2012]
+1.4.5
+During clinical assessment of women of reproductive age, be aware that:
+they may be pregnant, and think about offering a pregnancy test even when symptoms are non-specific and
+the symptoms and signs of ectopic pregnancy can resemble the common symptoms and signs of other conditions – for example, gastrointestinal conditions or urinary tract infection. [2012]
+1.4.6
+All healthcare professionals involved in the care of women of reproductive age should have access to pregnancy tests. [2012]
+1.4.7
+Refer immediately to an early pregnancy assessment service (or out-of-hours gynaecology service if the early pregnancy assessment service is not available) for further assessment of women with a positive pregnancy test and the following on examination:
+pain and abdominal tenderness or
+pelvic tenderness or
+cervical motion tenderness. [2012]
+1.4.8
+Exclude the possibility of ectopic pregnancy, even in the absence of risk factors (such as previous ectopic pregnancy), because about a third of women with an ectopic pregnancy will have no known risk factors. [2012]
+1.4.9
+Refer to an early pregnancy assessment service (or out-of-hours gynaecology service if the early pregnancy assessment service is not available) women with bleeding or other symptoms and signs of early pregnancy complications who have:
+pain or
+a pregnancy of 6 weeks' gestation or more or
+a pregnancy of uncertain gestation.
+The urgency of this referral depends on the clinical situation. [2012]
+1.4.10
+Use expectant management for women with a pregnancy of less than 6 weeks' gestation who are bleeding but not in pain, and who have no risk factors, such as a previous ectopic pregnancy. Advise these women:
+to return if bleeding continues or pain develops
+to repeat a urine pregnancy test after 7 to 10 days and to return if it is positive
+a negative pregnancy test means that the pregnancy has miscarried. [2012, amended 2019]
+1.4.11
+Refer women who return with worsening symptoms and signs that could suggest an ectopic pregnancy to an early pregnancy assessment service (or out-of-hours gynaecology service if the early pregnancy assessment service is not available) for further assessment. The decision about whether she should be seen immediately or within 24 hours will depend on the clinical situation. [2012]
+1.4.12
+If a woman is referred to an early pregnancy assessment service (or out-of-hours gynaecology service if the early pregnancy assessment service is not available), explain the reasons for the referral and what she can expect when she arrives there. [2012]

@@ -1,0 +1,31 @@
+# guideline_id: NICE-HTG339
+# title: Endoscopic thoracic sympathectomy for primary hyperhidrosis of the upper limb
+# publisher: National Institute for Health and Care Excellence (NICE)
+# version_or_date: HealthTech guidance HTG339 (formerly interventional procedures guidance IPG487); published 27 May 2014; migrated to HTG339 January 2026 with recommendations unchanged (Update information)
+# url: https://www.nice.org.uk/guidance/htg339/chapter/1-Recommendations
+# url_chapter_2: https://www.nice.org.uk/guidance/htg339/chapter/2-Indications-and-current-treatments
+# url_update_information: https://www.nice.org.uk/guidance/htg339/chapter/Update-information
+# retrieved_on: 2026-10-03
+# retrieval: curl with browser UA; HTML (utf-8) text-extracted; tags stripped and whitespace runs collapsed to single spaces as a browser renders them; blank lines dropped; non-breaking spaces (U+00A0) rendered as plain spaces; non-breaking hyphens (U+2011) kept as served
+# scope: verbatim excerpt of the page header, recommendations 1.2 and 1.3, chapter 2 (heading, 2.1 and 2.2) and the January 2026 entry of the Update information chapter; nothing paraphrased or edited. '[...]' marks an omission between excerpts.
+---
+Reference number: HTG339
+Published:
+27 May 2014
+[...]
+1.2
+Clinicians wishing to undertake ETS for primary hyperhidrosis of the upper limb should ensure that patients understand the risks of the procedure. In particular they must explain that:
+there is a risk of serious complications
+hyperhidrosis elsewhere on the body is usual after the procedure: this can be severe and distressing, and some patients regret having had the procedure (especially because of subsequent and persistent hyperhidrosis elsewhere)
+the procedure sometimes does not reduce upper limb hyperhidrosis.
+Clinicians should also provide patients considering the procedure with clear written information.
+1.3
+In view of the risk of side effects, this procedure should only be considered in patients suffering from severe and debilitating primary hyperhidrosis that has been refractory to other treatments.
+[...]
+2 Indications and current treatments
+2.1
+Primary hyperhidrosis of the upper limb is characterised by excessive sweating of the palms and/or axillae. It typically begins during childhood or adolescence, but can occur at any age and is usually life-long. In a few people, symptoms can spontaneously improve over time. Excessive sweating can have a profound effect on quality of life, interfering with daily activities and causing anxiety and embarrassment.
+2.2
+First-line management of primary hyperhidrosis includes lifestyle measures such as avoiding known triggers and tight clothing, and using antiperspirants (including aluminium chloride hexahydrate). Other treatments include iontophoresis and botulinum-toxin A injection, and oral medications such as anticholinergics, antimuscarinics, beta-blockers, antihypertensives and anxiolytics. If these do not work, surgical options include local sweat-gland excision by subcutaneous curettage or tumescent liposuction, or sympathectomy. Sympathectomy can be done either by open or endoscopic approaches: endoscopic sympathectomy is now usually the preferred technique because it is associated with less pain, improved cosmesis and more rapid recovery than open sympathectomy.
+[...]
+January 2026: Interventional procedures guidance 487 has been migrated to HealthTech guidance 339. The recommendations and accompanying content remain unchanged.

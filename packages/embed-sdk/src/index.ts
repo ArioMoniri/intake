@@ -1,10 +1,10 @@
 /**
  * INT-320 — partner "Start pre-visit" embed SDK (ADR-029).
  *
- * A partner embeds Vizite as a button. This SDK is the thin launcher: on a tap
+ * A partner embeds Önvizit as a button. This SDK is the thin launcher: on a tap
  * it asks the PARTNER'S OWN backend for a launch response (the ticket is minted
- * server-to-server, so the SDK never calls Vizite directly and holds NO Vizite
- * secret), then opens the branded intake at the `launch_url` Vizite returned.
+ * server-to-server, so the SDK never calls Önvizit directly and holds NO Önvizit
+ * secret), then opens the branded intake at the `launch_url` Önvizit returned.
  *
  * The trust boundary lives in the ticket, not here. This code's whole job is to
  * (1) never accept a non-https destination it would open, and (2) never hold a
@@ -14,7 +14,7 @@
 export interface LaunchResponse {
   /** The opaque, single-use, short-lived launch ticket. */
   ticket: string;
-  /** The Vizite URL that starts the branded intake, carrying the ticket. */
+  /** The Önvizit URL that starts the branded intake, carrying the ticket. */
   launch_url: string;
   /** Unix seconds at which the ticket expires. */
   expires_at: number;
@@ -29,7 +29,7 @@ export interface StartPrevisitConfig {
    */
   ticketEndpoint: string;
   /** Optional request init the partner backend needs (auth cookie, body). It is
-   * opaque to the SDK and must never carry a Vizite credential. */
+   * opaque to the SDK and must never carry an Önvizit credential. */
   requestInit?: RequestInit;
   /** Injectable fetch, for tests and non-browser hosts. */
   fetchImpl?: typeof fetch;
@@ -69,7 +69,7 @@ function assertLaunchUrl(url: unknown): string {
   } catch {
     throw new EmbedError("launch_url is not a valid URL");
   }
-  // the only destination the SDK will ever open is an https Vizite URL — this
+  // the only destination the SDK will ever open is an https Önvizit URL — this
   // is what stops a tampered response from turning the button into an open
   // redirect or a `javascript:` sink.
   if (parsed.protocol !== "https:") {
@@ -138,7 +138,7 @@ export function createStartButton(config: StartButtonConfig): HTMLButtonElement 
   const button = doc.createElement("button");
   button.type = "button";
   button.textContent = config.label ?? DEFAULT_LABEL;
-  button.dataset["viziteEmbed"] = "start-previsit";
+  button.dataset["onvizitEmbed"] = "start-previsit";
   button.addEventListener("click", () => {
     void startPrevisit(config).catch(config.onError ?? (() => undefined));
   });

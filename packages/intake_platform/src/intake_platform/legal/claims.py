@@ -17,7 +17,9 @@ Three named groups, because they are not interchangeable:
 
 ``performance``
     The metrics invariant 20 lists by name, plus the Turkish words for them.
-    Safe on every prose tree we own.
+    Safe on every prose tree we own. Since INT-536 it also carries the CI
+    shell gate's strict-tier expressions verbatim (``CI_*``), so a text the
+    CI gate would fail cannot pass at render time.
 ``satisfaction``
     INT-240's rule that an NPS or CSAT figure is a claim too.
 ``bare_percentage``
@@ -44,6 +46,11 @@ from types import MappingProxyType
 from typing import Final
 
 __all__ = [
+    "CI_ALWAYS_PAT",
+    "CI_FIG",
+    "CI_NEAR",
+    "CI_TERM_EN",
+    "CI_TERM_TR",
     "PATTERN_GROUPS",
     "SCANNED_TREES",
     "TEXT_SUFFIXES",
@@ -74,6 +81,20 @@ class ClaimHit:
     line: str
 
 
+#: INT-536 (INT-529 F3): the CI shell gate's own strict-tier expressions
+#: (``scripts/ci/claims_scan.sh``), verbatim. The render-time scanner used to
+#: carry only its own Turkish arm, ``\bdoğruluk``, so the softened form in
+#: "doğruluğu yüzde 99" passed at render time while CI caught it.
+#: tests/legal/test_claims_ci_parity.py holds each string equal to its shell
+#: variable, and holds every line the shell flags as flagged here too.
+CI_ALWAYS_PAT: Final[str] = r"auroc|(^|[^a-zA-Z])auc([^a-zA-Z]|$)|f1[ _-]?score"
+CI_TERM_EN: Final[str] = r"sensitivit|specificit|accurac|(^|[^a-zA-Z])wer([^a-zA-Z]|$)"
+CI_TERM_TR: Final[str] = (
+    r"([Dd]oğrulu(k|ğ)|[Dd]uyarlıl(ı|i)(k|ğ)|(Ö|ö)zgüllü(k|ğ)|[Kk]esinli(k|ğ)|(İ|i)sabet)"
+)
+CI_FIG: Final[str] = r"(%[ ]*[0-9]|[0-9][ ]*%|yüzde[ ]*[0-9]|[0-9]+[.,][0-9]+)"
+CI_NEAR: Final[str] = ".{0,40}"
+
 _PERFORMANCE: Final[tuple[ClaimPattern, ...]] = (
     ClaimPattern("sensitivity", re.compile(r"(?i)\bsensitivit"), "invariant 20 names it"),
     ClaimPattern("specificity", re.compile(r"(?i)\bspecificit"), "invariant 20 names it"),
@@ -93,6 +114,24 @@ _PERFORMANCE: Final[tuple[ClaimPattern, ...]] = (
         "sensitivity_tr",
         re.compile(r"(?i)\bduyarlılık|\bduyarlilik|\bözgüllük|\bozgulluk"),
         "duyarlılık / özgüllük are sensitivity and specificity",
+    ),
+    # The CI gate's strict tier, so nothing it flags renders (INT-536). grep
+    # runs the first two with -i and the Turkish arm case-sensitively.
+    ClaimPattern(
+        "ci_always",
+        re.compile(CI_ALWAYS_PAT, re.IGNORECASE),
+        "claims_scan.sh ALWAYS_PAT: no non-performance reading in any tree",
+    ),
+    ClaimPattern(
+        "ci_term_en",
+        re.compile(CI_TERM_EN, re.IGNORECASE),
+        "claims_scan.sh TERM_EN, bare as at the strict tier",
+    ),
+    ClaimPattern(
+        "ci_claim_tr",
+        re.compile(f"{CI_TERM_TR}{CI_NEAR}{CI_FIG}|{CI_FIG}{CI_NEAR}{CI_TERM_TR}"),
+        "claims_scan.sh TR_CLAIM: a Turkish performance word, softened forms included "
+        "(doğruluğu, duyarlılığı, özgüllüğü, kesinliği), beside a figure",
     ),
 )
 

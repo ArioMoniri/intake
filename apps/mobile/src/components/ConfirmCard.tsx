@@ -26,6 +26,7 @@
  */
 import { StyleSheet, View } from "react-native";
 
+import { AnnouncedText } from "@/components/Announced";
 import { SourceBoxPanel } from "@/components/SourceBoxPanel";
 import { AppText, Card, SecondaryButton, useTheme } from "@/components/Themed";
 import { joinParts } from "@/lib/a11y/labels";
@@ -81,9 +82,14 @@ export function ConfirmCard({
         <SourceBoxPanel box={card.box} documentName={documentName} onOpen={onOpenDocument} />
       ) : null}
       {settled ? (
-        <AppText role="label" color="inkSoft">
-          {t(state === "confirmed" ? "records.card.confirmed" : "records.card.declined")}
-        </AppText>
+        // SC 4.1.3: the result of the tap. The buttons the patient's reader
+        // was on are gone, so the outcome is announced, not left to be found.
+        <AnnouncedText
+          tone="status"
+          role="label"
+          color="inkSoft"
+          message={t(state === "confirmed" ? "records.card.confirmed" : "records.card.declined")}
+        />
       ) : (
         <View style={styles.decisions}>
           <SecondaryButton
@@ -100,10 +106,16 @@ export function ConfirmCard({
       )}
       {writeFailed ? (
         // SC 3.3.1: the card stays PENDING and says why. INT-140's rule —
-        // a state the server has not confirmed is never shown as done.
-        <AppText role="caption" color="amber" live="assertive" style={styles.notice}>
-          {joinParts(t("a11y.error"), t("records.card.notSaved"))}
-        </AppText>
+        // a state the server has not confirmed is never shown as done. The
+        // visible line already opens with "Hata", so it is spoken as shown —
+        // on both platforms since INT-362 (it had only the Android half).
+        <AnnouncedText
+          tone="error"
+          role="caption"
+          color="amber"
+          style={styles.notice}
+          message={joinParts(t("a11y.error"), t("records.card.notSaved"))}
+        />
       ) : null}
     </Card>
   );

@@ -56,6 +56,7 @@ from intake_voice_runtime.talker.preemption import (
 )
 from intake_voice_runtime.talker.red_path import (
     E2E_BUDGET_MS,
+    GENERIC_RED_SCRIPT_IDS,
     REGISTER_DELIVERY,
     STOP_BUDGET_MS,
     MappingRedScriptIndex,
@@ -363,14 +364,17 @@ class TestAMissedBudgetFailsLoudly:
         assert outcome.notified_clinician is True
 
     def test_an_unaddressable_script_raises_rather_than_inventing_one(self) -> None:
-        """No pre-positioned script for this rule at this location means there
-        is nothing to render. The path refuses to derive an id — a guessed
-        script id addresses the wrong words on the device."""
+        """No pre-positioned script for this rule at this location. The path
+        refuses to derive an id — a guessed script id addresses the wrong words
+        on the device — and fails loudly. It still shows the patient a RED: the
+        generic escalation (INT-453; tests/voice/test_red_winner.py)."""
         rig = Rig(scripts=MappingRedScriptIndex(entries={}))
         with pytest.raises(RedPathViolation) as excinfo:
             rig.trigger(red_result(), evaluated_at_ms=0.0)
         assert RedViolation.SCRIPT_UNADDRESSABLE in excinfo.value.violations
-        assert rig.channel.published == []
+        assert [message.script_id for message in rig.channel.published] == [
+            GENERIC_RED_SCRIPT_IDS[RedLocation.REMOTE]
+        ]
         # The intake still stops and the clinician is still told.
         assert rig.media.calls == ["cancel"]
         assert len(rig.clinic.notifications) == 1
@@ -665,7 +669,10 @@ class TestNoPhiOnTheRedPath:
             "location",
             "evaluated_at_ms",
             "patient_facing",
+            # INT-453 / CD-24 delivery floor: a boolean, no patient material.
+            "silent_generic",
         }
+        assert isinstance(dumped["silent_generic"], bool)
         assert "sentetik_yanit" not in json.dumps(dumped, ensure_ascii=False)
 
 
@@ -716,6 +723,32 @@ class TestTheSessionStopsTheIntake:
         assert session.red_stopped is True
         assert outcome.step_id is None
         assert outcome.spoken_text == ""
+
+    def test_protocol_next_after_a_red_offers_and_speaks_no_question(self) -> None:
+        """CD-24 ``generic_red_stops_intake``, voice negative (INT-465). The Talker's
+        own ``protocol_next`` tool reads the engine directly, outside the turn loop,
+        so it is gated too: after a patient-facing RED it offers no step, a repeat
+        has nothing to repeat, and the turn loop speaks nothing. The near miss is the
+        same call before the RED, which does offer the step."""
+        from intake_voice_runtime.talker.tools import RepeatReason, build_talker_tools
+
+        rig = Rig()
+        session = build_session(rig.clock, steps=[scripted_step()], rule_ids=PACK_RULES)
+        session.preemption = rig.path
+        tools = build_talker_tools(session)
+        before = tools.handler("protocol_next")()
+        assert before is not None and before.step_id == "s1"  # near miss: before the RED
+
+        async def scenario() -> Any:
+            await session.deliver_preempt(red_result(), evaluated_at_ms=0.0)
+            return await session.take_turn(None)
+
+        outcome = rig.clock.run(scenario())
+        assert tools.handler("protocol_next")() is None
+        assert session.protocol_next() is None
+        with pytest.raises(LookupError):
+            tools.handler("request_repeat_or_clarify")(RepeatReason.NOT_HEARD)
+        assert outcome.step_id is None and outcome.spoken_text == ""
 
     def test_a_deferred_clinician_red_leaves_the_session_running(self) -> None:
         rig = Rig()

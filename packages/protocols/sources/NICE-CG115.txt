@@ -1,0 +1,49 @@
+# guideline_id: NICE-CG115
+# title: Alcohol-use disorders: diagnosis, assessment and management of harmful drinking (high-risk drinking) and alcohol dependence
+# publisher: National Institute for Health and Care Excellence (NICE)
+# version_or_date: Clinical guideline CG115; published 23 February 2011; last updated 21 October 2014; minor changes August 2019, March 2020, October 2022, March 2025 and April 2026 (Update information)
+# url: https://www.nice.org.uk/guidance/cg115/chapter/Recommendations
+# url_update_information: https://www.nice.org.uk/guidance/cg115/chapter/Update-information
+# retrieved_on: 2026-10-03
+# retrieval: curl with a browser user-agent (HTTP 200 on every page); HTML (utf-8) tags stripped, entities decoded, runs of spaces collapsed, one line per HTML block; characters kept as served (including U+2011 non-breaking hyphens and U+2013 dashes)
+# scope: verbatim excerpt of the page header, recommendations 1.2.2.5 to the first sentence block of 1.2.2.7, then the Update information list; nothing paraphrased or edited. '[...]' marks an omission between excerpts.
+---
+Alcohol-use disorders: diagnosis, assessment and management of harmful drinking (high-risk drinking) and alcohol dependence
+Clinical guideline
+Reference number: CG115
+Published:
+23 February 2011
+Last updated:
+21 October 2014
+[...]
+Brief triage assessment
+1.2.2.5
+All adults who misuse alcohol who are referred to specialist alcohol services should have a brief triage assessment to assess:
+the pattern and severity of the alcohol misuse (using AUDIT) and severity of dependence (using SADQ)
+the need for urgent treatment including assisted withdrawal
+any associated risks to self or others
+the presence of any comorbidities or other factors that may need further specialist assessment or intervention.
+Agree the initial treatment plan, taking into account the service user's preferences and outcomes of any previous treatment.
+Comprehensive assessment
+1.2.2.6
+Consider a comprehensive assessment for all adults referred to specialist alcohol services who score more than 15 on the AUDIT. A comprehensive assessment should assess multiple areas of need, be structured in a clinical interview, use relevant and validated clinical tools (see recommendation 1.2.1.4), and cover the following areas:
+alcohol use, including:
+consumption: historical and recent patterns of drinking (using, for example, a retrospective drinking diary), and if possible, additional information (for example, from a family member or carer)
+dependence (using, for example, SADQ or LDQ)
+alcohol-related problems (using, for example, APQ)
+other drug misuse, including over-the-counter medication
+physical health problems
+psychological and social problems
+cognitive function (using, for example, the Mini-Mental State Examination [MMSE])
+readiness and belief in ability to change.
+1.2.2.7
+Assess comorbid mental health problems as part of any comprehensive assessment, and throughout care for the alcohol misuse, because many comorbid problems (though not all) will improve with treatment for alcohol misuse. Use the assessment of comorbid mental health problems to inform the development of the overall care plan.
+[...]
+Update information
+October 2014: The wording of the final bullet in recommendation 1.3.4.5 has been corrected to make it clear that inpatient or residential assisted withdrawal should be considered for people who regularly drink between 15 and 30 units (not between 15 and 20 units) of alcohol per day, if they also have the additional complicating features mentioned in the recommendation.
+Minor changes since publication
+April 2026 : We added links to NICE's overarching guidelines, including to the guideline on medicines associated with dependence or withdrawal symptoms, to the box at the start of the recommendations section.
+March 2025: We updated links to relevant technology appraisal guidance in the section on interventions for harmful drinking (high-risk drinking) and mild alcohol dependence .
+October 2022: We updated the recommendation about behavioural couples therapy to clarify that this is not suitable in cases of domestic abuse and to add a cross reference to the NICE technology appraisal guidance on nalmefene. We also updated information about off label prescribing, and added cross references to legislation on controlled drugs and driving, to MHRA advice on addiction to benzodiazepines and codeine, and to NICE's guidelines on smoking, on antisocial personality disorder, and on coexisting severe mental illness and substance misuse: community health and social care services.
+March 2020: Link to NICE's guideline on supporting adult carers added to recommendation 1.1.2.2.
+August 2019: We updated the terminology for harmful drinking and hazardous drinking in line with the UK chief medical officers' low risk drinking guidelines .

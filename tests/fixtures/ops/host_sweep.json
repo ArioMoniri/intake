@@ -1,0 +1,266 @@
+[
+  {
+    "component": "postgres",
+    "probe": "postgres_select1",
+    "status": "skipped",
+    "latency_ms": null,
+    "detail": "no probe credential: INTAKE_PROBE_POSTGRES_PASSWORD is unset",
+    "checked_at": "2026-10-28T01:44:48Z"
+  },
+  {
+    "component": "redis",
+    "probe": "redis_ping",
+    "status": "skipped",
+    "latency_ms": null,
+    "detail": "no probe credential: INTAKE_PROBE_REDIS_PASSWORD is unset",
+    "checked_at": "2026-10-28T01:44:48Z"
+  },
+  {
+    "component": "minio",
+    "probe": "minio_ready",
+    "status": "unhealthy",
+    "latency_ms": 0.23537501692771912,
+    "detail": "http request failed: not on the host's compose network",
+    "checked_at": "2026-10-28T01:44:48Z"
+  },
+  {
+    "component": "hapi",
+    "probe": "http_health",
+    "status": "skipped",
+    "latency_ms": null,
+    "detail": "not deployed on synthetic-aws",
+    "checked_at": "2026-10-28T01:44:48Z"
+  },
+  {
+    "component": "ehrbase",
+    "probe": "http_health",
+    "status": "skipped",
+    "latency_ms": null,
+    "detail": "not deployed on synthetic-aws",
+    "checked_at": "2026-10-28T01:44:48Z"
+  },
+  {
+    "component": "openbao",
+    "probe": "openbao_seal_status",
+    "status": "unhealthy",
+    "latency_ms": 0.05420763045549393,
+    "detail": "http request failed: not on the host's compose network",
+    "checked_at": "2026-10-28T01:44:48Z"
+  },
+  {
+    "component": "api",
+    "probe": "http_health",
+    "status": "unhealthy",
+    "latency_ms": 0.03383401781320572,
+    "detail": "http request failed: not on the host's compose network",
+    "checked_at": "2026-10-28T01:44:48Z"
+  },
+  {
+    "component": "probes",
+    "probe": "http_health",
+    "status": "unhealthy",
+    "latency_ms": 0.03349967300891876,
+    "detail": "http request failed: not on the host's compose network",
+    "checked_at": "2026-10-28T01:44:48Z"
+  },
+  {
+    "component": "metrics",
+    "probe": "http_health",
+    "status": "skipped",
+    "latency_ms": null,
+    "detail": "not deployed on synthetic-aws",
+    "checked_at": "2026-10-28T01:44:48Z"
+  },
+  {
+    "component": "learning",
+    "probe": "http_health",
+    "status": "skipped",
+    "latency_ms": null,
+    "detail": "not deployed on synthetic-aws",
+    "checked_at": "2026-10-28T01:44:48Z"
+  },
+  {
+    "component": "voice-runtime",
+    "probe": "livekit_room_join",
+    "status": "skipped",
+    "latency_ms": null,
+    "detail": "not deployed on synthetic-aws",
+    "checked_at": "2026-10-28T01:44:48Z"
+  },
+  {
+    "component": "edge-tls",
+    "probe": "cert_expiry_days",
+    "status": "skipped",
+    "latency_ms": null,
+    "detail": "no server name: INTAKE_PROBE_TLS_SERVER_NAME is unset",
+    "checked_at": "2026-10-28T01:44:48Z"
+  },
+  {
+    "component": "backups",
+    "probe": "backup_freshness",
+    "status": "skipped",
+    "latency_ms": null,
+    "detail": "not deployed on synthetic-aws",
+    "checked_at": "2026-10-28T01:44:48Z"
+  },
+  {
+    "component": "ci-runners",
+    "probe": "runner_heartbeat",
+    "status": "skipped",
+    "latency_ms": null,
+    "detail": "not deployed on synthetic-aws",
+    "checked_at": "2026-10-28T01:44:48Z"
+  },
+  {
+    "component": "langfuse",
+    "probe": "http_health",
+    "status": "skipped",
+    "latency_ms": null,
+    "detail": "not deployed on synthetic-aws",
+    "checked_at": "2026-10-28T01:44:48Z"
+  },
+  {
+    "component": "langfuse-clickhouse",
+    "probe": "http_health",
+    "status": "skipped",
+    "latency_ms": null,
+    "detail": "not deployed on synthetic-aws",
+    "checked_at": "2026-10-28T01:44:48Z"
+  },
+  {
+    "component": "qwen3.5-9b",
+    "probe": "http_health",
+    "status": "skipped",
+    "latency_ms": null,
+    "detail": "not deployed on synthetic-aws",
+    "checked_at": "2026-10-28T01:44:48Z"
+  },
+  {
+    "component": "whisper-tr-medical",
+    "probe": "http_health",
+    "status": "skipped",
+    "latency_ms": null,
+    "detail": "not deployed on synthetic-aws",
+    "checked_at": "2026-10-28T01:44:48Z"
+  },
+  {
+    "component": "freya-tts",
+    "probe": "http_health",
+    "status": "skipped",
+    "latency_ms": null,
+    "detail": "not deployed on synthetic-aws",
+    "checked_at": "2026-10-28T01:44:48Z"
+  },
+  {
+    "component": "voxcpm2-tts",
+    "probe": "http_health",
+    "status": "skipped",
+    "latency_ms": null,
+    "detail": "not deployed on synthetic-aws",
+    "checked_at": "2026-10-28T01:44:48Z"
+  },
+  {
+    "component": "qwen3.6-35b-a3b",
+    "probe": "http_health",
+    "status": "skipped",
+    "latency_ms": null,
+    "detail": "not deployed on synthetic-aws",
+    "checked_at": "2026-10-28T01:44:48Z"
+  },
+  {
+    "component": "deid-tr-ner-v1",
+    "probe": "backup_freshness",
+    "status": "skipped",
+    "latency_ms": null,
+    "detail": "not deployed on synthetic-aws",
+    "checked_at": "2026-10-28T01:44:48Z"
+  },
+  {
+    "component": "wazuh-manager",
+    "probe": "tcp_connect",
+    "status": "skipped",
+    "latency_ms": null,
+    "detail": "not deployed on synthetic-aws",
+    "checked_at": "2026-10-28T01:44:48Z"
+  },
+  {
+    "component": "wazuh-indexer",
+    "probe": "tcp_connect",
+    "status": "skipped",
+    "latency_ms": null,
+    "detail": "not deployed on synthetic-aws",
+    "checked_at": "2026-10-28T01:44:48Z"
+  },
+  {
+    "component": "falco",
+    "probe": "http_health",
+    "status": "skipped",
+    "latency_ms": null,
+    "detail": "not deployed on synthetic-aws",
+    "checked_at": "2026-10-28T01:44:48Z"
+  },
+  {
+    "component": "egress-proxy",
+    "probe": "tcp_connect",
+    "status": "skipped",
+    "latency_ms": null,
+    "detail": "deployed on synthetic-aws; not probed: outside_probe_networks",
+    "checked_at": "2026-10-28T01:44:48Z"
+  },
+  {
+    "component": "sms-egress",
+    "probe": "tcp_connect",
+    "status": "skipped",
+    "latency_ms": null,
+    "detail": "deployed on synthetic-aws; not probed: outside_probe_networks",
+    "checked_at": "2026-10-28T01:44:48Z"
+  },
+  {
+    "component": "edge-ingress",
+    "probe": "http_health",
+    "status": "skipped",
+    "latency_ms": null,
+    "detail": "not deployed on synthetic-aws",
+    "checked_at": "2026-10-28T01:44:48Z"
+  },
+  {
+    "component": "edge-crowdsec",
+    "probe": "tcp_connect",
+    "status": "skipped",
+    "latency_ms": null,
+    "detail": "not deployed on synthetic-aws",
+    "checked_at": "2026-10-28T01:44:48Z"
+  },
+  {
+    "component": "keycloak",
+    "probe": "http_health",
+    "status": "unhealthy",
+    "latency_ms": 0.025540590286254883,
+    "detail": "http request failed: not on the host's compose network",
+    "checked_at": "2026-10-28T01:44:48Z"
+  },
+  {
+    "component": "oauth2-proxy",
+    "probe": "http_health",
+    "status": "unhealthy",
+    "latency_ms": 0.024791806936264038,
+    "detail": "http request failed: not on the host's compose network",
+    "checked_at": "2026-10-28T01:44:48Z"
+  },
+  {
+    "component": "admin-web",
+    "probe": "http_health",
+    "status": "unhealthy",
+    "latency_ms": 0.02487562596797943,
+    "detail": "http request failed: not on the host's compose network",
+    "checked_at": "2026-10-28T01:44:48Z"
+  },
+  {
+    "component": "caddy",
+    "probe": "tcp_connect",
+    "status": "unhealthy",
+    "latency_ms": 0.0028330832719802856,
+    "detail": "tcp connect failed: not on the host's compose network",
+    "checked_at": "2026-10-28T01:44:48Z"
+  }
+]

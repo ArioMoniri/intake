@@ -10,11 +10,11 @@ import type { MessageKey } from "./tr";
  * docs/legal/strings.yaml with sign-off (invariant 18), and a reviewer reading
  * the English catalogue has to see the same three lines called out. */
 export const en: Record<MessageKey, string> = {
-  "app.name": "Vizite",
+  "app.name": "Önvizit",
   "app.tagline": "What you tell us reaches your doctor before the visit.",
   // [REVIEW] fixed non-diagnosis line, 06 §7 family
   "app.disclaimer":
-    "Vizite does not diagnose. What you share never replaces your doctor's assessment.",
+    "Önvizit does not diagnose. What you share never replaces your doctor's assessment.",
 
   "tabs.today": "Today",
   "tabs.visits": "My visits",
@@ -23,7 +23,7 @@ export const en: Record<MessageKey, string> = {
   "tabs.me": "Profile",
 
   "welcome.body":
-    "Vizite collects your complaints by voice or text before the visit and hands your doctor a structured pre-visit note.",
+    "Önvizit collects your complaints before the visit and hands your doctor a structured pre-visit note.",
   "welcome.devSignIn": "Sign in with a test account",
   "welcome.devNote":
     "This screen exists only in development builds; real sign-in uses phone verification.",
@@ -62,7 +62,7 @@ export const en: Record<MessageKey, string> = {
   "auth.biometric.retry": "Try again",
   "auth.integrity.warnTitle": "Device security",
   "auth.integrity.warnBody":
-    "A security change was detected on this device. The interview continues in writing, not by voice.",
+    "A security change was detected on this device. The interview continues in writing.",
 
   "today.nextVisit": "Next visit",
   "today.prep": "Visit preparation",
@@ -102,9 +102,21 @@ export const en: Record<MessageKey, string> = {
   "visits.new.smsFilled": "Your appointment details are filled in. Please check them.",
   "visits.new.smsUnknownBranch": "We could not recognise the clinic name. Please pick it yourself.",
   "visits.new.smsNoDate": "We found no date in the message. Please add the date yourself.",
+  "visits.new.smsAmbiguousDate":
+    "We could not tell for sure which day the message's date means. Please write the date below yourself.",
   "visits.new.smsUnreadable": "We could not read this message. You can enter the details yourself.",
   "visits.new.ocrUnavailable":
     "Reading from an image is not available yet. Please paste the message as text.",
+  "visits.new.core.kicker": "Permission needed",
+  "visits.new.core.title": "Adding a visit needs the core service permission",
+  "visits.new.core.body":
+    "Without this permission the pre-visit interview cannot take place. You can read the permission text and decide. You can withdraw the permission at any moment.",
+  "visits.new.core.staleBody":
+    "The text of the core service permission was updated. To add a visit, you need to read the new text and approve again.",
+  "visits.new.core.pendingBody":
+    "Without this permission the pre-visit interview cannot take place. The permission text is still being prepared. Once it is published, you can read it and decide.",
+  "visits.new.core.cta": "Read the permission text",
+  "visits.new.core.pendingCta": "Go to the permission page",
   "visits.type.first": "First visit",
   "visits.type.followup": "Follow-up",
   "visits.type.preop": "Before surgery",
@@ -117,6 +129,19 @@ export const en: Record<MessageKey, string> = {
   "visits.type.teleconsult": "Remote consultation",
   "visits.detail.noteStatus": "Note status",
   "visits.detail.notStarted": "The conversation has not started yet.",
+
+  // Calendar view + past list on Vizitlerim (02 §4). Month/day names come
+  // from Intl (same source as components/VisitCard.tsx); only the screen's
+  // own chrome lives here.
+  "visits.view.label": "View",
+  "visits.view.list": "List",
+  "visits.view.calendar": "Calendar",
+  "visits.pastEmpty": "You have no past visits.",
+  "visits.calendar.prevMonth": "Previous month",
+  "visits.calendar.nextMonth": "Next month",
+  "visits.calendar.hasVisits": "has a visit",
+  "visits.calendar.noVisitsOnDay": "You have no visits on this day.",
+  "visits.calendar.monthEmpty": "You have no visits this month.",
 
   "records.title": "My records",
   "records.synthetic": "Sample data — synthetic",
@@ -141,6 +166,8 @@ export const en: Record<MessageKey, string> = {
   "records.err.session": "Your session has ended. Please sign in again.",
   "records.err.consent":
     "Your documents permission looks off. You can turn it on from the Profile page.",
+  "records.err.coreConsent":
+    "Your core service permission looks off. You can turn it on from the Profile page.",
   "records.err.scanUnavailable":
     "Document scanning is not available right now. Please try again later.",
   "records.err.rejected": "The document failed the security scan and will not open.",
@@ -215,11 +242,11 @@ export const en: Record<MessageKey, string> = {
   "me.language": "Language",
   "me.learned": "What it learned about me",
   "me.learnedEmpty":
-    "Vizite never permanently learns anything about you without your confirmation.",
+    "Önvizit never permanently learns anything about you without your confirmation.",
   "learned.guide.kicker": "Transparency",
   "learned.guide.title": "Nothing is learned silently",
   "learned.guide.body":
-    "Vizite keeps a lasting fact about you only if you confirm it. Every stored fact appears in this list and can be removed whenever you wish.",
+    "Önvizit keeps a lasting fact about you only if you confirm it. Every stored fact appears in this list and can be removed whenever you wish.",
   // INT-140 — where each fact came from, where it is held, who sees it and
   // how it goes. Re-confirmation is asked during visit preparation.
   "learned.shareLabel": "Share with your doctor",
@@ -674,7 +701,7 @@ export const en: Record<MessageKey, string> = {
   "review.shared": "Shared",
   "review.notShared": "Not shared",
   "review.send": "Send to your doctor",
-  "review.sentInfo": "Your note was sent. You will see the status here once your doctor views it.",
+  "review.sentInfo": "Your note was sent. You can see when it was opened under Your shares.",
   "review.empty": "No answers yet. Answer a few questions first.",
   // INT-236 — clinician-visible deferral marker (02 §33), stale-condition
   // marker and the checkpoint summary.
@@ -697,7 +724,7 @@ export const en: Record<MessageKey, string> = {
   "consent.documents": "Document upload",
   "consent.health": "Health data reading",
   "consent.health.hint":
-    "Your steps, heart rate and sleep are read only on this phone; nothing is sent anywhere. A value enters your note only if you add it yourself.",
+    "Your step, resting heart rate and sleep data is read on this phone. It enters your note only if you add it, and goes with the note if you send it.",
   "consent.on": "On",
   "consent.off": "Off",
 
@@ -706,12 +733,14 @@ export const en: Record<MessageKey, string> = {
   // this catalog (invariant 18).
   "consent.entry.sub": "See and manage what each permission is for.",
   "consent.firstRun.body":
-    "In Vizite every permission stands on its own. Nothing that needs your permission comes switched on. You do not have to decide now; you can turn each one on when it comes up, or here.",
+    "In Önvizit every permission stands on its own. Nothing that needs your permission comes switched on. You do not have to decide now; you can turn each one on when it comes up, or here.",
   "consent.firstRun.continue": "Continue",
   "consent.group.core": "Service",
   "consent.group.voice": "Voice sessions",
   "consent.group.voice.hint":
-    "Voice analysis options only work together with voice sessions. Text analysis looks at the written text, not the recording; it is a separate permission.",
+    "Voice analysis options only work together with voice sessions. Text analysis looks at the written text, not the voice; it is a separate permission.",
+  "consent.group.voice.release":
+    "This version has no voice sessions; these permissions are not used.",
   "consent.group.purposes": "Other purposes",
   "consent.group.learning": "Learning",
   "consent.group.learning.hint":
@@ -722,12 +751,14 @@ export const en: Record<MessageKey, string> = {
   "consent.learning.service": "Improving the service",
   "consent.satisfaction": "Satisfaction questions",
   "consent.research": "Research",
-  "consent.who.core": "Only you and the doctor you approve see what you share.",
+  "consent.who.core":
+    "You see your answers. Your doctor sees your note only if you share it. On an emergency flag, clinic staff see an alert that does not contain your health answers. Where your data is processed is stated in the consent text.",
   "consent.who.voice":
-    "Your voice is processed only during the session; no recording is kept. Data stays on servers in Türkiye.",
+    "Your voice is turned into text during the session; no audio recording is kept. Where your voice is processed and who receives it is stated in the consent text.",
   "consent.who.laneAffect":
-    "Only your doctor sees cues drawn from your tone of voice; no label is put on you.",
-  "consent.who.laneLinguistic": "Only your doctor sees cues drawn from the transcribed text.",
+    "Cues drawn from your tone of voice only adjust the pace and flow of the session. They do not go to your doctor, are not written into your note and are not shown to you.",
+  "consent.who.laneLinguistic":
+    "Cues drawn from the transcribed text do not go to your doctor and are not written into your note.",
   "consent.who.wellbeing":
     "Only you see your answers; sharing with your doctor is asked separately every time.",
   "consent.who.documents":
@@ -739,8 +770,6 @@ export const en: Record<MessageKey, string> = {
   "consent.who.satisfaction":
     "Your answers are used to evaluate the service; they do not go to your doctor.",
   "consent.who.research": "Your data is used in research only if you approve.",
-  "consent.basis.service":
-    "This is the service itself; it has no switch. It ends when you stop using Vizite.",
   "consent.basis.explicit":
     "Based on your explicit consent. You can withdraw at any moment; withdrawal takes effect immediately.",
   "consent.basis.learningPersonal":
@@ -749,7 +778,6 @@ export const en: Record<MessageKey, string> = {
     "The service is improved with aggregated data separated from your identity; that is why it comes switched on. Turning it off restricts no feature.",
   "consent.state.pending": "Text in preparation",
   "consent.state.stale": "Needs new approval",
-  "consent.state.service": "Basis of the service",
   "consent.pending.body":
     "The text for this permission is being prepared. It cannot be switched on before the text is published; it will appear here once ready.",
   "consent.stale.body":
@@ -797,6 +825,7 @@ export const en: Record<MessageKey, string> = {
   "a11y.backHint": "Double tap to go back.",
   "a11y.closeHint": "Double tap to close.",
   "a11y.selectHint": "Double tap to select.",
+  "a11y.visits.dayHint": "Double tap to see this day's visits.",
   "a11y.confirmHint": "Double tap to confirm.",
   "a11y.shareHint": "Double tap to share or stop sharing this section.",
   "a11y.typedHint": "Double tap to continue by typing instead of speaking.",
@@ -812,10 +841,10 @@ export const en: Record<MessageKey, string> = {
   "a11y.learned.forgetHint": "Double tapping deletes this detail from your record.",
   "a11y.ladder.reached": "done",
   "a11y.ladder.pending": "not yet done",
-  "a11y.speaker.agent": "Vizite",
+  "a11y.speaker.agent": "Önvizit",
   "a11y.speaker.patient": "You",
   "a11y.dialogue.transcript": "Conversation transcript",
-  "a11y.dialogue.speaking": "Vizite is speaking",
+  "a11y.dialogue.speaking": "Önvizit is speaking",
   "a11y.dialogue.preparing": "Preparing the question",
   "a11y.dialogue.transcribing": "Turning what you said into text",
   "a11y.dialogue.settling": "Preparing your note",
@@ -879,7 +908,7 @@ export const en: Record<MessageKey, string> = {
   "companion.thirdParty.kicker": "Is anyone with you",
   "companion.thirdParty.label": "Someone else is with me",
   "companion.thirdParty.footer":
-    "With someone else present, some questions are not asked aloud. That is for your privacy.",
+    "With someone else present, some very private questions are not asked. That is for your privacy.",
   "companion.ack.kicker": "Your acknowledgement",
   "companion.ack.label": "I confirm I am speaking on the patient's behalf",
   "companion.ack.notProof":
@@ -1140,8 +1169,72 @@ export const en: Record<MessageKey, string> = {
   "intake.measure.untouched": "It is recorded once you adjust the value.",
   // --- INT-286 · open-ended asking ------------------------------------------
   "dialogue.openInvite": "You can tell me in your own words.",
-  "intake.open.hint": "You can write it, or say it, in your own words.",
+  "intake.open.hint": "You can write it in your own words.",
+  "intake.open.hintVoice": "You can write it, or say it, in your own words.",
   "intake.open.orChoose": "Or choose from below.",
+
+  // --- INT-414 · conversational delivery (the words around a question, never
+  // inside it). Mirrors only: the Turkish is the source of truth and the voice
+  // is Turkish whatever the UI locale.
+  "dialogue.delivery.welcome.a": "Welcome. Before your examination, I will ask you some questions.",
+  "dialogue.delivery.welcome.b":
+    "Hello, and welcome. Before the examination, let us go through some questions together.",
+  "dialogue.delivery.welcome.c":
+    "Welcome. To prepare for your examination, I would like to ask you some questions.",
+  "dialogue.delivery.orientVoice.a":
+    "You can also see the questions on the screen. If you wish, you can answer by typing too.",
+  "dialogue.delivery.orientVoice.b":
+    "You can interrupt me while I am speaking. The questions also stay written on the screen.",
+  "dialogue.delivery.orientTyped.a": "You can answer the questions at your own pace.",
+  "dialogue.delivery.orientTyped.b":
+    "You can move through them at your own pace, without hurrying.",
+  "dialogue.delivery.resume.a": "Let us continue where we left off.",
+  "dialogue.delivery.resume.b": "Let us pick up where we left off.",
+  "dialogue.delivery.lead.a": "Let us continue.",
+  "dialogue.delivery.lead.b": "Let us move on to the next question.",
+  "dialogue.delivery.lead.c": "Now let us ask this.",
+  "dialogue.delivery.lead.d": "I would also like to know this.",
+  "dialogue.delivery.thanks.a": "Thanks.",
+  "dialogue.delivery.thanks.b": "Thank you.",
+  "dialogue.delivery.thanks.c": "Noted, thank you.",
+  "dialogue.delivery.hesitant.a": "I understand; let us go on.",
+  "dialogue.delivery.hesitant.b": "Alright, I have noted it that way.",
+  "dialogue.delivery.revised.a": "Thank you for the correction.",
+  "dialogue.delivery.revised.b": "I have noted your correction.",
+  "dialogue.delivery.silence.a": "You can come back to the previous question later, on the screen.",
+  "dialogue.delivery.silence.b": "You can answer the previous question later, on the screen.",
+  "dialogue.delivery.repair.b":
+    "I did not quite understand your answer. Let us ask the question once more.",
+  "dialogue.delivery.pain.a": "I would like to understand your pain a little better.",
+  "dialogue.delivery.pain.b": "Let us ask a few details about your pain.",
+  "dialogue.delivery.instrument.a":
+    "The next questions belong to a standard questionnaire. That is why they are always asked the same way.",
+  "dialogue.delivery.instrument.b":
+    "Now let us move to a questionnaire that is asked the same way of everyone.",
+  "dialogue.delivery.sensitive.a":
+    "The next topic is a little more private. You can answer without hurrying.",
+  "dialogue.delivery.sensitive.b": "Now let us move to a more personal topic.",
+  "dialogue.delivery.sensitiveLead.a": "Let us continue, little by little.",
+  "dialogue.delivery.sensitiveLead.b": "You can answer in the way that feels comfortable to you.",
+  "dialogue.delivery.topic.allergies.a": "Now let us move to questions about allergies.",
+  "dialogue.delivery.topic.allergies.b": "Next come questions about allergies.",
+  "dialogue.delivery.topic.medications.a": "Now let us move to questions about medicines.",
+  "dialogue.delivery.topic.medications.b": "Next come questions about medicines.",
+  "dialogue.delivery.topic.pmh.a": "Now let us move to questions about your health history.",
+  "dialogue.delivery.topic.pmh.b": "Next come questions about your health history.",
+  "dialogue.delivery.topic.family.a":
+    "Now let us turn to your family's health history. You can answer without hurrying.",
+  "dialogue.delivery.topic.family.b": "The next questions are about your family's health history.",
+  "dialogue.delivery.topic.social.a": "Now let us move to questions about your daily life.",
+  "dialogue.delivery.topic.social.b": "Next come questions about your daily life.",
+  "dialogue.delivery.topic.measurements.a":
+    "Now let us gather some information about a few measurements.",
+  "dialogue.delivery.topic.measurements.b": "Next come questions about measurements.",
+  "dialogue.delivery.topic.wrapup.a": "Before we finish, let us also ask this.",
+  "dialogue.delivery.topic.wrapup.b": "We are nearing the end.",
+  "dialogue.delivery.closing.a": "That is all my questions. Thank you for your time.",
+  "dialogue.delivery.closing.b":
+    "We have reached the end of the questions. Thank you for your time.",
 
   // --- INT-137 · consent summary above Send, and the satisfaction question.
   "review.consent.title": "Sharing summary",
@@ -1232,9 +1325,43 @@ export const en: Record<MessageKey, string> = {
   "shares.issue.error.limited": "Too many attempts. Try again a little later.",
   "shares.issue.error.unavailable": "Sharing is not open right now. Try again later.",
   "shares.issue.error.unreachable": "The link could not be created. Try again later.",
+  "shares.issue.error.consent":
+    "The link could not be created because there is no sharing consent.",
+  "shares.issue.error.session": "The link could not be created because you are signed out.",
   "a11y.shares.revokeHint": "Double tapping stops this share.",
   "a11y.shares.confirmHint": "Double tapping sends the request to stop.",
   "a11y.shares.issueHint": "Creates a link you can show your doctor.",
+  "shares.consent.title": "Your sharing consent",
+  "shares.consent.withdraw": "Withdraw sharing consent",
+  "shares.consent.confirm": "Confirm the withdrawal",
+  "shares.consent.effect": "If you withdraw it, the open links of all your notes close.",
+  "shares.consent.done": "Your sharing consent is withdrawn. Open links are closed.",
+  "shares.consent.unsent":
+    "Your withdrawal has not reached the server yet. Links may still be open.",
+  "a11y.shares.consentHint": "Double tapping prepares the withdrawal of your sharing consent.",
+  "a11y.shares.consentConfirmHint": "Double tapping sends the withdrawal.",
+  "delivery.consent.title": "Sharing consent",
+  "delivery.consent.body":
+    "Your note is shared with your doctor only with your consent. Without it, your note stays on this phone only.",
+  "delivery.consent.again": "Your sharing consent is needed again for your note to go.",
+  "delivery.consent.pendingBody":
+    "The note is not sent until the sharing text is ready. Your note is waiting on this phone.",
+  "delivery.edit": "Edit the note",
+  "delivery.consent.decline": "Not now",
+  "delivery.consent.review": "Read the sharing consent",
+  "delivery.declined": "Your note was not sent; it stays on this phone only.",
+  "delivery.status.title": "Delivery status",
+  "delivery.queued":
+    "Your note is waiting to be sent. It goes on its own once the server can be reached.",
+  "delivery.held": "Your note is on this phone; it has not reached your doctor.",
+  "delivery.refused.session": "The note could not be sent because you are signed out.",
+  "delivery.refused.core":
+    "The note could not be sent because your core service permission is off.",
+  "delivery.refused.notFound":
+    "The note could not be sent because this visit was not found on the server.",
+  "delivery.refused.invalid": "The note could not be sent as it is.",
+  "delivery.refused.rejected": "The note could not be sent.",
+  "delivery.retry": "Try again",
 
   // INT-143 — kiosk mode.
   "kiosk.lock.title": "Kiosk mode",
@@ -1256,4 +1383,12 @@ export const en: Record<MessageKey, string> = {
   "kiosk.tamper.body":
     "This device's kiosk lock is no longer active. Before continuing, staff must re-lock the device, then enter the clinic PIN.",
   "kiosk.privacy.note": "This is a shared device. Your information is not stored here.",
+  "kiosk.idle.warning":
+    "Are you still there? To protect your information, the session will close shortly.",
+  "kiosk.idle.extend": "Continue",
+  "kiosk.idle.extendHint": "Keeps the session open.",
+  "red.call112": "Call 112",
+  "red.location.yes": "Yes",
+  "red.location.no": "No",
+  "red.doNots": "Please do not",
 };

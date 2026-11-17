@@ -53,6 +53,13 @@ TENANT_SCOPED = (
     # (the fact value is envelope-encrypted, like notes.payload)
     "patient_overlays",
     "overlay_facts",
+    # Owner directive — the frozen hospital-facing previsit output. Tenant
+    # scoped like the note it derives from; the payload is an envelope.
+    "previsit_outputs",
+    # INT-123 — the record index. Tenant-scoped like every table here, and
+    # additionally patient-scoped by a RESTRICTIVE policy that
+    # tests/records/test_vector_rls.py checks against Table.info.
+    "record_embeddings",
 )
 
 CLINICIAN_READ = ("patients", "sessions", "slots", "notes", "documents")

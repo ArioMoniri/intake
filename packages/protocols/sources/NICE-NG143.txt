@@ -1,0 +1,190 @@
+# guideline_id: NICE-NG143
+# title: Fever in under 5s: assessment and initial management
+# publisher: National Institute for Health and Care Excellence (NICE)
+# version_or_date: NICE guideline NG143; published 07 November 2019; last updated 26 November 2021; minor changes since publication July 2022, October 2022, March 2024 and November 2025 (Update information)
+# url: https://www.nice.org.uk/guidance/ng143/chapter/Recommendations ; https://www.nice.org.uk/guidance/ng143/chapter/Update-information
+# retrieved_on: 2026-10-03
+# retrieval: curl with a browser user-agent (HTTP 200 on both pages); HTML tags stripped, entities decoded, runs of spaces collapsed, one line per HTML block; table cells end with ' | ' (the marker is the extraction's, not NICE's text); trailing whitespace removed from every line
+# scope: verbatim excerpt of the page header, the Update information list of minor changes, recommendations 1.2.1-1.2.7, Table 2, section 1.3 and section 1.7; nothing paraphrased or edited; omissions marked [...]
+---
+ NICE guideline
+ Reference number: NG143
+ Published:
+ 07 November 2019
+ Last updated:
+ 26 November 2021
+[...]
+ Minor changes since publication
+ November 2025: We updated various links to NICE's guideline on suspected sepsis in under 16s.
+ March 2024: We updated links to our guidance on bacterial meningitis and meningococcal disease following the launch of NICE's guideline on meningitis (bacterial) and meningococcal disease: recognition, diagnosis and management.
+ October 2022: We added text to indicate that pulse oximetry may be less reliable in people with dark skin. We also added a link to the NHS patient safety alerton the risk of harm from inappropriate placement of pulse oximeter probes. See recommendations 1.2.22, 1.2.28, 1.5.21.
+ In recommendation 1.5.16 we updated the volume of fluid bolus used for intravenous fluid therapy from 20 ml/kg to 10 ml/kg in children under 5 with fever and shock. See the surveillance report for more information.
+ July 2022: We updated the symptoms and signs that increase the likelihood of a UTI being present in table 3 and updated links to the NICE guideline on urinary tract infection in under 16s throughout.
+ November 2021: We added a definition of sepsis to recommendation 1.2.2. We also added a cross reference to table 2 to guide users to the risk stratification tool for children aged under 5 years with suspected sepsis (table 1 in the NICE guideline on suspected sepsis in under 16s).
+[...]
+ 1.2 Clinical assessment of children with fever
+ 1.2.1
+ First, healthcare professionals should identify any immediately life‑threatening features, including compromise of the airway, breathing or circulation, and decreased level of consciousness. [2007]
+ 1.2.2
+ Think 'Could this be sepsis?' and refer to NICE's guideline on suspected sepsis in under 16s if a child presents with fever and symptoms or signs that indicate possible sepsis. [2017]
+Sepsis is a condition of life-threatening organ dysfunction due to a dysregulated host response to infection.
+ Assessment of risk of serious illness
+ 1.2.3
+ Assess children with feverish illness for the presence or absence of symptoms and signs that can be used to predict the risk of serious illness using the traffic light system (see table 2). [2013]
+ 1.2.4
+ When assessing children with learning disabilities, take the individual child's learning disability into account when interpreting the traffic light table. [2013]
+ 1.2.5
+ Recognise that children with any of the following symptoms or signs are in a high-risk group for serious illness:
+ pale/mottled/ashen/blue skin, lips or tongue
+ no response to social cues
+ appearing ill to a healthcare professional
+ does not wake or if roused does not stay awake
+ weak, high-pitched or continuous cry
+ grunting
+ respiratory rate greater than 60 breaths per minute
+ moderate or severe chest indrawing
+ reduced skin turgor
+ bulging fontanelle. [2013]
+ 1.2.6
+ Recognise that children with any of the following symptoms or signs are in at least an intermediate-risk group for serious illness:
+ pallor of skin, lips or tongue reported by parent or carer
+ not responding normally to social cues
+ no smile
+ wakes only with prolonged stimulation
+ decreased activity
+ nasal flaring
+ dry mucous membranes
+ poor feeding in infants
+ reduced urine output
+ rigors. [2013]
+ 1.2.7
+ Recognise that children who have all of the following features, and none of the high- or intermediate-risk features, are in a low-risk group for serious illness:
+ normal colour of skin, lips and tongue
+ responds normally to social cues
+ content or smiles
+ stays awake or awakens quickly
+ strong normal cry or not crying
+ normal skin and eyes
+ moist mucous membranes. [2013]
+[...]
+ Identifying risk of serious illness
+ Refer to table 1 in the NICE guideline on suspected sepsis in under 16s if a child presents with fever and symptoms or signs that indicate possible sepsis.
+ Children with fever and any of the symptoms or signs in the red column should be recognised as being at high risk. Similarly, children with fever and any of the symptoms or signs in the amber column and none in the red column should be recognised as being at intermediate risk. Children with symptoms and signs in the green column and none in the amber or red columns are at low risk. The management of children with fever should be directed by the level of risk.
+ Table 2 indicates a traffic light system to be used in conjunction with the recommendations in this guideline on investigations and initial management in children with fever.
+ A colour version of this table is available on the NICE tools and resources page.
+ Table 2 Traffic light system for identifying risk of serious illness [2013]
+ |
+ Green – low risk |
+ Amber – intermediate risk |
+ Red – high risk |
+ Colour |
+ Normal colour
+ |
+ Pallor reported by parent/carer
+ |
+ Pale, mottled, ashen or blue
+ |
+ Activity |
+ Responds normally to social cues
+ Content or smiles
+ Stays awake or awakens quickly
+ Strong normal cry or not crying
+ |
+ Not responding normally to social cues
+ No smile
+ Wakes only with prolonged stimulation
+ Decreased activity
+ |
+ No response to social cues
+ Appears ill to a healthcare professional
+ Does not wake or if roused does not stay awake
+ Weak, high-pitched or continuous cry
+ |
+ Respiratory |
+ –
+ |
+ Nasal flaring
+ Tachypnoea: respiratory rate
+ >50 breaths per minute, age 6 to 12 months;
+ >40 breaths per minute, age more than 12 months
+ Oxygen saturation less than or equal to 95% in air
+ Crackles in the chest
+ |
+ Grunting
+ Tachypnoea: respiratory rate more than 60 breaths per minute
+ Moderate or severe chest indrawing
+ |
+ Circulation and hydration |
+ Normal skin and eyes
+ Moist mucous membranes
+ |
+ Tachycardia:
+ More than 160 beats per minute, age less than 12 months
+ More than 150 beats per minute, age 12 to 24 months
+ More than 140 beats per minute, age 2 to 5 years
+ Capillary refill time more than or equal to 3 seconds
+ Dry mucous membranes
+ Poor feeding in infants
+ Reduced urine output
+ |
+ Reduced skin turgor
+ |
+ Other |
+ None of the amber or red symptoms or signs
+ |
+ Age 3 to 6 months, temperature more than or equal to 39°C
+ Fever for more than or equal to 5 days
+ Rigors
+ Swelling of a limb or joint
+ Non-weight bearing limb or not using an extremity
+ |
+ Age less than 3 months, temperature more than or equal to 38°C
+ Non-blanching rash
+ Bulging fontanelle
+ Neck stiffness
+ Status epilepticus
+ Focal neurological signs
+ Focal seizures
+ |
+ Note that some vaccinations have been found to induce fever in children aged under 3 months.
+[...]
+ 1.3 Management by remote assessment
+ Remote assessment refers to situations in which a child is assessed by a healthcare professional who is unable to examine the child because the child is geographically remote from the assessor (for example, telephone calls to NHS 111). Therefore, assessment is largely an interpretation of symptoms rather than physical signs. The guidance in this section may also apply to healthcare professionals whose scope of practice does not include the physical examination of a young child (for example, community pharmacists).
+ Management according to risk of serious illness
+ 1.3.1
+ Healthcare professionals performing a remote assessment of a child with fever should seek to identify symptoms and signs of serious illness and specific diseases as described in the section on clinical assessment of children with fever and summarised in tables 2 and 3. [2007]
+ 1.3.2
+ Children whose symptoms or combination of symptoms suggest an immediately life-threatening illness (see the recommendations on life-threatening features of illness in children) should be referred immediately for emergency medical care by the most appropriate means of transport (usually 999 ambulance). [2007]
+ 1.3.3
+ Children with any 'red' features but who are not considered to have an immediately life-threatening illness should be urgently assessed by a healthcare professional in a face-to-face setting within 2 hours. [2007]
+ 1.3.4
+ Children with 'amber' but no 'red' features should be assessed by a healthcare professional in a face-to-face setting. The urgency of this assessment should be determined by the clinical judgement of the healthcare professional carrying out the remote assessment. [2007]
+ 1.3.5
+ Children with 'green' features and none of the 'amber' or 'red' features can be cared for at home with appropriate advice for parents and carers, including advice on when to seek further attention from the healthcare services (see the section on care at home). [2007, amended 2013]
+[...]
+ 1.7 Advice for home care
+ Care at home
+ 1.7.1
+ Advise parents or carers to manage their child's temperature as described in the section on antipyretic interventions. [2007]
+ 1.7.2
+ Advise parents or carers looking after a feverish child at home:
+ to offer the child regular fluids (where a baby or child is breastfed the most appropriate fluid is breast milk)
+ how to detect signs of dehydration by looking for the following features:
+ sunken fontanelle
+ dry mouth
+ sunken eyes
+ absence of tears
+ poor overall appearance
+ to encourage their child to drink more fluids and consider seeking further advice if they detect signs of dehydration
+ how to identify a non-blanching rash
+ to check their child during the night
+ to keep their child away from nursery or school while the child's fever persists but to notify the school or nursery of the illness. [2007]
+ When to seek further help
+ 1.7.3
+ Following contact with a healthcare professional, parents and carers who are looking after their feverish child at home should seek further advice if:
+ the child has a fit
+ the child develops a non-blanching rash
+ the parent or carer feels that the child is less well than when they previously sought advice
+ the parent or carer is more worried than when they previously sought advice
+ the fever lasts 5 days or longer
+ the parent or carer is distressed, or concerned that they are unable to look after their child. [2007, amended 2019]

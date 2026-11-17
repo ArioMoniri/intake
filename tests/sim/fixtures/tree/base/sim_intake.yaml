@@ -73,7 +73,7 @@ sections:
         follow_up_tr:
           tr: "Kimin adına yanıtladığınızı söyleyebilir misiniz?"
         choices_tr:
-          tr: ["kendim", "yakinim"]
+          tr: ["kendim için", "yakınım adına"]
       basvuru_nedeni:
         type: code
         valueset: vs.sentetik_basvuru_nedeni

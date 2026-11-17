@@ -1,0 +1,37 @@
+# guideline_id: UKHSA-GREENBOOK-CH6-2017
+# title: Contraindications and special considerations: the green book, chapter 6 (Immunisation against infectious disease)
+# publisher: UK Health Security Agency (gov.uk publication page; chapter first published by Public Health England)
+# version_or_date: Chapter 6, August 2017 (PDF running header); gov.uk page first published 20 March 2013, last updated 26 October 2017
+# url: https://www.gov.uk/government/publications/contraindications-and-special-considerations-the-green-book-chapter-6
+# url_pdf: https://assets.publishing.service.gov.uk/media/5a82ce28e5274a2e8ab5970f/Greenbook_chapter_6.pdf
+# retrieved_on: 2026-10-03
+# retrieval: curl with a browser user-agent (HTTP 200 on the page and the PDF); PDF text extracted with pdftotext (poppler); within each excerpted paragraph the PDF line wraps are joined with single spaces, bullet glyphs and the running page headers are dropped; the degree sign after 38.5 is not extracted by pdftotext and is shown as the extraction gives it (a space)
+# scope: verbatim excerpt of the title lines, 'Previous anaphylaxis to a vaccine or to a vaccine component', the allergen and vaccine list for egg, neomycin, streptomycin or polymyxin B, and gelatine, and the opening of 'Temporary deferral of immunisation'; nothing paraphrased or edited. '[...]' marks an omission between excerpts.
+---
+Chapter 6: Contraindications and special considerations
+August 2017
+[...]
+Previous anaphylaxis to a vaccine or to a vaccine component
+Individuals who have had confirmed anaphylactic reaction to a previous dose of a vaccine containing the same antigens, or a confirmed anaphylactic reaction to another component contained in the relevant vaccine should not receive the vaccine concerned. Other vaccines can and should be given where appropriate. Facilities for treating anaphylaxis should be available in all vaccination settings.
+[...]
+The most common allergens and vaccines known to contain them are listed below and discussed further in the appropriate chapters. The list is not exhaustive and anaphylactic reactions to other vaccine components are possible; if so, it may be necessary to check the summary of product characteristics and/or with the manufacturer to understand whether a specific vaccine contains the implicated component.
+Egg allergy
+Influenza (see chapter 19)
+Tick-borne encephalitis (Chapter 31)
+Yellow fever (Chapter 35)
+Hepatitis A (Chapter 17)
+Note: Recent data suggest that anaphylactic reactions to MMR vaccine are not associated with hypersensitivity to egg antigens. All children with egg allergy should receive the MMR vaccination as a routine procedure in primary care. See Chapter 21 (Measles) for more details.
+Neomycin, streptomycin or polymyxin B allergies
+Pertussis (Chapter 24)
+Polio (Chapter 26)
+Tetanus (Chapter 30)
+Shingles (Chapter 28a)
+Varicella (Chapter 34)
+Measles, Mumps and Rubella (Chapters 21, 23 and 28)
+Gelatine allergy
+Shingles (Chapter 28a)
+Varicella (Chapter 34)
+Measles, Mumps and Rubella (Chapters 21, 23 and 28)
+[...]
+Temporary deferral of immunisation
+There will be very few occasions when deferral of immunisation is required. Minor illnesses without fever or systemic upset are not valid reasons to postpone immunisation. If an individual is acutely unwell (for example with a fever above 38.5 C), immunisation may be postponed until they have fully recovered. This is to avoid wrongly attributing any new symptom or the progression of symptoms to the vaccine.

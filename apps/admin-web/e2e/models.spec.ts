@@ -163,6 +163,30 @@ describe("near-miss negative control — amber does not block", () => {
   });
 });
 
+describe("probe results the gate read (INT-377)", () => {
+  it("says the sweep is unknown, with the server's code, when none was read", () => {
+    // the fixture is recorded from a checkout with no runner file configured
+    const view = renderModelsModule(payload());
+    expect(view.probeResults).toEqual({ state: "unknown", reason: "probe_results_unconfigured" });
+    expect(view.releaseTile.blocked).toBe(true);
+  });
+
+  it("carries a refused file's code through and keeps the release blocked", () => {
+    const refused = {
+      ...payload(),
+      probe_results: { state: "unknown" as const, reason: "probe_results_unreadable" },
+    };
+    const view = renderModelsModule(refused);
+    expect(view.probeResults.reason).toEqual("probe_results_unreadable");
+    expect(view.releaseControl.enabled).toBe(false);
+  });
+
+  it("near miss: a read sweep reads ok with no reason", () => {
+    const read = { ...payload(), probe_results: { state: "ok" as const, reason: null } };
+    expect(renderModelsModule(read).probeResults).toEqual({ state: "ok", reason: null });
+  });
+});
+
 describe("benchmark trigger", () => {
   it("offers a benchmark control on every row", () => {
     const view = renderModelsModule(payload());

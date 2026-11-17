@@ -36,6 +36,7 @@ from intake_api.db import tenant_session
 from intake_api.dev_fixture import DEV_PATIENT_ID, DEV_TENANT_ID
 from intake_platform.consent import (
     CHANNELS,
+    OPT_OUT_VERSION,
     PURPOSES,
     SWEEP_INTERVAL,
     WITHDRAWAL_CASCADE_BUDGET,
@@ -440,6 +441,65 @@ def test_voice_withdrawal_cascades_exactly_its_dependent_lane(
     assert "lane:affect" not in live  # rides the voice stream (files/06 §2.1)
     assert "lane:linguistic" in live  # text-only lane is independent (files/06 §2.1)
     assert "core" in live  # withdrawal never over-reaches
+    # near miss for the core cascade below: no default-on purpose is touched
+    for scope in DEFAULT_ON_PURPOSES:
+        assert _scope_rows(bound_harness, scope) == [], scope
+
+
+DEFAULT_ON_PURPOSES = ("learning:personal", "learning:service_improvement")
+
+
+def _scope_rows(harness: ApiHarness, scope: str) -> list[Consent]:
+    async def _read() -> list[Consent]:
+        async with AsyncSession(harness.engine) as session:
+            rows = (
+                await session.scalars(
+                    select(Consent).where(
+                        Consent.tenant_id == DEV_TENANT_ID,
+                        Consent.patient_id == DEV_PATIENT_ID,
+                        Consent.scope == scope,
+                    )
+                )
+            ).all()
+            return list(rows)
+
+    result: list[Consent] = run(_read())
+    return result
+
+
+def test_core_withdrawal_writes_the_opt_out_of_every_undecided_default_on_purpose(
+    bound_harness: ApiHarness,
+) -> None:
+    """INT-537 (legal review B1): the core text says every other permission
+    closes with it. A default-on purpose nobody decided has no row to revoke,
+    so the cascade writes its opt-out — the same construct a direct opt-out
+    writes — and audits it as a cascade."""
+    state = api_state(bound_harness)
+
+    async def _withdraw() -> tuple[str, ...]:
+        async with tenant_session(bound_harness.engine, DEV_TENANT_ID) as session:
+            report = await withdraw_consent(
+                session,
+                tenant_id=DEV_TENANT_ID,
+                patient_id=DEV_PATIENT_ID,
+                scope="core",
+                audit=state.audit,
+                actor="dev-patient",
+            )
+            return report.withdrawn_scopes
+
+    withdrawn: tuple[str, ...] = run(_withdraw())
+    for scope in DEFAULT_ON_PURPOSES:
+        assert scope in withdrawn
+        (row,) = _scope_rows(bound_harness, scope)
+        assert row.version == OPT_OUT_VERSION
+        assert row.revoked_at is not None and row.granted_at == row.revoked_at
+    cascaded = {
+        e.consent_scope_ref
+        for e in bound_harness.audit_store.entries()
+        if e.action == "consent.cascade"
+    }
+    assert {f"scope:{scope}" for scope in DEFAULT_ON_PURPOSES} <= cascaded
 
 
 class FakeClock:
@@ -524,6 +584,10 @@ def test_sweep_completes_a_crash_interrupted_cascade_within_the_budget(
     assert repaired > 0
     assert _live_scopes(bound_harness) == set()
     assert _live_share_count(bound_harness) == 0
+    # INT-537: the repair completes the default-on opt-outs too
+    for scope in DEFAULT_ON_PURPOSES:
+        (row,) = _scope_rows(bound_harness, scope)
+        assert row.version == OPT_OUT_VERSION, scope
     assert clock.now() - withdrawal_at <= schedule.interval
     assert clock.now() + schedule.pass_budget - withdrawal_at <= WITHDRAWAL_CASCADE_BUDGET
     cascade = [e for e in bound_harness.audit_store.entries() if e.action == "consent.cascade"]

@@ -17,7 +17,9 @@ What this module owes the rest of the compiler:
   (HB-C1), the maturity ladder (files/09 §2), rule provenance (files/04 §8.1
   rule 3), RED's three axes (invariant 21), monotonicity (invariant 7) and
   the openEHR annotation (ADR-002), and the data-category register row
-  (INT-349).
+  (INT-349). Monotonicity includes the merged pack itself: no op in any layer
+  may remove a slot a pack rule or a ``base.life_threat`` rule reads
+  (INT-382).
 """
 
 from __future__ import annotations
@@ -36,8 +38,10 @@ from protocols.compile.data_categories import (
     slot_category_refusals,
 )
 from protocols.compile.errors import CompileError, Refusal, RefusalCode
+from protocols.compile.gate_values import gate_value_refusals
 from protocols.compile.life_threat import LifeThreatSet
 from protocols.compile.overlay import MONOTONICITY_FINDINGS, compose_overlay_rules
+from protocols.compile.rule_reads import rule_read_refusals
 from protocols.data_register import NO_REGISTER, DataCategoryRegister
 from protocols.dsl import Instrument, RedFlagRule, Slot, UnknownAction, VoiceSettings
 from protocols.gates import GateRefProblem, SlotNamespace, qualify_gate
@@ -61,6 +65,7 @@ from protocols.pack_locale import selectable_locales
 from protocols.triage.expr import WhenGrammarError, parse_when
 from protocols.types import CrisisNumber, Delivery, Maturity, PackLayer, RuleStatus
 from protocols.validator import FindingCode, resolve_red_flags, validate_packs
+from protocols.valuesets import NO_VALUESETS, ValueSetTable
 
 __all__ = [
     "ResolvedProtocol",
@@ -743,6 +748,7 @@ def resolve_protocol(
     licences: LicenceTable | None = None,
     locale: str = DEFAULT_LOCALE,
     data_register: DataCategoryRegister | None = None,
+    valuesets: ValueSetTable | None = None,
 ) -> ResolvedProtocol:
     """Resolve one pack into the document the emitters project from.
 
@@ -754,9 +760,13 @@ def resolve_protocol(
     ``data_register`` is the per-category register (INT-349). Omitted, it has
     no rows, so a slot tagged with anything but ``general_health`` refuses.
 
+    ``valuesets`` is the committed value-set table (INT-441). Omitted, nothing
+    is committed, so every gate that compares a code slot refuses.
+
     Raises :class:`CompileError` carrying **every** reason it refused.
     """
     register = NO_REGISTER if data_register is None else data_register
+    committed = NO_VALUESETS if valuesets is None else valuesets
     refusals: list[Refusal] = list(_signoff_refusals(life_threat))
     refusals.extend(_rule_refusals([r.rule for r in life_threat.rules]))
     target = registry.maybe(pack_id)
@@ -872,10 +882,14 @@ def resolve_protocol(
     superseded = frozenset(superseded_id for pack in applied for superseded_id in pack.supersedes)
     conflicts = _conflict_refusals(entries, superseded)
     refusals.extend(conflicts)
-    if not conflicts:
-        refusals.extend(
-            _apply_ops(sections_state, [e for e in entries if e[0].id not in superseded], locale)
-        )
+    live_entries = [e for e in entries if e[0].id not in superseded]
+    op_refusals = [] if conflicts else _apply_ops(sections_state, live_entries, locale)
+    refusals.extend(op_refusals)
+    # The merged pack exists only once every op of every layer applied. A
+    # document the ops did not finish is not the one the author wrote, so the
+    # rules are not judged against it; the compile already refuses for the op
+    # (INT-382).
+    merged = not conflicts and not op_refusals
 
     pack_paraphrase = _first_paraphrase(applied, locale)
     sections: list[ResolvedSection] = []
@@ -930,6 +944,26 @@ def resolve_protocol(
             )
         )
     refusals.extend(_gate_ref_refusals(sections))
+    refusals.extend(
+        gate_value_refusals(
+            ((section.id, slot.key, slot.slot) for section in sections for slot in section.slots),
+            committed,
+        )
+    )
+    if merged:
+        refusals.extend(
+            rule_read_refusals(
+                pack_rules=composition.rules,
+                life_threat_rules=[entry.rule for entry in life_threat.rules],
+                declared=((section.id, slot.key) for section in sections for slot in section.slots),
+                suppressions=(
+                    (pack.id, op.pointer)
+                    for pack, _, op in live_entries
+                    if isinstance(op, SuppressSlotOp)
+                ),
+                overlay_checked=composition.overlays,
+            )
+        )
 
     if refusals:
         raise _refused(refusals)

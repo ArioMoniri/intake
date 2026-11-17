@@ -1,0 +1,19 @@
+{
+  "_comment": "TEST FIXTURE (INT-428). A recorded-shape OpenAI v1 chat completion for a SYNTHETIC transcript: the wire shape of the provider's public API reference, with invented ids and counts. No call was made to produce it; CI never reaches a provider.",
+  "id": "chatcmpl-unit-lane-0001",
+  "object": "chat.completion",
+  "created": 1790424000,
+  "model": "gpt-4o-mini-2024-07-18",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "{\"slots\": []}",
+        "refusal": null
+      },
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": { "prompt_tokens": 412, "completion_tokens": 9, "total_tokens": 421 }
+}

@@ -1,0 +1,81 @@
+# infra/observability/safety-rules.yaml — RED acknowledgement pages
+# (INT-406; files/10 §9.1 invariant 49 `red_acknowledgement_sla_guard`;
+# files/08 §5 "clinic.red_unacknowledged_total past the tenant SLA (§0c F19)";
+# files/02 §8.2 "RED → clinic inbox ≤ 60 s. RED → human acknowledgement
+# within a tenant SLA, default 4 business hours").
+#
+# Hand-written, not generated: every rule is pinned by
+# tests/safety/test_red_acknowledgement_sla.py, every series it reads is
+# catalogued in observability/metrics_catalog.yaml (CLAUDE.md invariant 13),
+# and every runbook anchor exists in docs/runbooks/red-acknowledgement.md.
+#
+# `severity: page` is the label a deployment's Alertmanager routes to its
+# on-call receiver. This repository ships no Alertmanager and no receiver:
+# which pager, which rotation and the tenant's out-of-hours path are owner
+# values (the runbook's "Owner values" section), never guessed here.
+groups:
+- name: safety-red-acknowledgement
+  rules:
+  # The sweep (intake_platform.safety_inbox.SafetyInbox.sweep) recomputes the
+  # gauge every 60 s from the open entries. `max by (tenant)` because every
+  # API replica sweeps the same store. No `for:` — the SLA already is the
+  # grace period, and waiting longer to page is waiting longer to answer.
+  # tenant="inbox_unreadable" at +Inf is the sweep failing closed.
+  - alert: RedAcknowledgementOverdue
+    expr: max by (tenant) (clinic_red_unacknowledged_total{age_band="past_sla"}) > 0
+    labels:
+      severity: page
+    annotations:
+      summary: 'tenant {{ $labels.tenant }} has a RED nobody acknowledged within the SLA'
+      description: >-
+        A Safety inbox entry (a RED, or a reschedule/cancel of a RED visit) is
+        past the tenant's acknowledgement SLA (files/02 §8.2, default 4 hours
+        counted as wall-clock hours). tenant="inbox_unreadable" means the
+        inbox itself could not be read.
+      runbook: docs/runbooks/red-acknowledgement.md#overdue
+  # The voice runtime's outbox (intake_platform.safety_inbox.SafetyInboxOutbox)
+  # computes this at scrape time, so a pump that died cannot freeze it at 0.
+  - alert: RedInboxEntryLate
+    expr: max(clinic_red_inbox_pending_age_s) > 60
+    labels:
+      severity: page
+    annotations:
+      summary: 'a RED has waited more than 60 s to reach the clinic Safety inbox'
+      description: >-
+        The RED was recorded on the RED path but the shared Safety inbox
+        store has not accepted it (files/02 §8.2: RED → clinic inbox ≤ 60 s).
+        The entry keeps the RED's own timestamp and lands when the store
+        returns.
+      runbook: docs/runbooks/red-acknowledgement.md#inbox-entry-late
+  # A clinician route raised before any entry existed: Layer B's
+  # (intake_voice_runtime.clinical_agent.work_queue), or since INT-475 the API
+  # triage hop's or the on-site location answer's (intake_api.red_notify),
+  # an unwired inbox included. The RED was delivered; the clinic was not
+  # told, and there is no entry to age.
+  - alert: RedInboxRouteFailed
+    expr: increase(clinic_red_inbox_route_failures_total[5m]) > 0
+    labels:
+      severity: page
+    annotations:
+      summary: 'a RED fired and its clinician route made no Safety inbox entry'
+      description: >-
+        A rules-engine RED (from Layer B or the app's triage hop), or a
+        patient's on-site answer to one, reached a clinician route that
+        raised or was not wired. The RED reached the patient path; it did
+        not reach the clinic.
+      runbook: docs/runbooks/red-acknowledgement.md#route-failed
+  # INT-521: the live session's rules-engine evaluation faulted, or a handler's
+  # own determination disagreed with it (intake_voice_runtime.clinical_agent.
+  # work_queue). The answer is bound; a RED it should have raised may be
+  # missing from the patient path and from the clinic.
+  - alert: LiveTriageEvaluationFailed
+    expr: increase(triage_live_evaluation_failures_total[5m]) > 0
+    labels:
+      severity: page
+    annotations:
+      summary: 'a live session could not evaluate its red-flag rules ({{ $labels.kind }})'
+      description: >-
+        Layer B ran the rules engine after a bound answer and the evaluation
+        raised (kind="fault"), or a handler's determination disagreed with the
+        engine's (kind="conflict"). A RED may be missing from this session.
+      runbook: docs/runbooks/red-acknowledgement.md#live-triage-unevaluated

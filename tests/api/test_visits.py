@@ -20,6 +20,7 @@ from datetime import UTC, datetime
 from api_harness import ApiHarness, run, seed_foreign_visit
 from intake_platform.audit import verify_entries
 from intake_platform.db.models import Consent, IntakeSession, Slot
+from intake_platform.visit_lifecycle import LIFECYCLE_SLOT, VisitLifecycle, VisitState
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -95,6 +96,9 @@ def test_visit_persists_as_session_plus_slots(harness: ApiHarness) -> None:
     session_row, slots = run(_rows())
     assert session_row is not None
     assert session_row.protocol_id == "previsit.dev.visit"
+    # INT-407: the lifecycle rides in the same slot table — a new visit is
+    # planned, its T-24h confirm queued (tests/api/test_visit_lifecycle.py)
+    assert VisitLifecycle.from_slot(slots.pop(LIFECYCLE_SLOT)).state is VisitState.PLANNED
     assert slots == {
         "visit.hospital": {"text": "Ankara Şehir Hastanesi"},
         "visit.department": {"text": "İç Hastalıkları"},
@@ -184,6 +188,7 @@ def test_create_with_branch_persists_branch_and_type_slots(harness: ApiHarness) 
             return {slot.slot_id: dict(slot.value) for slot in rows}
 
     slots = run(_slots())
+    assert VisitLifecycle.from_slot(slots.pop(LIFECYCLE_SLOT)).state is VisitState.PLANNED
     assert slots == {
         "visit.hospital": {"text": "Ankara Şehir Hastanesi"},
         "visit.department": {"text": "Kardiyoloji"},

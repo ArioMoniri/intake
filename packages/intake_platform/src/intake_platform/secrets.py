@@ -98,6 +98,21 @@ class SecretsProvider:
         data: dict[str, Any] = response.json()["data"]["data"]
         return data
 
+    def destroy_kv(self, path: str) -> None:
+        """Delete every version and the metadata of one KV v2 entry (INT-428:
+        a staged provider key is destroyed once its ceremony settles)."""
+        response = self._client.delete(f"/v1/secret/metadata/{path}")
+        response.raise_for_status()
+
+    def list_kv(self, path: str) -> list[str]:
+        """The keys directly under one KV v2 folder; empty when it has none."""
+        response = self._client.get(f"/v1/secret/metadata/{path}", params={"list": "true"})
+        if response.status_code == 404:
+            return []
+        response.raise_for_status()
+        keys: list[str] = response.json()["data"]["keys"]
+        return keys
+
     # --- dynamic database credentials -------------------------------------------------
 
     def get_dynamic_db_creds(self, role: str) -> DynamicDbCreds:

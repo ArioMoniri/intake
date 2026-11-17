@@ -1,0 +1,48 @@
+# guideline_id: TR-HSGM-AKUT-ISHAL-2023
+# title: Deprem Bölgesinde Erişkin ve Çocuk Hastalarda Akut İshal Rehberi
+# publisher: T.C. Sağlık Bakanlığı, Halk Sağlığı Genel Müdürlüğü
+# version_or_date: Mart 2023 (Yayım: 2023, Ankara)
+# url: https://deprem.saglik.gov.tr/depo/deprem/rehberler/revize/hsgm-deprem-bolgesinde-akut-ishal-rehberi.pdf
+# retrieved_on: 2026-10-03
+# retrieval: curl (HTTP 200, PDF); text layer extracted with pdftotext -layout; trailing spaces removed and runs of blank lines dropped; column spacing inside table rows kept as extracted; trailing whitespace removed from every line
+# scope: verbatim excerpt of the inner title page, the imprint and the publisher's required citation form, section B's opening paragraph on dehydration and Tablo 9 (paediatric dehydration grading); nothing paraphrased or edited; omissions marked [...]
+# citation_form_required_by_publisher: DEPREM BÖLGESİNDE ERİŞKİN VE ÇOCK HASTALARDA AKUT İSHAL REHBERİ, Sağlık Bakanlığı, Halk Sağlığı Genel Müdürlüğü, Sağlık Bakanlığı Ankara 2023 (spelling as printed)
+---
+    DEPREM BÖLGESİNDE
+ERİŞKİN VE ÇOCUK HASTALARDA
+    AKUT İSHAL REHBERİ
+          Mart 2023
+    Yayım                  : 2023 , Ankara
+[...]
+Her türlü yayın hakkı Halk Sağlığı Genel Müdürlüğüne aittir. Kaynak gösterilmeksizin alıntı yapılamaz.
+Kısmen dahi olsa alınamaz, çoğaltılamaz, yayımlanamaz. Alıntı yapıldığında kaynak gösterimi “DEPREM
+BÖLGESİNDE ERİŞKİN VE ÇOCK HASTALARDA AKUT İSHAL REHBERİ” Sağlık Bakanlığı, Halk Sağlığı
+Genel Müdürlüğü, Sağlık Bakanlığı Ankara 2023 şeklinde olmalıdır.
+[...]
+ B. ÇOCUKLARDA AFET SONRASI AKUT İSHAL YÖNETİMİ
+ Elektrik, temiz su ve sıhhi tesislere erişimin sınırlı olduğu afet sonrası durumlarda, olağan hijyen
+ uygulamalarının bozulmasına bağlı olarak akut ishal sıklığında artış meydana gelebilir.
+[...]
+ Akut ishal ile başvuran çocuk hastada acil tıbbi müdahale gerektiren durumların tespit edilmesi
+ ve dehidratasyon varlığının değerlendirilmesi son derece önemlidir (Şekil 2 ve Tablo 9).
+[...]
+Tablo 9. Çocuklarda dehidratasyon derecesinin değerlendirilmesi
+ Semptomlar            Hafif dehidratasyon      Orta dehidratasyon      Ağır dehidratasyon
+                             (VA <%3 kayıp)       (VA %3-9 kaybı)          (VA >%9 kayıp)
+ Mental durum         İyi, alert              Normal, yorgun,          Apatik, letarjik, bilinci
+                                              huzursuz                 kapalı
+ Kalp hızı            Normal                  Normal-hafif artmış      Taşikardik, ağır
+                                                                       olgularda bradikardik
+ Nabızlar             Normal                  Normal-azalmış           Zayıf, yüzeyel, palpe
+                                                                       edilemeyen
+ Solunum              Normal                  Normal; hızlı            Derin
+ Göz küresi           Normal                  Hafif çökük              Belirgin çökük
+ Göz yaşı             Var                     Azalmış                  Yok
+ Oral mukoza          Nemli                   Kuru                     Belirgin kuru, çatlak
+ Kapiller dolum       Normal                  Uzamış                   Uzamış
+ zamanı
+ Turgor               Normal                  Azalmış                  Belirgin azalmış
+ Ekstremiteler        Ilık                    Soğuk                    Soğuk, benekli;
+                                                                       siyanotik
+ İdrar çıkışı         Normal- azalmış         Azalmış                  Minimal
+*VA; vücut ağırlığı

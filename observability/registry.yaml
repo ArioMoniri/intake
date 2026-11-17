@@ -141,8 +141,11 @@ components:
 
   - component: probes
     self_hostable: true
-    self_hosted_now: false
-    host: "this package (services/probes) — runner exists; the 60 s scheduler wiring (systemd/compose) lands with the deployment issues"
+    # INT-560: runs on the synthetic AWS host as compose service `probes`,
+    # sweeping what infra/staging/inventory.yaml says that host runs. Not on
+    # the PHI path, so the release gate does not bind to it either way.
+    self_hosted_now: true
+    host: "this package (services/probes) — on the synthetic AWS host, compose service `probes` (infra/staging/compose.yaml): the api image running intake_probes.app, sweeping the host's inventory (infra/staging/inventory.yaml) every 60 s into the volume the api's registry page reads (INT-560). No dev-tier scheduler"
     license: "proprietary (repo LICENSE)"
     probe: http_health
     budget_ms: 800
@@ -222,7 +225,7 @@ components:
     # infra/ci/runners.yaml therefore declares zero pools and the probe reports
     # those rows rather than a result. Flips true when a pool is declared and beats.
     self_hosted_now: false
-    host: "infra/ci/runners.yaml — zero pools declared (HB-I7 spend, HB-L11 residency claim; NOT HB-I5, which is GPU). CI runs on GitHub-hosted runners meanwhile, which files/08 §6 records as the fallback precisely because no PHI is ever in CI"
+    host: "infra/ci/runners.yaml — one pool, intake-aws-ci: the ephemeral runner on the AWS us-east-1 staging host (INT-463, owner order of 3 Oct 2026), not in Türkiye. The TR-DC pool stays undeclared (HB-I7 spend, HB-L11 residency claim; NOT HB-I5, which is GPU). No collector reads the runner status into the sweep yet, so the probe reports a missing heartbeat. No PHI is ever in CI"
     license: "GitHub Actions Runner — MIT (the runner agent); the hosted service is a vendor product, which is why the self-hosted pool is the target state"
     probe: runner_heartbeat
     budget_ms: 2000
@@ -400,6 +403,69 @@ components:
       2026-08-29; supersedes the "NO licence blob — open finding" that the
       freya-tts row used to carry on VoxCPM2's behalf.
 
+  # INT-124: files/03 §4.9.1 row 9, the extraction LLM. Pinned and
+  # licence-verified, and served by NO host: the probe reports it unavailable
+  # and intake_platform.records.lab_model refuses the PHI path until INT-381
+  # serves it on the target GPU and flips self_hosted_now.
+  - component: qwen3.6-35b-a3b
+    self_hostable: true
+    self_hosted_now: false
+    host: "Qwen/Qwen3.6-35B-A3B@995ad96 — files/03 §4.9.1 row 9, the extraction LLM (vLLM, JSON-schema-constrained decoding, off the spoken-loop critical path). Served by no host: the target GPU is quota-blocked (INT-381; INT-352/INT-376), and the PHI path also needs an in-country host (HB-I5, HB-L11)"
+    license: "Apache-2.0 (stock, unmodified — raw LICENSE blob read and hashed at the pinned revision; see licence_blob_url and licence_note)"
+    probe: http_health
+    budget_ms: 2000
+    # no served fallback exists, and none may be a cloud model: invariant 19
+    # keeps the PHI path self-hosted end to end. Row 9's alt (Qwen3.8-27B) is
+    # an alternative pin, not a running fallback.
+    fallback: "none"
+    phi_path: true
+    model_id: "Qwen/Qwen3.6-35B-A3B"
+    revision: "995ad96eacd98c81ed38be0c5b274b04031597b0"
+    weights_sha256:
+      model-00001-of-00026.safetensors: "adee7bcb930aed22e0677e58d4873b48dadb1ed8001cb5c6a0487286eadb3478"
+      model-00002-of-00026.safetensors: "88f2dfd2b9e73e4b70be533dbf61bcfa3c9a0003758900fcbc9d9b96f5751d4b"
+      model-00003-of-00026.safetensors: "8f7d72178d3f4431864978e5bcfa4c6cb1c204bc00590644d90bb19d6d522eeb"
+      model-00004-of-00026.safetensors: "12d7db38689ba3c8af74b23ef8523eca41e0cd95db870583d0663a3ee8a6bd60"
+      model-00005-of-00026.safetensors: "a836047305d0f7a7b50f0815d09d5c03ec03d59ec2c763fcdc4bf7e9936bf902"
+      model-00006-of-00026.safetensors: "c9080d718e9c5f9e337443225aa417d4c24d00ae7995d76ee3f1cc296b557d15"
+      model-00007-of-00026.safetensors: "e8c05e23131b1dd45a455ec38cfac7db14667358268623c3938d00cf3e959a68"
+      model-00008-of-00026.safetensors: "4b6a6d495053089f4a80e7cbc82e848fba44e2c0c60122233d8fdff79fa7b296"
+      model-00009-of-00026.safetensors: "a31a954bb72d1c714e751bf0aabf2ff533f5a509693ebf7dd22ad6e90be46f67"
+      model-00010-of-00026.safetensors: "246560e66570fe746653b8443e245dc334c9b8b831ea43d2d9f1b7d98623994e"
+      model-00011-of-00026.safetensors: "7180392817fe3ecb3a27a1da43b7ff22c1a94806bac49975f9f122c3126df675"
+      model-00012-of-00026.safetensors: "043fb525f6625c2f2acb75e65a9959ee3fa7b6e3fdd2034b5cfe1859b01d3cfb"
+      model-00013-of-00026.safetensors: "33a20fb20a21379bf43c84a43105f9c0cc35bd50d740b1c302dcbe4b700f5425"
+      model-00014-of-00026.safetensors: "be823e33c5cb6120ad3769d081f34a2449dc2358041fca7c29d636c1ba19130d"
+      model-00015-of-00026.safetensors: "a89d547c6f9d0b535ee5ea2f2478f163089539f3f0dd330cb23d278a19d76123"
+      model-00016-of-00026.safetensors: "69fc3ae0316482288afdcdd0b9eb7d626703ae26f7567e89aa3fc8d1ffd4ff5b"
+      model-00017-of-00026.safetensors: "e356e3943cf3852b76bb8992e674f3256013e27d54b78e8250514151cdc29637"
+      model-00018-of-00026.safetensors: "9e5e63fd1cc7d6848330c1fa363dfcb661bbc2ac87e672d0e28b71c9cb7f3c7f"
+      model-00019-of-00026.safetensors: "708644ad34f1de727bf484f396944d8ec628645d52c183e9a992e65671685e21"
+      model-00020-of-00026.safetensors: "ca083a1d1aa64f8e8a785998f543a43374f13436dc85d396eee4e72c7a84e1ae"
+      model-00021-of-00026.safetensors: "ada4ae48f3d48fe01b4c53f2f82bce25e798a9631fd33959c881156fef2ccbce"
+      model-00022-of-00026.safetensors: "def207fb42d7db31efb512755557763c23233c6e4d4c433027cb5102a7bce2f7"
+      model-00023-of-00026.safetensors: "864d52ca7768a36f514069222e8de8626264ae124097ba8fcce5b5da2c6e2ed7"
+      model-00024-of-00026.safetensors: "391acd27420cdce5935ff18152423c70620d19dac3c39a5ef1a81d369f82d737"
+      model-00025-of-00026.safetensors: "778e7f76602f05042b69ba7f3ec91f1fdffef390540b16074041c258fb81d154"
+      model-00026-of-00026.safetensors: "1a97404220077ed3d4182e10385b152004cab608377f50cec9f54a6b8d28b613"
+    licence_verified_at: 2026-09-27
+    licence_blob_url: "https://huggingface.co/Qwen/Qwen3.6-35B-A3B/raw/995ad96eacd98c81ed38be0c5b274b04031597b0/LICENSE"
+    licence_blob_sha256: "50cbab8a892c5f2993b8c7351a99182507472def3b1374558308605d99b86b32"
+    licence_note: >-
+      Read on 2026-09-27 from the raw LICENSE blob of the Hugging Face weights
+      repo itself (not the model card, whose `license:apache-2.0` tag is the
+      badge files/03 §4.9.0 rule 3 refuses), at revision
+      995ad96eacd98c81ed38be0c5b274b04031597b0 — the repo's head, not gated.
+      201 lines, 11343 bytes: stock Apache-2.0, identical to the
+      apache.org/licenses/LICENSE-2.0.txt text except that the appendix's
+      "Copyright [yyyy] [name of copyright owner]" is filled in as
+      "Copyright 2026 Alibaba Cloud" and there is no trailing newline. No
+      addendum, no acceptable-use rider, no field-of-use restriction. The 26
+      weights_sha256 values are the Git LFS object ids (sha256 of the file
+      content) that the Hub's tree API reports for each shard at the same
+      revision (71903776776 bytes in all); nothing is mirrored yet, so INT-381
+      re-hashes the mirrored bytes against them on the serving host.
+
   - component: deid-tr-ner-v1
     self_hostable: true
     self_hosted_now: true
@@ -535,7 +601,7 @@ components:
   - component: egress-proxy
     self_hostable: true
     self_hosted_now: false
-    host: "infra/docker-compose.egress.yml, profile `egress` — ubuntu/squid:6.6-24.04_edge on loopback 127.0.0.1:3128; squid.conf GENERATED from infra/security/egress-allowlist.yaml by scripts/security/render_egress_proxy_conf.py. Not booted here: HB-I1/HB-I2 — validated statically by tests/infra/test_egress_proxy.py"
+    host: "infra/docker-compose.egress.yml, profile `egress` — ubuntu/squid:6.6-24.04_edge on loopback 127.0.0.1:3128; squid.conf GENERATED from infra/security/egress-allowlist.yaml by scripts/security/render_egress_proxy_conf.py. Not booted here: HB-I1/HB-I2 — validated statically by tests/infra/test_egress_proxy.py. INT-442: the same image, digest-pinned, is the synthetic AWS host's forward proxy (infra/staging/compose.yaml, service `egress-proxy`, config infra/staging/egress/squid.conf: hosted_model_inference rows only), booted there and probed by infra/staging/egress_probe.py"
     license: "GPL-2.0-or-later (COPYING blob verified @SQUID_6_6 — see licence_note; the blob alone would read GPL-2.0-only)"
     # No HTTP health endpoint: squid answers a proxy request or nothing, and a
     # forward proxy that returns 200 to an unauthenticated GET would be a
@@ -567,7 +633,39 @@ components:
       config file of our own, which is data, not a derivative work. Re-read
       the blob AND a source header on every version bump: a project that
       states its "+" only in headers can drop it in a header sweep without
-      touching COPYING at all.
+      touching COPYING at all. INT-442, 2026-10-03: the 6.6-24.04_edge tag
+      ships squid 6.14 (the running binary's own banner on the synthetic
+      host); re-read at tag SQUID_6_14 (commit
+      a8c54a8f23f0dc41025097caab73ec445f49b78f): COPYING is byte-identical
+      (same sha256) and src/main.cc carries the same GPLv2+ header.
+
+  # INT-528 / ADR-042 — the synthetic host's SMS-only forward proxy. It does
+  # carry personal data: the OTP tier's call (the patient's phone number and
+  # a one-time code) passes through it inside TLS, so it is on the PHI path in
+  # both senses. The same squid as egress-proxy, pinned by the same digest in
+  # infra/staging/compose.yaml, so the licence record below is that one's.
+  - component: sms-egress
+    self_hostable: true
+    # false until a deploy carrying ADR-042 runs on the synthetic host
+    self_hosted_now: false
+    host: "infra/staging/compose.yaml, service `sms-egress` — ubuntu/squid:6.6-24.04_edge pinned by digest, on the internal sms-out network (shared with the API alone) and sms-wan; squid.conf GENERATED from infra/security/egress-allowlist.yaml by scripts/security/render_sms_egress_conf.py. Validated statically by tests/infra/test_staging_sms_egress.py"
+    license: "GPL-2.0-or-later (COPYING blob verified @SQUID_6_6 — see egress-proxy's licence_note)"
+    # tcp_connect, as for egress-proxy: a probe that sent traffic through the
+    # boundary would be traffic to the SMS vendor.
+    probe: tcp_connect
+    budget_ms: 1000
+    # A failed proxy means no SMS leaves: the OTP tier answers 503, never a
+    # fake "sent". Nothing to fall back to without reopening the boundary.
+    fallback: "none"
+    phi_path: true
+    licence_verified_at: 2026-08-29
+    licence_blob_url: "https://raw.githubusercontent.com/squid-cache/squid/e8118a7381213f5cfcdeb4cec1d2d854bfd261c8/COPYING"
+    licence_blob_sha256: "8177f97513213526df2cf6184d8ff986c675afb514d4e68a404010521b880643"
+    licence_note: >-
+      The same upstream squid 6.6 as egress-proxy, verified there from the raw
+      COPYING blob and a source header at tag SQUID_6_6 (2026-08-29). It runs
+      unmodified behind a generated config file, which is data, not a
+      derivative work; we do not distribute it.
 
   # INT-203 — the edge (files/10 §4 `Edge:`). Two components, one policy:
   # infra/security/edge/edge-policy.yaml renders Traefik's static and dynamic
@@ -677,3 +775,60 @@ components:
       none: hub parsers and scenarios are MIT too, but they would arrive over
       the network from a host that is not on the egress allow-list, which is
       why there are none.
+
+  # --- INT-560: the synthetic AWS host's admin tier and edge -----------------
+  #
+  # These four run on the synthetic AWS host only (infra/staging/compose.yaml)
+  # and the registry page could not show them until they had rows. None is on
+  # the PHI path: the host carries synthetic patients only (HB-I5, HB-L11), the
+  # admin console's payloads are ids and aggregates (invariant 6), Keycloak
+  # holds staff identities, and the PHI deployment's edge is `edge-ingress`
+  # (Traefik), not Caddy. So the INT-022 gate does not bind to them, and on
+  # the host page they are "blocking" only when the stack needs them and their
+  # probe is not healthy (infra/staging/inventory.yaml).
+  #
+  # Licences: each row's licence has NOT been recorded from a raw LICENSE blob
+  # in this registry — the evidence named below read it, but no blob url and
+  # sha256 sit here yet — so each says UNVERIFIED and the page says so.
+  # Recording the blobs is INT-561's.
+  - component: keycloak
+    self_hostable: true
+    self_hosted_now: true
+    host: "synthetic AWS host only — compose service `keycloak`: quay.io/keycloak/keycloak 26.7.4 (INT-390's digest) plus the WebAuthn session-notes provider (Dockerfile.keycloak, INT-378); staff identity for the admin console. Management port 9000 (health) is internal, never routed"
+    license: "UNVERIFIED — Apache-2.0 as recorded by INT-390/INT-421; the raw LICENSE blob is INT-561's to record"
+    probe: http_health
+    budget_ms: 1500
+    fallback: "none"
+    phi_path: false
+
+  - component: oauth2-proxy
+    self_hostable: true
+    self_hosted_now: true
+    host: "synthetic AWS host only — compose service `oauth2-proxy`: quay.io/oauth2-proxy/oauth2-proxy v7.15.4 (digest-pinned), the admin console's login gate on the internal edge network (oauth2-proxy/alpha.yaml)"
+    license: "UNVERIFIED — MIT as read for INT-421 (docs/evidence/INT-421.md); the blob url and sha256 are INT-561's to record"
+    probe: http_health
+    budget_ms: 500
+    fallback: "none"
+    phi_path: false
+
+  - component: admin-web
+    self_hostable: true
+    self_hosted_now: true
+    host: "synthetic AWS host only — compose service `admin-web`: apps/admin-web (Next.js) built from the deployed commit (Dockerfile.admin-web); renders only what the API's /admin routes return for the caller's own bearer"
+    license: "UNVERIFIED — proprietary (repo LICENSE) for the console; its Next.js and React dependencies are INT-561's to record"
+    probe: http_health
+    budget_ms: 1000
+    fallback: "none"
+    phi_path: false
+
+  - component: caddy
+    self_hostable: true
+    self_hosted_now: true
+    host: "synthetic AWS host only — compose service `caddy`: caddy 2.11.4-alpine (digest-pinned), the host's one published service (80, 443), TLS for STAGING_HOSTNAME and its admin/auth names (Caddyfile). Its certificate is the `edge-tls` row"
+    license: "UNVERIFIED — Apache-2.0 as recorded in infra/staging/compose.yaml; the raw LICENSE blob is INT-561's to record"
+    # a TCP connect to 443 on the compose network; the certificate it serves is
+    # read by `edge-tls` over a real TLS handshake with the public name
+    probe: tcp_connect
+    budget_ms: 500
+    fallback: "none"
+    phi_path: false

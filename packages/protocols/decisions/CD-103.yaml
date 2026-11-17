@@ -1,0 +1,447 @@
+# INT-448 clinical decision CD-103: the sign-off packet items (#642, packet commit
+# 151cf34f) that come from docs/evidence/verification/cluster-wave-b.md. Agent-authored
+# under owner decision D18 (2 Oct 2026). It covers simulated-patient stress testing only,
+# and a licensed physician's review is required before any real patient.
+# Every source quote below appears verbatim in the named snapshot, and every spec_basis
+# quote appears verbatim in the named committed file. This is not a pack: the lead applies
+# the item changes to the review-queue proposals. No triage level, route, register,
+# location or red-flag rule is created, relaxed or removed here.
+kind: clinical_decision
+id: CD-103
+title: "#642 packet items: cluster wave B verification"
+question: >-
+  For each open item that the #642 sign-off packets route from the cluster wave B
+  verification (child health, mental health, dental, and allied and reports clusters),
+  what is the clinical decision, on what current source, and which part stays with the
+  owner?
+decision: >-
+  Fifteen items. Accepted (3): the chest-indrawing ask "kaburgalarının altı ya da arası"
+  names the WHO lower chest wall sign and adds intercostal indrawing; the non-blanching
+  rash item stays ungated; the vaccination item stays boolean, because "bilmiyorum" is
+  recorded as UNCLEAR (CD-04, CKM Unknown). Changed (2): hydration polarity is CD-10's
+  true_is_concern, and the cluster keeps both feeding constructs because their thresholds
+  differ: feeding or drinking less than usual (az_beslenme, CD-100 T9; NG143's poor
+  feeding, kept and not merged) and, as a separate ungated item beside it, the IMCI
+  general danger sign of inability to drink or breastfeed (new id icemez_ememez);
+  beslenme_sivi_alimi and emebiliyor_icebiliyor retire into these two, and neonatoloji's
+  infant item takes az_beslenme with its own text;
+  the child fever ask becomes "oldu mu" with a recency frame, and its duration follow-up
+  no longer presumes an ongoing fever. Rejected (2): the persecutory-ideation item and the
+  risk-to-others item stay held and are not asked before the visit, because a pre-visit
+  yes/no cannot do what NICE puts with trained staff in private (PH50) or in a verified,
+  multidisciplinary risk assessment (NG10, CG115); the category questions go to the
+  owner. Eight items are owner questions (guardian answers to base items, the psychosis
+  item's category, the dental airway posture and two pedodonti items, the forensic report
+  scope, the base HPI gate, and carer answers in Evde Sağlık).
+status: active
+scope: simulated_patient_stress_testing
+scope_note: >-
+  Owner decision D18 (2 Oct 2026): agent-only sign-off, for simulated-patient stress
+  testing only. A licensed physician's review is required before any real patient. D18
+  does not reach the owner and base-owner parts recorded under owner_part.
+question_origin: >-
+  INT-448 (GitHub #759): items of the #642 sign-off packets (docs/signoff/*.md at
+  151cf34f) whose row lives in docs/evidence/verification/cluster-wave-b.md.
+author_role: "paediatrics, psychiatry and dentistry physician (agent)"
+sources:
+  - kind: guideline
+    guideline_id: WHO-POCKETBOOK-2013
+    title: "Pocket book of hospital care for children: guidelines for the management of common childhood illnesses"
+    version_or_date: "Second edition, 2013 (WHO; ISBN 978 92 4 154837 3)"
+    url: "https://iris.who.int/handle/10665/81170"
+    retrieved_on: 2026-10-03
+    section: "PDF p. 101, Child presenting with cough, note"
+    quote: "Note: Lower chest wall indrawing is when the lower chest wall goes in when the child breathes in; if only the soft tissue between the ribs or above the clavicle goes in when the child breathes, this is not lower chest wall indrawing."
+    snapshot: packages/protocols/sources/WHO-POCKETBOOK-2013.txt
+    supports: "item L72: 'kaburgalarının altı' names the WHO sign; 'arası' alone would describe only intercostal indrawing"
+  - kind: guideline
+    guideline_id: WHO-POCKETBOOK-2013
+    title: "Pocket book of hospital care for children: guidelines for the management of common childhood illnesses"
+    version_or_date: "Second edition, 2013 (WHO; ISBN 978 92 4 154837 3)"
+    url: "https://iris.who.int/handle/10665/81170"
+    retrieved_on: 2026-10-03
+    section: "PDF p. 104, 4.2.1 Severe pneumonia"
+    quote: "signs of pneumonia with a general danger sign: – inability to breastfeed or drink,"
+    snapshot: packages/protocols/sources/WHO-POCKETBOOK-2013.txt
+    supports: "item L75: the danger-sign construct the cluster asks"
+  - kind: guideline
+    guideline_id: WHO-POCKETBOOK-2013
+    title: "Pocket book of hospital care for children: guidelines for the management of common childhood illnesses"
+    version_or_date: "Second edition, 2013 (WHO; ISBN 978 92 4 154837 3)"
+    url: "https://iris.who.int/handle/10665/81170"
+    retrieved_on: 2026-10-03
+    section: "PDF p. 199, 6.4.1 Severe complicated measles"
+    quote: "■ inability to drink or breastfeed ■ vomits everything"
+    snapshot: packages/protocols/sources/WHO-POCKETBOOK-2013.txt
+    supports: "item L75: inability to drink or breastfeed and vomiting everything are named side by side, as the cluster asks them"
+  - kind: guideline
+    guideline_id: NICE-NG143
+    title: "Fever in under 5s: assessment and initial management"
+    version_or_date: "NICE guideline NG143; published 07 November 2019; last updated 26 November 2021; minor changes July 2022, October 2022, March 2024 and November 2025"
+    url: "https://www.nice.org.uk/guidance/ng143/chapter/Recommendations"
+    retrieved_on: 2026-10-03
+    section: "1.2.5"
+    quote: "moderate or severe chest indrawing"
+    snapshot: packages/protocols/sources/NICE-NG143.txt
+    supports: "item L72: chest indrawing is a high-risk feature, so its input is kept broad"
+  - kind: guideline
+    guideline_id: NICE-NG143
+    title: "Fever in under 5s: assessment and initial management"
+    version_or_date: "NICE guideline NG143; published 07 November 2019; last updated 26 November 2021; minor changes July 2022, October 2022, March 2024 and November 2025"
+    url: "https://www.nice.org.uk/guidance/ng143/chapter/Recommendations"
+    retrieved_on: 2026-10-03
+    section: "Table 2, red column"
+    quote: "Non-blanching rash"
+    snapshot: packages/protocols/sources/NICE-NG143.txt
+    supports: "item L73"
+  - kind: guideline
+    guideline_id: NICE-NG143
+    title: "Fever in under 5s: assessment and initial management"
+    version_or_date: "NICE guideline NG143; published 07 November 2019; last updated 26 November 2021; minor changes July 2022, October 2022, March 2024 and November 2025"
+    url: "https://www.nice.org.uk/guidance/ng143/chapter/Recommendations"
+    retrieved_on: 2026-10-03
+    section: "1.7.2"
+    quote: "how to identify a non-blanching rash"
+    snapshot: packages/protocols/sources/NICE-NG143.txt
+    supports: "item L73: parents are taught to look for the sign itself, so the item asks it directly and is not hidden behind a rash screen"
+  - kind: guideline
+    guideline_id: NICE-NG143
+    title: "Fever in under 5s: assessment and initial management"
+    version_or_date: "NICE guideline NG143; published 07 November 2019; last updated 26 November 2021; minor changes July 2022, October 2022, March 2024 and November 2025"
+    url: "https://www.nice.org.uk/guidance/ng143/chapter/Recommendations"
+    retrieved_on: 2026-10-03
+    section: "1.2.6"
+    quote: "poor feeding in infants"
+    snapshot: packages/protocols/sources/NICE-NG143.txt
+    supports: "item L75: feeding less than usual is a separate, intermediate-risk construct (az_beslenme), kept beside the danger sign and not merged into it"
+  - kind: guideline
+    guideline_id: NICE-NG143
+    title: "Fever in under 5s: assessment and initial management"
+    version_or_date: "NICE guideline NG143; published 07 November 2019; last updated 26 November 2021; minor changes July 2022, October 2022, March 2024 and November 2025"
+    url: "https://www.nice.org.uk/guidance/ng143/chapter/Recommendations"
+    retrieved_on: 2026-10-03
+    section: "1.1.6"
+    quote: "Reported parental perception of a fever should be considered valid and taken seriously by healthcare professionals."
+    snapshot: packages/protocols/sources/NICE-NG143-B.txt
+    supports: "item L79: a fever the parent noticed counts, whether or not it is present at the moment of asking"
+  - kind: guideline
+    guideline_id: NICE-NG143
+    title: "Fever in under 5s: assessment and initial management"
+    version_or_date: "NICE guideline NG143; published 07 November 2019; last updated 26 November 2021; minor changes July 2022, October 2022, March 2024 and November 2025"
+    url: "https://www.nice.org.uk/guidance/ng143/chapter/Recommendations"
+    retrieved_on: 2026-10-03
+    section: "1.4.8"
+    quote: "When a child has been given antipyretics, do not rely on a decrease or lack of decrease in temperature to differentiate between serious and non‑serious illness."
+    snapshot: packages/protocols/sources/NICE-NG143-B.txt
+    supports: "item L79: a fever brought down by medicine is still reported, so the ask is in the past tense"
+  - kind: guideline
+    guideline_id: NICE-NG143
+    title: "Fever in under 5s: assessment and initial management"
+    version_or_date: "NICE guideline NG143; published 07 November 2019; last updated 26 November 2021; minor changes July 2022, October 2022, March 2024 and November 2025"
+    url: "https://www.nice.org.uk/guidance/ng143/chapter/Recommendations"
+    retrieved_on: 2026-10-03
+    section: "1.2.14"
+    quote: "However, children with a fever lasting 5 days or longer should be assessed for Kawasaki disease"
+    snapshot: packages/protocols/sources/NICE-NG143-B.txt
+    supports: "item L79: the duration follow-up must open for a fever that has settled too"
+  - kind: openehr_ckm
+    archetype_id: "openEHR-EHR-OBSERVATION.symptom_sign_screening.v1"
+    revision: "1.0.7"
+    url: "https://ckm.openehr.org/ckm/archetypes/1013.1.4432"
+    retrieved_on: 2026-10-03
+    quote: "at0027,    -- Unknown"
+    snapshot: packages/protocols/sources/openEHR-EHR-OBSERVATION.symptom_sign_screening.v1.txt
+    supports: "item L80: Unknown is a recordable answer to a screening question beside Yes and No"
+  - kind: guideline
+    guideline_id: NICE-PH50
+    title: "Domestic violence and abuse: multi-agency working"
+    version_or_date: "Public health guideline PH50; published 26 February 2014"
+    url: "https://www.nice.org.uk/guidance/ph50/chapter/Recommendations"
+    retrieved_on: 2026-10-03
+    section: "Recommendation 6"
+    quote: "The enquiry should be made in private on a one-to-one basis in an environment where the person feels safe, and in a kind, sensitive manner."
+    snapshot: packages/protocols/sources/NICE-PH50.txt
+    supports: "item L88: asking whether others intend harm is a safeguarding enquiry that belongs with trained staff in private"
+    caveat: "PH50 is a domestic violence and abuse guideline. It is cited for how a safeguarding enquiry is made (trained staff, in private, one to one), not as a source on persecutory ideation."
+  - kind: guideline
+    guideline_id: NICE-PH50
+    title: "Domestic violence and abuse: multi-agency working"
+    version_or_date: "Public health guideline PH50; published 26 February 2014"
+    url: "https://www.nice.org.uk/guidance/ph50/chapter/Recommendations"
+    retrieved_on: 2026-10-03
+    section: "Recommendation 6"
+    quote: "Ensure all services have formal referral pathways in place for domestic violence and abuse."
+    snapshot: packages/protocols/sources/NICE-PH50.txt
+    supports: "item L88: a disclosure needs a referral pathway, which a pre-visit form does not have"
+    caveat: "Cited for the referral pathway a safeguarding disclosure needs; PH50 does not address persecutory ideation."
+  - kind: guideline
+    guideline_id: NICE-NG10
+    title: "Violence and aggression: short-term management in mental health, health and community settings"
+    version_or_date: "NICE guideline NG10; published 28 May 2015"
+    url: "https://www.nice.org.uk/guidance/ng10/chapter/Recommendations"
+    retrieved_on: 2026-10-03
+    section: "1.2.8"
+    quote: "When assessing and managing the risk of violence and aggression use a multidisciplinary approach that reflects the care setting."
+    snapshot: packages/protocols/sources/NICE-NG10.txt
+    supports: "item L89"
+  - kind: guideline
+    guideline_id: NICE-NG10
+    title: "Violence and aggression: short-term management in mental health, health and community settings"
+    version_or_date: "NICE guideline NG10; published 28 May 2015"
+    url: "https://www.nice.org.uk/guidance/ng10/chapter/Recommendations"
+    retrieved_on: 2026-10-03
+    section: "1.2.9"
+    quote: "Ensure that the risk assessment will be objective and take into account the degree to which the perceived risk can be verified."
+    snapshot: packages/protocols/sources/NICE-NG10.txt
+    supports: "item L89: a single self-reported yes cannot be verified"
+  - kind: guideline
+    guideline_id: NICE-NG10
+    title: "Violence and aggression: short-term management in mental health, health and community settings"
+    version_or_date: "NICE guideline NG10; published 28 May 2015"
+    url: "https://www.nice.org.uk/guidance/ng10/chapter/Recommendations"
+    retrieved_on: 2026-10-03
+    section: "1.2.10"
+    quote: "Carry out the risk assessment with the service user and, if they agree, their carer."
+    snapshot: packages/protocols/sources/NICE-NG10.txt
+    supports: "item L89: the assessment is done with the person, not by a form"
+  - kind: guideline
+    guideline_id: NICE-CG115
+    title: "Alcohol-use disorders: diagnosis, assessment and management of harmful drinking (high-risk drinking) and alcohol dependence"
+    version_or_date: "Clinical guideline CG115; published 23 February 2011; last updated 21 October 2014"
+    url: "https://www.nice.org.uk/guidance/cg115/chapter/Recommendations"
+    retrieved_on: 2026-10-03
+    section: "1.2.1.1"
+    quote: "Make sure that assessment of risk is part of any assessment, that it informs the development of the overall care plan, and that it covers risk to self (including unplanned withdrawal, suicidality and neglect) and risk to others."
+    snapshot: packages/protocols/sources/NICE-CG115-B.txt
+    supports: "item L89: risk to others is part of the clinician's assessment and its care plan"
+spec_basis:
+  - file: packages/protocols/decisions/CD-10.yaml
+    section: "value.polarity_convention"
+    quote: "polarity_convention: true_is_concern"
+    supports: "item L75 (polarity, decided by CD-10)"
+  - file: packages/protocols/decisions/CD-10.yaml
+    section: "value.pending_construct_choice.rule"
+    quote: "When the construct is chosen, its ask follows true_is_concern."
+    supports: "item L75 (the construct chosen here asks in the concern direction)"
+  - file: docs/clinical/decisions/CD-04.md
+    section: "Table"
+    quote: "| bilmiyorum | I do not know | * | UNCLEAR | active |"
+    supports: "item L80"
+  - file: files/13_QUESTION_FLOW.md
+    section: "§13"
+    quote: "for safeguarding the product should not attempt to elicit a disclosure at all."
+    supports: "item L88"
+  - file: files/04_CLINICAL_PROTOCOLS.md
+    section: "§8.1 rule 1"
+    quote: "Forbidden as triggers: respiratory-rate counts, chest-indrawing grading, skin turgor, capillary refill"
+    supports: "item L72: the ask captures presence only; no rule may grade indrawing"
+inference_disclosure: >-
+  The sources fix the constructs. Asking the danger sign as its own item beside the
+  feeding-less item (az_beslenme, whose text is CD-100's), the new slot id, and the
+  Turkish wording of the danger-sign and fever items are this author's choices made on
+  those sources. The feeding ask puts the question
+  particle on a positive verb ("hâle geldi mi") so that "evet" means the danger sign is
+  present and no negative-question ambiguity arises. NG143 and the WHO pocket book are
+  written for young children; whether their features apply above five years stays the
+  paediatric applicability question recorded in cluster_child_health.md §4 gap 2.
+value:
+  packet_commit: 151cf34f
+  items:
+    - item: "docs/evidence/verification/cluster-wave-b.md#L72"
+      ref: "cluster-wave-b §A.1 child Q10"
+      packets: [cluster_child_health, cocuk_gogus_hastaliklari, cocuk_sagligi_ve_hastaliklari]
+      deciders: [paediatrician]
+      question: "Does 'Nefes alırken çocuğunuzun kaburgalarının altı ya da arası içeri çekiliyor mu?' describe the chest-indrawing sign its source names, in the cluster and in both sibling packs?"
+      outcome: accept
+      clinical_basis: "WHO defines lower chest wall indrawing as the lower chest wall going in on inspiration and excludes indrawing of the soft tissue between the ribs alone; 'altı' names the WHO sign and 'arası' adds intercostal indrawing, so the parent of a child with either answers yes, and since grading is a forbidden trigger the item is a presence input only."
+      sources: [WHO-POCKETBOOK-2013, NICE-NG143]
+      status: active
+    - item: "docs/evidence/verification/cluster-wave-b.md#L73"
+      ref: "cluster-wave-b §A.1 child Q13"
+      packets: [cluster_child_health, cocuk_hematolojisi_ve_onkolojisi]
+      deciders: [paediatrician]
+      question: "Should the non-blanching rash item be gated on the parent first reporting a rash?"
+      outcome: accept
+      clinical_basis: "No gate, as the candidate stands: a non-blanching rash is a red NG143 feature that parents are taught to check for directly, and a parent who calls pin-point spots 'nokta' would answer no to a rash screen and close the item."
+      sources: [NICE-NG143]
+      status: active
+    - item: "docs/evidence/verification/cluster-wave-b.md#L75"
+      ref: "cluster-wave-b §A.1 child Q5, Q7"
+      packets: [cluster_child_health]
+      deciders: [clinician, paediatrician]
+      question: "Which polarity do the child hydration items use, and which construct does the cluster's feeding item ask: inability to drink or breastfeed, or feeding as usual?"
+      outcome: change
+      change: >-
+        (1) Polarity: CD-10 decided it (true_is_concern; Q7 is az_cis) and this item
+        accepts that. (2) Construct: both constructs are kept, because their thresholds
+        differ. Q5 beslenme_sivi_alimi becomes az_beslenme as CD-100 T9 decides it ("Çocuğunuz
+        her zamankinden daha az besleniyor ya da içiyor mu?", ungated, true_is_concern).
+        Beside it the cluster adds a separate ungated item, the IMCI general danger sign in
+        the concern direction: "Çocuğunuz hiçbir şey içemez ya da ememez hâle geldi mi?" ·
+        gen: slot=icemez_ememez; type=boolean. The ids change with the construct and the
+        polarity (CD-10: no rename across polarities), so beslenme_sivi_alimi leaves the
+        cluster. cocuk_sagligi_ve_hastaliklari drops its beslenme_sivi_alimi re-declaration
+        and inherits both; cocuk_enfeksiyon_hastaliklari removes emebiliyor_icebiliyor and
+        inherits both; neonatoloji's beslenmede_azalma takes az_beslenme with its own infant
+        text and inherits icemez_ememez.
+      clinical_basis: "The WHO general danger sign, inability to drink or breastfeed, needs the most urgent response, while NG143's poor feeding is an intermediate-risk sign at a lower threshold; asking 'as usual' merges the two so the record cannot tell which one an answer means, so each is asked as its own item and NG143's poor feeding is kept, not merged into the danger sign."
+      sources: [WHO-POCKETBOOK-2013, NICE-NG143]
+      status: active
+    - item: "docs/evidence/verification/cluster-wave-b.md#L77"
+      ref: "cluster-wave-b §A.1 child §0 guardian proxy"
+      packets: [cluster_child_health]
+      deciders: [base owner]
+      question: "How do base's self-addressed must_ask items (pregnancy_status, the HPI items, weight_kg, smoking_status, alcohol_use) avoid recording the guardian's own answers in a child's record?"
+      outcome: owner_question
+      clinical_basis: "Not decided here; D18 does not reach a base-owner question."
+      status: owner_question
+      owner_part: >-
+        Base owner, with the self/proxy ADR (wave 8 §E-4): give base's self-addressed
+        must_ask items a proxy form or a subject_role gate in child_health sessions, so that
+        a guardian's own pregnancy, smoking, alcohol, weight or complaint never enters the
+        child's record (D3 open item 3).
+    - item: "docs/evidence/verification/cluster-wave-b.md#L79"
+      ref: "cluster-wave-b §A.1 child Q2"
+      packets: [cluster_child_health, cocuk_enfeksiyon_hastaliklari]
+      deciders: [paediatrician]
+      question: "Should the child fever ask be 'var mı' or 'oldu mu'?"
+      outcome: change
+      change: >-
+        Q2 → "Çocuğunuzun son günlerde ateşi oldu mu?" · gen: slot=ates_var_mi;
+        type=boolean (id unchanged). Q3 → "Çocuğunuzun ateşi şimdiye kadar ne kadar
+        sürdü?" · gen: slot=ates_suresi; type=duration; ask_if=ates_var_mi == true.
+        cocuk_sagligi_ve_hastaliklari and cocuk_enfeksiyon_hastaliklari take the same two
+        texts in their re-declarations. neonatoloji keeps its own past-tense text.
+      clinical_basis: "NICE NG143 takes a parent's report of fever as valid, says a fall in temperature after antipyretics does not separate serious from non-serious illness, and needs fever duration for the five-day Kawasaki check, so a fever that settled today or was brought down by medicine must still be captured and timed."
+      sources: [NICE-NG143]
+      status: active
+    - item: "docs/evidence/verification/cluster-wave-b.md#L80"
+      ref: "cluster-wave-b §A.1 child Q14"
+      packets: [cluster_child_health]
+      deciders: [paediatrician]
+      question: "Does the vaccination item need a coded answer that can store 'bilmiyorum'?"
+      outcome: accept
+      clinical_basis: "No new type: 'bilmiyorum' is already recorded as UNCLEAR by the answer-state table (CD-04), which matches the CKM screening value set's Unknown, and the item's follow-up points the parent to the vaccination card, so the boolean stays."
+      sources: [openEHR-EHR-OBSERVATION.symptom_sign_screening.v1]
+      status: active
+    - item: "docs/evidence/verification/cluster-wave-b.md#L88"
+      ref: "cluster-wave-b §A.2 mental Q17"
+      packets: [cluster_mental_health]
+      deciders: [psychiatrist, owner]
+      question: "Can any lay wording ask about persecutory ideation without eliciting a safeguarding disclosure, so that Q17 can be released?"
+      outcome: reject
+      clinical_basis: >-
+        No. A truthful yes from someone under real threat and a yes from persecutory
+        ideation read the same, so the item is a safeguarding enquiry, which NICE PH50
+        places with trained staff, in private and one to one, with a referral pathway;
+        a pre-visit form can guarantee none of these. Q17 stays held and is not asked
+        before the visit; persecutory ideation is explored at the clinical interview.
+      sources: [NICE-PH50]
+      status: active
+      owner_part: >-
+        Owner: decide whether the product asks any persecutory-ideation item at all, and
+        under which data category, since D3 approves forensic and personal safety only for
+        adli_tip's own design.
+    - item: "docs/evidence/verification/cluster-wave-b.md#L89"
+      ref: "cluster-wave-b §A.2 mental Q18"
+      packets: [cluster_mental_health]
+      deciders: [clinician, psychiatrist, owner]
+      question: "Should the cluster ask the 'safety of others' item, given that no rule reads its answer?"
+      outcome: reject
+      clinical_basis: >-
+        No. NICE puts risk to others inside a clinician's assessment that informs the care
+        plan (CG115) and asks for a multidisciplinary, objective assessment carried out
+        with the person (NG10); a pre-visit yes/no can be neither verified nor answered,
+        and base.life_threat has no rule that responds to it. Q18 stays held and is not
+        asked before the visit.
+      sources: [NICE-NG10, NICE-CG115]
+      status: active
+      owner_part: >-
+        Owner: decide whether the app asks about harm to others at all, and in which data
+        category, since aggression and risk to others is not a D3 category.
+    - item: "docs/evidence/verification/cluster-wave-b.md#L90"
+      ref: "cluster-wave-b §A.2 mental Q16"
+      packets: [cluster_mental_health]
+      deciders: [owner]
+      question: "Is Q16 (hearing voices others do not hear) ordinary special-category health data that may be released text_first, as the verifier reads it?"
+      outcome: owner_question
+      clinical_basis: "Not decided here; the category reading is the owner's under D3."
+      status: owner_question
+      owner_part: >-
+        Owner: confirm or overrule the verifier's reading that Q16 is ordinary
+        special-category health data released text_first and gated to self-report, or hold
+        it.
+    - item: "docs/evidence/verification/cluster-wave-b.md#L103"
+      ref: "cluster-wave-b §A.3 dental Q10"
+      packets: [cluster_dental, ortodonti, pedodonti, periodontoloji, protetik, restoratif]
+      deciders: [owner]
+      question: "Which airway posture does the dental cluster take: ask gated on pain or swelling, ask ungated, or leave it to base.life_threat?"
+      outcome: owner_question
+      clinical_basis: "Not decided here; the posture is the open owner decision of wave 8 §A decision 1."
+      status: owner_question
+      owner_part: >-
+        Owner: choose one of the three gen lines in cluster-wave-b §C for dental Q10 (ask
+        gated, ask ungated, or delete and leave it to base.life_threat).
+    - item: "docs/evidence/verification/cluster-wave-b.md#L104"
+      ref: "cluster-wave-b §A.3 dental Q10 in pedodonti"
+      packets: [cluster_dental, pedodonti]
+      deciders: [owner]
+      question: "If the owner keeps dental Q10, must pedodonti re-declare the airway slot with the proxy text before any under-18 path opens?"
+      outcome: owner_question
+      clinical_basis: "Not decided here; it is conditional on the owner's airway posture. CD-104 records the paediatric view of the proxy text (INT-353 L315)."
+      status: owner_question
+      owner_part: >-
+        Owner: if dental Q10 is kept, confirm that pedodonti re-declares
+        nefes_yutkunma_guclugu with the proxy text before INT-223 opens any under-18 path.
+    - item: "docs/evidence/verification/cluster-wave-b.md#L105"
+      ref: "cluster-wave-b §A.3 pedodonti (other items)"
+      packets: [cluster_dental, pedodonti]
+      deciders: [owner]
+      question: "How do the dental cluster's other self-addressed items avoid recording a parent's own history in a child's record in pedodonti?"
+      outcome: owner_question
+      clinical_basis: "Not decided here; it is the wave 8 §E-4 self/proxy decision."
+      status: owner_question
+      owner_part: >-
+        Owner, with the self/proxy ADR (wave 8 §E-4): decide how pedodonti suppresses or
+        re-addresses the cluster's self-addressed items (bleeding after dental work, bone
+        medicine, knocked-out teeth) before INT-223 opens any under-18 path.
+    - item: "docs/evidence/verification/cluster-wave-b.md#L115"
+      ref: "cluster-wave-b §A.4 allied Q3"
+      packets: [adli_tip, cluster_allied_and_reports, is_ve_meslek_hastaliklari, saglik_kurulu]
+      deciders: [owner]
+      question: "Does D3's approval of 'report purpose' cover carrying allied Q3 to Adli Tıp and the other allied branches?"
+      outcome: owner_question
+      clinical_basis: "Not decided here; D3 scope and the legal checks are the owner's and counsel's."
+      status: owner_question
+      owner_part: >-
+        Owner: confirm or narrow D3's 'report purpose' scope for the seven allied branches,
+        including Adli Tıp; the legal-reviewer confirms whether AL-S1 governs forensic
+        reports and that the Madde 8(5) export bar covers Adli Tıp.
+    - item: "docs/evidence/verification/cluster-wave-b.md#L116"
+      ref: "cluster-wave-b §A.4 allied §0 minimal HPI"
+      packets: [cluster_allied_and_reports]
+      deciders: [base owner]
+      question: "How can base's must_ask HPI be made conditional for report-only visits, given that suppress_slot on a must_ask slot is a compile error?"
+      outcome: owner_question
+      clinical_basis: "Not decided here; D18 does not reach a base-owner question."
+      status: owner_question
+      owner_part: >-
+        Base owner: choose a base-level gate or a visit-type rule that makes the base HPI
+        conditional for report-only allied visits, or keep it unconditional.
+    - item: "docs/evidence/verification/cluster-wave-b.md#L117"
+      ref: "cluster-wave-b §A.4 Evde Sağlık (proxy)"
+      packets: [cluster_allied_and_reports, evde_saglik]
+      deciders: [owner]
+      question: "How do the cluster's self-addressed function items avoid recording a carer's own function as the patient's in Evde Sağlık?"
+      outcome: owner_question
+      clinical_basis: "Not decided here; it is the wave 8 §E-4 self/proxy decision."
+      status: owner_question
+      owner_part: >-
+        Owner, with the self/proxy ADR (wave 8 §E-4): decide how Evde Sağlık re-addresses
+        or suppresses cluster Q7 and Q10 to Q12 when a carer answers, so that no carer's own
+        function enters a report as the patient's.
+verifier:
+  verdict: agree
+  role: "independent clinical verifier (agent; EM/IM/paediatrics)"
+  verified_on: 2026-10-03
+  notes: "Independent verification: round 1 agree_with_changes (feeding constructs reconciled; PH50 caveat); round 2 agree. Every quote re-checked against the live source; the verifier saw only the committed output and the sources, never the authors' reasoning. Scope D18: simulated-patient stress testing only; a licensed physician's review is required before any real patient."

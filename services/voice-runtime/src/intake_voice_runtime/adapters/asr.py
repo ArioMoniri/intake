@@ -43,6 +43,7 @@ from typing import Final, Protocol, runtime_checkable
 import httpx
 
 from intake_voice_runtime.adapters.pins import (
+    COMPONENT_OF,
     ModelPin,
     ModelStackRow,
     require_phi_path_pin,
@@ -55,11 +56,13 @@ from intake_voice_runtime.adapters.speech import (
     SpeechUnavailable,
     refuse_external_host,
 )
+from intake_voice_runtime.metrics import VOICE_SPEECH_CALLS_TOTAL
 
 __all__ = [
     "ENV_ASR_ENDPOINT",
     "ENV_ASR_RECORDED_DIR",
     "TRANSCRIBE_PATH",
+    "UNREGISTERED_COMPONENT",
     "HttpTranscriber",
     "RecordedTranscriber",
     "RecordedTranscriptMismatch",
@@ -73,6 +76,9 @@ ENV_ASR_ENDPOINT: Final = "INTAKE_ASR_ENDPOINT"
 ENV_ASR_RECORDED_DIR: Final = "INTAKE_ASR_RECORDED_DIR"
 
 TRANSCRIBE_PATH: Final = "/transcribe"
+
+#: The ``component`` label of a dev lane built with no §4.9.1 row (INT-182).
+UNREGISTERED_COMPONENT: Final = "unregistered"
 
 
 class RecordedTranscriptMissing(LookupError):
@@ -164,7 +170,26 @@ class HttpTranscriber:
         self.transport = transport
         self.pin = _bind_pin(row, phi_path=phi_path)
 
+    @property
+    def component(self) -> str:
+        """The registry component this lane's row names — the label its calls
+        are counted under (INT-182). A dev lane with no row is
+        ``unregistered``: counted, and visibly not a PHI-path component."""
+        named = COMPONENT_OF.get(self.row) if self.row is not None else None
+        return named or UNREGISTERED_COMPONENT
+
     def transcribe(self, audio: bytes) -> Transcription:
+        try:
+            transcription = self._transcribe(audio)
+        except SpeechUnavailable:
+            VOICE_SPEECH_CALLS_TOTAL.labels(
+                component=self.component, kind="asr", outcome="failed"
+            ).inc()
+            raise
+        VOICE_SPEECH_CALLS_TOTAL.labels(component=self.component, kind="asr", outcome="ok").inc()
+        return transcription
+
+    def _transcribe(self, audio: bytes) -> Transcription:
         try:
             with httpx.Client(timeout=self.timeout_s, transport=self.transport) as client:
                 response = client.post(

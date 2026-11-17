@@ -8,15 +8,15 @@
  * — the same shape `overflow.spec.ts` and `typed_intake.spec.ts` use, and for
  * the same reason.
  *
- * Two of the four clauses land whole. The other two land as a MECHANISM behind
- * a shut gate, and the file says so out loud rather than pretending otherwise:
- * nothing publishes document extraction over the API today, so the only
- * production `ExtractionSource` is the one that refuses. The cards and the
- * provenance panel are real, typed and exercised against a stub source here;
- * on a device they render when a feed exists. That is
- * HUMAN_BLOCKERS.md rule 2 applied to an unbuilt dependency rather than an
- * unanswered question: build the mechanism, wire the gate, make it fail
- * closed, leave the content empty.
+ * All four clauses are wired end to end. The cards arrive over
+ * `GET …/documents/{doc_id}/extraction` and a verdict leaves over
+ * `POST …/extraction/decisions` (services/api `record_items.py`, pinned by
+ * tests/records/test_extraction_transport.py), and the only production
+ * `ExtractionSource` is the one bound to those two routes. The fail-closed
+ * default moved to where the producers are: the server's source answers
+ * `unread` for every document while every producer is shut (NoLayout/NoOcr,
+ * files/03 §4.9.1 row 9 unserved) — one gate rather than two that could
+ * disagree.
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -379,16 +379,66 @@ describe("the INT-138 copy exists in both catalogues", () => {
 /* 8. The gate that is shut, and the fact that it is shut              */
 /* ------------------------------------------------------------------ */
 
-describe("nothing publishes extraction yet, and the screen says so", () => {
-  it("wires the screen to the refusing source", () => {
-    expect(code(read(SCREEN))).toContain("noExtractionFeed");
+describe("the cards arrive over the route the server declares", () => {
+  const ROUTER = join(
+    MOBILE,
+    "..",
+    "..",
+    "services",
+    "api",
+    "src",
+    "intake_api",
+    "record_items.py",
+  );
+
+  it("wires the screen to the API source, and never to a stand-in", () => {
+    const screen = code(read(SCREEN));
+    expect(screen).toContain("source={apiExtractionSource}");
+    expect(screen).not.toContain("noExtractionFeed");
   });
 
-  it("has exactly one production source, and it is the one that refuses", () => {
+  it("has exactly one production source, and it lives in the records client", () => {
+    const shipped = ["src/lib/records/api.ts", EXTRACTION, READING, SCREEN].map((file) => ({
+      file,
+      sources: code(read(file)).match(/:\s*ExtractionSource\s*=/g) ?? [],
+    }));
+    expect(
+      shipped.flatMap((entry) => entry.sources),
+      "a second production source",
+    ).toHaveLength(1);
+    expect(shipped.find((entry) => entry.sources.length === 1)?.file).toBe(API);
+  });
+
+  it("calls the two paths the API router declares, and no other", () => {
+    // Cross-checked against the Python router rather than restated: a path
+    // renamed on one side and not the other reddens here, not on a device.
+    const router = readFileSync(ROUTER, "utf8");
+    const prefix = /prefix="(\/v1\/visits\/\{visit_id\}\/documents\/\{doc_id\}\/extraction)"/.exec(
+      router,
+    );
+    expect(prefix, "record_items.py no longer declares its prefix").not.toBeNull();
+    expect(router).toContain('@router.get("", response_model=ExtractionOut');
+    expect(router).toContain('"/decisions", response_model=DecisionOut');
+    const client = code(read(API));
+    const asCalled = prefix![1].replace("{visit_id}", "${visitId}").replace("{doc_id}", "${docId}");
+    expect(client).toContain(`\`${asCalled}\``);
+    expect(client).toContain(`\`${asCalled}/decisions\``);
+  });
+
+  it("settles a card only on the server's echo — the no-optimistic-write rule", () => {
+    const reading = code(read(READING));
+    expect(reading).toContain("applyDecision(previous, cardId, decision, acknowledged)");
+    expect(code(read(API))).toContain("isAcknowledgement(");
+  });
+
+  it("asks again about a document still being read, with backoff, and stops", () => {
+    // The section hands the effect the poller's own stop, so leaving the
+    // screen stops the asking; the timer itself lives in the lib module,
+    // where extraction.test.ts drives it on a fake clock.
+    expect(code(read(READING))).toMatch(/useEffect\(\s*\(\)\s*=>\s*pollExtraction\(/);
     const extraction = code(read(EXTRACTION));
-    const sources = extraction.match(/:\s*ExtractionSource\s*=/g) ?? [];
-    expect(sources, "a second production ExtractionSource appeared").toHaveLength(1);
-    expect(extraction).toContain("noExtractionFeed");
+    expect(extraction).toContain("pollDelayMs(attempt)");
+    expect(extraction).toContain("clearTimeout(timer)");
   });
 
   it("keeps the consent gate INT-229 put in front of the whole screen", () => {

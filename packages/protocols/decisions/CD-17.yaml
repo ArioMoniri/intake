@@ -1,0 +1,120 @@
+# INT-432 clinical decision CD-17. Agent-authored under owner decision D18
+# (2 Oct 2026): simulated-patient stress testing only; a licensed physician's
+# review is required before any real patient. Every source quote below appears
+# verbatim in the named snapshot; spec_basis quotes appear verbatim in the named
+# committed file. Not a pack: nothing here is compiled or served.
+kind: clinical_decision
+id: CD-17
+title: "Fiziksel tıp ve rehabilitasyon: one function question, with the open detail as its follow-up"
+question: >-
+  V-FTVR-5: fiziksel tıp Q4 (open: how much the problem affects daily tasks, walking and
+  self-care) overlaps cluster.medical gunluk_islev_kisitlanmasi (yes/no: difficulty with
+  daily tasks), so the patient hears both. Keep both function questions, or keep only
+  one?
+decision: >-
+  Keep one function fact, asked once, and keep the rehabilitation detail as its
+  follow-up. Function is a core outcome in this population: NICE NG59 1.3.8 makes
+  treatment that has "not improved pain or function" the threshold for the next
+  intervention. Asking the same fact twice under two ids, though, costs a turn and
+  invites two answers that disagree. Under the resolver's merge rule, a different id for
+  the same fact is asked twice, and a branch slot with the same id replaces the cluster
+  slot. So fiziksel tıp Q4 adopts the cluster's id, type, ask and follow-up verbatim
+  (gunluk_islev_kisitlanmasi, boolean), and the cluster ask is replaced in place. The
+  rehabilitation detail Q4 carried (walking and self-care) becomes a new gated
+  open item, Q4a zorlanilan_gunluk_isler, asked only after a yes. A patient without a
+  limitation hears one question. A patient with one hears the yes/no question and then
+  names the activities. The "ne ölçüde" (how much) wording is dropped: grading the
+  degree of limitation is a validated-instrument decision (ODI or HAQ type) that this
+  pack does not make. An override keeps the cluster slot's position while a new
+  pack-native child is appended later, so Q4a is worded to stand on its own without
+  pointing back to Q4.
+status: active
+scope: simulated_patient_stress_testing
+author_role: "physical medicine and rehabilitation physician (agent)"
+sources:
+  - kind: guideline
+    guideline_id: NICE-NG59
+    title: "Low back pain and sciatica in over 16s: assessment and management"
+    version_or_date: "NICE guideline NG59; published 30 November 2016; last updated 29 July 2026"
+    url: "https://www.nice.org.uk/guidance/ng59/chapter/Recommendations"
+    retrieved_on: 2026-10-03
+    section: "1.3.8"
+    quote: "Consider spinal decompression for people with sciatica when non-surgical treatment has not improved pain or function and their radiological findings are consistent with sciatic symptoms. [2016]"
+    snapshot: packages/protocols/sources/NICE-NG59.txt
+    supports: keep_function_fact
+    caveat: "Cited only for function as a decision variable in back pain and sciatica; never for cauda equina (files/04 §8.2)."
+spec_basis:
+  - file: docs/evidence/verification/cluster-wave-a.md
+    section: "Method, Collisions"
+    quote: "a child section with the same id updates the parent's slots key by key;"
+    supports: rebind
+  - file: docs/evidence/verification/cluster-wave-a.md
+    section: "Method, Collisions"
+    quote: "so a branch slot with the same id replaces the cluster slot;"
+    supports: rebind
+  - file: docs/evidence/verification/cluster-wave-a.md
+    section: "Method, Collisions"
+    quote: "and a different id for the same fact is asked twice."
+    supports: keep_function_fact
+  - file: docs/evidence/proposals/cluster_medical.md
+    section: "Q18 Limitation in daily activities"
+    quote: "> \"Sağlık sorununuz yüzünden günlük işlerinizi yapmakta zorlanıyor musunuz?\""
+    supports: rebind.ask_tr
+  - file: docs/evidence/proposals/cluster_medical.md
+    section: "Q18 Limitation in daily activities"
+    quote: "gen: slot=gunluk_islev_kisitlanmasi; type=boolean; follow_up=Yemek, giyinme ya da ev işleri gibi günlük işlerde zorlanıyor musunuz?"
+    supports: rebind.gen
+  - file: docs/evidence/proposals/fiziksel_tip_ve_rehabilitasyon.md
+    section: "Q4 Effect on daily function"
+    quote: "> \"Bu durum günlük işlerinizi, yürümenizi ya da kendinize bakmanızı ne ölçüde etkiliyor?\""
+    supports: detail_item
+  - file: scripts/dev/gen_specialty_packs.py
+    section: "build_pack docstring"
+    quote: "neither declared earlier in this pack nor by base.intake"
+    supports: "detail_item.ask_if (the gate reads a slot this pack declares at Q4)"
+value:
+  keep_function_fact: one
+  rebind:
+    item: Q4
+    slot: gunluk_islev_kisitlanmasi
+    type: boolean
+    ask_tr: "Sağlık sorununuz yüzünden günlük işlerinizi yapmakta zorlanıyor musunuz?"
+    follow_up_tr: "Yemek, giyinme ya da ev işleri gibi günlük işlerde zorlanıyor musunuz?"
+    gen: "gen: slot=gunluk_islev_kisitlanmasi; type=boolean; follow_up=Yemek, giyinme ya da ev işleri gibi günlük işlerde zorlanıyor musunuz?"
+    replaces: "the generated id soru_3 (no other soru_N id moves: Q2 and Q3 keep soru_1 and soru_2, and every item after Q4 has a named slot)"
+  detail_item:
+    item: Q4a
+    slot: zorlanilan_gunluk_isler
+    type: string
+    ask_tr: "Yürümek, giyinmek ya da kendinize bakmak gibi en çok hangi işlerde zorlanıyorsunuz?"
+    ask_if: "gunluk_islev_kisitlanmasi == true"
+    stands_alone: true
+  degree_grading: "not asked; a validated function instrument is a separate clinician and licence decision"
+  apply_after_737_merges:
+    - file: docs/evidence/proposals/fiziksel_tip_ve_rehabilitasyon.md
+      where: "§4 Q4 block"
+      change: replace_item
+      text: |-
+        **Q4 — Difficulty with daily tasks** · archetype: `OBSERVATION.story.v1` · source: cluster.medical Q18 (same id, ask and follow-up), S2 (NG59 rec 1.3.8, "pain or function")
+        > "Sağlık sorununuz yüzünden günlük işlerinizi yapmakta zorlanıyor musunuz?"
+        gen: slot=gunluk_islev_kisitlanmasi; type=boolean; follow_up=Yemek, giyinme ya da ev işleri gibi günlük işlerde zorlanıyor musunuz?
+        CANDIDATE — clinician to approve wording. Replaces the cluster ask in place (CD-17).
+    - file: docs/evidence/proposals/fiziksel_tip_ve_rehabilitasyon.md
+      where: "§4, directly after Q4"
+      change: insert_item
+      text: |-
+        **Q4a — Which daily tasks are hardest** · archetype: `OBSERVATION.story.v1` · source: S2 (NG59 rec 1.3.8, "pain or function")
+        > "Yürümek, giyinmek ya da kendinize bakmak gibi en çok hangi işlerde zorlanıyorsunuz?"
+        gen: slot=zorlanilan_gunluk_isler; type=string; ask_if=gunluk_islev_kisitlanmasi == true
+        CANDIDATE — clinician to approve wording. Worded to stand alone, because the child of an overriding slot is appended after the cluster slots (CD-17).
+value_status:
+  keep_function_fact: active
+  rebind: active
+  detail_item: active
+  degree_grading: active
+  apply_after_737_merges: active
+verifier:
+  verdict: agree
+  role: "independent clinical verifier (agent; EM/IM/paediatrics)"
+  verified_on: 2026-10-03
+  notes: "Independent verification: round 1 agree; round 2 agree. Every quote re-checked against the live source; the verifier saw only the committed output and the sources, never the authors' reasoning. Scope D18: simulated-patient stress testing only; a licensed physician's review is required before any real patient."

@@ -446,7 +446,7 @@ def test_the_turkish_guard_still_finds_what_invariant_two_names(
     [
         "Devam edin.",
         "Acil Servis'e gidin.",
-        "Vizite tanı koymaz.",
+        "Önvizit tanı koymaz.",
         "Bu özet hekiminize ulaşsın.",
         "Düzenli kullandığınız bir ilaç var mı?",
         "Ağrınız ne zaman başladı?",

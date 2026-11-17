@@ -1,0 +1,57 @@
+# INT-428 / ADR-035 — the hosted-provider catalogue for the model lanes.
+#
+# One row per intake_platform.model_lanes.ProviderId member (a test holds the
+# two in agreement). A row names:
+#   - egress_row: the infra/security/egress-allowlist.yaml row the provider is
+#     reached through. The HOST is read off that row, never written here, so
+#     the vendor endpoint is spelled in the allow-list alone. Until that row
+#     exists the provider loads as unlisted and serves nothing
+#     (hosted_egress_not_listed) — the row is a protected, human change.
+#   - api_shape: the wire the adapter speaks. openai_v1 is the
+#     OpenAI-compatible shape (/v1/chat/completions, /v1/audio/transcriptions,
+#     /v1/audio/speech); a "similar provider" speaking it needs a ProviderId
+#     member, this row and an allow-list row, and no adapter code.
+#   - self_hostable / phi_path: false, and the schema accepts nothing else. A
+#     hosted provider is exactly what invariant 19 keeps off the PHI path; it
+#     is declared here rather than in observability/registry.yaml, which is the
+#     registry of what we host.
+#   - models / defaults: the hosted model allow-list and each lane's default.
+#     DATED SNAPSHOTS ONLY (AI/ML review, binding): `wire` is what the
+#     provider is asked for and must end in its `version` date, so an alias
+#     that moves under us cannot be listed. The LLM snapshot supports strict
+#     JSON-Schema structured outputs; the transcription snapshot reports token
+#     usage; synthesis is metered in characters sent. Snapshot names as the
+#     provider published them (OpenAI's audio-model update of 15 Dec 2025 and
+#     its gpt-4o-mini release of 18 Jul 2024); a change is a reviewed PR.
+#   - tts_voice / tts_sample_rate_hz: the speech route's voice, and the rate
+#     of the raw 16-bit mono PCM it returns for response_format "pcm".
+version: 1
+providers:
+  - id: openai
+    egress_row: openai-api
+    api_shape: openai_v1
+    adr: ADR-035
+    self_hostable: false
+    phi_path: false
+    # The hosted model allow-list: id, version, the exact wire name the
+    # provider is asked for, and the lanes it may serve. A lane may select
+    # only from this list (a reviewed change); its default is `defaults`.
+    models:
+      - id: gpt-4o-mini
+        version: "2024-07-18"
+        wire: gpt-4o-mini-2024-07-18
+        lanes: [llm]
+      - id: gpt-4o-mini-transcribe
+        version: "2025-12-15"
+        wire: gpt-4o-mini-transcribe-2025-12-15
+        lanes: [asr]
+      - id: gpt-4o-mini-tts
+        version: "2025-12-15"
+        wire: gpt-4o-mini-tts-2025-12-15
+        lanes: [tts]
+    defaults:
+      llm: gpt-4o-mini
+      asr: gpt-4o-mini-transcribe
+      tts: gpt-4o-mini-tts
+    tts_voice: alloy
+    tts_sample_rate_hz: 24000

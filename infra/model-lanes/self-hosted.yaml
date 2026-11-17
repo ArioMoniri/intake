@@ -1,0 +1,18 @@
+# INT-428 — which self-hosting registry components may serve each model lane.
+#
+# Self-hosted models come ONLY from observability/registry.yaml, and only a
+# row pinned the invariant-14 way — model_id, a 40-hex revision and per-file
+# weights_sha256 — can be selected (intake_platform.model_lanes.models). A
+# component listed here that is not pinned is shown on the console and
+# refused (model_not_pinned); pinning it is a registry change, never a
+# console one. Order matters: the first pinned row is the lane's default.
+#
+# On 2 Oct 2026: the extraction LLM (qwen3.6-35b-a3b) and VoxCPM2 are pinned;
+# the dev-bridge talker LLM, the Turkish medical whisper and Freya carry no
+# model_id/revision/sha256 in the registry yet, so the ASR lane has no
+# selectable self-hosted model until one is pinned.
+version: 1
+lanes:
+  llm: [qwen3.6-35b-a3b, qwen3.5-9b]
+  asr: [whisper-tr-medical]
+  tts: [voxcpm2-tts, freya-tts]

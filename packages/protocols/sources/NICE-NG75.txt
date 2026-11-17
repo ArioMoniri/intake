@@ -1,0 +1,36 @@
+# guideline_id: NICE-NG75
+# title: Faltering growth: recognition and management of faltering growth in children
+# publisher: National Institute for Health and Care Excellence (NICE)
+# version_or_date: NICE guideline NG75; published 27 September 2017; minor change October 2021 (Update information)
+# url: https://www.nice.org.uk/guidance/ng75/chapter/Recommendations
+# url_update_information: https://www.nice.org.uk/guidance/ng75/chapter/Update-information
+# retrieved_on: 2026-10-03
+# retrieval: curl with a browser user-agent (HTTP 200 on every page); HTML (utf-8) tags stripped, entities decoded, runs of spaces collapsed, one line per HTML block; characters kept as served (including U+2011 non-breaking hyphens and U+2013 dashes)
+# scope: verbatim excerpt of the page header and recommendations 1.2.1 to 1.2.3, then the Update information list; nothing paraphrased or edited. '[...]' marks an omission between excerpts.
+---
+Faltering growth: recognition and management of faltering growth in children
+NICE guideline
+Reference number: NG75
+Published:
+27 September 2017
+[...]
+1.2 Faltering growth after the early days of life
+Thresholds
+1.2.1
+Consider using the following as thresholds for concern about faltering growth in infants and children (a centile space being the space between adjacent centile lines on the UK WHO growth charts ):
+a fall across 1 or more weight centile spaces, if birthweight was below the 9th centile
+a fall across 2 or more weight centile spaces, if birthweight was between the 9th and 91st centiles
+a fall across 3 or more weight centile spaces, if birthweight was above the 91st centile
+when current weight is below the 2nd centile for age, whatever the birthweight.
+Measurement of weight and height or length
+1.2.2
+If there is concern about faltering growth (for example, based on the criteria in recommendation 1.2.1):
+weigh the infant or child
+measure their length (from birth to 2 years old) or height (if aged over 2 years)
+plot the above measurements and available previous measurements on the UK WHO growth charts to assess weight change and linear growth over time.
+1.2.3
+If there are concerns about an infant's length or a child's length or height, if possible obtain the biological parents' heights and work out the mid-parental height centile. If the child's length or height centile is below the range predicted from parental heights (more than 2 centile spaces below the mid-parental centile) be aware this could suggest undernutrition or a primary growth disorder.
+[...]
+Update information
+Minor changes since publication
+October 2021: We added a link to NICE's guidelines on babies, children and young people's experience of healthcare and on shared decision making in recommendation 1.4.2.

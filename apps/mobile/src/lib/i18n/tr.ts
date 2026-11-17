@@ -9,10 +9,10 @@
  * sign-off (invariant 18); here they gate the dev shell.
  */
 export const tr = {
-  "app.name": "Vizite",
+  "app.name": "Önvizit",
   "app.tagline": "Muayeneden önce, anlattıklarınız hekiminize ulaşsın.",
   // [REVIEW] fixed non-diagnosis line, 06 §7 family
-  "app.disclaimer": "Vizite tanı koymaz. Anlattıklarınız hekim değerlendirmesinin yerine geçmez.",
+  "app.disclaimer": "Önvizit tanı koymaz. Anlattıklarınız hekim değerlendirmesinin yerine geçmez.",
 
   "tabs.today": "Bugün",
   "tabs.visits": "Vizitlerim",
@@ -21,7 +21,7 @@ export const tr = {
   "tabs.me": "Profilim",
 
   "welcome.body":
-    "Vizite, muayeneden önce şikâyetlerinizi sesli ya da yazılı olarak toplar ve hekiminize düzenli bir ön not iletir.",
+    "Önvizit, muayeneden önce şikâyetlerinizi toplar ve hekiminize düzenli bir ön not iletir.",
   "welcome.devSignIn": "Deneme hesabıyla girin",
   "welcome.devNote":
     "Bu ekran geliştirme sürümüne özeldir; gerçek giriş telefon doğrulamasıyla yapılır.",
@@ -64,7 +64,7 @@ export const tr = {
   "auth.biometric.retry": "Yeniden deneyin",
   "auth.integrity.warnTitle": "Cihaz güvenliği",
   "auth.integrity.warnBody":
-    "Bu cihazda güvenlik değişikliği görünüyor. Görüşme sesli değil, yazılı olarak devam eder.",
+    "Bu cihazda güvenlik değişikliği görünüyor. Görüşme yazılı olarak devam eder.",
 
   "today.nextVisit": "Sıradaki vizit",
   "today.prep": "Vizit hazırlığı",
@@ -104,8 +104,24 @@ export const tr = {
   "visits.new.smsFilled": "Randevu bilgileriniz dolduruldu. Lütfen kontrol edin.",
   "visits.new.smsUnknownBranch": "Poliklinik adını tanıyamadık. Listeden siz seçin.",
   "visits.new.smsNoDate": "Mesajda tarih bulamadık. Tarihi siz ekleyin.",
+  // INT-400: the date reads as two days, or two dates are printed; the field
+  // is left empty and the patient writes the date (no reading is guessed)
+  "visits.new.smsAmbiguousDate":
+    "Mesajdaki tarihten randevunuzun hangi gün olduğunu kesin anlayamadık. Tarihi aşağıya siz yazın.",
   "visits.new.smsUnreadable": "Bu mesajı okuyamadık. Bilgileri elle girebilirsiniz.",
   "visits.new.ocrUnavailable": "Görüntüden okuma henüz açık değil. Mesajı metin olarak yapıştırın.",
+  // INT-537 — vizit başlangıcında temel hizmet izni, yerinde sorulur. Yalnızca
+  // arayüz metnidir; onay metninin kendisi docs/legal'den, damgasıyla gelir.
+  "visits.new.core.kicker": "İzin gerekli",
+  "visits.new.core.title": "Vizit eklemek için temel hizmet izni gerekir",
+  "visits.new.core.body":
+    "Bu izin olmadan ön görüşme yapılamaz. İzin metnini okuyup karar verebilirsiniz. İzni istediğiniz an geri çekebilirsiniz.",
+  "visits.new.core.staleBody":
+    "Temel hizmet izninin metni güncellendi. Vizit eklemek için yeni metni okuyup yeniden onay vermeniz gerekir.",
+  "visits.new.core.pendingBody":
+    "Bu izin olmadan ön görüşme yapılamaz. İzin metni henüz hazırlanıyor. Metin yayımlanınca okuyup karar verebilirsiniz.",
+  "visits.new.core.cta": "İzin metnini okuyun",
+  "visits.new.core.pendingCta": "İzin sayfasına gidin",
   // Vizit türleri — files/09 §1
   "visits.type.first": "İlk başvuru",
   "visits.type.followup": "Kontrol",
@@ -119,6 +135,19 @@ export const tr = {
   "visits.type.teleconsult": "Uzaktan görüşme",
   "visits.detail.noteStatus": "Not durumu",
   "visits.detail.notStarted": "Görüşme henüz başlamadı.",
+
+  // Takvim (calendar) görünümü + Geçmiş (past) listesi (02 §4). Ay/gün adları
+  // Intl'den gelir (components/VisitCard.tsx ile aynı kaynak); burada yalnızca
+  // ekranın kendi metinleri var.
+  "visits.view.label": "Görünüm",
+  "visits.view.list": "Liste",
+  "visits.view.calendar": "Takvim",
+  "visits.pastEmpty": "Geçmiş vizitiniz yok.",
+  "visits.calendar.prevMonth": "Önceki ay",
+  "visits.calendar.nextMonth": "Sonraki ay",
+  "visits.calendar.hasVisits": "vizitiniz var",
+  "visits.calendar.noVisitsOnDay": "Bu gün için vizitiniz yok.",
+  "visits.calendar.monthEmpty": "Bu ayda vizitiniz yok.",
 
   "records.title": "Kayıtlarım",
   "records.synthetic": "Örnek veri — sentetik",
@@ -143,6 +172,8 @@ export const tr = {
   "records.err.session": "Oturumunuz sona erdi. Lütfen yeniden giriş yapın.",
   "records.err.consent":
     "Belge izniniz kapalı görünüyor. İzinlerinizi Profilim sayfasından açabilirsiniz.",
+  "records.err.coreConsent":
+    "Temel hizmet izniniz kapalı görünüyor. İzinlerinizi Profilim sayfasından açabilirsiniz.",
   "records.err.scanUnavailable":
     "Belge taraması şu anda yapılamıyor. Lütfen daha sonra tekrar deneyin.",
   "records.err.rejected": "Belge güvenlik taramasını geçemedi ve açılmayacak.",
@@ -219,11 +250,11 @@ export const tr = {
   "me.consents": "İzinleriniz",
   "me.language": "Dil",
   "me.learned": "Hakkımda öğrendikleri",
-  "me.learnedEmpty": "Vizite sizin onayınız olmadan hiçbir bilgiyi kalıcı olarak öğrenmez.",
+  "me.learnedEmpty": "Önvizit sizin onayınız olmadan hiçbir bilgiyi kalıcı olarak öğrenmez.",
   "learned.guide.kicker": "Şeffaflık",
   "learned.guide.title": "Hiçbir şey sessizce öğrenilmez",
   "learned.guide.body":
-    "Vizite sizinle ilgili kalıcı bir bilgiyi yalnızca siz onaylarsanız saklar. Saklanan her bilgi bu listede görünür ve dilediğinizde kaldırılabilir.",
+    "Önvizit sizinle ilgili kalıcı bir bilgiyi yalnızca siz onaylarsanız saklar. Saklanan her bilgi bu listede görünür ve dilediğinizde kaldırılabilir.",
   // INT-140 — her bilginin nereden geldiği, nerede tutulduğu, kimin gördüğü
   // ve nasıl silineceği. Yeniden onay ziyaret hazırlığında sorulur.
   "learned.shareLabel": "Hekimle paylaşılsın",
@@ -697,7 +728,8 @@ export const tr = {
   "review.shared": "Paylaşılıyor",
   "review.notShared": "Paylaşılmıyor",
   "review.send": "Hekiminize gönderin",
-  "review.sentInfo": "Notunuz gönderildi. Hekiminiz görüntülediğinde durumu burada görürsünüz.",
+  "review.sentInfo":
+    "Notunuz gönderildi. Ne zaman açıldığını Paylaşımlarınız bölümünde görebilirsiniz.",
   "review.empty": "Henüz yanıt yok. Önce birkaç soruyu yanıtlayın.",
   // INT-236 — hekime görünen erteleme işareti (02 §33: birebir
   // "eksik: ortam uygun değildi"), koşul işareti ve kesme noktası özeti.
@@ -720,7 +752,7 @@ export const tr = {
   "consent.documents": "Belge yükleme",
   "consent.health": "Sağlık verisi okuma",
   "consent.health.hint":
-    "Adım, nabız ve uyku verileriniz yalnızca bu telefonda okunur; hiçbir yere gönderilmez. Bir veri, notunuza ancak siz eklerseniz girer.",
+    "Adım, dinlenme nabzı ve uyku verileriniz bu telefonda okunur. Bir veri notunuza ancak siz eklerseniz girer; notunuzu gönderirseniz onunla birlikte gider.",
   "consent.on": "Açık",
   "consent.off": "Kapalı",
 
@@ -729,12 +761,14 @@ export const tr = {
   // (invariant 18) ve hiçbir zaman bu kataloğa yazılmaz.
   "consent.entry.sub": "Hangi izni ne için verdiğinizi görün ve yönetin.",
   "consent.firstRun.body":
-    "Vizite'de her izin ayrıdır. İzin gerektiren hiçbir seçenek önceden açık gelmez. Şimdi karar vermek zorunda değilsiniz; her izni sırası geldiğinde ya da buradan açabilirsiniz.",
+    "Önvizit'te her izin ayrıdır. İzin gerektiren hiçbir seçenek önceden açık gelmez. Şimdi karar vermek zorunda değilsiniz; her izni sırası geldiğinde ya da buradan açabilirsiniz.",
   "consent.firstRun.continue": "Devam edin",
   "consent.group.core": "Hizmet",
   "consent.group.voice": "Sesli görüşme",
   "consent.group.voice.hint":
-    "Ses analizi seçenekleri yalnızca sesli görüşmeyle birlikte çalışır. Yazı analizi ses kaydına değil, yazıya bakar; ayrı bir izindir.",
+    "Ses analizi seçenekleri yalnızca sesli görüşmeyle birlikte çalışır. Yazı analizi sese değil, yazıya bakar; ayrı bir izindir.",
+  // INT-591: a release build has no voice, so it offers no voice consent.
+  "consent.group.voice.release": "Bu sürümde sesli görüşme yok; bu izinler kullanılmaz.",
   "consent.group.purposes": "Diğer amaçlar",
   "consent.group.learning": "Öğrenme",
   "consent.group.learning.hint":
@@ -745,13 +779,17 @@ export const tr = {
   "consent.learning.service": "Hizmeti iyileştirme",
   "consent.satisfaction": "Memnuniyet soruları",
   "consent.research": "Araştırma",
-  "consent.who.core": "Anlattıklarınızı yalnızca siz ve onay verdiğiniz hekim görür.",
+  // INT-536: each line is true on every host. Where data is processed and who
+  // receives it depends on the host, so these lines defer to the bound text,
+  // which says it (docs/evidence/INT-536.md §2 cites the code for each sentence).
+  "consent.who.core":
+    "Yanıtlarınızı siz görürsünüz. Hekiminiz notunuzu yalnızca siz paylaşırsanız görür. Acil bir durum işaretinde klinik personeli, sağlık yanıtlarınızı içermeyen bir uyarı görür. Bilgilerinizin nerede işlendiği izin metninde yazar.",
   "consent.who.voice":
-    "Sesiniz yalnızca görüşme sırasında işlenir; kayıt saklanmaz. Veriler Türkiye'deki sunucularda kalır.",
+    "Sesiniz görüşme sırasında yazıya dökülür; ses kaydı saklanmaz. Sesinizin nerede işlendiği ve kimlere gittiği izin metninde yazar.",
   "consent.who.laneAffect":
-    "Ses tonunuzdan çıkan ipuçlarını yalnızca hekiminiz görür; size bir etiket konmaz.",
+    "Ses tonunuzdan çıkan ipuçları yalnızca görüşmenin hızını ve akışını ayarlar. Hekiminize gitmez, notunuza yazılmaz ve size gösterilmez.",
   "consent.who.laneLinguistic":
-    "Yazıya dökülen metinden çıkan ipuçlarını yalnızca hekiminiz görür.",
+    "Yazıya dökülen metinden çıkan ipuçları hekiminize gitmez ve notunuza yazılmaz.",
   "consent.who.wellbeing":
     "Yanıtlarınızı yalnızca siz görürsünüz; hekiminizle paylaşım her seferinde ayrıca sorulur.",
   "consent.who.documents":
@@ -763,8 +801,6 @@ export const tr = {
   "consent.who.satisfaction":
     "Yanıtlarınız hizmeti değerlendirmek için kullanılır; hekiminize gitmez.",
   "consent.who.research": "Verileriniz araştırmada yalnızca siz onay verirseniz kullanılır.",
-  "consent.basis.service":
-    "Bu, hizmetin kendisidir; ayrı bir düğmesi yoktur. Vizite'yi kullanmayı bırakırsanız sona erer.",
   "consent.basis.explicit":
     "Açık rızanıza bağlıdır. İstediğiniz an geri çekebilirsiniz; geri çekmek hemen geçerli olur.",
   "consent.basis.learningPersonal":
@@ -773,7 +809,6 @@ export const tr = {
     "Kimliğinizden ayrılmış toplu verilerle hizmet iyileştirilir; bu yüzden açık gelir. Kapatmak hiçbir özelliği kısıtlamaz.",
   "consent.state.pending": "Metin hazırlanıyor",
   "consent.state.stale": "Yeniden onay gerekli",
-  "consent.state.service": "Hizmetin temeli",
   "consent.pending.body":
     "Bu iznin metni hazırlanıyor. Metin yayımlanmadan izin açılamaz; hazır olduğunda burada görünür.",
   "consent.stale.body":
@@ -825,6 +860,7 @@ export const tr = {
   "a11y.backHint": "Önceki ekrana dönmek için iki kez dokunun.",
   "a11y.closeHint": "Kapatmak için iki kez dokunun.",
   "a11y.selectHint": "Seçmek için iki kez dokunun.",
+  "a11y.visits.dayHint": "O günün vizitlerini görmek için iki kez dokunun.",
   "a11y.confirmHint": "Onaylamak için iki kez dokunun.",
   "a11y.shareHint": "Bu bölümün paylaşımını açıp kapatmak için iki kez dokunun.",
   "a11y.typedHint": "Konuşmak yerine yazarak devam etmek için iki kez dokunun.",
@@ -843,10 +879,10 @@ export const tr = {
   // The two voices of the conversation. The agent is named with the product
   // name, never a human first name (02 §5: no persona presented as a
   // person); "Siz" keeps the app-wide register.
-  "a11y.speaker.agent": "Vizite",
+  "a11y.speaker.agent": "Önvizit",
   "a11y.speaker.patient": "Siz",
   "a11y.dialogue.transcript": "Konuşma dökümü",
-  "a11y.dialogue.speaking": "Vizite konuşuyor",
+  "a11y.dialogue.speaking": "Önvizit konuşuyor",
   "a11y.dialogue.preparing": "Soru hazırlanıyor",
   "a11y.dialogue.transcribing": "Söyledikleriniz yazıya dökülüyor",
   "a11y.dialogue.settling": "Notunuz hazırlanıyor",
@@ -918,7 +954,7 @@ export const tr = {
   "companion.thirdParty.kicker": "Yanınızda biri var mı",
   "companion.thirdParty.label": "Yanımda başka biri var",
   "companion.thirdParty.footer":
-    "Yanınızda biri varken bazı sorular sesli sorulmaz. Bu, mahremiyetiniz içindir.",
+    "Yanınızda biri varken bazı çok özel sorular sorulmaz. Bu, mahremiyetiniz içindir.",
   "companion.ack.kicker": "Onayınız",
   "companion.ack.label": "Hastanın adına konuştuğumu onaylıyorum",
   "companion.ack.notProof":
@@ -1195,8 +1231,80 @@ export const tr = {
   // puts the same invitation over the answer field and keeps the options
   // under it as the fallback.
   "dialogue.openInvite": "Kendi sözlerinizle anlatabilirsiniz.",
-  "intake.open.hint": "Kendi sözlerinizle yazabilir ya da söyleyebilirsiniz.",
+  // INT-588: the hint names dictation only where the button is drawn (a dev
+  // build with the voice consent); lib/buildCopy.ts chooses.
+  "intake.open.hint": "Kendi sözlerinizle yazabilirsiniz.",
+  "intake.open.hintVoice": "Kendi sözlerinizle yazabilir ya da söyleyebilirsiniz.",
   "intake.open.orChoose": "Ya da aşağıdan seçebilirsiniz.",
+
+  // --- INT-414 · conversational delivery ------------------------------------
+  // The words AROUND a question, never inside it: the welcome, lead-ins, topic
+  // transitions, acknowledgements and the closing (lib/dialogue/delivery.ts).
+  // Rules every line here keeps, and delivery.test.ts plus
+  // tests/release/test_delivery_copy.py hold: siz register, B1, warmth from
+  // the -elim/-alım mood; no question and no mı/mi/mu/mü, because the question
+  // that follows is the turn's one question; no numeral; no diagnosis,
+  // treatment, prognosis or reassurance; nothing about where answers go
+  // (docs/legal/strings.yaml does not exist) and no "tekrar" command (the dev
+  // dialogue has none). For clinician review under HB-C1 — the table is in
+  // docs/evidence/INT-414.md; nothing here is signed.
+  "dialogue.delivery.welcome.a": "Hoş geldiniz. Muayenenizden önce size bazı sorular soracağım.",
+  "dialogue.delivery.welcome.b":
+    "Merhaba, hoş geldiniz. Muayeneden önce birlikte bazı sorular üzerinden geçelim.",
+  "dialogue.delivery.welcome.c":
+    "Hoş geldiniz. Muayenenize hazırlık için size bazı sorular sormak istiyorum.",
+  "dialogue.delivery.orientVoice.a":
+    "Soruları ekranda da görebilirsiniz. Dilerseniz yazarak da yanıt verebilirsiniz.",
+  "dialogue.delivery.orientVoice.b":
+    "Ben konuşurken araya girebilirsiniz. Sorular ekranda yazılı olarak da durur.",
+  "dialogue.delivery.orientTyped.a": "Soruları kendi hızınızda yanıtlayabilirsiniz.",
+  "dialogue.delivery.orientTyped.b": "Acele etmeden, kendi hızınızda ilerleyebilirsiniz.",
+  "dialogue.delivery.resume.a": "Kaldığımız yerden devam edelim.",
+  "dialogue.delivery.resume.b": "Kaldığımız yerden sürdürelim.",
+  "dialogue.delivery.lead.a": "Devam edelim.",
+  "dialogue.delivery.lead.b": "Sıradaki soruya geçelim.",
+  "dialogue.delivery.lead.c": "Şimdi şunu soralım.",
+  "dialogue.delivery.lead.d": "Bir de şunu öğrenmek istiyorum.",
+  "dialogue.delivery.thanks.a": "Teşekkürler.",
+  "dialogue.delivery.thanks.b": "Teşekkür ederim.",
+  "dialogue.delivery.thanks.c": "Not aldım, teşekkürler.",
+  "dialogue.delivery.hesitant.a": "Anlıyorum, devam edelim.",
+  "dialogue.delivery.hesitant.b": "Peki, bu şekilde not aldım.",
+  "dialogue.delivery.revised.a": "Düzeltmeniz için teşekkürler.",
+  "dialogue.delivery.revised.b": "Düzelttiğinizi not aldım.",
+  // The silence lines are said after a turn with no words, in front of the
+  // NEXT question. The skipped one always returns in the manual steps
+  // (stream.ts: asked, unanswered, hand-over), so they may say so.
+  "dialogue.delivery.silence.a": "Önceki soruya sonra ekrandan dönebilirsiniz.",
+  "dialogue.delivery.silence.b": "Önceki soruyu daha sonra ekranda yanıtlayabilirsiniz.",
+  "dialogue.delivery.repair.b": "Yanıtınızı tam anlayamadım. Soruyu bir kez daha soralım.",
+  "dialogue.delivery.pain.a": "Ağrınızı biraz daha iyi anlamak istiyorum.",
+  "dialogue.delivery.pain.b": "Ağrınızla ilgili birkaç ayrıntı soralım.",
+  "dialogue.delivery.instrument.a":
+    "Sıradaki sorular standart bir ankete ait. Bu yüzden her zaman aynı şekilde sorulur.",
+  "dialogue.delivery.instrument.b": "Şimdi herkese aynı biçimde sorulan bir ankete geçelim.",
+  "dialogue.delivery.sensitive.a":
+    "Sıradaki konu biraz daha özel. Acele etmeden yanıtlayabilirsiniz.",
+  "dialogue.delivery.sensitive.b": "Şimdi biraz daha kişisel bir konuya geçelim.",
+  "dialogue.delivery.sensitiveLead.a": "Yavaş yavaş devam edelim.",
+  "dialogue.delivery.sensitiveLead.b": "Size rahat gelen şekilde yanıtlayabilirsiniz.",
+  "dialogue.delivery.topic.allergies.a": "Şimdi alerjilerle ilgili sorulara geçelim.",
+  "dialogue.delivery.topic.allergies.b": "Sırada alerjilerle ilgili sorular var.",
+  "dialogue.delivery.topic.medications.a": "Şimdi ilaçlarla ilgili sorulara geçelim.",
+  "dialogue.delivery.topic.medications.b": "Sırada ilaçlarla ilgili sorular var.",
+  "dialogue.delivery.topic.pmh.a": "Şimdi sağlık geçmişinizle ilgili sorulara geçelim.",
+  "dialogue.delivery.topic.pmh.b": "Sırada sağlık geçmişinizle ilgili sorular var.",
+  "dialogue.delivery.topic.family.a":
+    "Şimdi ailenizin sağlık geçmişine geçelim. Acele etmeden yanıtlayabilirsiniz.",
+  "dialogue.delivery.topic.family.b": "Sıradaki sorular ailenizin sağlık geçmişiyle ilgili.",
+  "dialogue.delivery.topic.social.a": "Şimdi günlük yaşamınızla ilgili sorulara geçelim.",
+  "dialogue.delivery.topic.social.b": "Sırada günlük yaşamınızla ilgili sorular var.",
+  "dialogue.delivery.topic.measurements.a": "Şimdi birkaç ölçümle ilgili bilgi alalım.",
+  "dialogue.delivery.topic.measurements.b": "Sırada ölçümlerle ilgili sorular var.",
+  "dialogue.delivery.topic.wrapup.a": "Bitirmeden önce şunu da soralım.",
+  "dialogue.delivery.topic.wrapup.b": "Sona yaklaştık.",
+  "dialogue.delivery.closing.a": "Sorularım bu kadar. Zaman ayırdığınız için teşekkür ederim.",
+  "dialogue.delivery.closing.b": "Soruların sonuna geldik. Zaman ayırdığınız için teşekkürler.",
 
   // --- INT-137 · Gönder'den önceki paylaşım özeti (02 §5.4: ne, kiminle, ne
   // zamana kadar). Süre bir sayaç değil, bir dayanak: 02 §2 Doctor Link
@@ -1305,9 +1413,47 @@ export const tr = {
   "shares.issue.error.limited": "Çok fazla deneme oldu. Biraz sonra tekrar deneyin.",
   "shares.issue.error.unavailable": "Paylaşım şu anda açık değil. Sonra tekrar deneyin.",
   "shares.issue.error.unreachable": "Bağlantı kurulamadı. Sonra tekrar deneyin.",
+  // INT-587 — two more true sentences for the issuing screen.
+  "shares.issue.error.consent": "Paylaşım onayınız olmadığı için bağlantı oluşturulamadı.",
+  "shares.issue.error.session": "Oturumunuz kapalı olduğu için bağlantı oluşturulamadı.",
   "a11y.shares.revokeHint": "İki kez dokunmak bu paylaşımı durdurur.",
   "a11y.shares.confirmHint": "İki kez dokunmak durdurma isteğini gönderir.",
   "a11y.shares.issueHint": "Hekiminize gösterebileceğiniz bir bağlantı oluşturur.",
+  // INT-587 — the share consent, withdrawn from the share centre. The legal
+  // text itself is never here: it comes from docs/legal through the loader.
+  "shares.consent.title": "Paylaşım onayınız",
+  "shares.consent.withdraw": "Paylaşım onayını geri çekin",
+  "shares.consent.confirm": "Geri çekmeyi onaylayın",
+  "shares.consent.effect": "Geri çekerseniz bütün notlarınızın açık bağlantıları kapanır.",
+  "shares.consent.done": "Paylaşım onayınız geri çekildi. Açık bağlantılar kapandı.",
+  "shares.consent.unsent":
+    "Geri çekme isteğiniz sunucuya henüz ulaşmadı. Bağlantılar açık kalmış olabilir.",
+  "a11y.shares.consentHint": "İki kez dokunmak paylaşım onayınızı geri çekmeyi hazırlar.",
+  "a11y.shares.consentConfirmHint": "İki kez dokunmak geri çekme isteğini gönderir.",
+  // INT-587 — the note's way to the clinician. Only a confirmed delivery says
+  // "gönderildi" (review.sentInfo); everything here describes a note that is
+  // still on this phone, and says so.
+  "delivery.consent.title": "Paylaşım onayı",
+  "delivery.consent.body":
+    "Notunuzun hekiminizle paylaşılması için onayınız gerekir. Onay vermezseniz notunuz yalnızca bu telefonda kalır.",
+  "delivery.consent.again": "Notunuzun gitmesi için paylaşım onayınız yeniden gerekiyor.",
+  "delivery.consent.pendingBody":
+    "Paylaşım metni hazır olmadan not gönderilmez. Notunuz bu telefonda bekliyor.",
+  "delivery.edit": "Notu düzenleyin",
+  // INT-587 legal review N3: declining is one tap, as easy as agreeing.
+  "delivery.consent.decline": "Şimdi değil",
+  "delivery.consent.review": "Paylaşım onayını okuyun",
+  "delivery.declined": "Notunuz gönderilmedi; yalnızca bu telefonda duruyor.",
+  "delivery.status.title": "Gönderim durumu",
+  // N5: "bağlantı" is also the Doctor Link; this line is about the server.
+  "delivery.queued": "Notunuz gönderilmeyi bekliyor. Sunucuya ulaşılınca kendiliğinden gönderilir.",
+  "delivery.held": "Notunuz bu telefonda duruyor; hekiminize ulaşmadı.",
+  "delivery.refused.session": "Oturumunuz kapalı olduğu için not gönderilemedi.",
+  "delivery.refused.core": "Temel hizmet izniniz kapalı olduğu için not gönderilemedi.",
+  "delivery.refused.notFound": "Bu vizit sunucuda bulunamadığı için not gönderilemedi.",
+  "delivery.refused.invalid": "Not bu hâliyle gönderilemedi.",
+  "delivery.refused.rejected": "Not gönderilemedi.",
+  "delivery.retry": "Tekrar deneyin",
 
   // INT-143 — kiosk mode. Mostly staff-facing (clinic PIN entry), which may be
   // plainer; the one patient-facing line is the privacy note, in siz, ≤ B1.
@@ -1330,6 +1476,19 @@ export const tr = {
   "kiosk.tamper.body":
     "Bu cihazın kiosk kilidi artık etkin değil. Devam etmeden önce personel cihazı yeniden kilitlemeli, sonra klinik PIN'ini girmeli.",
   "kiosk.privacy.note": "Bu paylaşılan bir cihazdır. Bilgileriniz burada saklanmaz.",
+  // INT-363 — the idle warning (WCAG 2.2 SC 2.2.1): patient-facing, siz, ≤ B1,
+  // calm. No number: the grace is a constant in lib/kiosk, never copy.
+  "kiosk.idle.warning":
+    "Hâlâ burada mısınız? Bilgilerinizi korumak için oturum birazdan kapanacak.",
+  "kiosk.idle.extend": "Devam edin",
+  "kiosk.idle.extendHint": "Oturumu açık tutar.",
+  // INT-446 — the controls around a RED. The RED's own words are never here:
+  // they come verbatim from the rule's `tr` (invariant 10). Inside RED the
+  // bare imperative plural is the register, because ambiguity is the harm.
+  "red.call112": "112'yi arayın",
+  "red.location.yes": "Evet",
+  "red.location.no": "Hayır",
+  "red.doNots": "Lütfen yapmayın",
 } as const;
 
 export type MessageKey = keyof typeof tr;

@@ -1,0 +1,17 @@
+# guideline_id: WHO-HOUSEHOLD-FUEL-2014
+# title: WHO guidelines for indoor air quality: household fuel combustion
+# publisher: World Health Organization
+# version_or_date: 2014 (WHO IRIS handle 10665/141496, issued 2014-11-13); ISBN 978 92 4 154887 8
+# url: https://iris.who.int/handle/10665/141496
+# url_pdf: https://iris.who.int/server/api/core/bitstreams/b7e8337f-bc8b-40fd-af6f-921d7f778ca4/content
+# retrieved_on: 2026-10-03
+# retrieval: item found through the IRIS DSpace REST search API; PDF fetched with curl (HTTP 200, 1818760 bytes); text extracted with pdftotext (poppler); page numbers are PDF page indices; within each excerpted paragraph the PDF line wraps are joined with single spaces; characters otherwise kept as extracted
+# scope: verbatim excerpt of the ISBN line (PDF p. 4) and the glossary entry 'solid biomass fuel' (PDF p. 11); nothing paraphrased or edited; omissions marked [...]
+---
+[PDF p. 4]
+ISBN 978 92 4 154887 8 (print)
+[...]
+[PDF p. 11]
+solid biomass fuel
+–
+Wood, animal dung, crop wastes and charcoal used as fuel.

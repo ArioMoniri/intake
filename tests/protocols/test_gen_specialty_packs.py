@@ -212,6 +212,39 @@ def test_delivery_is_emitted_and_unknown_gen_keys_are_refused() -> None:
     assert any("unknown gen key" in w for w in warnings)
 
 
+def test_a_d3_data_category_is_emitted_and_an_unknown_one_is_refused() -> None:
+    """INT-432 CD-11: the owner approved workplace exposure as a data category,
+    and the slot must carry it (invariant 18). Near misses: general_health is
+    the default and never written, and a category outside the closed D3 set is
+    refused rather than emitted for the loader to catch later."""
+    tagged = PROPOSAL.replace(
+        "gen: slot=bayginlik; type=boolean",
+        "gen: slot=bayginlik; type=boolean; delivery=text_first; data_category=occupational",
+    )
+    qs, warnings = GEN.extract_questions(tagged)
+    slot = GEN.build_pack(DRAFT, "ornek", qs)["sections"]["sorular"]["slots"]["bayginlik"]
+    assert slot["data_category"] == "occupational" and slot["delivery"] == "text_first"
+    assert not any("data_category" in w for w in warnings)
+    for refused in ("general_health", "mesleki"):
+        text = PROPOSAL.replace(
+            "gen: slot=bayginlik; type=boolean",
+            f"gen: slot=bayginlik; type=boolean; data_category={refused}",
+        )
+        qs, warnings = GEN.extract_questions(text)
+        assert "bayginlik" not in {q.slot for q in qs}, refused
+        assert any("unknown data_category" in w for w in warnings), refused
+
+
+def test_the_gogus_occupational_item_carries_its_category_and_text_first() -> None:
+    """The applied CD-11 owner answer, in the regenerated review pack."""
+    import yaml
+
+    pack = yaml.safe_load((GEN.REVIEW / "gogus_hastaliklari.yaml").read_text(encoding="utf-8"))
+    slots = {k: v for s in pack["sections"].values() for k, v in s["slots"].items()}
+    assert slots["mesleki_toz_duman_gaz"]["data_category"] == "occupational"
+    assert slots["mesleki_toz_duman_gaz"]["delivery"] == "text_first"
+
+
 def test_a_gate_on_an_undeclared_slot_is_refused_but_base_slots_are_readable() -> None:
     q1 = GEN.Question(text="Neden geldiniz?", number=1)
     gated = GEN.Question(text="Ne oldu?", slot="devam", ask_if="olmayan_slot == true")

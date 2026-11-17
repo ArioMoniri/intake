@@ -61,7 +61,7 @@ from intake_platform.db.models import (  # noqa: E402
 from intake_platform.envelope import CryptoShredError  # noqa: E402
 from intake_platform.legal import LegalStringsCatalog  # noqa: E402
 from legal_harness import BOUND_SCOPES, grant_bound, write_all_consent_texts  # noqa: E402
-from sqlalchemy import select  # noqa: E402
+from sqlalchemy import event, select  # noqa: E402
 from sqlalchemy.ext.asyncio import AsyncSession  # noqa: E402
 
 # --- synthetic fixtures -------------------------------------------------------------
@@ -566,6 +566,381 @@ def test_the_erasure_delinks_telemetry_instead_of_orphaning_the_foreign_key(
     surviving = rows(dsar, Event)
     assert len(surviving) == 1, "telemetry has its own clock; erasure does not sweep it"
     assert surviving[0].session_id is None, "the link to the erased session must be cut"
+
+
+def _enforce_foreign_keys(harness: ApiHarness) -> None:
+    """SQLite checks foreign keys only when asked; postgres always does. The
+    harness engine is NullPool, so every connection opened after this call —
+    which is every statement the run below issues — enforces them."""
+
+    def _on_connect(dbapi_connection: Any, _record: Any) -> None:
+        cursor = dbapi_connection.cursor()
+        cursor.execute("PRAGMA foreign_keys=ON")
+        cursor.close()
+
+    event.listen(harness.engine.sync_engine, "connect", _on_connect)
+
+
+def test_the_erasure_shreds_the_previsit_output_and_removes_it_before_its_session(
+    dsar: ApiHarness,
+) -> None:
+    """INT-392. Sending the note writes the frozen previsit output (INT-317),
+    and ``previsit_outputs.session_id`` has no ON DELETE rule — so an erasure
+    that deleted the session without removing the output first failed on
+    postgres, and passed here only because SQLite was not checking.
+
+    The output is the note's frozen projection on the same files/06 §3 record
+    clock, so it gets what the note gets: its wrapped DEK destroyed, then the
+    row removed, in the same transaction. And because a hospital may already
+    have fetched it under ``previsit_output:<id>``, the erasure is audited
+    against that same ref."""
+    from intake_platform.db.models import PreVisitOutputRow, SlotSensitivity
+
+    _enforce_foreign_keys(dsar)
+    seed_visit_with_sent_note(dsar)
+    (output,) = rows(dsar, PreVisitOutputRow)
+    envelopes = (
+        len(rows(dsar, Note))
+        + len(rows(dsar, PreVisitOutputRow))
+        + sum(1 for slot in rows(dsar, Slot) if slot.sensitivity is SlotSensitivity.SENSITIVE)
+    )
+
+    dsar.client.post("/v1/me/dsar/delete", headers=dsar.patient())
+    report = run(_execute(dsar, at=datetime.now(UTC) + SHRED_GRACE + timedelta(minutes=1)))
+
+    assert report.shredded_requests == 1
+    assert report.shredded_fields == envelopes, "the output's DEK goes with the note's"
+    assert rows(dsar, PreVisitOutputRow) == []
+    assert rows(dsar, IntakeSession) == []
+    erased = [
+        (entry.actor, entry.resource_ref, entry.consent_scope_ref)
+        for entry in dsar.audit_store.entries()
+        if entry.action == "dsar.delete.previsit_output"
+    ]
+    assert erased == [
+        (f"patient:{DEV_PATIENT_ID}", f"previsit_output:{output.id}", "basis:KVKK-11/13")
+    ]
+
+
+@pytest.fixture()
+def dsar_with_links(tmp_path: Path, strings_path: Path) -> Iterator[ApiHarness]:
+    """The ``dsar`` world plus the OTP/Doctor Link tier over fakeredis, so a
+    patient can issue a Doctor Link through the real route. Nothing dials a
+    network."""
+    import fakeredis
+    from intake_api.attestation import FailClosedAttestationVerifier
+    from intake_api.otp import AuthWiring, DevLogDeliveryAdapter
+    from intake_platform.tokenization import Tokenizer
+
+    for built in build_harness(
+        tmp_path,
+        token_patient=PATIENT_TOKEN,
+        token_admin=ADMIN_TOKEN,
+        legal_root=write_all_consent_texts(tmp_path / "legal" / "consents"),
+        legal_strings=strings_path,
+        auth=AuthWiring(
+            redis_client=fakeredis.FakeRedis(),
+            tokenizer=Tokenizer(keys={"v1": b"unit-lane-tokenization-key"}, active_key_id="v1"),
+            delivery=DevLogDeliveryAdapter(),
+            attestation=FailClosedAttestationVerifier(),
+        ),
+    ):
+        grant_bound(built, *BOUND_SCOPES)
+        yield built
+
+
+def test_the_erasure_removes_the_doctor_links_before_their_shares_and_audits_each(
+    dsar_with_links: ApiHarness,
+) -> None:
+    """INT-393. A Doctor Link (INT-150) hangs off a share, and
+    ``doctor_links.share_id`` has no ON DELETE rule — so an erasure that
+    deleted the subject's shares without removing their links first failed on
+    postgres for every patient who ever issued one, and passed here only
+    because SQLite was not checking.
+
+    The link's recipient label is an envelope, so its wrapped DEK is
+    destroyed with the note's. The link goes before its share (children
+    first), and each removed row is audited by id under the ref its issue
+    and its opens were audited under, so the patient's chain shows what was
+    reachable and when it stopped being so."""
+    from intake_platform.db.models import DoctorLink, PreVisitOutputRow, SlotSensitivity
+
+    harness = dsar_with_links
+    _enforce_foreign_keys(harness)
+    visit_id, _ = seed_visit_with_sent_note(harness)
+    issued = harness.client.post(
+        f"/v1/visits/{visit_id}/note/doctor-links",
+        headers=harness.patient(),
+        json={"recipient": "Dr. Ayşe Yılmaz · Kardiyoloji"},
+    )
+    assert issued.status_code == 201, issued.text
+    (link,) = rows(harness, DoctorLink)
+    (share,) = rows(harness, Share)
+    assert link.share_id == share.id
+    envelopes = (
+        len(rows(harness, Note))
+        + len(rows(harness, PreVisitOutputRow))
+        + len(rows(harness, DoctorLink))
+        + sum(1 for slot in rows(harness, Slot) if slot.sensitivity is SlotSensitivity.SENSITIVE)
+    )
+
+    harness.client.post("/v1/me/dsar/delete", headers=harness.patient())
+    report = run(_execute(harness, at=datetime.now(UTC) + SHRED_GRACE + timedelta(minutes=1)))
+
+    assert report.shredded_requests == 1
+    assert report.shredded_fields == envelopes, "the recipient's DEK goes with the note's"
+    assert rows(harness, DoctorLink) == []
+    assert rows(harness, Share) == []
+    assert rows(harness, IntakeSession) == []
+    erased = [
+        (entry.action, entry.actor, entry.resource_ref, entry.consent_scope_ref)
+        for entry in harness.audit_store.entries()
+        if entry.action in ("dsar.delete.doctor_link", "dsar.delete.share")
+    ]
+    assert erased == [
+        (
+            "dsar.delete.doctor_link",
+            f"patient:{DEV_PATIENT_ID}",
+            f"doctor_link:{link.id}",
+            "basis:KVKK-11/13",
+        ),
+        ("dsar.delete.share", f"patient:{DEV_PATIENT_ID}", f"share:{share.id}", "basis:KVKK-11/13"),
+    ]
+
+
+# --- INT-395: every patient-deletable table, in the erasure and in the export -------
+
+#: A recipient label as a patient would type it. The surname is the probe:
+#: it must reach neither half of the export.
+RECIPIENT_LABEL = "Dr. Sentetik Zetaoglu · Kardiyoloji"
+RECIPIENT_PROBE = "Zetaoglu"
+
+
+def test_the_export_lists_doctor_links_by_role_and_never_names_the_recipient(
+    dsar_with_links: ApiHarness,
+) -> None:
+    """INT-393 §11: the erasure destroyed Doctor Link rows the export never
+    showed. A link is one addressed, expiring way of reaching a share, so it
+    is listed under the share it reaches — ids, issue and expiry instants,
+    revocation, and the recipient as a ROLE. files/10 §3 is the rule the
+    access log already follows for the same grant ("the patient sees a role,
+    never a name"), and files/06 has no export clause that says otherwise:
+    the label names a third party, and the patient can still read it on the
+    link list itself."""
+    from intake_platform.db.models import DoctorLink
+
+    harness = dsar_with_links
+    visit_id, _ = seed_visit_with_sent_note(harness)
+    issued = harness.client.post(
+        f"/v1/visits/{visit_id}/note/doctor-links",
+        headers=harness.patient(),
+        json={"recipient": RECIPIENT_LABEL},
+    )
+    assert issued.status_code == 201, issued.text
+    (link,) = rows(harness, DoctorLink)
+
+    request_id = request_export(harness)
+    fetched = harness.client.get(f"/v1/me/dsar/export/{request_id}", headers=harness.patient())
+    assert fetched.status_code == 200, fetched.text
+    payload = fetched.json()
+    flat = json.dumps(payload["fhir_bundle"], ensure_ascii=False)
+    pdf = base64.b64decode(payload["pdf"]["base64"])
+
+    assert f"doctor_link:{link.id} · share:{link.share_id} · recipient:clinician · created:" in flat
+    assert f"expires:{link.expires_at.isoformat()}" in flat
+    assert f"doctor_link:{link.id}".encode() in pdf
+    assert RECIPIENT_PROBE not in flat
+    assert RECIPIENT_PROBE.encode() not in pdf
+
+
+@pytest.mark.parametrize(
+    ("stored", "shown"),
+    [
+        ("~d38.50", "38,50"),  # a tagged Decimal: the tr comma, printed precision kept
+        ("~d12500", "12500"),  # never grouped
+        ("~~d not a number", "~d not a number"),  # an escaped string stays a string
+        ("evet", "evet"),
+        (True, "true"),
+        (3, "3"),
+        (None, "-"),
+        (["~d1.5", "evet"], "1,5, evet"),
+        ({"b": "~d2.5", "a": 3}, "a=3, b=2,5"),
+    ],
+)
+def test_a_learned_value_reaches_the_export_written_for_a_turkish_reader(
+    stored: Any, shown: str
+) -> None:
+    """Invariant 22 at the export crossing. A learned fact's value is stored
+    in the INT-309 wire form, where a Decimal is the tagged string ``~d38.5``.
+    The export decodes it and writes it for the export's reader, ``tr``, with
+    a comma, no grouping and no exponent, so neither the tag nor a full stop
+    reaches the patient's document."""
+    from clinical_schemas.common import decode_json_value
+    from intake_api.dsar.sections import learned_value_text
+
+    assert learned_value_text(decode_json_value(stored)) == shown
+
+
+def test_the_erasure_removes_the_notification_preference_and_audits_it(dsar: ApiHarness) -> None:
+    """INT-393 §11: RET_NOTIFICATION_PREFERENCE puts the row on the files/06
+    §3 record clock ("patient-deletable, 30-day grace, then crypto-shred"),
+    and no path erased it. It holds a flag and two clock times, no envelope,
+    so the row delete is the erasure; it is audited by id like every other
+    row the erasure names."""
+    from intake_platform.db.models import NotificationPreference
+
+    _enforce_foreign_keys(dsar)
+    seed_visit_with_sent_note(dsar)
+    put = dsar.client.put(
+        "/v1/me/notifications",
+        headers=dsar.patient(),
+        json={"opted_out": True, "quiet_start": "22:00", "quiet_end": "07:00"},
+    )
+    assert put.status_code == 200, put.text
+    (preference,) = rows(dsar, NotificationPreference)
+
+    dsar.client.post("/v1/me/dsar/delete", headers=dsar.patient())
+    report = run(_execute(dsar, at=datetime.now(UTC) + SHRED_GRACE + timedelta(minutes=1)))
+
+    assert report.shredded_requests == 1
+    assert rows(dsar, NotificationPreference) == []
+    erased = [
+        (entry.action, entry.actor, entry.resource_ref, entry.consent_scope_ref)
+        for entry in dsar.audit_store.entries()
+        if entry.action == "dsar.delete.notification_preference"
+    ]
+    assert erased == [
+        (
+            "dsar.delete.notification_preference",
+            f"patient:{DEV_PATIENT_ID}",
+            f"notification_preference:{preference.id}",
+            "basis:KVKK-11/13",
+        )
+    ]
+
+
+def test_an_erasure_role_that_lacks_a_needed_grant_is_refused_before_anything_is_touched(
+    dsar: ApiHarness,
+) -> None:
+    """``app_rw`` holds no DELETE on ``notification_preferences`` (0007), and
+    which role runs erasure is the owner's call (INT-394). Until it is made,
+    a run whose role lacks a grant it needs must not half-run: it refuses
+    before the object store or any row is touched, says which grant is
+    missing and which decision owns it, audits the refusal against the
+    request, and leaves the request open so the next run tries again.
+
+    The probe is the seam: the SQLite unit lane has no grants, so it stands
+    in for the ``has_table_privilege`` answer postgres gives as ``app_rw``
+    (tests/integration/test_session_erasure.py runs that one for real)."""
+    from intake_api.dsar.grants import Privilege
+    from intake_platform.db.models import NotificationPreference
+
+    visit_id, _ = seed_visit_with_sent_note(dsar)
+    dsar.client.post(
+        f"/v1/visits/{visit_id}/documents",
+        headers=dsar.patient(),
+        json={"content_type": "application/pdf", "sha256": "cd" * 32},
+    )
+    dsar.client.put("/v1/me/notifications", headers=dsar.patient(), json={"opted_out": True})
+    filed = dsar.client.post("/v1/me/dsar/delete", headers=dsar.patient()).json()
+    missing = (Privilege("notification_preferences", "DELETE"),)
+
+    async def lacks_delete(_session: AsyncSession) -> tuple[Privilege, ...]:
+        return missing
+
+    remove = _remover(dsar)
+    report = run(
+        execute_due_shreds(
+            dsar.engine,
+            tenant_id=DEV_TENANT_ID,
+            audit=dsar.client.app.state.api.audit,  # type: ignore[attr-defined]
+            remove_object=remove,
+            now=datetime.now(UTC) + SHRED_GRACE + timedelta(minutes=1),
+            privileges=lacks_delete,
+        )
+    )
+
+    assert (report.shredded_requests, report.shredded_fields, report.removed_rows) == (0, 0, 0)
+    assert report.blocked is not None
+    assert report.blocked.request_ids == (uuid.UUID(filed["request_id"]),)
+    assert report.blocked.missing == missing
+    assert [item.describe() for item in report.blocked.missing] == [
+        "role lacks DELETE on notification_preferences (INT-394)"
+    ]
+    assert remove.removed == [], "the object store is not touched either"
+    assert rows(dsar, Note) and rows(dsar, IntakeSession) and rows(dsar, Document)
+    assert rows(dsar, NotificationPreference)
+    assert rows(dsar, DsarRequest)[0].status.value == "scheduled"
+    assert [
+        (entry.action, entry.resource_ref, entry.consent_scope_ref)
+        for entry in dsar.audit_store.entries()
+        if entry.action.startswith("dsar.delete.")
+        and entry.action not in ("dsar.delete.request", "dsar.delete.cancel")
+    ] == [
+        ("dsar.delete.blocked", f"dsar-request:{filed['request_id']}", "basis:KVKK-11/13"),
+        (
+            "dsar.delete.blocked.missing_grant",
+            "db-grant:notification_preferences/DELETE",
+            "basis:KVKK-11/13",
+        ),
+    ]
+
+
+#: One GRANT statement as the migrations write them: privileges, an optional
+#: column list, the table, the grantees.
+_GRANT = re.compile(
+    r'"GRANT (?P<privileges>[A-Z, ]+?)(?: \((?P<columns>[a-z_, ]+)\))? '
+    r'ON (?P<table>[a-z_]+) TO (?P<roles>[a-z_, ]+)"'
+)
+
+
+def _app_rw_grants() -> set[tuple[str, str, str | None]]:
+    """``(table, privilege, column-or-None)`` for every grant the migrations
+    give ``app_rw``. The parser must account for every GRANT line that names
+    the role, so a statement it cannot read fails here rather than vanishing."""
+    granted: set[tuple[str, str, str | None]] = set()
+    for path in sorted((Path(__file__).resolve().parents[2] / "migrations").rglob("*.py")):
+        text = path.read_text(encoding="utf-8")
+        naming = [line for line in text.splitlines() if '"GRANT ' in line and "app_rw" in line]
+        read = [match for match in _GRANT.finditer(text) if "app_rw" in match["roles"]]
+        assert len(read) == len(naming), f"{path.name}: a GRANT to app_rw the parser cannot read"
+        for match in read:
+            columns = [None] if match["columns"] is None else match["columns"].split(",")
+            for privilege in match["privileges"].split(","):
+                for column in columns:
+                    granted.add(
+                        (
+                            match["table"],
+                            privilege.strip(),
+                            None if column is None else column.strip(),
+                        )
+                    )
+    return granted
+
+
+def test_the_erasure_declares_every_grant_it_needs_and_app_rw_lacks_exactly_three() -> None:
+    """The grant need, recorded against INT-394's role decision. The executor
+    checks ERASURE_PRIVILEGES before it touches anything; this reads the same
+    set against what the migrations give ``app_rw``. When the owner decides,
+    the implementing change grants these and this pin moves with it — a
+    fourth gap, or one closed by accident, fails here first."""
+    from intake_api.dsar.grants import ERASURE_PRIVILEGES, Privilege
+
+    granted = _app_rw_grants()
+    # the parser is reading real grants, not an empty set
+    assert ("notes", "DELETE", None) in granted
+    assert ("notification_preferences", "UPDATE", None) in granted
+
+    def held(need: Privilege) -> bool:
+        return (need.table, need.privilege, None) in granted or (
+            need.column is not None and (need.table, need.privilege, need.column) in granted
+        )
+
+    assert {need for need in ERASURE_PRIVILEGES if not held(need)} == {
+        Privilege("notification_preferences", "DELETE"),
+        Privilege("patient_overlays", "DELETE"),
+        Privilege("events", "UPDATE", "session_id"),
+    }
 
 
 def test_the_erasure_keeps_the_records_statute_says_to_keep(dsar: ApiHarness) -> None:

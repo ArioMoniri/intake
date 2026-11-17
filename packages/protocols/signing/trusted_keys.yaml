@@ -1,0 +1,29 @@
+# INT-465: the public halves of the keys allowed to sign a red rule set.
+#
+# Public keys only. A private key, a token or any other secret never belongs
+# here. The one key below is the synthetic-only TEST key. Owner decision,
+# 3 Oct 2026, read with D18: it signs the red rule set for the synthetic AWS
+# test host only. Every non-synthetic tenant config rejects it
+# (intake_platform.red_signature.admitted_scopes), and a licensed physician's review
+# is still required before any real patient.
+#
+# This registry can hold no production key. intake_platform.red_signature.KeyScope
+# has one member, synthetic_test. Production signing of protocol bundles is the
+# cosign keyless path (INT-058; files/10 §8), and nothing here touches it.
+#
+# The key was created on the host by infra/staging/redset_signer.sh setup; the
+# public half below is what that command printed. To check it, run setup again
+# on the host: it is idempotent and prints the same public half.
+kind: red_rule_set_trusted_keys
+keys:
+  - key_id: redset-synthetic-test@1
+    algorithm: ed25519
+    public_key: "jv7CsLtJ+DbqJy9Usxf4PO+W5+fCvYfpfQ4HODOmLj4="
+    scope: synthetic_test
+    custody: >-
+      OpenBao Transit key redset-synthetic-test, version 1, on the synthetic
+      AWS test host i-0e489e48739f5de98 (us-east-1). Created ed25519 with
+      exportable=false and allow_plaintext_backup=false, so the private half
+      never leaves OpenBao. Only the redset-synthetic-signer token may use it,
+      and that token's policy allows sign on this key and nothing else.
+    created_on: 2026-10-03

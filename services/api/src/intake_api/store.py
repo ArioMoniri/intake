@@ -19,13 +19,20 @@ exercises the predicates, the integration lane proves the policies.
 
 from __future__ import annotations
 
+import datetime as dt
 import json
 import uuid
-from dataclasses import dataclass
+from collections.abc import Sequence
+from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 from typing import Literal
 
-from clinical_schemas.visit_time import VisitTime, VisitTimeSource, parse_visit_time
+from clinical_schemas.visit_time import (
+    VisitSchedule,
+    VisitTime,
+    VisitTimeSource,
+    parse_visit_time,
+)
 from intake_platform.db.envelope_json import encrypted_field_from_json, encrypted_field_to_json
 from intake_platform.db.models import (
     DoctorLink,
@@ -33,6 +40,7 @@ from intake_platform.db.models import (
     IntakeSession,
     Note,
     Patient,
+    PreVisitOutputRow,
     SessionAttribution,
     SessionStatus,
     Share,
@@ -40,6 +48,7 @@ from intake_platform.db.models import (
     SlotSensitivity,
 )
 from intake_platform.envelope import EnvelopeCipher
+from intake_platform.visit_lifecycle import LIFECYCLE_SLOT, VisitLifecycle
 from protocols.types import DataCategory
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -63,6 +72,7 @@ __all__ = [
     "read_slot_answer",
     "revoke_live_shares",
     "slot_sensitivity",
+    "time_slot_value",
     "update_document_row",
     "upsert_note",
     "write_slot_answer",
@@ -117,6 +127,19 @@ class VisitRecord:
     # ONE fact rather than three copies that can disagree.
     attribution: SessionAttribution = SessionAttribution.SELF_REPORT
     third_party_present: bool = False
+    # INT-407 — the files/02 §2b lifecycle, read off the ``visit.lifecycle``
+    # slot; a visit written before it has none and is ``planned``.
+    lifecycle: VisitLifecycle = field(default_factory=VisitLifecycle)
+    # INT-407 — when the note's session produced it: the latest send (the
+    # completion event in this slice, the previsit output's ``completed_at``)
+    # or, for a note never sent, its first save. ``None`` without a note.
+    note_anchor: datetime | None = None
+
+    def note_stale(self, now: datetime) -> bool:
+        """files/02 §2b: on a rescheduled visit, the note is stale seven days
+        after its session. ONE computation, projected on every surface that
+        shows the note — the visit card, the note read and the Doctor Link."""
+        return self.lifecycle.note_stale(self.note_anchor, now=now)
 
     @property
     def proxy_reported(self) -> bool:
@@ -126,6 +149,16 @@ class VisitRecord:
         third-party fact travels on ``third_party_present`` (files/02 §3).
         """
         return self.attribution is SessionAttribution.PROXY_REPORT
+
+
+def time_slot_value(time: VisitTime) -> dict[str, object]:
+    """The ``visit.time`` slot value. ``source_ref`` is written only where the
+    source has one, so an absent key reads as "the patient typed it" rather
+    than as "we lost the ref" (INT-306)."""
+    value: dict[str, object] = {"time": time.render(), "source": time.source.value}
+    if time.source_ref is not None:
+        value["source_ref"] = time.source_ref
+    return value
 
 
 def _visit_time(slot: dict[str, object] | None) -> VisitTime | None:
@@ -207,12 +240,16 @@ async def create_visit(
     if visit_type is not None:
         values.append((_SLOT_VISIT_TYPE, {"text": visit_type}))
     if time is not None:
-        # source_ref is written only where the source has one, so an absent key
-        # reads as "the patient typed it" rather than as "we lost the ref"
-        time_value: dict[str, object] = {"time": time.render(), "source": time.source.value}
-        if time.source_ref is not None:
-            time_value["source_ref"] = time.source_ref
-        values.append((_SLOT_TIME, time_value))
+        values.append((_SLOT_TIME, time_slot_value(time)))
+    # INT-407: a new visit is ``planned``; a dated one queues its T-24h confirm
+    # (files/02 §2b), which stays queued while no SMS vendor exists (INT-358).
+    schedule = (
+        VisitSchedule(date=dt.date.fromisoformat(date), time=time) if date is not None else None
+    )
+    lifecycle = VisitLifecycle.initial(
+        schedule, confirm_message_id=str(uuid.uuid4()) if schedule is not None else None
+    )
+    values.append((LIFECYCLE_SLOT, lifecycle.to_slot()))
     for slot_id, value in values:
         session.add(
             Slot(
@@ -259,7 +296,7 @@ async def _visit_records(
     for slot in slot_rows:
         slots.setdefault(slot.session_id, {})[slot.slot_id] = dict(slot.value)
 
-    statuses = await _note_statuses(session, tenant_id=tenant_id, session_ids=ids)
+    statuses, anchors = await _note_facts(session, tenant_id=tenant_id, session_ids=ids)
 
     records: list[VisitRecord] = []
     for visit in visits:
@@ -286,21 +323,43 @@ async def _visit_records(
                 note_status=statuses.get(visit.id),
                 attribution=visit.attribution,
                 third_party_present=visit.third_party_present,
+                # a malformed record raises, like a malformed time slot: a
+                # silent "planned" would hide a cancelled or rescheduled visit
+                lifecycle=VisitLifecycle.from_slot(visit_slots.get(LIFECYCLE_SLOT)),
+                note_anchor=anchors.get(visit.id),
             )
         )
     return records
 
 
-async def _note_statuses(
+async def _note_facts(
     session: AsyncSession, *, tenant_id: uuid.UUID, session_ids: list[uuid.UUID]
-) -> dict[uuid.UUID, NoteStatus]:
+) -> tuple[dict[uuid.UUID, NoteStatus], dict[uuid.UUID, datetime]]:
+    """Per visit: the note's derived status, and the instant its session
+    produced it (INT-407's staleness anchor)."""
     note_rows = (
         await session.scalars(
             select(Note).where(Note.tenant_id == tenant_id, Note.session_id.in_(session_ids))
         )
     ).all()
     if not note_rows:
-        return {}
+        return {}, {}
+    outputs = (
+        await session.scalars(
+            select(PreVisitOutputRow).where(
+                PreVisitOutputRow.tenant_id == tenant_id,
+                PreVisitOutputRow.session_id.in_(session_ids),
+            )
+        )
+    ).all()
+    sent_at = {row.session_id: _aware(row.completed_at) for row in outputs}
+    anchors = {n.session_id: sent_at.get(n.session_id, _aware(n.created_at)) for n in note_rows}
+    return await _note_statuses(session, tenant_id=tenant_id, note_rows=note_rows), anchors
+
+
+async def _note_statuses(
+    session: AsyncSession, *, tenant_id: uuid.UUID, note_rows: Sequence[Note]
+) -> dict[uuid.UUID, NoteStatus]:
     share_rows = (
         await session.scalars(
             select(Share).where(

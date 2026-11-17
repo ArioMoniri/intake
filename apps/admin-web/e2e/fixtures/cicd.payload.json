@@ -1,0 +1,746 @@
+{
+  "schema": "intake.admin.cicd.v1",
+  "generated_at": "2026-09-27T06:00:00Z",
+  "reason_classes": [
+    "rollout_expansion",
+    "rollout_rollback",
+    "incident_mitigation",
+    "experiment_start",
+    "experiment_end",
+    "config_correction",
+    "study_enablement"
+  ],
+  "sources": {
+    "prometheus": "ok",
+    "freeze_store": "ok",
+    "slo_files": "ok"
+  },
+  "control_catalogue": [
+    {
+      "control": "freeze_engage",
+      "dangerous_action_id": "admin.cicd.freeze.engage",
+      "route": "POST /admin/cicd/freeze",
+      "tier": 1,
+      "direction": "safe",
+      "actor_roles": [
+        "clinical_lead",
+        "platform_owner",
+        "sre_oncall"
+      ],
+      "approver_roles": []
+    },
+    {
+      "control": "freeze_lift",
+      "dangerous_action_id": "admin.cicd.freeze.lift",
+      "route": "POST /admin/cicd/freeze/lift",
+      "tier": 2,
+      "direction": "dangerous",
+      "actor_roles": [
+        "platform_admin",
+        "platform_owner"
+      ],
+      "approver_roles": [
+        "platform_owner",
+        "qms_owner"
+      ]
+    }
+  ],
+  "tiles": {
+    "pipelines": {
+      "state": "ok",
+      "reason": null,
+      "branch": "main",
+      "workflows": [
+        {
+          "workflow": "ci",
+          "runs": [
+            {
+              "run_number": 814,
+              "status": "completed",
+              "conclusion": "failure",
+              "head_sha": "f893dcf5e90a6289831a553bd12be87a7e7a9b6b",
+              "duration_s": 1371,
+              "updated_at": "2026-09-27T05:55:19Z",
+              "failed_jobs": [
+                "check-integration"
+              ],
+              "failed_job_count": 1
+            },
+            {
+              "run_number": 809,
+              "status": "completed",
+              "conclusion": "failure",
+              "head_sha": "c489289e691435404607a965d2c45aeaace5b541",
+              "duration_s": 1254,
+              "updated_at": "2026-09-27T05:27:44Z",
+              "failed_jobs": [
+                "check-integration"
+              ],
+              "failed_job_count": 1
+            },
+            {
+              "run_number": 806,
+              "status": "completed",
+              "conclusion": "failure",
+              "head_sha": "f2f2fee5b3da60980bb4b45f3ff6793570186b7b",
+              "duration_s": 1048,
+              "updated_at": "2026-09-27T04:59:28Z",
+              "failed_jobs": [
+                "check-integration"
+              ],
+              "failed_job_count": 1
+            },
+            {
+              "run_number": 801,
+              "status": "completed",
+              "conclusion": "failure",
+              "head_sha": "5fdf5a2180d9ee7ee77a3c764989bc3d4e2d073b",
+              "duration_s": 1340,
+              "updated_at": "2026-09-27T04:39:58Z",
+              "failed_jobs": [
+                "check-integration"
+              ],
+              "failed_job_count": 1
+            },
+            {
+              "run_number": 797,
+              "status": "completed",
+              "conclusion": "failure",
+              "head_sha": "868f6e195aa0161a2e22aa4c7915f3aaa3b4583f",
+              "duration_s": 1350,
+              "updated_at": "2026-09-27T04:16:16Z",
+              "failed_jobs": [
+                "check-integration"
+              ],
+              "failed_job_count": 1
+            }
+          ]
+        },
+        {
+          "workflow": "security",
+          "runs": [
+            {
+              "run_number": 340,
+              "status": "completed",
+              "conclusion": "success",
+              "head_sha": "f893dcf5e90a6289831a553bd12be87a7e7a9b6b",
+              "duration_s": 53,
+              "updated_at": "2026-09-27T05:33:21Z",
+              "failed_jobs": [],
+              "failed_job_count": null
+            },
+            {
+              "run_number": 335,
+              "status": "completed",
+              "conclusion": "success",
+              "head_sha": "c489289e691435404607a965d2c45aeaace5b541",
+              "duration_s": 51,
+              "updated_at": "2026-09-27T05:07:41Z",
+              "failed_jobs": [],
+              "failed_job_count": null
+            },
+            {
+              "run_number": 332,
+              "status": "completed",
+              "conclusion": "success",
+              "head_sha": "f2f2fee5b3da60980bb4b45f3ff6793570186b7b",
+              "duration_s": 68,
+              "updated_at": "2026-09-27T04:43:08Z",
+              "failed_jobs": [],
+              "failed_job_count": null
+            },
+            {
+              "run_number": 327,
+              "status": "completed",
+              "conclusion": "success",
+              "head_sha": "5fdf5a2180d9ee7ee77a3c764989bc3d4e2d073b",
+              "duration_s": 82,
+              "updated_at": "2026-09-27T04:19:00Z",
+              "failed_jobs": [],
+              "failed_job_count": null
+            },
+            {
+              "run_number": 323,
+              "status": "completed",
+              "conclusion": "success",
+              "head_sha": "868f6e195aa0161a2e22aa4c7915f3aaa3b4583f",
+              "duration_s": 71,
+              "updated_at": "2026-09-27T03:54:57Z",
+              "failed_jobs": [],
+              "failed_job_count": null
+            }
+          ]
+        }
+      ]
+    },
+    "gates": {
+      "state": "ok",
+      "reason": null,
+      "branch": "main",
+      "checks_enforced": false,
+      "required": [
+        {
+          "workflow": "ci",
+          "gate": "check-integration"
+        },
+        {
+          "workflow": "ci",
+          "gate": "check-py"
+        },
+        {
+          "workflow": "ci",
+          "gate": "check-ts"
+        },
+        {
+          "workflow": "ci",
+          "gate": "gates"
+        },
+        {
+          "workflow": "security",
+          "gate": "claims-scan"
+        },
+        {
+          "workflow": "security",
+          "gate": "gitleaks"
+        },
+        {
+          "workflow": "security",
+          "gate": "iac"
+        },
+        {
+          "workflow": "security",
+          "gate": "licenses"
+        },
+        {
+          "workflow": "security",
+          "gate": "phi-scan"
+        },
+        {
+          "workflow": "security",
+          "gate": "sast"
+        },
+        {
+          "workflow": "security",
+          "gate": "sbom"
+        },
+        {
+          "workflow": "security",
+          "gate": "vulnerabilities"
+        }
+      ],
+      "refs": [
+        {
+          "kind": "branch",
+          "ref": "main",
+          "results": [
+            {
+              "workflow": "ci",
+              "gate": "check-integration",
+              "conclusion": "failure"
+            },
+            {
+              "workflow": "ci",
+              "gate": "check-py",
+              "conclusion": "success"
+            },
+            {
+              "workflow": "ci",
+              "gate": "check-ts",
+              "conclusion": "success"
+            },
+            {
+              "workflow": "ci",
+              "gate": "gates",
+              "conclusion": "success"
+            },
+            {
+              "workflow": "security",
+              "gate": "claims-scan",
+              "conclusion": "success"
+            },
+            {
+              "workflow": "security",
+              "gate": "gitleaks",
+              "conclusion": "success"
+            },
+            {
+              "workflow": "security",
+              "gate": "iac",
+              "conclusion": "success"
+            },
+            {
+              "workflow": "security",
+              "gate": "licenses",
+              "conclusion": "success"
+            },
+            {
+              "workflow": "security",
+              "gate": "phi-scan",
+              "conclusion": "success"
+            },
+            {
+              "workflow": "security",
+              "gate": "sast",
+              "conclusion": "success"
+            },
+            {
+              "workflow": "security",
+              "gate": "sbom",
+              "conclusion": "success"
+            },
+            {
+              "workflow": "security",
+              "gate": "vulnerabilities",
+              "conclusion": "success"
+            }
+          ],
+          "passing": 11,
+          "total": 12
+        },
+        {
+          "kind": "pull_request",
+          "ref": "661",
+          "results": [
+            {
+              "workflow": "ci",
+              "gate": "check-integration",
+              "conclusion": "failure"
+            },
+            {
+              "workflow": "ci",
+              "gate": "check-py",
+              "conclusion": "success"
+            },
+            {
+              "workflow": "ci",
+              "gate": "check-ts",
+              "conclusion": "success"
+            },
+            {
+              "workflow": "ci",
+              "gate": "gates",
+              "conclusion": "success"
+            },
+            {
+              "workflow": "security",
+              "gate": "claims-scan",
+              "conclusion": "success"
+            },
+            {
+              "workflow": "security",
+              "gate": "gitleaks",
+              "conclusion": "success"
+            },
+            {
+              "workflow": "security",
+              "gate": "iac",
+              "conclusion": "success"
+            },
+            {
+              "workflow": "security",
+              "gate": "licenses",
+              "conclusion": "success"
+            },
+            {
+              "workflow": "security",
+              "gate": "phi-scan",
+              "conclusion": "success"
+            },
+            {
+              "workflow": "security",
+              "gate": "sast",
+              "conclusion": "success"
+            },
+            {
+              "workflow": "security",
+              "gate": "sbom",
+              "conclusion": "success"
+            },
+            {
+              "workflow": "security",
+              "gate": "vulnerabilities",
+              "conclusion": "success"
+            }
+          ],
+          "passing": 11,
+          "total": 12
+        },
+        {
+          "kind": "pull_request",
+          "ref": "660",
+          "results": [
+            {
+              "workflow": "ci",
+              "gate": "check-integration",
+              "conclusion": "failure"
+            },
+            {
+              "workflow": "ci",
+              "gate": "check-py",
+              "conclusion": "success"
+            },
+            {
+              "workflow": "ci",
+              "gate": "check-ts",
+              "conclusion": "success"
+            },
+            {
+              "workflow": "ci",
+              "gate": "gates",
+              "conclusion": "success"
+            },
+            {
+              "workflow": "security",
+              "gate": "claims-scan",
+              "conclusion": "success"
+            },
+            {
+              "workflow": "security",
+              "gate": "gitleaks",
+              "conclusion": "success"
+            },
+            {
+              "workflow": "security",
+              "gate": "iac",
+              "conclusion": "success"
+            },
+            {
+              "workflow": "security",
+              "gate": "licenses",
+              "conclusion": "success"
+            },
+            {
+              "workflow": "security",
+              "gate": "phi-scan",
+              "conclusion": "success"
+            },
+            {
+              "workflow": "security",
+              "gate": "sast",
+              "conclusion": "success"
+            },
+            {
+              "workflow": "security",
+              "gate": "sbom",
+              "conclusion": "success"
+            },
+            {
+              "workflow": "security",
+              "gate": "vulnerabilities",
+              "conclusion": "success"
+            }
+          ],
+          "passing": 11,
+          "total": 12
+        },
+        {
+          "kind": "pull_request",
+          "ref": "658",
+          "results": [
+            {
+              "workflow": "ci",
+              "gate": "check-integration",
+              "conclusion": "failure"
+            },
+            {
+              "workflow": "ci",
+              "gate": "check-py",
+              "conclusion": "success"
+            },
+            {
+              "workflow": "ci",
+              "gate": "check-ts",
+              "conclusion": "success"
+            },
+            {
+              "workflow": "ci",
+              "gate": "gates",
+              "conclusion": "success"
+            },
+            {
+              "workflow": "security",
+              "gate": "claims-scan",
+              "conclusion": "success"
+            },
+            {
+              "workflow": "security",
+              "gate": "gitleaks",
+              "conclusion": "success"
+            },
+            {
+              "workflow": "security",
+              "gate": "iac",
+              "conclusion": "success"
+            },
+            {
+              "workflow": "security",
+              "gate": "licenses",
+              "conclusion": "success"
+            },
+            {
+              "workflow": "security",
+              "gate": "phi-scan",
+              "conclusion": "success"
+            },
+            {
+              "workflow": "security",
+              "gate": "sast",
+              "conclusion": "success"
+            },
+            {
+              "workflow": "security",
+              "gate": "sbom",
+              "conclusion": "success"
+            },
+            {
+              "workflow": "security",
+              "gate": "vulnerabilities",
+              "conclusion": "success"
+            }
+          ],
+          "passing": 11,
+          "total": 12
+        },
+        {
+          "kind": "pull_request",
+          "ref": "657",
+          "results": [
+            {
+              "workflow": "ci",
+              "gate": "check-integration",
+              "conclusion": "failure"
+            },
+            {
+              "workflow": "ci",
+              "gate": "check-py",
+              "conclusion": "success"
+            },
+            {
+              "workflow": "ci",
+              "gate": "check-ts",
+              "conclusion": "success"
+            },
+            {
+              "workflow": "ci",
+              "gate": "gates",
+              "conclusion": "success"
+            },
+            {
+              "workflow": "security",
+              "gate": "claims-scan",
+              "conclusion": "success"
+            },
+            {
+              "workflow": "security",
+              "gate": "gitleaks",
+              "conclusion": "success"
+            },
+            {
+              "workflow": "security",
+              "gate": "iac",
+              "conclusion": "success"
+            },
+            {
+              "workflow": "security",
+              "gate": "licenses",
+              "conclusion": "success"
+            },
+            {
+              "workflow": "security",
+              "gate": "phi-scan",
+              "conclusion": "success"
+            },
+            {
+              "workflow": "security",
+              "gate": "sast",
+              "conclusion": "success"
+            },
+            {
+              "workflow": "security",
+              "gate": "sbom",
+              "conclusion": "success"
+            },
+            {
+              "workflow": "security",
+              "gate": "vulnerabilities",
+              "conclusion": "success"
+            }
+          ],
+          "passing": 11,
+          "total": 12
+        },
+        {
+          "kind": "pull_request",
+          "ref": "648",
+          "results": [
+            {
+              "workflow": "ci",
+              "gate": "check-integration",
+              "conclusion": "failure"
+            },
+            {
+              "workflow": "ci",
+              "gate": "check-py",
+              "conclusion": "success"
+            },
+            {
+              "workflow": "ci",
+              "gate": "check-ts",
+              "conclusion": "success"
+            },
+            {
+              "workflow": "ci",
+              "gate": "gates",
+              "conclusion": "success"
+            },
+            {
+              "workflow": "security",
+              "gate": "claims-scan",
+              "conclusion": "success"
+            },
+            {
+              "workflow": "security",
+              "gate": "gitleaks",
+              "conclusion": "success"
+            },
+            {
+              "workflow": "security",
+              "gate": "iac",
+              "conclusion": "success"
+            },
+            {
+              "workflow": "security",
+              "gate": "licenses",
+              "conclusion": "success"
+            },
+            {
+              "workflow": "security",
+              "gate": "phi-scan",
+              "conclusion": "success"
+            },
+            {
+              "workflow": "security",
+              "gate": "sast",
+              "conclusion": "success"
+            },
+            {
+              "workflow": "security",
+              "gate": "sbom",
+              "conclusion": "success"
+            },
+            {
+              "workflow": "security",
+              "gate": "vulnerabilities",
+              "conclusion": "success"
+            }
+          ],
+          "passing": 11,
+          "total": 12
+        }
+      ]
+    },
+    "releases": {
+      "state": "ok",
+      "reason": null,
+      "releases": [
+        {
+          "tag": "deid-tr-ner-v1",
+          "head_sha": "1a0977c8c630cd5ff8232bf7a27be2599e1322ab",
+          "published_at": "2026-08-27T16:00:47Z",
+          "signing": "not_applicable",
+          "deployed_here": false
+        }
+      ]
+    },
+    "deployments": {
+      "state": "ok",
+      "reason": null,
+      "rows": [
+        {
+          "environment": "staging",
+          "source": "this_api",
+          "git_sha": "f893dcf5e90a6289831a553bd12be87a7e7a9b6b",
+          "built_at": "2026-09-27T06:00:00Z",
+          "sbom_digest": "sha256:302b952b993ee72bec3abe5d64ffc39f4cca3186e8588f013d79493f2ed96ed3",
+          "stamped": true
+        }
+      ]
+    },
+    "argo_cd": {
+      "state": "ok",
+      "reason": null,
+      "deployed": false,
+      "basis": "no_argocd_in_infra",
+      "applications": []
+    },
+    "canary": {
+      "state": "ok",
+      "reason": null,
+      "deployed": false,
+      "basis": "no_canary_controller_in_infra"
+    },
+    "freeze": {
+      "state": "ok",
+      "reason": null,
+      "engaged": true,
+      "revision": 1,
+      "changed_at": "2026-09-27T05:40:00+00:00",
+      "changed_by": "kc-sub-sre-oncall",
+      "approved_by": null,
+      "last_change": "freeze_engage",
+      "reason_class": "incident_mitigation"
+    },
+    "error_budget": {
+      "state": "ok",
+      "reason": null,
+      "exhausted": [],
+      "unmeasured": [
+        "api/availability",
+        "api/latency",
+        "langfuse/trace_emission",
+        "learning/availability",
+        "metrics/availability",
+        "probes/availability",
+        "siem/alert_scrub",
+        "voice-runtime/availability"
+      ]
+    },
+    "deploy_gate": {
+      "state": "ok",
+      "reason": null,
+      "allowed": false,
+      "refusals": [
+        "deploy_freeze_engaged"
+      ],
+      "notes": [
+        "error_budget_unmeasured"
+      ],
+      "enforcement": [
+        {
+          "point": "infra/staging/deploy.sh",
+          "status": "enforced"
+        },
+        {
+          "point": "argo_cd_sync",
+          "status": "not_deployed"
+        }
+      ]
+    },
+    "pending": {
+      "state": "ok",
+      "reason": null,
+      "actions": [
+        {
+          "action_id": "01jbq0cicdrecordedlift00001",
+          "dangerous_action_id": "admin.cicd.freeze.lift",
+          "tier": 2,
+          "control": "freeze_lift",
+          "base_revision": 1,
+          "requested_role": "platform_admin",
+          "created_at": "2026-09-27T05:56:00+00:00",
+          "expires_at": "2026-09-27T06:11:00+00:00"
+        }
+      ]
+    }
+  }
+}

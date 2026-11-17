@@ -120,11 +120,11 @@ sections:
         ask_tr:
           tr: Çocuğunuz her zamanki kadar beslenip bir şeyler içebiliyor mu?
         openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/cocuk_sagligi_ve_hastaliklari.md'
-      cis_miktari:
+      az_cis:
         type: boolean
         required: false
         ask_tr:
-          tr: Çocuğunuz her zamanki kadar çiş yapıyor mu?
+          tr: Çocuğunuz her zamankinden daha az çiş yapıyor mu?
         openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/cocuk_sagligi_ve_hastaliklari.md'
       kol_bacak_sislik:
         type: boolean

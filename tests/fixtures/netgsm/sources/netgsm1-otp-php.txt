@@ -1,0 +1,43 @@
+# source: Netgsm's OTP composer package netgsm1/otp, commit 03ee70525bc9426b55b8df72f8f34355e09aa2e1
+# url: https://github.com/netgsm1/otp/blob/03ee70525bc9426b55b8df72f8f34355e09aa2e1/src/otp.php
+# linked_from: https://www.netgsm.com.tr/dokuman/#otp-sms ('PHP Laravel & Symfony örnekleri için composer paketi')
+# licence: none declared in the repository; quoted only as far as needed to cite the XML endpoint's codes and parse
+# retrieved_on: 2026-10-28
+# retrieval: curl of raw.githubusercontent.com at the pinned commit; read as data, never installed or run
+# scope: verbatim line ranges, each prefixed with its line number; [...] separates them
+---
+== src/otp.php lines 80-84 (file sha256 e5309a6cd354e2c76a8e92f1dbfb9a9d0e8d7558b28a2bff9fd4428fe2122f0e)
+  80| 		curl_setopt($ch, CURLOPT_URL,'https://api.netgsm.com.tr/sms/send/otp');
+  81| 		curl_setopt($ch, CURLOPT_SSL_VERIFYHOST,2);
+  82| 		curl_setopt($ch, CURLOPT_SSL_VERIFYPEER,0);
+  83| 		curl_setopt($ch, CURLOPT_RETURNTRANSFER,1);
+  84| 		curl_setopt($ch, CURLOPT_HTTPHEADER, Array("Content-Type: text/xml"));
+[...]
+== src/otp.php lines 91-117 (file sha256 e5309a6cd354e2c76a8e92f1dbfb9a9d0e8d7558b28a2bff9fd4428fe2122f0e)
+  91|         $sonuc=array(
+  92|             20=>'Mesaj metni ya da mesaj boyunu kontrol ediniz.',
+  93|             30=>'Geçersiz kullanıcı adı , şifre veya kullanıcınızın API erişim izninin olmadığını gösterir.Ayrıca eğer API erişiminizde IP sınırlaması yaptıysanız ve sınırladığınız ip dışında gönderim sağlıyorsanız 30 hata kodunu alırsınız. API erişim izninizi veya IP sınırlamanızı , web arayüzden; sağ üst köşede bulunan ayarlar> API işlemleri menüsunden kontrol edebilirsiniz.',
+  94|             40=>'Gönderici adınızı kontrol ediniz.',
+  95|             41=>'Gönderici adınızı kontrol ediniz.',
+  96|             50=>'Gönderilen numarayı kontrol ediniz.',
+  97|             60=>'Hesabınızda OTP SMS Paketi tanımlı değildir, kontrol ediniz.',
+  98|             70=>'	Input parametrelerini kontrol ediniz.',
+  99|             80=>'Sorgulama sınır aşımı.(dakikada 100 adet gönderim yapılabilir.)',
+ 100|             100=>'Sistem hatası.',
+ 101|             
+ 102|             );
+ 103|             $donen = new SimpleXMLElement($result);
+ 104| 
+ 105|             $code=strval($donen->main->code);
+ 106|             
+ 107|             if($code==20||$code==30||$code==40||$code==41||$code==50||$code==60||$code==70||$code==80||$code==100)
+ 108|             {
+ 109|                 $response["durum"]=$sonuc[$code];
+ 110|                 $response["code"]=$code;
+ 111|             }
+ 112|             else{
+ 113|                 $response["durum"]='Gönderim başarılı.';
+ 114|                 
+ 115|                 $jobid=strval(($donen->main->jobID[0]));
+ 116|                 $response["jobid"]=$jobid;
+ 117|             }

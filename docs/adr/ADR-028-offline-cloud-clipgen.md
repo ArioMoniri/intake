@@ -59,3 +59,19 @@ proved the mechanism end to end. The threat row is `cloud-clipgen`
 (docs/security/threat-model.md). This ADR narrows ADR-021's scope — "self-hosted
 on the runtime/PHI path" — rather than reversing it; re-adding a cloud vendor to
 the **runtime** path remains a defect.
+
+## Amendment — delivery profiles (INT-415, 27 Sep 2026)
+
+This amendment changes no decision above. Each utterance now carries one of seven delivery
+contexts. A server-side, versioned profile table (`voice_clips.delivery`) maps each context to
+the `voice_settings` this lane sends, alongside the unchanged `model_id` and
+`apply_text_normalization: "off"`.
+
+- The text is still the verbatim, numeral-expanded `text_tr` (invariants 10 and 22).
+- The model stays pinned, and a profile tuned for another model is refused before the wire.
+- The clip object key gains the profile id and version: `clips/<locale>/<voice>/<profile>/<clip_id>`.
+- RED clips are built under the most stable profile and remain pre-positioned. The dev
+  on-demand route refuses them (invariant 21).
+
+The mapping of the same profiles to the self-hosted `residency_tr` TTS is a guide,
+`docs/voice/on-prem-tts-wiring.md`, and is not yet wired.

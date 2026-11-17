@@ -1,0 +1,56 @@
+# INT-463, INT-467 — rootless Docker for runner %i of the intake-aws-ci pool.
+# Workflow jobs that need containers (check-integration's compose tier, the
+# osv-scanner container action) talk to this daemon only; every runner has its
+# own, so one runner's post-job wipe never reaches another's containers. The
+# host daemon's socket stays root:docker and the runner user is in no docker
+# group. In-container root maps to ghrunner%i's subordinate range, never to host
+# root, and the daemon sees the same sandboxed filesystem as the job: /opt is
+# empty apart from this runner's CI tree, and every staging path is
+# inaccessible. It is not enabled at boot: cycle.sh starts it only after the
+# guards have run, so the egress rules are in place before the daemon can make
+# a request.
+#
+# The daemon stays in the host's network namespace, so its pulls and its
+# slirp4netns uplink are host sockets of ghrunner%i, matched by its egress
+# chain. Its containers live in a detached namespace that the job unit joins.
+# rootlesskit forwards no port to the host (port driver none): a port published
+# on 127.0.0.1 exists only in that namespace, and the host loopback is not
+# reachable from it.
+[Unit]
+Description=Rootless Docker for intake-aws-ci Actions runner %i (INT-463, INT-467)
+After=network-online.target dlami-nvme.service
+PartOf=intake-aws-ci-runner@%i.service
+Wants=network-online.target
+RequiresMountsFor=/opt/dlami/nvme
+StartLimitIntervalSec=0
+
+[Service]
+Type=notify
+NotifyAccess=all
+User=ghrunner%i
+Group=ghrunner%i
+Slice=intake-aws-ci.slice
+Environment=HOME=/opt/dlami/nvme/intake-aws-ci-%i/dockerhome
+Environment=XDG_RUNTIME_DIR=/run/intake-aws-ci-%i
+Environment=PATH=/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin
+Environment=DOCKERD_ROOTLESS_ROOTLESSKIT_NET=slirp4netns
+Environment=DOCKERD_ROOTLESS_ROOTLESSKIT_DETACH_NETNS=true
+Environment=DOCKERD_ROOTLESS_ROOTLESSKIT_PORT_DRIVER=none
+Environment=DOCKERD_ROOTLESS_ROOTLESSKIT_DISABLE_HOST_LOOPBACK=true
+RuntimeDirectory=intake-aws-ci-%i
+RuntimeDirectoryMode=0700
+ExecStart=/usr/bin/dockerd-rootless.sh --config-file=/usr/local/lib/intake-aws-ci-runner/daemon.json --data-root=/opt/dlami/nvme/intake-aws-ci-%i/docker
+ExecReload=/bin/kill -s HUP $MAINPID
+Restart=always
+RestartSec=5
+TimeoutStartSec=180
+KillMode=mixed
+LimitNOFILE=1048576
+OOMScoreAdjust=500
+ProtectSystem=strict
+ProtectHome=yes
+TemporaryFileSystem=/opt:ro
+BindPaths=/opt/dlami/nvme/intake-aws-ci-%i
+BindPaths=/opt/dlami/nvme/intake-aws-ci-%i/tmp:/tmp
+BindPaths=/opt/dlami/nvme/intake-aws-ci-%i/tmp:/var/tmp
+InaccessiblePaths=-/etc/intake-staging -/etc/intake-aws-ci-runner -/var/lib/intake-ci -/var/lib/docker -/var/lib/containerd -/var/lib/amazon -/var/log/amazon -/var/lib/cloud -/run/containerd

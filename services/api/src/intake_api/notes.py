@@ -26,6 +26,7 @@ from intake_api.consent_guard import ensure_consent, require_scopes
 from intake_api.db import tenant_session
 from intake_api.dev_fixture import DevAccount
 from intake_api.errors import not_found
+from intake_api.previsit_output import record_previsit_output
 from intake_api.schemas import NoteBody, NoteOut, NotePut
 from intake_api.state import ApiState, State
 from intake_api.visits import CORE_SCOPE
@@ -123,6 +124,8 @@ async def read_note(visit_id: uuid.UUID, principal: Principal, state: State) -> 
             # carries. Never stored a second time (it cannot drift).
             proxy_reported=record.proxy_reported,
             third_party_present=record.third_party_present,
+            # INT-407 — files/02 §2b: whoever reads the note is told it is stale
+            stale=record.note_stale(state.clock()),
         )
 
 
@@ -178,6 +181,19 @@ async def write_note(
                 resource_ref=f"share:{share.id}",
                 consent_scope=f"scope:{SHARE_SCOPE}",
             )
+            # Sending is what FINISHES a previsit here (02 §5.1: sending is the
+            # patient's call), so this is where the frozen hospital-facing
+            # output is produced — once, replacing any earlier one for this
+            # visit. It is deliberately inside the `sent` branch: a draft is
+            # not an output, and a save that takes the note back to draft
+            # revokes the share above, which closes the read-back.
+            await record_previsit_output(
+                session,
+                state=state,
+                tenant_id=patient.tenant_id,
+                visit=record,
+                body=payload,
+            )
             sent = True
 
         return NoteOut(
@@ -187,6 +203,9 @@ async def write_note(
             status="sent" if sent else "draft",
             proxy_reported=record.proxy_reported,
             third_party_present=record.third_party_present,
+            # INT-407: a send is a completed session, so its anchor is now and
+            # the note is fresh; a draft save keeps the anchor it had
+            stale=False if sent else record.note_stale(state.clock()),
         )
 
 

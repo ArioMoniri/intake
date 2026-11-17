@@ -1,0 +1,35 @@
+# guideline_id: TEMD-DM-2026
+# title: Diabetes Mellitus ve Komplikasyonlarının Tanı, Tedavi ve İzlem Kılavuzu-2026
+# publisher: Türkiye Endokrinoloji ve Metabolizma Derneği (TEMD), Diyabet Bilimsel Çalışma Grubu
+# version_or_date: 17. Baskı (Çevrim içi), Nisan 2026; ISBN 978-625-99759-8-6; PDF created 28 April 2026; 348 PDF pages. Supersedes the 2024 (16th) edition cited as MED-S3 in the cluster_medical proposal; the TEMD guideline listing at retrieval links both, 2026 being the newest.
+# url: https://file.temd.org.tr/Uploads/publications/guides/documents/diabetesmellitus2026.pdf
+# retrieved_on: 2026-10-03
+# retrieval: curl with a browser user-agent (HTTP 200, 7309146 bytes; listing https://temd.org.tr/yayinlar/kilavuzlar); text extracted with pdftotext (poppler); page numbers are PDF page indices; within each excerpted paragraph the PDF line wraps are joined with single spaces; list bullets kept as extracted (the PDF's bullet glyph extracts as '¥')
+# scope: verbatim excerpt of the cover and edition lines, the ketone-testing indication on PDF p. 70 and section 12.1 with Tablo 12.1 symptoms on PDF p. 181; nothing paraphrased or edited; omissions marked [...]
+---
+[PDF p. 1]
+17. Baskı (Çevrim içi)
+DİABETES MELLİTUS VE KOMPLİKASYONLARININ TANI, TEDAVİ VE İZLEM KILAVUZU-2026
+[...]
+[PDF p. 3]
+ISBN: 978-625-99759-8-6
+Gözden geçirilmiş 17. Baskı: Nisan 2026 (Güncellenmiş Çevrim İçi Yayın)
+[...]
+[PDF p. 70]
+Ne zaman ölçülmeli?
+¥ Hiperglisemi semptomlarına bulantı, kusma, karın ağrısı ve ateş eşlik ettiğinde; ayrıca solukta aseton kokusu hissedildiğinde ketona bakılmalıdır.
+[...]
+[PDF p. 181]
+12.1. | DİYABETİK KETOASİDOZ (DKA)
+DKA, çoğunlukla tip 1 diyabetli hastalarda görülse de tip 2 diyabetli hastalarda veya gestasyonel diyabeti olanlarda da görülebilir. Tip 1 diyabetli çocukların çoğunda DKA ilk klinik bulgudur. Tip 1 diyabetli erişkin hastaların da %20-25’inde DKA hastalığın ilk bulgusu olabilir.
+[...]
+TABLO 12.1: Diyabetik ketoasidozun belirti ve bulguları
+Semptomlar
+[...]
+¥ Halsizlik
+¥ İştahsızlık, bulantı, kusma
+¥ Ağız kuruluğu, polidipsi, poliüri
+¥ Karın ağrısı, kramplar
+¥ Nefes darlığı
+¥ Kilo kaybı
+¥ Bilinç bulanıklığı

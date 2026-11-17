@@ -1,0 +1,39 @@
+# guideline_id: FDA-HC-MHRA-PCCP-2023
+# title: Predetermined change control plans for machine learning-enabled medical devices: guiding principles
+# publisher: U.S. FDA, Health Canada and the UK MHRA (joint); page published by MHRA on GOV.UK
+# version_or_date: Published 24 October 2023 (no withdrawal notice on the page at retrieval)
+# url: https://www.gov.uk/government/publications/predetermined-change-control-plans-for-machine-learning-enabled-medical-devices-guiding-principles/predetermined-change-control-plans-for-machine-learning-enabled-medical-devices-guiding-principles
+# retrieved_on: 2026-10-03
+# retrieval: curl with a browser user-agent (HTTP 200); HTML tags stripped, entities decoded, runs of spaces collapsed, one line per HTML block; trailing whitespace removed from every line
+# scope: verbatim excerpt of the title, publication line, the definition of a PCCP and guiding principles 1, 3 and 4; Open Government Licence v3.0; nothing paraphrased or edited; omissions marked [...]
+---
+ Predetermined change control plans for machine learning-enabled medical devices: guiding principles
+ Published 24 October 2023
+[...]
+In this document, FDA, Health Canada, and MHRA jointly identified 5 guiding principles for predetermined change control plans. These principles draw upon the overarching GMLP guiding principles, in particular principle 10, which states that deployed models are monitored for performance and re-training risks are managed.
+[...]
+For this document, the term PCCP describes a plan, proposed by a manufacturer, that specifies:
+ certain planned modifications to a device
+ the protocol for implementing and controlling those modifications and
+ the assessment of impacts from modifications.
+[...]
+1. Focused and bounded
+A PCCP describes specific changes that a manufacturer intends to implement. Such changes are limited to modifications within the intended use or intended purpose of the original MLMD. This characterization can include:
+ the extent of planned changes and scope of the MLMD with changes implemented
+ plans in place to safely modify the device within the bounds of the PCCP, including methods for verifying and validating the changes and mechanisms to detect and revert or stop implementation of a change that fails to meet specified performance criteria
+ the impacts of the planned changes
+[...]
+3. Evidence based
+Evidence generated throughout the TPLC of the device is important to:
+ ensure the ongoing safety and effectiveness of the device with a PCCP
+ demonstrate that the benefits outweigh the associated risks and
+ establish that the risks are adequately managed and controlled
+Considerations for evidence supporting a PCCP include:
+ methods and metrics used to measure device performance are scientifically and clinically justified, in proportion to the risk and consistent with other evidence gathered throughout the TPLC
+ methods to generate evidence are specified that demonstrate the benefits and risks of the device before and after changes specified in the PCCP are implemented
+4. Transparent
+For PCCPs, the best practice is to provide clear and appropriate information and detailed plans for ongoing transparency to users and other stakeholders. This helps ensure that stakeholders stay aware of the device’s performance and use before and after changes are implemented. Consider, for example:
+ characterization of data used in development and modifications, demonstrated to reflect the intended population
+ comprehensive testing for planned changes
+ characterization of the device before and after implementation of changes
+ monitoring, detection, and response to deviations in device performance

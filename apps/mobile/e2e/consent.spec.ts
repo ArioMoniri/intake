@@ -108,13 +108,81 @@ describe("06 §2 purpose structure — closed list, registry order", () => {
     expect(Object.keys(tr).some((key) => key.includes("acoustic"))).toBe(false);
   });
 
-  it("core is information, never a switch (basis: the service itself)", () => {
+  it("core is an açık rıza toggle like the others, on its explicit basis (INT-537)", () => {
+    // the server registry makes core açık rıza and visits + notes require it,
+    // so it is granted against its text and withdrawn in one tap — never a
+    // piece of information the patient cannot act on
     const core = purposeDef("core")!;
-    expect(core.ui).toBe("info");
-    // the reducer refuses to toggle it in either direction
+    expect(core.ui).toBe("toggle");
+    expect(core.basis).toBe("explicit_consent");
+    expect(core.basisKey).toBe("consent.basis.explicit");
+    expect(core.defaultGranted).toBe(false);
+    // no text, no grant; with its text, a hash-bound grant
     const state = freshLedger();
-    expect(grant(state, "core", "2026-08-28T00:00:00Z").flipped).toEqual([]);
-    expect(withdraw(state, "core", "2026-08-28T00:00:00Z").flipped).toEqual([]);
+    expect(grant(state, "core", "2026-10-16T00:00:00Z").flipped).toEqual([]);
+    const texted = applyTexts(state, { core: loaded("v1", "c".repeat(64)) });
+    const granted = grant(texted, "core", "2026-10-16T00:00:00Z");
+    expect(granted.flipped).toEqual(["core"]);
+    expect(granted.state.records.core.boundHash).toBe("c".repeat(64));
+    // withdrawn in one tap, closing the default-on learning purposes with it
+    // (legal review B1: the core text says every other permission closes)
+    expect(withdraw(granted.state, "core", "2026-10-16T00:01:00Z").flipped).toEqual([
+      "core",
+      "learning:personal",
+      "learning:service_improvement",
+    ]);
+  });
+
+  it("core withdrawal cascades to every other purpose — the server's dependents_of(core)", () => {
+    // packages/intake_platform consent/registry.py: "core reaches every other
+    // purpose — a withdrawn service consent leaves nothing to ride on"
+    expect(purposeDef("core")!.cascadeChildren).toEqual(
+      PURPOSES.filter((p) => p.id !== "core").map((p) => p.id),
+    );
+  });
+
+  it("no purpose is information-only any more, and its chrome is gone", () => {
+    expect(PURPOSES.map((p) => p.ui).filter((ui) => ui !== "toggle" && ui !== "optout")).toEqual(
+      [],
+    );
+    expect(Object.keys(tr)).not.toContain("consent.basis.service");
+    expect(Object.keys(tr)).not.toContain("consent.state.service");
+    for (const file of [
+      join(SRC, "components", "ConsentList.tsx"),
+      join(APP, "(auth)", "consent.tsx"),
+      join(APP, "(tabs)", "me", "consents", "index.tsx"),
+      join(APP, "(tabs)", "me", "consents", "[purpose].tsx"),
+    ]) {
+      expect(read(file), file).not.toContain('"info"');
+    }
+  });
+
+  it("the core who-sees-what row says what the core text says (INT-537 legal review B2)", () => {
+    // the bound text: the doctor sees the note only on a share, and on an
+    // emergency flag clinic staff see an alert with no health answers in it;
+    // where the data is processed is the text's to say (INT-536, legal ruling;
+    // tests/legal/test_consent_who_lines.py pins the same strings)
+    expect(tr["consent.who.core"]).toBe(
+      "Yanıtlarınızı siz görürsünüz. Hekiminiz notunuzu yalnızca siz paylaşırsanız görür. " +
+        "Acil bir durum işaretinde klinik personeli, sağlık yanıtlarınızı içermeyen bir uyarı görür. " +
+        "Bilgilerinizin nerede işlendiği izin metninde yazar.",
+    );
+    expect(en["consent.who.core"]).toBe(
+      "You see your answers. Your doctor sees your note only if you share it. " +
+        "On an emergency flag, clinic staff see an alert that does not contain your health answers. " +
+        "Where your data is processed is stated in the consent text.",
+    );
+    expect(tr["consent.who.core"]).not.toContain("yalnızca siz ve onay verdiğiniz hekim");
+  });
+
+  it("the consent screens mirror a core change into the session like any other", () => {
+    for (const file of [
+      join(APP, "(auth)", "consent.tsx"),
+      join(APP, "(tabs)", "me", "consents", "index.tsx"),
+      join(APP, "(tabs)", "me", "consents", "[purpose].tsx"),
+    ]) {
+      expect(read(file), file).not.toContain('key !== "core"');
+    }
   });
 
   it("lane sub-toggles nest under voice; lane:linguistic stays independent", () => {
@@ -153,7 +221,7 @@ describe("no pre-ticking anywhere (KVKK m.6 unbundling)", () => {
   it("a fresh account starts with every explicit purpose off and an empty queue", () => {
     const state = freshLedger();
     for (const view of viewOf(state)) {
-      if (view.basis === "explicit_consent" && view.ui !== "info") {
+      if (view.basis === "explicit_consent") {
         expect(view.allowed, view.id).toBe(false);
       }
     }

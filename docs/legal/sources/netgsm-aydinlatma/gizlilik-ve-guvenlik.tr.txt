@@ -1,0 +1,17 @@
+# source_id: TR-NETGSM-AYDINLATMA-2026-10
+# instrument: Netgsm İletişim ve Bilgi Teknolojileri A.Ş., "Gizlilik ve Güvenlik" page — the company's own KVKK m.10 aydınlatma metni ("Abone – Abone Adayı Kişisel Verilerinin Korunması ve İşlenmesi Aydınlatma Metni") and its "Ürün/Hizmet İade ve Garanti Koşulları" statement
+# url: https://www.netgsm.com.tr/gizlilik-ve-guvenlik/
+# retrieved_on: 2026-10-28 (INT-529 refresh for INT-528's live SMS processor; the D31 decision names the vendor)
+# retrieved_sha256: 53c0c22905f006f0b87049fe9f5960c2b413b87e680785ba41cc36c9bb790daf (the HTML page as served)
+# what this snapshot is for: the processor's legal entity, its registered address (country) and its BTK authorisation, each as the company states it. Three passages are transcribed verbatim from the page's text; the rest of the page (the company's own processing purposes, its contact numbers, cookie policy) is not reproduced.
+---
+[Passage 1 — the heading and first paragraph of the aydınlatma metni]
+Abone – Abone Adayı Kişisel Verilerinin Korunması ve İşlenmesi Aydınlatma Metni
+İşbu "Müşteri/Abone-Müşteri/Abone Adayı Aydınlatma Metni" 6698 sayılı Kişisel Verilerin Korunması Kanunu ("Kanun")'nun 10. maddesi ve Aydınlatma Yükümlülüğünün Yerine Getirilmesinde Uyulacak Usul ve Esaslar Hakkında Tebliğ uyarınca, aşağıda kimliğine yer verilen veri sorumlusu Netgsm İletişim ve Bilgi Teknolojileri A.Ş. ("Şirket" veya "Netgsm") tarafından kişisel verilerinizin işlenmesine ilişkin olarak aydınlatma yükümlülüğünün yerine getirilmesi amacıyla hazırlanmıştır.
+
+[Passage 2 — section 1, the controller's identity and address]
+1. Amaç ve Veri Sorumlusunun Kimliği
+Kişisel verileriniz, Batı Bulvarı ATB İş Merkezi G Blok No:194 Macunköy - Yenimahalle/ANKARA adresinde mukim, Netgsm tarafından; veri sorumlusu sıfatıyla Kanun uyarınca, aşağıda sıralanan amaçlar çerçevesinde ve bu amaçlarla bağlantılı, sınırlı ve ölçülü şekilde, tarafımıza ulaştığı şekliyle, otomatik veya otomatik olmayan yöntemler ile kişisel verilerin doğruluğunu ve güncelliğini koruyarak aşağıda açıklanan kapsamda işlenebilecektir.
+
+[Passage 3 — the BTK authorisation, from "Ürün/Hizmet İade ve Garanti Koşulları"]
+Firmamız, 5809 sayılı Elektronik Haberleşme Kanunu kapsamında Bilgi Teknolojileri ve İletişim Kurumu (BTK) tarafından yetkilendirildiği STH, SMŞH, ISS ve AİH lisansları kapsamında hizmet sunmaktadır.

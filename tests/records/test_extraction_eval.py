@@ -651,10 +651,12 @@ class TestThePrintedMagnitudeIsResolvedPerValue:
             parse_printed_magnitude("8,4 - 10,2")
 
     def test_the_rendered_quantity_suppresses_grouping_and_binds_the_unit(self) -> None:
-        assert render_quantity(Decimal("1500")) == "1500"
-        assert render_quantity(Decimal("2.50")) == "2.50"
-        assert "e" not in render_quantity(Decimal("1E+3")).casefold()
-        assert quantity_atom(Decimal("1500"), "mg") == f"1500{NBSP}mg"
+        # INT-385: the separator is the reader's (tests/records/test_quantity_render.py).
+        assert render_quantity(Decimal("1500"), locale="tr") == "1500"
+        assert render_quantity(Decimal("2.50"), locale="tr") == "2,50"
+        assert render_quantity(Decimal("2.50"), locale="en") == "2.50"
+        assert "e" not in render_quantity(Decimal("1E+3"), locale="tr").casefold()
+        assert quantity_atom(Decimal("1500"), "mg", locale="tr") == f"1500{NBSP}mg"
         assert NBSP != " "
 
     def test_a_magnitude_on_a_kind_that_cannot_carry_one_is_refused(self) -> None:
@@ -952,8 +954,8 @@ class TestEveryRefusalOnThisPathActuallyFires:
         assert extraction.units_unchecked == ("üre",)
 
     def test_a_quantity_with_no_unit_is_just_the_number(self) -> None:
-        assert quantity_atom(Decimal("45"), None) == "45"
-        assert quantity_atom(Decimal("45"), "   ") == "45"
+        assert quantity_atom(Decimal("45"), None, locale="tr") == "45"
+        assert quantity_atom(Decimal("45"), "   ", locale="tr") == "45"
 
     @pytest.mark.parametrize("printed", ["1.23,45", "1,2,3", "45.", "45,"])
     def test_a_separator_shape_that_is_neither_grouping_nor_a_point_is_refused(

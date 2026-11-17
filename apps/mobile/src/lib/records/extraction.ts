@@ -24,14 +24,13 @@
  *    test asserts their absence — `1.500` reads two ways (files/03 §4.9.6) and
  *    a second reading of it on this side would differ by a factor of 1000.
  *
- * **Nothing publishes this feed yet.** No API route serves document extraction
- * and no route accepts a confirmation; the producer is INT-124 (the extraction
- * LLM, P2) and the transport that would carry its output belongs to an issue
- * that does not exist. So the only production `ExtractionSource` is
- * `noExtractionFeed`, which answers "not read" and acknowledges nothing — the
- * same fail-closed seam `NoLayout` and `NoTerminology` already are on the
- * server. The mechanism is built, the gate is wired, and it fails closed with
- * the content empty (HUMAN_BLOCKERS.md rule 2).
+ * **The feed arrives over one route and a verdict leaves over another**
+ * (`records/api.ts`, `apiExtractionSource`). The fail-closed default is the
+ * server's: its source answers `unread` for every document while every
+ * producer is shut, so this module holds no second gate that could disagree
+ * with it. What it holds instead is the rule that a card is settled only when
+ * the server echoes the verdict (`isAcknowledgement`), and the backoff with
+ * which a document still being read is asked about again (`pollDelayMs`).
  */
 import { NBSP } from "@/lib/health/format";
 import { t } from "@/lib/i18n";
@@ -77,9 +76,11 @@ const ITEM_KEYS: readonly string[] = [
   "unit_conflict",
   "date",
   "provenance",
+  "decision",
 ];
 
-const FEED_STATES: readonly string[] = ["read", "reading", "unread"];
+/** The route's closed `state`. `refused` is the server's own refusal (invariant 14). */
+const FEED_STATES: readonly string[] = ["read", "reading", "unread", "refused"];
 
 /** Where on which page a value came from, normalised to the page (0…1). */
 export interface SourceBox {
@@ -104,6 +105,8 @@ export interface ConfirmCardModel {
   box: SourceBox;
   unitConflict: boolean;
   date: string | null;
+  /** The verdict the server already holds for this card, if any. */
+  decision: CardDecision | null;
 }
 
 /**
@@ -114,6 +117,8 @@ export interface ConfirmCardModel {
  * without capturing a replacement.
  */
 export type CardDecision = "confirmed" | "declined";
+
+const CARD_DECISIONS: readonly CardDecision[] = ["confirmed", "declined"];
 
 /** What the app knows about a card right now. `pending` until a write lands. */
 export type CardState = "pending" | "confirmed" | "declined";
@@ -180,6 +185,13 @@ function readCard(raw: unknown): ConfirmCardModel | null {
   if (raw.date !== undefined && raw.date !== null && typeof raw.date !== "string") {
     return null;
   }
+  const decision =
+    raw.decision === undefined || raw.decision === null
+      ? null
+      : (CARD_DECISIONS.find((member) => member === raw.decision) ?? undefined);
+  if (decision === undefined) {
+    return null; // a verdict the server cannot hold is not one to show
+  }
   return {
     id: raw.id,
     kind,
@@ -188,6 +200,7 @@ function readCard(raw: unknown): ConfirmCardModel | null {
     box,
     unitConflict: raw.unit_conflict === true,
     date: typeof raw.date === "string" ? raw.date : null,
+    decision,
   };
 }
 
@@ -205,6 +218,9 @@ export function parseExtraction(raw: unknown): ExtractionFeed {
   }
   if (raw.state === "unread") {
     return { kind: "unread" };
+  }
+  if (raw.state === "refused") {
+    return { kind: "refused" };
   }
   if (!Array.isArray(raw.items)) {
     return { kind: "refused" };
@@ -255,6 +271,27 @@ export function applyDecision(
     return { ...states };
   }
   return { ...states, [cardId]: decision };
+}
+
+/**
+ * What a card shows: a verdict acknowledged in this session first, then the
+ * one the server already held when it was read, and otherwise pending. Both
+ * sources are server acknowledgements — nothing here is a local guess.
+ */
+export function cardStateOf(
+  states: Readonly<Record<string, CardState>>,
+  card: Pick<ConfirmCardModel, "id" | "decision">,
+): CardState {
+  return states[card.id] ?? card.decision ?? "pending";
+}
+
+/**
+ * Whether a response to a verdict IS an acknowledgement of that verdict: the
+ * server echoes the card and the decision it recorded. A success that names
+ * another card or another verdict, or names nothing, did not record this one.
+ */
+export function isAcknowledgement(body: unknown, cardId: string, decision: CardDecision): boolean {
+  return isRecord(body) && body.card_id === cardId && body.decision === decision;
 }
 
 /** How many of these cards still await the patient. */
@@ -324,19 +361,83 @@ export interface ExtractionSource {
   ): Promise<boolean>;
 }
 
+// --- processing: asking again about a document still being read -----------------------------
+
 /**
- * The only production source, and it refuses. No route publishes document
- * extraction and none accepts a confirmation, so answering anything else would
- * be inventing a feed; `record` acknowledges nothing, which — with
- * `applyDecision`'s no-optimistic-write rule — means no card can ever show as
- * confirmed while this is the source. Reopen against INT-124 and the transport
- * issue that carries its output.
+ * The waits between asks, in milliseconds. Doubling from two seconds to a
+ * half-minute ceiling, then a few more at the ceiling, then stop: about two
+ * and a half minutes in all. A document still being read after that keeps its
+ * "reading" line, and the next visit to the screen asks again — a phone that
+ * polled a server forever from a backgrounded tab would be the worse failure.
  */
-export const noExtractionFeed: ExtractionSource = {
-  read(): Promise<ExtractionFeed> {
-    return Promise.resolve({ kind: "unread" });
-  },
-  record(): Promise<boolean> {
-    return Promise.resolve(false);
-  },
-};
+const POLL_DELAYS_MS: readonly number[] = [2000, 4000, 8000, 16000, 30000, 30000, 30000, 30000];
+
+/** The wait before ask number `attempt + 1`, or `null` when it is time to stop. */
+export function pollDelayMs(attempt: number): number | null {
+  return POLL_DELAYS_MS[attempt] ?? null;
+}
+
+/**
+ * One round of asking. `feeds` holds every answer that came back; `again`
+ * names what is still being read and what could not be asked at all. A read
+ * that failed is not an answer, so it shows nothing and is asked again rather
+ * than drawn as "not read".
+ */
+export async function readRound(
+  source: ExtractionSource,
+  visitId: string,
+  documentIds: readonly string[],
+): Promise<{ feeds: Record<string, ExtractionFeed>; again: string[] }> {
+  const feeds: Record<string, ExtractionFeed> = {};
+  const again: string[] = [];
+  for (const documentId of documentIds) {
+    try {
+      const feed = await source.read(visitId, documentId);
+      feeds[documentId] = feed;
+      if (feed.kind === "reading") {
+        again.push(documentId);
+      }
+    } catch {
+      again.push(documentId);
+    }
+  }
+  return { feeds, again };
+}
+
+/**
+ * Ask about these documents, then ask again — with `pollDelayMs` between
+ * rounds — about whatever is still being read, handing each round's answers
+ * to `onFeeds`. Returns the function that stops it; nothing is asked or
+ * handed over after that.
+ *
+ * The timer lives here rather than in the section that renders the answers so
+ * a unit test can drive it on a fake clock. It is a wait, not a time limit:
+ * when the asking stops, nothing is taken from the patient (SC 2.2.1).
+ */
+export function pollExtraction(
+  source: ExtractionSource,
+  visitId: string,
+  documentIds: readonly string[],
+  onFeeds: (feeds: Record<string, ExtractionFeed>) => void,
+): () => void {
+  let live = true;
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  const ask = async (ids: readonly string[], attempt: number): Promise<void> => {
+    const round = await readRound(source, visitId, ids);
+    if (!live) {
+      return;
+    }
+    onFeeds(round.feeds);
+    const delay = pollDelayMs(attempt);
+    if (round.again.length > 0 && delay !== null) {
+      timer = setTimeout(() => void ask(round.again, attempt + 1), delay);
+    }
+  };
+  void ask(documentIds, 0);
+  return () => {
+    live = false;
+    if (timer !== null) {
+      clearTimeout(timer);
+    }
+  };
+}

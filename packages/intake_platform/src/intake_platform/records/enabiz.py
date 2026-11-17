@@ -49,25 +49,43 @@ reported by ordinal, so the gap is visible without any of it being echoed
 layer crosses the one fence :mod:`intake_platform.data_boundary` owns — the
 control INT-083 built and INT-121 moved down, not a third copy — before any
 of it is read, and a document carrying the control token is refused whole.
+
+**The deterministic path does not skip the guard.** :func:`import_lab_table`
+hands the parse to INT-121's parser with INT-124's unit-resolution guard
+switched on, which is the composition
+:func:`~intake_platform.records.lab_extraction.extract_lab_report` makes for
+the model path. Every lab value comes back with one typed verdict, a value
+that reads two ways loses its number and keeps its box instead of refusing
+the document, and the shipped expectation table is empty (HB-C24), so every
+value is flagged.
 """
 
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
+from datetime import datetime
 from typing import Any, Final
 
 from clinical_schemas.records import RecordItemKind
 
 from intake_platform.records.analytes import fold_tr
 from intake_platform.records.document import FencedDocument, TextRegion, fence_document_regions
+from intake_platform.records.extraction import (
+    DocumentExtraction,
+    TerminologyBinder,
+    extract_record_items,
+)
+from intake_platform.records.unit_guard import SHIPPED_EXPECTATIONS, ExpectationTable
 
 __all__ = [
     "CARRIED_COLUMNS",
     "DROPPED_COLUMNS",
     "LAB_TABLE_COLUMNS",
+    "LabTableImport",
     "LabTableParse",
     "LabTableShapeUnrecognised",
+    "import_lab_table",
     "parse_lab_table",
 ]
 
@@ -257,3 +275,44 @@ def parse_lab_table(regions: Sequence[TextRegion]) -> LabTableParse:
         rows_unread=tuple(unread),
         fenced=fenced,
     )
+
+
+@dataclass(frozen=True, slots=True)
+class LabTableImport:
+    """One lab table read, parsed and guarded, and still unconfirmed.
+
+    ``extraction`` holds :class:`~clinical_schemas.record_extraction.
+    UnconfirmedRecordItem` values — each one's ``as_confirm_card()`` is the
+    card the patient sees — with one INT-124 verdict per lab item.
+    ``rows_unread`` and ``fenced`` are the parse's, unchanged.
+    """
+
+    extraction: DocumentExtraction
+    rows_unread: tuple[int, ...]
+    fenced: FencedDocument
+
+
+def import_lab_table(
+    regions: Sequence[TextRegion],
+    *,
+    document_ref: str,
+    observed_at: datetime,
+    table: ExpectationTable = SHIPPED_EXPECTATIONS,
+    terminology: TerminologyBinder | None = None,
+) -> LabTableImport:
+    """Regions → the six-column parse → INT-121's parser with the guard on.
+
+    Nothing here reaches a note, a slot or triage: every item is unconfirmed
+    and boxed, and :func:`~clinical_schemas.record_extraction.
+    confirm_record_item` is the only way on.
+    """
+    parse = parse_lab_table(regions)
+    extraction = extract_record_items(
+        parse.completion,
+        document_ref=document_ref,
+        regions=parse.regions,
+        observed_at=observed_at,
+        terminology=terminology,
+        guard=table,
+    )
+    return LabTableImport(extraction=extraction, rows_unread=parse.rows_unread, fenced=parse.fenced)

@@ -39,6 +39,7 @@ from clip_harness import (
 )
 from conftest import LOCALE, PACK_ID, VOICE
 from protocols.compile import CompiledBundle, write_bundle
+from protocols.compile.emit_clips import ClipRow
 from protocols.dsl import clip_text_hash
 from voice_clips import (
     ClipCache,
@@ -57,6 +58,7 @@ from voice_clips import (
     load_clip_manifest,
     render_coverage,
 )
+from voice_clips.delivery import DeliveryProfile, delivery_context_for_subject, delivery_profile
 
 CLIPS_PACKAGE = (
     Path(__file__).resolve().parents[2] / "packages" / "voice-clips" / "src" / "voice_clips"
@@ -93,6 +95,15 @@ def cache(storage: FakeClipStorage) -> ClipCache:
     return ClipCache(client=storage, bucket="intake-clips-test")
 
 
+def _profile(row: ClipRow) -> DeliveryProfile:
+    """The profile the builder speaks a compiled row in (INT-415)."""
+    return delivery_profile(delivery_context_for_subject(row.subject))
+
+
+def _key(row: ClipRow) -> str:
+    return clip_object_key(row.entry, profile=_profile(row))
+
+
 def _built(dist: Path, recordings: Path, cache: ClipCache) -> RecordingGateway:
     manifest = load_clip_manifest(dist, pack_id=PACK_ID, voice=VOICE)
     gateway = RecordingGateway(inner=RecordedTtsGateway(root=recordings))
@@ -114,13 +125,19 @@ class TestTheKeyIsTheCompilersOwn:
         self, bundle: CompiledBundle, dist: Path, recordings: Path, cache: ClipCache
     ) -> None:
         _built(dist, recordings, cache)
-        expected = {f"clips/{LOCALE}/{VOICE}/{row.entry.clip_id}" for row in bundle.clip_manifest}
+        expected = {
+            f"clips/{LOCALE}/{VOICE}/{_profile(row).key}/{row.entry.clip_id}"
+            for row in bundle.clip_manifest
+        }
         assert set(cache.client.objects(cache.bucket)) == expected
         assert len(expected) == len(bundle.clip_manifest) > 0
 
     def test_the_key_helper_takes_the_clip_id_verbatim(self, bundle: CompiledBundle) -> None:
         row = bundle.clip_manifest[0]
-        assert clip_object_key(row.entry) == f"clips/{LOCALE}/{VOICE}/{row.entry.clip_id}"
+        profile = _profile(row)
+        assert clip_object_key(row.entry, profile=profile) == (
+            f"clips/{LOCALE}/{VOICE}/{profile.key}/{row.entry.clip_id}"
+        )
 
     def test_the_builder_never_hashes_anything_itself(self) -> None:
         """A second hasher is a second normalisation, and a guaranteed miss."""
@@ -173,14 +190,14 @@ class TestCoverage:
         assert scripted, "the fixture pack must carry scripted text for this to mean anything"
         stored = cache.client.objects(cache.bucket)
         for row in scripted:
-            assert clip_object_key(row.entry) in stored
+            assert _key(row) in stored
 
     def test_a_pack_with_a_missing_clip_fails(
         self, bundle: CompiledBundle, dist: Path, recordings: Path, cache: ClipCache
     ) -> None:
         _built(dist, recordings, cache)
         dropped = bundle.clip_manifest[0]
-        del cache.client.buckets[cache.bucket][clip_object_key(dropped.entry)]
+        del cache.client.buckets[cache.bucket][_key(dropped)]
         manifest = load_clip_manifest(dist, pack_id=PACK_ID, voice=VOICE)
         coverage = clip_coverage(manifest, cache)
         assert coverage.missing == (dropped.entry.clip_id,)
@@ -205,7 +222,7 @@ class TestCoverage:
     ) -> None:
         _built(dist, recordings, cache)
         dropped = bundle.clip_manifest[0]
-        del cache.client.buckets[cache.bucket][clip_object_key(dropped.entry)]
+        del cache.client.buckets[cache.bucket][_key(dropped)]
         manifest = load_clip_manifest(dist, pack_id=PACK_ID, voice=VOICE)
         rendered = render_coverage(clip_coverage(manifest, cache))
         assert dropped.entry.clip_id in rendered

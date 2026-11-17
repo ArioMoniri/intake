@@ -1,9 +1,18 @@
 /**
  * Oura-register floating pill tab rail (design pass 4, owner decision
- * 2026-08-28): a BlurView pill inset from the screen edges replaces the
+ * 2026-08-28): a glass pill inset from the screen edges replaces the
  * system tab bar visual. The 02 §4 native-tabs choice is superseded for the
  * dev tier by the owner's explicit Oura mandate; revisit when iOS 26 Liquid
  * Glass native rails ship broadly (the native path lives in git history).
+ *
+ * Apple-native pass (docs/design/apple-native/spec.md §2.1): the pill is the
+ * material HIG gives a floating tab bar. It is system Liquid Glass on iOS 26
+ * and later, the BlurView wash elsewhere, and solid under Reduce Transparency
+ * (`useGlassMode`). Before this pass it was a BlurView on every OS, while the
+ * CTA bar beside it was already system glass. The active section draws the
+ * filled SF variant: a shape cue beside ink and weight, as system tab bars do.
+ * Native tabs stay out. Their tab set is fixed at mount, and the consent gate
+ * below must be able to unregister a route.
  *
  * Contracts preserved: consent gating stays in the layout (`visibleTabs` →
  * `Tabs.Protected`, so an off-consent wellbeing route is UNREGISTERED, not
@@ -40,15 +49,19 @@
  * `selected` state are unchanged in both forms.
  */
 import { BlurView } from "expo-blur";
+import { GlassView } from "expo-glass-effect";
 import type { BottomTabBarProps } from "expo-router/js-tabs";
-import { SymbolView } from "expo-symbols";
+import { useState, type ReactNode } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { Icon } from "@/components/Icon";
+import { useGlassMode } from "@/components/glassMode";
 import { AppText, useFontScale, useScheme, useTheme } from "@/components/Themed";
 import { MIN_TAP } from "@/lib/a11y/target";
 import { t, type MessageKey } from "@/lib/i18n";
 import { RAIL_GLYPH_BASE, railCollapses, railWellSize } from "@/lib/prefs/appearance";
+import type { SymbolKey } from "@/lib/symbols";
 import { glassFallback, radius, scaledControl, scaledSize, spacing } from "@/lib/theme";
 
 /**
@@ -77,12 +90,12 @@ export function useTabBarClearance(): number {
 /** Vertical padding inside the pill, above and below the item boxes. */
 const PILL_PADDING = spacing.xs + 2;
 
-const TAB_META: Record<string, { labelKey: MessageKey; sf: string }> = {
-  today: { labelKey: "tabs.today", sf: "sun.max" },
-  visits: { labelKey: "tabs.visits", sf: "calendar" },
-  records: { labelKey: "tabs.records", sf: "folder" },
-  wellbeing: { labelKey: "tabs.wellbeing", sf: "heart" },
-  me: { labelKey: "tabs.me", sf: "person.crop.circle" },
+const TAB_META: Record<string, { labelKey: MessageKey; symbol: SymbolKey }> = {
+  today: { labelKey: "tabs.today", symbol: "sun.max" },
+  visits: { labelKey: "tabs.visits", symbol: "calendar" },
+  records: { labelKey: "tabs.records", symbol: "folder" },
+  wellbeing: { labelKey: "tabs.wellbeing", symbol: "heart" },
+  me: { labelKey: "tabs.me", symbol: "person.crop.circle" },
 };
 
 /** "me/index" → "me"; "visits" → "visits" — the rail thinks in sections. */
@@ -102,11 +115,66 @@ function focusedLeafName(route: BottomTabBarProps["state"]["routes"][number]): s
   return name;
 }
 
-export function FloatingTabBar({ state, navigation }: BottomTabBarProps) {
+/**
+ * The pill's material (spec §1.1): system glass, the blur wash, or the solid
+ * surface. One decision, `useGlassMode()`, for every glass chrome in the app.
+ *
+ * System glass takes its corner from `borderRadius` as a fixed radius. So the
+ * capsule is set from the pill's measured height rather than the 999 that
+ * `radius.chip` hands a CALayer, which clamps it. The pill's height is its
+ * content's, which grows with the text scale (INT-260).
+ */
+function RailPill({ children }: { children: ReactNode }) {
   const theme = useTheme();
   const scheme = useScheme();
-  const insets = useSafeAreaInsets();
+  const mode = useGlassMode();
+  const [height, setHeight] = useState<number | null>(null);
+  if (mode === "liquid") {
+    return (
+      <GlassView
+        glassEffectStyle="regular"
+        colorScheme={scheme}
+        onLayout={(event) => setHeight(event.nativeEvent.layout.height)}
+        style={[styles.pill, { borderRadius: height === null ? radius.chip : height / 2 }]}
+      >
+        {children}
+      </GlassView>
+    );
+  }
+  if (mode === "solid") {
+    // Reduce Transparency: the surface token, whose contrast pairs are pinned.
+    return (
+      <View
+        style={[
+          styles.pill,
+          styles.pillEdge,
+          { backgroundColor: theme.surface, borderColor: theme.border },
+        ]}
+      >
+        {children}
+      </View>
+    );
+  }
   const fallback = glassFallback(scheme);
+  return (
+    <View style={[styles.pill, styles.pillEdge, { borderColor: fallback.borderColor }]}>
+      <BlurView
+        intensity={60}
+        tint={scheme === "dark" ? "dark" : "light"}
+        style={StyleSheet.absoluteFill}
+      />
+      <View
+        pointerEvents="none"
+        style={[StyleSheet.absoluteFill, { backgroundColor: fallback.backgroundColor }]}
+      />
+      {children}
+    </View>
+  );
+}
+
+export function FloatingTabBar({ state, navigation }: BottomTabBarProps) {
+  const theme = useTheme();
+  const insets = useSafeAreaInsets();
   const fontScale = useFontScale();
   const collapsed = railCollapses(fontScale);
   // 20 at scale 1.0 — the measured Oura rail glyph (design pass 5) — and it
@@ -139,18 +207,19 @@ export function FloatingTabBar({ state, navigation }: BottomTabBarProps) {
   return (
     <View
       pointerEvents="box-none"
-      style={[styles.wrap, { paddingBottom: Math.max(insets.bottom, spacing.sm) }]}
+      style={[
+        styles.wrap,
+        {
+          paddingBottom: Math.max(insets.bottom, spacing.sm),
+          // INT-360: the rail is pinned to both window edges, outside any
+          // Screen, and in landscape the notch and the rounded corners are at
+          // the sides. The pill stays centred; this keeps it clear of both.
+          paddingLeft: Math.max(insets.left, spacing.md),
+          paddingRight: Math.max(insets.right, spacing.md),
+        },
+      ]}
     >
-      <View style={[styles.pill, { borderColor: fallback.borderColor }]}>
-        <BlurView
-          intensity={60}
-          tint={scheme === "dark" ? "dark" : "light"}
-          style={StyleSheet.absoluteFill}
-        />
-        <View
-          pointerEvents="none"
-          style={[StyleSheet.absoluteFill, { backgroundColor: fallback.backgroundColor }]}
-        />
+      <RailPill>
         {items.map((route) => {
           const section = sectionOf(route.name);
           const meta = TAB_META[section];
@@ -201,14 +270,17 @@ export function FloatingTabBar({ state, navigation }: BottomTabBarProps) {
                   collapsed && active ? { backgroundColor: theme.surfaceRaised } : null,
                 ]}
               >
-                <SymbolView
-                  name={meta.sf as never}
+                <Icon
+                  name={meta.symbol}
                   size={glyph}
                   // Oura marks the active item with full-contrast ink, not the
                   // accent (pass 4 measurement) — brightness + weight carry the
                   // state, and the label is present at every scale below 1.6
                   // (02 §8.2); above it, the well carries the state instead.
                   tintColor={active ? theme.ink : theme.inkFaint}
+                  // HIG tab bars: the selected tab draws the filled variant, a
+                  // shape cue that holds without colour (BK8 / SC 1.4.1).
+                  selected={active}
                 />
               </View>
               {collapsed ? null : (
@@ -223,7 +295,7 @@ export function FloatingTabBar({ state, navigation }: BottomTabBarProps) {
             </Pressable>
           );
         })}
-      </View>
+      </RailPill>
     </View>
   );
 }
@@ -241,13 +313,15 @@ const styles = StyleSheet.create({
   pill: {
     flexDirection: "row",
     borderRadius: radius.chip,
-    borderWidth: StyleSheet.hairlineWidth,
     overflow: "hidden",
     paddingHorizontal: spacing.sm,
     paddingVertical: PILL_PADDING,
     gap: spacing.xs,
     maxWidth: "100%",
   },
+  // The blur and solid pills draw their own hairline; system glass has its own
+  // edge, and a border over it is the custom chrome HIG asks apps to drop.
+  pillEdge: { borderWidth: StyleSheet.hairlineWidth },
   item: {
     alignItems: "center",
     justifyContent: "center",

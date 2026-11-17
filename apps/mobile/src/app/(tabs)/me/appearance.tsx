@@ -16,7 +16,10 @@
  *   Yazı boyutu       → useFontScale (Themed.tsx)
  *   Tema              → useScheme (Themed.tsx)
  *   Hareket           → useReducedMotion (lib/a11y/prefs.ts)
- *   Ziyarete başlarken → the intake shell's voice-eligibility rule
+ *   Ziyarete başlarken → the intake shell's voice-eligibility rule — drawn only
+ *                        in a build that ships voice (INT-588): a release build
+ *                        has no voice start, and offering "Konuşarak" there
+ *                        would be a choice that does nothing
  * A "Sesli okuma" switch belongs here too and is deliberately ABSENT: its only
  * consumer is the spoken-dialogue surface, and a switch whose value nothing
  * reads is decoration with a nice pill on it. It lands with that surface.
@@ -34,6 +37,7 @@ import { ListGroup } from "@/components/ListRow";
 import { Segmented, type SegmentedOption } from "@/components/Segmented";
 import { SwitchRow } from "@/components/SwitchRow";
 import { AppText, Card, RAIL_EDGES, Screen, useTheme } from "@/components/Themed";
+import { currentBuildMode, startModeOffered } from "@/lib/buildCopy";
 import { t, type MessageKey } from "@/lib/i18n";
 import { nearestStep, type StartMode, type TextStep, type ThemePref } from "@/lib/prefs/appearance";
 import { useAppearance } from "@/lib/prefs/AppearanceProvider";
@@ -64,9 +68,7 @@ const START_KEYS: readonly { id: string; key: MessageKey }[] = [
   { id: "typed", key: "appearance.start.typed" },
 ];
 
-function labelled(
-  rows: readonly { id: string; key: MessageKey }[],
-): readonly SegmentedOption[] {
+function labelled(rows: readonly { id: string; key: MessageKey }[]): readonly SegmentedOption[] {
   return rows.map((row) => ({ id: row.id, label: t(row.key) }));
 }
 
@@ -78,11 +80,7 @@ function Preview() {
   const theme = useTheme();
   return (
     <Card>
-      <View
-        accessible
-        accessibilityLabel={t("a11y.appearance.preview")}
-        style={styles.preview}
-      >
+      <View accessible accessibilityLabel={t("a11y.appearance.preview")} style={styles.preview}>
         <View style={[styles.bubble, { backgroundColor: theme.surfaceRaised }]}>
           <AppText role="body">{t("intake.q.complaint")}</AppText>
         </View>
@@ -137,9 +135,7 @@ export default function Appearance() {
               // Turning it OFF must not resize the screen under the finger
               // that turned it off, so the first app value is the rung nearest
               // whatever is already on screen.
-              onChange={(next) =>
-                update({ textStep: next ? null : nearestStep(osFontScale) })
-              }
+              onChange={(next) => update({ textStep: next ? null : nearestStep(osFontScale) })}
             />
           </ListGroup>
         </View>
@@ -167,16 +163,18 @@ export default function Appearance() {
           </ListGroup>
         </View>
 
-        <View style={styles.section}>
-          <Kicker label={t("appearance.start")} />
-          <Segmented
-            label={t("appearance.start")}
-            hint={t("a11y.appearance.start")}
-            options={labelled(START_KEYS)}
-            value={prefs.startMode}
-            onChange={(id) => update({ startMode: id as StartMode })}
-          />
-        </View>
+        {startModeOffered(currentBuildMode()) ? (
+          <View style={styles.section}>
+            <Kicker label={t("appearance.start")} />
+            <Segmented
+              label={t("appearance.start")}
+              hint={t("a11y.appearance.start")}
+              options={labelled(START_KEYS)}
+              value={prefs.startMode}
+              onChange={(id) => update({ startMode: id as StartMode })}
+            />
+          </View>
+        ) : null}
 
         <AppText role="caption" color="inkSoft">
           {t("appearance.deviceOnly")}

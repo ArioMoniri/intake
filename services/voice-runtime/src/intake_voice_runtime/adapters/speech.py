@@ -175,11 +175,20 @@ class HttpSpeechSynthesizer:
     def __post_init__(self) -> None:
         object.__setattr__(self, "endpoint", refuse_external_host(self.endpoint))
 
-    def synthesize(self, text_tr: str, voice_id: str) -> bytes:
+    def synthesize(self, text_tr: str, voice_id: str, *, timeout_s: float | None = None) -> bytes:
+        """Synthesise ``text_tr`` verbatim.
+
+        ``timeout_s`` overrides the configured timeout for this one call. It is
+        how the failover ladder (INT-100) puts an attempt's share of the 2 s
+        budget on the wire: httpx applies it to the connect and to the read,
+        so a process that accepted the call and never answers costs exactly
+        that long and not the 30 s default.
+        """
         assert_no_numeral(text_tr)
         url = f"{self.endpoint}{SYNTHESIS_PATH}"
+        wire_timeout_s = self.timeout_s if timeout_s is None else timeout_s
         try:
-            with httpx.Client(timeout=self.timeout_s, transport=self.transport) as client:
+            with httpx.Client(timeout=wire_timeout_s, transport=self.transport) as client:
                 response = client.post(url, json={"text": text_tr, "voice_id": voice_id})
         except httpx.HTTPError as exc:
             raise SpeechUnavailable(
@@ -210,7 +219,9 @@ class RecordedSpeechSynthesizer:
         """``sha256(text_tr, voice_id)`` — files/03 §4.9.1 row 10's own key."""
         return hashlib.sha256(f"{text_tr}\x00{voice_id}".encode()).hexdigest()
 
-    def synthesize(self, text_tr: str, voice_id: str) -> bytes:
+    def synthesize(self, text_tr: str, voice_id: str, *, timeout_s: float | None = None) -> bytes:
+        """Replay the recording. ``timeout_s`` is accepted and unused: this lane
+        reads a committed file and has no wire to bound (INT-100)."""
         assert_no_numeral(text_tr)
         path = self.root / f"{self.key(text_tr, voice_id)}{RECORDING_SUFFIX}"
         if not path.is_file():

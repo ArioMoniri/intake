@@ -4,8 +4,9 @@
  * the post-onboarding first-run.
  *
  * Rules made visible here:
- * - core renders as INFORMATION (a quiet pill naming the service basis),
- *   never as a switch;
+ * - core is a switch like every açık rıza purpose (INT-537): visits and
+ *   notes require it, so it is granted against its text and withdrawn here
+ *   in one tap; it keeps its own group because everything else rides on it;
  * - both lanes nest under voice as inset sub-rows; lane:linguistic is
  *   independent of the voice cascade and the group footer says so;
  * - the two learning purposes are default-on OPT-OUT switches with their
@@ -26,6 +27,7 @@ import { ListGroup, ListRow } from "@/components/ListRow";
 import { AppText, useTheme } from "@/components/Themed";
 import { withContext } from "@/lib/a11y/labels";
 import { MIN_TAP } from "@/lib/a11y/target";
+import { currentBuildMode, voiceGroupNoteKey } from "@/lib/buildCopy";
 import type { PurposeView } from "@/lib/consent/ledger";
 import type { PurposeId } from "@/lib/consent/purposes";
 import { t } from "@/lib/i18n";
@@ -41,9 +43,6 @@ interface ConsentListProps {
 
 /** The pill's visible word — also the name of the row's secondary action. */
 function pillLabel(view: PurposeView): string {
-  if (view.display === "info") {
-    return t("consent.state.service");
-  }
   return view.display === "on"
     ? t("consent.on")
     : view.display === "stale"
@@ -55,15 +54,6 @@ function pillLabel(view: PurposeView): string {
 
 function StatePill({ view, onPress }: { view: PurposeView; onPress: () => void }) {
   const theme = useTheme();
-  if (view.display === "info") {
-    return (
-      <View style={[styles.pill, { backgroundColor: theme.primarySoft }]}>
-        <AppText role="caption" style={{ color: theme.primary, fontWeight: "600" }}>
-          {t("consent.state.service")}
-        </AppText>
-      </View>
-    );
-  }
   const label = pillLabel(view);
   const background =
     view.display === "on"
@@ -102,6 +92,7 @@ function StatePill({ view, onPress }: { view: PurposeView; onPress: () => void }
 
 export function ConsentList({ views, onOpenDetail, onToggle }: ConsentListProps) {
   const byId = new Map(views.map((view) => [view.id, view]));
+  const voiceNote = voiceGroupNoteKey(currentBuildMode());
   const row = (id: PurposeId, options?: { inset?: boolean; sublabel?: string }) => {
     const view = byId.get(id);
     if (view === undefined) {
@@ -119,14 +110,10 @@ export function ConsentList({ views, onOpenDetail, onToggle }: ConsentListProps)
         // accessibility element. Without this action a screen-reader user
         // could read a consent but not withdraw it (SC 4.1.2, and withdrawal
         // must be at least as easy as grant).
-        secondaryAction={
-          view.display === "info"
-            ? undefined
-            : {
-                label: withContext(pillLabel(view), t(view.labelKey)),
-                onPress: () => onToggle(id),
-              }
-        }
+        secondaryAction={{
+          label: withContext(pillLabel(view), t(view.labelKey)),
+          onPress: () => onToggle(id),
+        }}
         onPress={() => onOpenDetail(id)}
         trailing={<StatePill view={view} onPress={() => onToggle(id)} />}
       />
@@ -140,6 +127,13 @@ export function ConsentList({ views, onOpenDetail, onToggle }: ConsentListProps)
       </View>
       <View style={styles.section}>
         <Kicker label={t("consent.group.voice")} />
+        {/* INT-591: where voice does not ship, the group says so — its rows
+            offer no grant there, and a standing grant can still be withdrawn */}
+        {voiceNote !== null ? (
+          <AppText role="caption" color="inkSoft">
+            {t(voiceNote)}
+          </AppText>
+        ) : null}
         <ListGroup footer={t("consent.group.voice.hint")}>
           {row("voice")}
           {row("lane:affect", { inset: true })}

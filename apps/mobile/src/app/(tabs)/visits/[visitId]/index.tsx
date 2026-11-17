@@ -6,6 +6,7 @@
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { ScrollView, StyleSheet } from "react-native";
 
+import { AnnouncedText, useNews } from "@/components/Announced";
 import { useTabBarClearance } from "@/components/FloatingTabBar";
 import { Kicker } from "@/components/Kicker";
 import { ListGroup, ListRow } from "@/components/ListRow";
@@ -20,6 +21,7 @@ import {
 } from "@/components/Themed";
 import { VisitCard } from "@/components/VisitCard";
 import { t } from "@/lib/i18n";
+import { useDelivery } from "@/lib/intake/delivery/store";
 import { effectiveStatus } from "@/lib/intake/note";
 import { useSession } from "@/lib/session";
 import { visitTypeLabelKey } from "@/lib/taxonomy/labels";
@@ -35,7 +37,15 @@ export default function VisitDetail() {
   const { visits, notes } = useSession();
   // Hoisted above the early return: hooks run in the same order every render.
   const tabBarClearance = useTabBarClearance();
+  // INT-587: only the server's confirmation makes a sent note "Gönderildi".
+  const delivered = useDelivery(visitId ?? "")?.stage === "delivered";
   const visit = visits.find((v) => v.id === visitId) ?? null;
+  const status =
+    visit === null ? null : effectiveStatus(visit.noteStatus, notes[visit.id], delivered);
+  // INT-397 (SC 4.1.3): the note is sent from the review screen, which is in
+  // front and announces it. This screen sits under it at that moment, so here
+  // the line is shown, not spoken — on the way back and on every visit.
+  const sentNews = useNews(status === "sent");
   if (visit === null) {
     return (
       <Screen>
@@ -47,7 +57,6 @@ export default function VisitDetail() {
     );
   }
   const note = notes[visit.id];
-  const status = effectiveStatus(visit.noteStatus, note);
   const hasAnswers = (note?.answers.length ?? 0) > 0;
   return (
     <Screen edges={HEADER_EDGES}>
@@ -101,9 +110,13 @@ export default function VisitDetail() {
           </ListGroup>
         ) : null}
         {status === "sent" ? (
-          <AppText role="caption" color="inkSoft">
-            {t("review.sentInfo")}
-          </AppText>
+          <AnnouncedText
+            tone="status"
+            news={sentNews}
+            role="caption"
+            color="inkSoft"
+            message={t("review.sentInfo")}
+          />
         ) : status === null || status === "draft" ? (
           hasAnswers ? (
             <PrimaryButton

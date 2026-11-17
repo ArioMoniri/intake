@@ -40,11 +40,13 @@ Four things this handler deliberately does **not** do:
   inventing a Turkish acknowledgement would be patient copy no human signed
   off.
 - **It sets no ``triage_update``.** The rules engine is
-  ``packages/protocols/triage`` and running it from here is INT-096's scope,
-  not this issue's; ``StateEffect.triage_update`` stays ``None`` so the
-  queue's RED derivation has nothing to derive from. CLAUDE.md invariant 1 is
-  untouched in the safe direction: an extraction cannot mint a level at all,
-  and ``candidate_flags`` — the only triage-shaped material it produces — are
+  ``packages/protocols/triage``, and the queue runs it after this handler
+  returns, whenever the Work bound an answer a served red-flag rule reads
+  (:mod:`intake_voice_runtime.clinical_agent.live_triage`, INT-521). So
+  ``StateEffect.triage_update`` stays ``None`` here and the determination is
+  the rules engine's, never this handler's. CLAUDE.md invariant 1 holds in the
+  safe direction: an extraction cannot mint a level at all, and
+  ``candidate_flags`` — the only triage-shaped material it produces — are
   clinician-facing and reach the note, never routing.
 - **It never widens what the model may answer.** The declared slot set is the
   Work's own step plus whatever the engine currently lists as ``awaiting``
@@ -52,6 +54,26 @@ Four things this handler deliberately does **not** do:
   ``IntakeEngine._bind`` will accept an answer for. A step outside that set
   could not bind, so offering it to the model would be inviting an answer the
   engine is about to drop.
+
+**A closed onset choice binds its decided day** (INT-522). For a date slot
+answered by a closed choice the model may answer only an authored choice; the
+handler replaces it with the day CD-05 resolves it to against the engine's
+``reference_time`` (:class:`~intake_voice_runtime.clinical_agent.anchors.SessionAnchors`)
+before the engine sees it, and records the choice beside the day once it has
+bound. A session whose closed-choice date has no decided day for every choice
+is refused when composed (:class:`~intake_voice_runtime.extraction.errors.AnchorChoicesUnresolved`).
+
+**An asked anchor answered unfit is UNCLEAR at once** (INT-540). For a Work
+answering a tense anchor that is asked and unanswered — its question or its
+follow-up — a CD-04 hedge (read from the decision, beating any choice the model
+guessed) or an answer that bound no authored choice is UNCLEAR whatever
+``clarification_needed`` said: the anchor's choice, if any, is withheld, the
+rest of the extraction binds as reported, and the anchor gets the
+clarification the model did not ask for. The engine holds CD-04's bound for
+the anchor, so that is its ``follow_up_tr`` the first time and UNCLEAR — which
+CD-05 resolves to the reference day, and which the queue then evaluates — once
+the bound is spent. A no-slot-no-flag completion can no longer leave the
+anchor silently pending (the INT-522 clinical review's F1).
 
 **A refusal is an outcome, not a crash.** A parser refusal (the model answered
 off-schema, or obeyed a planted instruction) leaves the slots unbound and the
@@ -67,25 +89,44 @@ from __future__ import annotations
 import hashlib
 from collections.abc import Mapping
 from dataclasses import dataclass, field
-from typing import Final
+from typing import Any, Final, Protocol
 
+from clinical_schemas.session import AnswerState
 from protocols.dsl import Slot
 
 from intake_voice_runtime.adapters.pins import ModelPin
+from intake_voice_runtime.clinical_agent.anchors import SessionAnchors
+from intake_voice_runtime.clinical_agent.fsm import EngineError
 from intake_voice_runtime.clinical_agent.work_queue import StateContext, StateEffect
+from intake_voice_runtime.extraction.boundary import PatientData
+from intake_voice_runtime.extraction.errors import AnchorChoicesUnresolved, CodeSlotUnbound
 from intake_voice_runtime.extraction.gateway import ExtractionGateway
+from intake_voice_runtime.extraction.result import ExtractionResult, SlotOutcome
+from intake_voice_runtime.extraction.schema import closed_choice_dates, unbound_code_slots
 from intake_voice_runtime.extraction.work import ExtractionContext, ExtractionOutcome
 from intake_voice_runtime.extraction.work import run_extraction as _run_extraction
-from intake_voice_runtime.ports import Clock, work_key
+from intake_voice_runtime.ports import Clock, WorkRequest, work_key
 from intake_voice_runtime.transcript import TranscriptSource
 
-__all__ = ["UNPINNED_REVISION", "ExtractSlotsHandler"]
+__all__ = ["UNPINNED_REVISION", "ExtractSlotsHandler", "VerificationSink"]
 
 #: What goes on a span when the §4.9.1 row's registry entry carries no
 #: structured ``model_id@revision``. Deliberately not hash-shaped: an auditor
 #: reading a trace must see a gap, not a value they might try to look up
 #: (files/HUMAN_BLOCKERS.md Rule 1).
 UNPINNED_REVISION: Final = "unpinned"
+
+
+class VerificationSink(Protocol):
+    """Where an answer goes *after* it has been bound (INT-430; ADR-036).
+
+    One synchronous, non-blocking method. The primary extraction above has
+    already applied its result — the binding triage reads — so nothing the
+    verifier does, or fails to do, can delay or alter it: RED never waits on
+    the council.
+    """
+
+    def request_verification(self, request: WorkRequest, data: PatientData) -> None: ...
 
 
 def _session_id_hash(session_id: str) -> str:
@@ -109,7 +150,49 @@ class ExtractSlotsHandler:
     clock: Clock
     tenant_id: str
     valuesets: Mapping[str, tuple[str, ...]] = field(default_factory=dict)
+    #: INT-430. ``None`` — the state of every session composed today — means no
+    #: verifier runs; the primary extraction is unchanged either way.
+    verifier: VerificationSink | None = None
+    #: INT-522. CD-05's resolution of each closed-choice date (the onset
+    #: anchor); required wherever the slots declare one, so such a choice
+    #: always binds a day.
+    anchors: SessionAnchors | None = None
     outcomes: list[ExtractionOutcome] = field(default_factory=list, init=False)
+
+    def __post_init__(self) -> None:
+        """Refuse a handler that could never bind one of its code slots (INT-518).
+
+        A code slot binds only to a member of its value set. Handed no members,
+        every Work that declares it is refused, and because the slot then stays
+        awaiting, every later Work declares it too: before INT-518 a session
+        bound nothing after its first question. Composition is where that is
+        refused, naming each slot and set, before a patient is asked anything.
+        """
+        unbound = unbound_code_slots(self.slots, self.valuesets)
+        if unbound:
+            named = ", ".join(f"{ref} ({valueset})" for ref, valueset in unbound)
+            raise CodeSlotUnbound(
+                f"code slot(s) with no committed value set: {named}. Extraction binds a "
+                "code slot only to a member, so these could never be answered; commit "
+                "each set in packages/protocols/base/valuesets.yaml (INT-518)"
+            )
+        unresolved = self._unresolved_dates()
+        if unresolved:
+            raise AnchorChoicesUnresolved(
+                "date slot(s) answered by closed choices with no decided day for every "
+                f"choice: {', '.join(unresolved)}. Such a choice could never bind, so the "
+                "anchor would read Unknown for the whole session; the resolution is a "
+                "clinical decision (CD-05, INT-522), never a default"
+            )
+
+    def _unresolved_dates(self) -> list[str]:
+        """Each closed-choice date whose choices are not exactly a decided table's."""
+        anchors = self.anchors
+        return [
+            ref
+            for ref, choices in closed_choice_dates(self.slots).items()
+            if anchors is None or ref not in anchors.refs or anchors.table.choice_texts != choices
+        ]
 
     def __call__(self, context: StateContext) -> StateEffect:
         request = context.request
@@ -133,9 +216,70 @@ class ExtractSlotsHandler:
             now_ms=self.clock.now_ms,
         )
         self.outcomes.append(outcome)
+        unclear = self._unclear_anchor(context, outcome.result, data.text)
+        clarified = False
         if outcome.result is not None:
-            context.engine.apply_extraction(**outcome.result.as_engine_call())
+            call = outcome.result.as_engine_call()
+            if unclear is not None:
+                call["slot_updates"] = {
+                    ref: value for ref, value in call["slot_updates"].items() if ref != unclear
+                }
+            clarified = bool(call["clarification_needed"])
+            self._apply(context, call)
+        if unclear is not None and not clarified:
+            self._clarify(context, unclear)
+        if self.verifier is not None:
+            self.verifier.request_verification(request, data)
         return StateEffect()
+
+    def _unclear_anchor(
+        self, context: StateContext, result: ExtractionResult | None, text: str
+    ) -> str | None:
+        """The asked tense anchor this Work answered unfit, or ``None`` (INT-540).
+
+        Only a Work answering an anchor that is asked and unanswered — its own
+        question or its follow-up. A CD-04 hedge is UNCLEAR even under a
+        choice the model guessed; with none, any answer that bound no
+        authored choice is (a narrative, a refused value or document, a
+        completion with no slot and no flag).
+        """
+        anchors, engine = self.anchors, context.engine
+        if anchors is None:
+            return None
+        try:
+            origin = engine.origin_of(context.request.step_id)
+        except EngineError:
+            return None
+        if origin not in anchors.refs or engine.state_of(origin) is not AnswerState.ASKED_PENDING:
+            return None
+        chose = result is not None and result.outcome_of(origin) is SlotOutcome.BOUND
+        return origin if anchors.unclear_cause(origin, text, chose) is not None else None
+
+    @staticmethod
+    def _clarify(context: StateContext, anchor: str) -> None:
+        """Ask the anchor's follow-up — or, its bound spent, record UNCLEAR.
+
+        The engine holds CD-04's bound for the anchor; this is the
+        ``clarification_needed`` the model did not set. It answers the
+        follow-up being answered when that is still queued, else the anchor;
+        an anchor the extraction just invalidated is dropped by the engine.
+        """
+        engine = context.engine
+        step = context.request.step_id
+        engine.apply_extraction(step if step in engine.follow_ups else anchor, {}, True)
+
+    def _apply(self, context: StateContext, call: dict[str, Any]) -> None:
+        """Bind the extraction, each anchor's choice replaced by its CD-05 day."""
+        engine = context.engine
+        if self.anchors is None:
+            engine.apply_extraction(**call)
+            return
+        updates, resolutions = self.anchors.resolve_choices(
+            call["slot_updates"], engine.reference_time
+        )
+        revisions = {r.anchor: engine.slot_revision(r.anchor) for r in resolutions}
+        engine.apply_extraction(**{**call, "slot_updates": updates})
+        self.anchors.note_bound(resolutions, engine, revisions)
 
     def _declared_slots(self, context: StateContext) -> Mapping[str, Slot]:
         """The Work's own step plus every step the engine is awaiting.

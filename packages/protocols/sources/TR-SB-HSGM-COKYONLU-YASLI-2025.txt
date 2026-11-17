@@ -1,0 +1,35 @@
+# guideline_id: TR-SB-HSGM-COKYONLU-YASLI-2025
+# title: Birinci Basamak Sağlık Kuruluşları İçin Çok Yönlü Yaşlı Değerlendirmesi ve İzlemi Kılavuzu (Aile Hekimi)
+# publisher: T.C. Sağlık Bakanlığı, Halk Sağlığı Genel Müdürlüğü
+# version_or_date: Ankara, 2025 (cover); PDF created 11 June 2025; 29 PDF pages
+# url: https://hsgm.saglik.gov.tr/media/attachments/2025/06/13/Cok-yonlu-yasli-degereldnirmesi-ve-Izlemi-kilavuzu-ah.pdf
+# retrieved_on: 2026-10-03
+# retrieval: curl with a browser user-agent (HTTP 200, 1332968 bytes); text extracted with pdftotext (poppler); page numbers are PDF page indices; within each excerpted paragraph the PDF line wraps are joined with single spaces; characters otherwise kept as extracted; the hearing table (PDF p. 6) is reproduced from pdftotext -layout with each row's cells kept on one line and leading/trailing spaces stripped
+# scope: verbatim excerpt of the cover, Tablo 1 İşitme Değerlendirmesi and the fall-history paragraph (PDF p. 6), and the immunisation and vision-hearing rows (PDF p. 10); nothing paraphrased or edited; omissions marked [...]
+---
+[PDF p. 1]
+Birinci Basamak Sağlık Kuruluşları İçin
+ÇOK YÖNLÜ YAŞLI DEĞERLENDİRMESİ
+VE İZLEMİ KILAVUZU
+(Aile Hekimi)
+Ankara, 2025
+[...]
+[PDF p. 6]
+Tablo 1 İşitme Değerlendirmesi
+Değerlendirme | Puan
+70 yaşın üstünde mi? | Evet ise 1 puan
+Cinsiyeti erkek mi? | Evet ise 1 puan
+12 yıl veya altı bir eğitim süresi var mı? | Evet ise 1 puan
+İşitme sorunu nedeniyle daha önce doktor ziyareti oldu mu? | Evet ise 2 puan
+Yardımcı cihaz olmadan odanın diğer tarafındaki bir kişinin fısıldamasını yüzüne bakmadan duyup anlayabiliyor mu? | Hayır ise 1 puan
+Yardımcı cihaz olmadan odanın diğer tarafındaki bir kişinin normal sesle konuşmasını yüzüne bakmadan duyup anlayabiliyor mu? | Hayır ise 2 puan
+[...]
+Düşme riski değerlendirmesi: Toplumdaki yaşlı bireylerin yaklaşık 1/3’ünden fazlası her yıl düşmekte, bu düşmeler de fonksiyonel kayıplarla bağımsız bir ilişki göstermektedir. Bu nedenle düşmelerin değerlendirilmesi önem taşımakta, her yaşlı bireye en az yılda bir kez düşme öyküsünün olup olmadığının sorgulanması gerekmektedir (4).
+[...]
+[PDF p. 10]
+Bireylerin ‘Influenza aşısı, Konjuge Pnömokok Aşısı, Polisakkarit Pnömokok Aşısı, Tetanoz aşısı, Herpes Zoster Aşısı ve KPA-20 aşısı olup olmadıkları sorgulaması yapılır.
+[...]
+Görme ve İşitme
+Değerlendirmesi
+Bireylerde işitme/görme sorunu olup olmadığı değerlendirilir.
+Bireylerin yıllık rutin HYP izlemine devam edilir.

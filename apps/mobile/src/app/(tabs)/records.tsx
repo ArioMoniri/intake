@@ -10,8 +10,8 @@
  * INT-138 adds the other half of the acceptance: a CAMERA capture beside the
  * file picker (one pre-check, one upload path, and the JPEG metadata
  * container stripped on the way), and the READING section — the confirm
- * cards and their provenance boxes, behind the extraction seam that refuses
- * until something publishes a feed.
+ * cards and their provenance boxes, fed by the extraction route and settled
+ * only on the server's acknowledgement.
  */
 import * as DocumentPicker from "expo-document-picker";
 import * as ImagePicker from "expo-image-picker";
@@ -20,6 +20,7 @@ import * as WebBrowser from "expo-web-browser";
 import { useCallback, useEffect, useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
 
+import { AnnouncedText } from "@/components/Announced";
 import { useTabBarClearance } from "@/components/FloatingTabBar";
 import { GuidanceBlock } from "@/components/GuidanceBlock";
 import { Kicker } from "@/components/Kicker";
@@ -27,13 +28,15 @@ import { ListGroup, ListRow } from "@/components/ListRow";
 import { RecordReading } from "@/components/RecordReading";
 import { AppText, RAIL_EDGES, Screen, SecondaryButton, useTheme } from "@/components/Themed";
 import { formatVisitDate } from "@/components/VisitCard";
-import { joinParts, labelled } from "@/lib/a11y/labels";
-import { useLiveAnnouncement } from "@/lib/a11y/prefs";
+import { joinParts } from "@/lib/a11y/labels";
 import { useClinicalScreenPrivacy } from "@/lib/auth/screenPrivacy";
+import { deviceClock, todayIso } from "@/lib/clock";
 import { getLocale, t, type MessageKey } from "@/lib/i18n";
+import { isSyntheticSession } from "@/lib/profile/badge";
 import {
   ALLOWED_DOCUMENT_TYPES,
   RecordsApiError,
+  apiExtractionSource,
   cameraFile,
   docDisplayName,
   downloadUrl,
@@ -47,7 +50,6 @@ import {
   type RecordDoc,
   type ScanState,
 } from "@/lib/records/api";
-import { noExtractionFeed } from "@/lib/records/extraction";
 import { useSession, type RecordFixture, type VisitFixture } from "@/lib/session";
 import { radius, spacing } from "@/lib/theme";
 
@@ -87,6 +89,8 @@ function errorKey(error: unknown): MessageKey {
         return "records.err.session";
       case "consent":
         return "records.err.consent";
+      case "core_consent":
+        return "records.err.coreConsent";
       case "scan_unavailable":
         return "records.err.scanUnavailable";
       default:
@@ -139,8 +143,8 @@ type Phase = "loading" | "ready" | "offline";
 function OtpRecords() {
   const router = useRouter();
   const { visits } = useSession();
-  const todayIso = new Date().toISOString().slice(0, 10);
-  const pick = pickUploadVisit(visits, todayIso);
+  // the day Vizitlerim splits on: Istanbul's, not UTC's (INT-409)
+  const pick = pickUploadVisit(visits, todayIso(deviceClock));
 
   const [chosen, setChosen] = useState<VisitFixture | null>(null);
   const selected = chosen ?? (pick.kind === "one" ? pick.visit : null);
@@ -151,10 +155,6 @@ function OtpRecords() {
   const [uploading, setUploading] = useState(false);
   const [notice, setNotice] = useState<MessageKey | null>(null);
   const noticeIsError = notice !== null && notice !== "records.scanningInfo";
-  // Android hears the live region on the line; this is the iOS half.
-  useLiveAnnouncement(
-    notice === null ? null : noticeIsError ? labelled(t("a11y.error"), t(notice)) : t(notice),
-  );
 
   const refresh = useCallback(async (visit: VisitFixture) => {
     setPhase("loading");
@@ -413,7 +413,7 @@ function OtpRecords() {
         <RecordReading
           visitId={serverVisitId}
           docs={docs}
-          source={noExtractionFeed}
+          source={apiExtractionSource}
           onOpenDocument={(doc) => void onOpen(doc)}
         />
       ) : null}
@@ -423,9 +423,12 @@ function OtpRecords() {
         // and announced assertively — dressing a scan-in-progress message as
         // an error would be worse than not announcing it. Visible copy is
         // unchanged either way.
-        <AppText role="body" color="amber" live={noticeIsError ? "assertive" : "polite"}>
-          {t(notice)}
-        </AppText>
+        <AnnouncedText
+          tone={noticeIsError ? "error" : "status"}
+          role="body"
+          color="amber"
+          message={t(notice)}
+        />
       ) : null}
       <View style={styles.actions}>
         <SecondaryButton
@@ -468,10 +471,12 @@ export default function Records() {
               onPress={() => router.push("/(tabs)/me/consents")}
             />
           </>
-        ) : account?.kind === "otp" ? (
-          <OtpRecords />
-        ) : (
+        ) : isSyntheticSession(account) ? (
+          // INT-421: the synthetic sample and its labels only for the dev
+          // fixture session; any other session gets the real document flow.
           <DevRecords records={account?.records ?? []} />
+        ) : (
+          <OtpRecords />
         )}
       </ScrollView>
     </Screen>

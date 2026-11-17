@@ -223,7 +223,45 @@ def test_red_action_scripts_are_in_the_clip_manifest(bundle: CompiledBundle) -> 
 # ---------------------------------------------------------------- the CLI
 
 
-def test_cli_compile_writes_the_bundle(tmp_path: Path, pack_tree: Path) -> None:
+def _cli_args(pack_tree: Path, out: Path) -> list[str]:
+    return [
+        "compile",
+        "--pack",
+        PACK_ID,
+        "--packs",
+        str(pack_tree),
+        "--life-threat",
+        str(pack_tree.parent / "life_threat_signed.yaml"),
+        "--voice",
+        VOICE,
+        "--out",
+        str(out),
+    ]
+
+
+def test_the_cli_refuses_a_set_citing_a_test_fixture_snapshot(
+    tmp_path: Path, pack_tree: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """INT-465 round 3: the production compiler never admits a tests/fixtures
+    snapshot, so the SENTETİK set does not compile from the CLI. The near miss is
+    the test below, which opts in from the test side only."""
+    assert main(_cli_args(pack_tree, tmp_path)) == 1
+    assert "tests/fixtures/protocols/sources/" in capsys.readouterr().out
+
+
+def test_cli_compile_writes_the_bundle(
+    tmp_path: Path, pack_tree: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # The SENTETİK set cites a tests/fixtures snapshot (INT-465), which the CLI
+    # refuses (above). The test opts in here, in test code, never in the CLI.
+    from functools import partial
+
+    import protocols.cli as cli
+    from protocols.compile import load_life_threat_set
+
+    monkeypatch.setattr(
+        cli, "load_life_threat_set", partial(load_life_threat_set, allow_fixture_snapshots=True)
+    )
     fixtures = pack_tree.parent
     exit_code = main(
         [

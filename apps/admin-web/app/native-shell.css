@@ -1,0 +1,332 @@
+/* INT-459 — the Apple-native shell: a glass sidebar and a glass top bar on a
+   wide screen, a floating glass tab bar on a narrow one. Glass is chrome
+   only, and each glass surface turns solid under reduced transparency,
+   increased contrast or a browser without backdrop-filter (asserted in
+   e2e/native.spec.ts). Served from 'self': no import, no remote resource, no
+   inline style; symbols are inline SVG (src/ui/glyphs.tsx). */
+
+/* --- type and page ------------------------------------------------------------ */
+
+body {
+  font-family: var(--font);
+  font-size: 14px;
+  line-height: 1.43;
+  background: var(--bg);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+}
+
+code,
+.sub {
+  font-family: var(--mono);
+}
+
+a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+/* --- the shell: sidebar and top bar ------------------------------------------ */
+
+.ops:has(.console-nav) {
+  max-width: none;
+  margin: 0;
+  padding: 0 var(--gutter) 64px calc(var(--sidebar-width) + 12px + var(--gutter));
+}
+
+.console-nav {
+  position: fixed;
+  inset: 12px auto 12px 12px;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  width: var(--sidebar-width);
+  max-width: none;
+  margin: 0;
+  padding: 14px 10px 72px;
+  overflow: hidden auto;
+  font-size: 13px;
+  border: 1px solid var(--chrome-edge);
+  border-radius: var(--radius-chrome);
+  background: color-mix(in srgb, var(--chrome) var(--chrome-mix), transparent);
+  -webkit-backdrop-filter: var(--glass);
+  backdrop-filter: var(--glass);
+  box-shadow: var(--shadow-chrome);
+}
+
+.nav-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  padding: 2px 8px;
+}
+
+.nav-brand-text {
+  display: grid;
+  line-height: 1.25;
+}
+
+.nav-brand-text strong {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.nav-brand-text span {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.nav-group {
+  display: grid;
+  gap: 2px;
+}
+
+.nav-group-label {
+  margin: 0;
+  padding: 0 10px 2px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.console-nav ul {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.console-nav [data-page-link] {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 10px;
+  border-radius: 10px;
+  color: var(--ink);
+  font-weight: 500;
+  white-space: nowrap;
+  text-decoration: none;
+  background: none;
+  box-shadow: none;
+  transition:
+    background-color 320ms var(--spring-smooth),
+    color 320ms var(--spring-smooth);
+}
+
+.console-nav a[data-page-link]:hover {
+  color: var(--ink);
+  background: var(--row-hover);
+  text-decoration: none;
+}
+
+.console-nav [data-page-link][aria-current="page"] {
+  font-weight: 600;
+  background: var(--nav-selected);
+  box-shadow: none;
+}
+
+.glyph {
+  flex: none;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.console-nav [data-page-link] .glyph {
+  color: var(--accent);
+}
+
+.glyph-mark .glyph-tile {
+  fill: var(--accent-fill);
+  stroke: none;
+}
+
+.glyph-mark .glyph-on-tile {
+  stroke: var(--on-accent);
+  stroke-width: 2;
+}
+
+.console-lang {
+  position: fixed;
+  left: 24px;
+  bottom: 24px;
+  z-index: 31;
+  display: flex;
+  gap: 2px;
+  width: calc(var(--sidebar-width) - 24px);
+  padding: 2px;
+  font-size: 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--hairline);
+  border-radius: 999px;
+}
+
+.console-lang a,
+.console-lang [aria-current="true"] {
+  flex: 1;
+  padding: 4px 8px;
+  text-align: center;
+  border-radius: 999px;
+}
+
+.console-lang a {
+  color: var(--muted);
+}
+
+.console-lang a:hover {
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.console-lang [aria-current="true"] {
+  color: var(--ink);
+  font-weight: 600;
+  background: var(--surface);
+  box-shadow: var(--shadow-chrome);
+}
+
+/* The top bar: a sticky toolbar with the page's title and subtitle. The glass
+   is a layer behind it, so the bar never becomes a containing block for the
+   fixed sidebar inside it. */
+.page-head {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: grid;
+  gap: 2px;
+  margin: 0 calc(-1 * var(--gutter));
+  padding: 18px var(--gutter) 14px;
+  border-bottom: 0;
+}
+
+.page-head::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-bottom: 1px solid var(--chrome-edge);
+  background: color-mix(in srgb, var(--chrome) var(--chrome-mix), transparent);
+  -webkit-backdrop-filter: var(--glass);
+  backdrop-filter: var(--glass);
+}
+
+.ops h1 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.page-head > p:not(.result) {
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
+/* --- a narrow screen: the sidebar becomes a floating tab bar ---------------- */
+
+@media (max-width: 1023px) {
+  .ops:has(.console-nav) {
+    padding: 0 16px calc(104px + env(safe-area-inset-bottom));
+  }
+
+  .page-head {
+    position: relative;
+    margin: 0 -16px;
+    padding: 18px 16px 12px;
+  }
+
+  .page-head::before {
+    content: none;
+  }
+
+  .console-nav {
+    inset: auto 12px calc(12px + env(safe-area-inset-bottom)) 12px;
+    flex-direction: row;
+    gap: 0;
+    width: auto;
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 6px;
+    overflow: auto hidden;
+    border-radius: 999px;
+  }
+
+  .nav-brand,
+  .nav-group-label {
+    display: none;
+  }
+
+  .nav-group {
+    display: contents;
+  }
+
+  .console-nav ul {
+    display: flex;
+    flex: 1 1 auto;
+    gap: 0;
+  }
+
+  .console-nav li {
+    display: flex;
+    flex: 1 1 0;
+    min-width: 64px;
+  }
+
+  .console-nav [data-page-link] {
+    flex: 1;
+    flex-direction: column;
+    justify-content: center;
+    gap: 2px;
+    padding: 6px 8px;
+    font-size: 11px;
+    font-weight: 600;
+    border-radius: 999px;
+  }
+
+  .console-lang {
+    position: static;
+    justify-self: end;
+    width: auto;
+    margin-bottom: 8px;
+  }
+}
+
+/* --- fallbacks: solid chrome ------------------------------------------------- */
+
+@media (prefers-reduced-transparency: reduce) {
+  .console-nav,
+  .page-head::before {
+    background: var(--chrome);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
+@media (prefers-contrast: more) {
+  .console-nav,
+  .page-head::before {
+    background: var(--chrome);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    border-color: var(--line);
+  }
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .console-nav,
+  .page-head::before {
+    background: var(--chrome);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}

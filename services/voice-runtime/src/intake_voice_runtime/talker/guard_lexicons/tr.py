@@ -62,7 +62,7 @@ B1_MAX_WORDS_PER_SENTENCE: Final[int] = 15
 #: negative (``-ma/-me``) and the infinitive (``-mak/-mek``) directly to the
 #: verb stem, and no affirmative finite form does — so ``koymaz``, ``koymuyor``
 #: and ``koymak`` are excluded by one general morphological fact rather than by
-#: listing them. Without it the guard flagged *"Vizite tanı koymaz."*, the
+#: listing them. Without it the guard flagged *"Önvizit tanı koymaz."*, the
 #: product's own disclaimer, which is invariant 2 firing on the sentence that
 #: exists to satisfy it (INT-248).
 _DIAGNOSIS = re.compile(

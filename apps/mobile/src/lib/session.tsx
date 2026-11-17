@@ -22,15 +22,15 @@ import {
 } from "react";
 
 import type { DeviceIntegrity } from "./auth/integrityState";
-import type { ConsentState, RecordFixture, TestAccount, VisitFixture } from "./dev/accounts";
 import { setLocale, type Locale } from "./i18n";
 import { offerableAppLocales } from "./i18n/locale";
 import type { CarriedFact } from "./intake/carriedFacts";
 import { emptyNoteState, noteReducer, type NoteAction, type NoteState } from "./intake/note";
 import { kioskSuppressesPersistence } from "./kiosk";
+import type { ConsentState, RecordFixture, TestAccount, VisitFixture } from "./types/account";
 import { buildLocalVisit, type NewVisitInput } from "./visits";
 
-export type { RecordFixture, TestAccount, VisitFixture } from "./dev/accounts";
+export type { RecordFixture, TestAccount, VisitFixture } from "./types/account";
 
 /**
  * The signed-in account the shell renders. Two kinds exist honestly side by
@@ -86,6 +86,10 @@ export interface Session {
   setConsent: (key: keyof ConsentState, on: boolean) => void;
   /** Fixture visits + locally created ones, additions last. */
   visits: VisitFixture[];
+  /** INT-318: replace the API-sourced upcoming visits (from the Acibadem feed). */
+  setApiVisits: (visits: VisitFixture[]) => void;
+  /** INT-318: the matched patient's display name from the hospital feed. */
+  setDisplayName: (name: string) => void;
   addVisit: (input: NewVisitInput) => VisitFixture;
   /** Per-visit pre-visit note state (in-memory only — INT-179). */
   notes: Record<string, NoteState>;
@@ -116,6 +120,10 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const [account, setAccount] = useState<SessionAccount | null>(null);
   const [consents, setConsents] = useState<ConsentState | null>(null);
   const [extraVisits, setExtraVisits] = useState<VisitFixture[]>([]);
+  const [apiVisits, setApiVisits] = useState<VisitFixture[]>([]);
+  const setDisplayName = useCallback((name: string) => {
+    setAccount((prev) => (prev ? { ...prev, name } : prev));
+  }, []);
   const [notes, setNotes] = useState<Record<string, NoteState>>({});
   const [locale, setLocaleState] = useState<Locale>("tr");
   const [visitSeq, setVisitSeq] = useState(1);
@@ -198,10 +206,28 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     };
   }, [notes, accountId, kioskActive]);
 
+  // INT-587 — the note outbox: restore this account's queued notes after a
+  // restart and keep delivering them. Lazy like the draft mirror, so this
+  // provider stays node-importable. In kiosk mode the outbox lives in memory
+  // only (INT-143): a shared clinic device never persists a note.
+  const kioskMemoryOnly = kioskSuppressesPersistence(kioskActive);
+  useEffect(() => {
+    if (accountId === null) {
+      return;
+    }
+    void import("./intake/delivery/native")
+      .then((delivery) => delivery.startNativeDelivery(accountId, kioskMemoryOnly))
+      .catch(() => {
+        // no outbox on this device: a sent note stays on the phone, and the
+        // review screen says it has not reached anyone
+      });
+  }, [accountId, kioskMemoryOnly]);
+
   const signIn = useCallback((next: TestAccount) => {
     setAccount({ ...next, kind: "dev" });
     setConsents({ ...next.consents });
     setExtraVisits([]);
+    setApiVisits([]);
     setNotes({});
     setLocale(next.locale);
     setLocaleState(next.locale);
@@ -221,6 +247,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     });
     setConsents({ ...OTP_ACCOUNT_CONSENTS });
     setExtraVisits([]);
+    setApiVisits([]);
     setNotes({});
     setLocale("tr");
     setLocaleState("tr");
@@ -230,7 +257,13 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     setAccount(null);
     setConsents(null);
     setExtraVisits([]);
+    setApiVisits([]);
     setNotes({});
+    // INT-587: the outbox's working copy goes with the session; its sealed
+    // blobs share the draft directory and fall to the shred below.
+    void import("./intake/delivery/native")
+      .then((delivery) => delivery.stopNativeDelivery())
+      .catch(() => {});
     // INT-142: sign-out crypto-shreds every persisted draft and the DEK, so
     // nothing readable survives the session. Lazy so node import stays clean.
     void import("./intake/offline/sessionDrafts")
@@ -267,6 +300,9 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const wipeSession = useCallback(() => {
     setNotes({});
     setExtraVisits([]);
+    void import("./intake/delivery/native")
+      .then((delivery) => delivery.clearNativeDeliveries())
+      .catch(() => {});
     void import("./intake/offline/sessionDrafts")
       .then((offline) => offline.shredDrafts())
       .catch(() => {
@@ -301,8 +337,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const visits = useMemo(
-    () => (account ? [...account.visits, ...extraVisits] : []),
-    [account, extraVisits],
+    () => (account ? [...apiVisits, ...account.visits, ...extraVisits] : []),
+    [account, apiVisits, extraVisits],
   );
 
   const value = useMemo(
@@ -315,6 +351,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       consents,
       setConsent,
       visits,
+      setApiVisits,
+      setDisplayName,
       addVisit,
       notes,
       updateNote,

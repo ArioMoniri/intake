@@ -555,3 +555,25 @@ def test_only_the_traefik_service_publishes_a_port_and_only_on_loopback() -> Non
         for published in service.get("ports", []):
             assert name == "traefik", name
             assert str(published).startswith("127.0.0.1:"), published
+
+
+# --- the booted tier is "up" only once it routes --------------------------------------
+
+
+def test_the_edge_wait_accepts_only_a_routed_answer() -> None:
+    """A Traefik whose ping health passes answers 404 for every host until its
+    dynamic configuration and the Coraza middleware have loaded. The booted
+    suite once took that 404 as "up" and ran the whole corpus against a tier
+    with no router, so every attack read as served and every clinical turn as
+    refused (#963, run 40616306265, after main had passed on the same runner).
+    The wait accepts a routed 200 and nothing else."""
+    import importlib.util
+
+    path = REPO / "tests" / "infra" / "test_edge_stack_integration.py"
+    spec = importlib.util.spec_from_file_location("test_edge_stack_integration", path)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    assert module.edge_ready(200) is True
+    for status in (404, 403, 502, 503):
+        assert module.edge_ready(status) is False, status

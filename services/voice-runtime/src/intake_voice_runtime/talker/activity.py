@@ -48,8 +48,17 @@ class ActivityLabel(enum.StrEnum):
     READING_DOCUMENT = "reading_document"
 
 
+#: ``retrieve_records`` (INT-123) shares ``reading_document``: what it does,
+#: seen from the patient's side, is look in the documents they uploaded. A
+#: label of its own would be new patient-visible copy in the client catalogue
+#: for a distinction the patient has no use for.
 ACTIVITY_OF: Final[Mapping[WorkType, ActivityLabel]] = {
     WorkType.EXTRACT_SLOTS: ActivityLabel.EXTRACTING,
     WorkType.PLAN_FOLLOW_UPS: ActivityLabel.PLANNING,
     WorkType.PARSE_DOCUMENT: ActivityLabel.READING_DOCUMENT,
+    WorkType.RETRIEVE_RECORDS: ActivityLabel.READING_DOCUMENT,
+    #: INT-540: the close reconciles what the session left unanswered — the
+    #: same "reconciling" the patient already reads; a label of its own would
+    #: be new patient-visible copy for a moment the patient has left.
+    WorkType.CLOSE_SESSION: ActivityLabel.EXTRACTING,
 }

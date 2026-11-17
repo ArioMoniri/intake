@@ -5,7 +5,7 @@
 
 COMPOSE := docker compose -f infra/docker-compose.dev.yml
 
-.PHONY: setup check check-py check-ts check-i18n check-integration ci-policy dev dev-down clean backlog-status backlog-sync backlog-render deid-model slo-report release-gate schemas-codegen coverage-matrix protocols-compile sign clips chaos load safety security voice-doctor runtime-sim tts-latency live-smoke admin-fixtures
+.PHONY: setup check check-py check-py-static check-py-shard check-py-combine check-ts check-i18n check-integration ci-policy dev dev-down clean backlog-status backlog-sync backlog-render deid-model slo-report evidence-2018-10 release-gate schemas-codegen coverage-matrix protocols-compile sign clips chaos load safety security voice-doctor runtime-sim tts-latency live-smoke admin-fixtures put-key
 
 setup:
 	corepack enable pnpm 2>/dev/null || true
@@ -38,6 +38,18 @@ check-i18n:
 ci-policy:
 	uv run python -m intake_platform.ci --scan-environment
 
+# INT-426: the gate set on the AWS host instead of GitHub Actions
+# (docs/ci/aws-ci.md). It ships the commit over S3 + SSM, then runs
+# edge-plugin, check-py, check-ts, check-integration, safety and security in
+# an isolated, resource-capped compose project. The verdict is posted as the
+# commit status `aws-ci`. PR or REF is required and has no default: a
+# default would post a verdict on a commit nobody chose.
+.PHONY: ci-aws
+ci-aws:
+	@if [ -n "$(PR)" ] && [ -z "$(REF)" ]; then scripts/ci/aws_ci.sh --pr $(PR); \
+	elif [ -n "$(REF)" ] && [ -z "$(PR)" ]; then scripts/ci/aws_ci.sh --ref $(REF); \
+	else echo "usage: make ci-aws PR=<n> | REF=<40-hex sha>"; exit 2; fi
+
 check-integration:
 	docker compose -f infra/docker-compose.dev.yml --profile clamav --profile export up -d --wait postgres openbao minio clamav hapi ehrbase-db ehrbase
 	POSTGRES_DB=$${POSTGRES_DB:-intake} bash scripts/security/openbao_dev_setup.sh
@@ -46,7 +58,7 @@ check-integration:
 check-py:
 	uv run ruff check .
 	uv run ruff format --check .
-	uv run mypy --strict packages/intake_platform/src packages/clinical-schemas/src packages/protocols/src packages/voice-clips/src packages/connectors/src services/api/src services/voice-runtime/src services/metrics/src services/learning/src services/probes/src
+	uv run mypy --strict packages/intake_platform/src packages/clinical-schemas/src packages/protocols/src packages/voice-clips/src packages/connectors/src packages/hosted-lanes/src services/api/src services/voice-runtime/src services/metrics/src services/learning/src services/probes/src
 	uv run pytest --cov=packages/intake_platform/src --cov=services/api/src --cov-branch --cov-fail-under=85
 	uv run pytest tests/schemas --cov=packages/clinical-schemas/src --cov-branch --cov-fail-under=90 -q -o addopts=""
 	uv run pytest tests/protocols tests/safety --cov=packages/protocols/src --cov-branch --cov-fail-under=95 -q -o addopts=""
@@ -59,6 +71,26 @@ check-py:
 	uv run pytest tests/voice tests/engine tests/ai tests/lanes --cov=services/voice-runtime/src --cov-branch --cov-fail-under=90 -q -o addopts=""
 	uv run pytest tests/experience --cov=services/metrics/src --cov-branch --cov-fail-under=90 -q -o addopts=""
 	uv run pytest tests/learning --cov=services/learning/src --cov-branch --cov-fail-under=90 -q -m "not integration" -o addopts=""
+
+# INT-544: check-py as CI runs it on the intake-aws-ci pool. Three
+# check-py-shard jobs on separate runners share check-py's nine pytest lines:
+# the first (the whole suite) split by file, each of the other eight run whole,
+# word for word; shard 1 also runs check-py-static (check-py's first three
+# lines, word for word). check-py-combine then enforces every floor above on the
+# data it is measured on here: the first line's on the shares' combined data,
+# each other on its own line's data only. scripts/ci/py_shards.py holds the
+# split; tests/ci/test_py_shards.py pins its lines to check-py's own.
+check-py-static:
+	uv run ruff check .
+	uv run ruff format --check .
+	uv run mypy --strict packages/intake_platform/src packages/clinical-schemas/src packages/protocols/src packages/voice-clips/src packages/connectors/src packages/hosted-lanes/src services/api/src services/voice-runtime/src services/metrics/src services/learning/src services/probes/src
+
+check-py-shard:
+	@test -n "$(SHARD)" || { echo "usage: make check-py-shard SHARD=<1..3>"; exit 2; }
+	uv run python scripts/ci/py_shards.py run --shard $(SHARD)
+
+check-py-combine:
+	uv run python scripts/ci/py_shards.py combine
 
 # INT-059: the safety fan-out CLAUDE.md names - triage goldens (incl. the
 # mutation harness) and the PolicyGuard suite, at their own coverage floors.
@@ -99,11 +131,17 @@ nightly-red-team:
 # when the committed file and the served payload disagree — so the fixture is
 # a recording of the registry, never a second copy of it (invariant 13).
 admin-fixtures:
+	uv run python scripts/dev/record_cost_fixture.py
 	uv run python scripts/dev/record_models_fixture.py
 	uv run python scripts/dev/record_protocols_fixture.py
 	uv run python scripts/dev/record_safety_fixture.py
 	uv run python scripts/dev/record_experience_fixture.py
 	uv run python scripts/dev/record_security_fixture.py
+	uv run python scripts/dev/record_ops_fixture.py
+	uv run python scripts/dev/record_reliability_fixture.py
+	uv run python scripts/dev/record_voice_fixture.py
+	uv run python scripts/dev/record_cicd_fixture.py
+	uv run python scripts/dev/record_access_fixture.py
 
 check-ts:
 	pnpm -r lint
@@ -155,6 +193,12 @@ security:
 # INT-031: regenerate the committed schema exports (OpenAPI bundle, per-event
 # JSON Schemas, generated TS types). tests/schemas/test_roundtrip.py fails
 # `make check` whenever these are stale.
+# INT-428 (ADR-035): put a hosted-provider key onto the synthetic AWS host from
+# a shell that already holds it (never an argument):
+#   set -a; . ~/.intake-secrets.env; set +a; make put-key PROVIDER=openai
+put-key:
+	@scripts/ops/put_provider_key.sh $(PROVIDER)
+
 schemas-codegen:
 	uv run python -m clinical_schemas.codegen
 
@@ -243,6 +287,12 @@ deid-model:
 slo-report:
 	uv run python scripts/observability/slo_report.py
 
+# INT-215: the KVKK 2018/10 adequate-measures auditor packet (JSON on stdout),
+# built from docs/legal/special-category-measures.yaml. Exits 2 and lists every
+# problem when the mapping has drifted from the snapshot, tests or signals it cites.
+evidence-2018-10:
+	uv run python -m intake_platform.compliance.adequate_measures
+
 backlog-status:
 	uv run python scripts/backlog/backlog_status.py
 
@@ -327,9 +377,21 @@ release-gate:
 # file statically.
 OBS_COMPOSE := docker compose -f infra/docker-compose.obs.yml --profile obs
 
-.PHONY: obs obs-down
+.PHONY: obs obs-down keycloak-provider
 
-obs:
+# INT-378: the Keycloak provider that writes the aaguid/credential_id session notes.
+# mvnw fetches the sha256-pinned Maven; every artefact must match .mvn/checksums; the
+# jar is reproducible and must equal the committed pin before it is staged in deploy/,
+# the directory the obs Keycloak mounts at /opt/keycloak/providers. CI runs this target.
+KEYCLOAK_PROVIDERS := infra/keycloak/providers
+KEYCLOAK_PROVIDER_JAR := intake-webauthn-session-notes-1.0.0.jar
+
+keycloak-provider:
+	cd $(KEYCLOAK_PROVIDERS)/webauthn-session-notes && ./mvnw -B clean verify
+	cd $(KEYCLOAK_PROVIDERS)/webauthn-session-notes/target && shasum -a 256 -c ../../webauthn-session-notes.sha256
+	cp $(KEYCLOAK_PROVIDERS)/webauthn-session-notes/target/$(KEYCLOAK_PROVIDER_JAR) $(KEYCLOAK_PROVIDERS)/deploy/$(KEYCLOAK_PROVIDER_JAR)
+
+obs: keycloak-provider
 	$(OBS_COMPOSE) up -d --build --wait
 
 obs-down:
@@ -438,6 +500,9 @@ siem-down:
 # INT-018: the forward egress proxy. `egress-conf` re-renders squid.conf from
 # infra/security/egress-allowlist.yaml — the allow-list is the only file anyone
 # edits, and tests/infra/test_egress_proxy.py fails when the render is stale.
+# INT-442: it renders two proxies from that one list — the build proxy
+# (infra/security/squid/squid.conf, tooling rows) and the synthetic AWS host's
+# proxy (infra/staging/egress/squid.conf, hosted_model_inference rows only).
 .PHONY: egress egress-down egress-conf egress-conf-check
 
 egress-conf:
@@ -467,6 +532,28 @@ egress-down:
 audit-verify:
 	uv run python -m intake_platform.audit_verifier \
 	  $(if $(ANCHOR),--anchor-head $(ANCHOR),) $(if $(WORM),--worm-copy,)
+# INT-367: one tick of the scheduled tenant-KEK rotation (files/10 §3 "key
+# rotation quarterly"). Rotates each Transit KEK whose latest version is a
+# quarter old, never anything destructive, and sets
+# sec_secret_rotation_due_days{key}. Idempotent: the scheduler runs it daily
+# (docs/runbooks/key-rotation.md) and each key still rotates once a quarter.
+# Reads OPENBAO_ADDR/OPENBAO_TOKEN like every service. Not part of `make
+# check`: it rotates real keys.
+.PHONY: key-rotation
+
+key-rotation:
+	uv run python -m intake_platform.key_rotation
+# INT-366: one tick of the 60-day auto-disable (files/08 §2.4). Offboards every
+# staff account with no login for 60 days through the console's one-action
+# pipeline, audited as svc:access-hygiene; refuses when the realm keeps less
+# than 60 days of login history. Idempotent: the scheduler runs it daily
+# (docs/runbooks/access-review.md). Reads the Keycloak and OpenBao settings
+# the API reads, and INTAKE_API_AUDIT_DB_URL for the chain. Not part of `make
+# check`: it disables real accounts (`--dry-run` lists them instead).
+.PHONY: access-hygiene
+
+access-hygiene:
+	uv run python -m intake_platform.access_hygiene
 # INT-082: the headless patient simulator — personas × scenarios IM-01…IM-14
 # driven over the real IntakeEngine (INT-081), the real Talker (INT-091) and
 # the real triage engine (INT-080), on a synthetic pack and recorded fixtures.

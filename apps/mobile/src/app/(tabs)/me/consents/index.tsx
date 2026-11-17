@@ -16,11 +16,17 @@ import { useRouter } from "expo-router";
 import { useEffect } from "react";
 import { ScrollView, StyleSheet } from "react-native";
 
+import { AnnouncedText, useNews } from "@/components/Announced";
 import { ConsentList } from "@/components/ConsentList";
 import { useTabBarClearance } from "@/components/FloatingTabBar";
 import { AppText, RAIL_EDGES, Screen } from "@/components/Themed";
 import { purposeDef, purposeParam, type PurposeId } from "@/lib/consent/purposes";
-import { seedLedgerForAccount, useConsentLedger, withdrawLocal } from "@/lib/consent/store";
+import {
+  seedLedgerForAccount,
+  useConsentLedger,
+  useConsentOutbox,
+  withdrawLocal,
+} from "@/lib/consent/store";
 import { viewOf } from "@/lib/consent/ledger";
 import { t } from "@/lib/i18n";
 import { useSession } from "@/lib/session";
@@ -30,6 +36,10 @@ export default function Consents() {
   const router = useRouter();
   const { account, consents, setConsent } = useSession();
   const ledger = useConsentLedger();
+  // INT-397 (SC 4.1.3): the queue note is announced when a change made here
+  // could not reach the server, and shown without a word on every visit.
+  const outbox = useConsentOutbox();
+  const queuedNews = useNews(outbox === "held");
   // Hoisted above the early return: hooks run in the same order every render.
   const tabBarClearance = useTabBarClearance();
 
@@ -50,7 +60,7 @@ export default function Consents() {
 
   const onToggle = (id: PurposeId) => {
     const view = views.find((v) => v.id === id);
-    if (view === undefined || view.ui === "info") {
+    if (view === undefined) {
       return;
     }
     if (view.withdrawable) {
@@ -58,7 +68,7 @@ export default function Consents() {
       const flipped = withdrawLocal(id);
       for (const scope of flipped) {
         const key = purposeDef(scope)?.sessionKey;
-        if (key !== null && key !== undefined && key !== "core") {
+        if (key !== null && key !== undefined) {
           setConsent(key, false);
         }
       }
@@ -79,9 +89,13 @@ export default function Consents() {
         </AppText>
         <ConsentList views={views} onOpenDetail={openDetail} onToggle={onToggle} />
         {ledger.queue.length > 0 ? (
-          <AppText role="caption" color="inkFaint">
-            {t("consent.queue.note")}
-          </AppText>
+          <AnnouncedText
+            tone="status"
+            news={queuedNews}
+            role="caption"
+            color="inkFaint"
+            message={t("consent.queue.note")}
+          />
         ) : null}
       </ScrollView>
     </Screen>

@@ -1,0 +1,10 @@
+# guideline_id: SYN-GUIDE-B
+# title: Sentetik kılavuz B
+# publisher: SENTETİK TEST VERİSİ — no publisher; invented for tests
+# version_or_date: sürüm bir
+# url: https://example.invalid/syn-guide-b
+# retrieved_on: 2026-08-28
+# scope: SENTETİK. The snapshot the SENTETİK life-threat sets under tests/fixtures cite (INT-465). It carries no clinical meaning and is never cited by a served set.
+---
+Bu belge sentetik bir test kaynağıdır.
+sentetik yaşamsal alıntı

@@ -8,6 +8,7 @@ from __future__ import annotations
 from fastapi import HTTPException
 
 __all__ = [
+    "InsufficientUserAuthentication",
     "admin_console_unconfigured",
     "admin_refused",
     "benchmark_refused",
@@ -43,12 +44,16 @@ __all__ = [
     "otp_invalid",
     "otp_limited",
     "phone_invalid",
+    "previsit_output_recipient_unregistered",
+    "previsit_output_unconfigured",
     "purpose_unknown",
     "refresh_reused",
+    "release_freeze_refused",
     "taxonomy_unconfigured",
     "unauthorized",
     "unknown_embed_tenant",
     "visit_invalid",
+    "voice_control_refused",
 ]
 
 
@@ -115,6 +120,37 @@ def consent_text_missing(scope: str) -> HTTPException:
     return HTTPException(status_code=409, detail={"error": "text_missing", "scope": scope})
 
 
+# --- the previsit-output read-back (owner directive) ------------------------------------
+
+
+def previsit_output_recipient_unregistered() -> HTTPException:
+    """No approved reader answers for this tenant.
+
+    503 rather than 403 because this is a statement about the SERVICE, not
+    about the caller: no DPA is executed and no tier-3 approval exists, so the
+    interface is not configured to serve anybody. The body says nothing about
+    which tenants do have a row (infra/previsit_output/recipients.yaml).
+    """
+    return HTTPException(
+        status_code=503, detail={"error": "previsit_output_recipient_unregistered"}
+    )
+
+
+def _unconfigured(error: str, reason: str | None) -> HTTPException:
+    """A 503 with its code and, when one is known, its typed reason (INT-584:
+    ``tokenization_key_<state>``). Both are closed vocabularies, never text."""
+    detail = {"error": error} if reason is None else {"error": error, "reason": reason}
+    return HTTPException(status_code=503, detail=detail)
+
+
+def previsit_output_unconfigured(reason: str | None = None) -> HTTPException:
+    """No tokenization key, so a hospital patient number cannot be resolved to
+    the pseudonym that addresses a patient (invariant 14). Fail closed — a
+    scan of every patient row is not the fallback. ``reason`` says why there
+    is no key (INT-584)."""
+    return _unconfigured("previsit_output_unconfigured", reason)
+
+
 def not_found() -> HTTPException:
     return HTTPException(status_code=404, detail={"error": "not_found"})
 
@@ -140,6 +176,13 @@ def taxonomy_unconfigured() -> HTTPException:
     return HTTPException(status_code=503, detail={"error": "taxonomy_unconfigured"})
 
 
+def triage_unconfigured() -> HTTPException:
+    """No servable red-flag rule set (INT-446): the rules-engine hop fails
+    CLOSED. "No rule fired" is not an answer a server without rules can give,
+    so this is never a GREEN and never an empty RED-script catalog."""
+    return HTTPException(status_code=503, detail={"error": "triage_unconfigured"})
+
+
 def dev_auth_unconfigured() -> HTTPException:
     return HTTPException(status_code=503, detail={"error": "dev_auth_unconfigured"})
 
@@ -147,10 +190,11 @@ def dev_auth_unconfigured() -> HTTPException:
 # --- INT-131 OTP/DPoP auth codes ---------------------------------------------------
 
 
-def otp_auth_unconfigured() -> HTTPException:
+def otp_auth_unconfigured(reason: str | None = None) -> HTTPException:
     """OTP auth needs Redis + a tokenization key; without them it fails
-    closed while the dev-bearer tier keeps carrying the demo (INT-197)."""
-    return HTTPException(status_code=503, detail={"error": "otp_auth_unconfigured"})
+    closed while the dev-bearer tier keeps carrying the demo (INT-197).
+    ``reason`` is set when the missing piece is the key (INT-584)."""
+    return _unconfigured("otp_auth_unconfigured", reason)
 
 
 def otp_delivery_unavailable() -> HTTPException:
@@ -307,6 +351,30 @@ def source_ip_refused() -> HTTPException:
     return HTTPException(status_code=403, detail={"error": "source_ip_refused"})
 
 
+class InsufficientUserAuthentication(HTTPException):
+    """INT-365 (files/08 §2.3): a verified staff token that does not show the
+    second factor its console roles need.
+
+    RFC 9470 gives the shape: 401, with ``insufficient_user_authentication``
+    in the ``WWW-Authenticate`` challenge, so admin-web knows to send the user
+    back through Keycloak rather than show a dead end. The body is that one
+    code. It is the same for "no second factor" and "not WebAuthn", and it
+    names no claim, factor or role (invariant 6).
+
+    ``subject`` is not part of the response. The console's audit wrapper
+    reads it to name the caller on the refusal row. It is the verified,
+    id-shaped ``sub`` or ``None``.
+    """
+
+    def __init__(self, subject: str | None) -> None:
+        super().__init__(
+            status_code=401,
+            detail={"error": "insufficient_user_authentication"},
+            headers={"WWW-Authenticate": 'Bearer error="insufficient_user_authentication"'},
+        )
+        self.subject = subject
+
+
 def admin_refused(code: str) -> HTTPException:
     """A refusal from the console's own guards — role, tenant scope, or a
     malformed claim set. ``code`` is machine-shaped and carries no narrative
@@ -338,7 +406,76 @@ def benchmark_refused(code: str, reason: str) -> HTTPException:
     return HTTPException(status_code=409, detail={"error": code, "reason": reason})
 
 
+def voice_control_refused(status: int, code: str) -> HTTPException:
+    """INT-182: the Voice module refused a control change or could not reach
+    its store. 422 — a value it will not hold (a profile that does not exist,
+    a weight outside 0..100, a body field it does not take); 409 — the
+    control's state forbids it (nothing to release, the control moved since
+    the request); 503 — no store wired, or the store unreachable. ``code`` is
+    machine-shaped and echoes no submitted value (invariant 6)."""
+    return HTTPException(status_code=status, detail={"error": code})
+
+
+def model_lanes_refused(status: int, code: str) -> HTTPException:
+    """INT-428: the Model lanes module refused a change or could not reach its
+    store. 422 — a body it will not take (an unexpected field, an unknown lane,
+    route or provider, a malformed key); 403 — a role that may not take the
+    action; 409 — the control's state or the ADR-035 guard forbids it (nothing
+    to change, the control moved, the self-hosted probe is down, a real-PHI
+    deployment with no transfer basis); 503 — no store or key store wired, or
+    unreachable. ``code`` is machine-shaped and echoes no submitted value —
+    least of all a key (invariant 6)."""
+    return HTTPException(status_code=status, detail={"error": code})
+
+
+def release_freeze_refused(status: int, code: str) -> HTTPException:
+    """INT-187: the CI/CD module refused a deploy-freeze change or could not
+    reach its store. 422 — a body it will not take (an unexpected field, an
+    unknown reason class, a reason too short); 409 — the freeze's state
+    forbids it (nothing to lift, the freeze moved since the request); 503 — no
+    store wired, or the store unreachable. ``code`` is machine-shaped and
+    echoes no submitted value (invariant 6)."""
+    return HTTPException(status_code=status, detail={"error": code})
+
+
+def safety_inbox_refused(status: int, code: str) -> HTTPException:
+    """INT-406: the Safety queue refused, or could not reach its store. 503 —
+    no inbox wired, or the store unreachable: never an empty queue, which would
+    read as "nobody is waiting"; 404 — no such entry in the caller's tenant
+    (another tenant's entry is not found too); 409 — already acknowledged;
+    422 — a body field the acknowledgement does not take. ``code`` is
+    machine-shaped and echoes no submitted value (invariant 6)."""
+    return HTTPException(status_code=status, detail={"error": code})
+
+
 def break_glass_refused(code: str) -> HTTPException:
     """A §2.5 content-rule refusal — the reason class, the free-text floor,
     the controller-instruction reference, or the absent lawful basis."""
+    return HTTPException(status_code=422, detail={"error": code})
+
+
+def access_unconfigured() -> HTTPException:
+    """INT-366: no Keycloak/OpenBao admin access is wired, so the console can
+    neither generate the access review nor offboard anyone. 503 rather than an
+    empty review or a pretended revocation (files/08 §2.4, §2.7)."""
+    return HTTPException(status_code=503, detail={"error": "access_review_unconfigured"})
+
+
+def directory_unavailable(code: str) -> HTTPException:
+    """INT-366: the directory could not be read. A review that cannot see the
+    holders has reviewed nobody, so this is a 503, never an empty document.
+    ``code`` is machine-shaped and carries nothing from the directory."""
+    return HTTPException(status_code=503, detail={"error": code})
+
+
+def access_refused(code: str) -> HTTPException:
+    """INT-366: a review ceremony or an offboarding step the console refuses.
+    409 — understood, and the review's state or the section's rule forbids
+    it. ``code`` is machine-shaped and echoes no request value (invariant 6)."""
+    return HTTPException(status_code=409, detail={"error": code})
+
+
+def access_request_invalid(code: str) -> HTTPException:
+    """INT-366: a malformed review or offboarding request. 422, naming the
+    problem by code and never repeating the value that caused it."""
     return HTTPException(status_code=422, detail={"error": code})

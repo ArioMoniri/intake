@@ -106,10 +106,17 @@ def _shipped_policy(tier: str = "dev") -> EgressPolicy:
 
 
 def test_shipped_allowlist_validates_and_phi_path_is_empty() -> None:
+    """The PHI path is self-hosted for every model and speech vendor
+    (invariant 19 / D11). Its one row (INT-528, the owner's INT-358 decision)
+    is the OTP tier's SMS processor, which no self-hosted service can stand in
+    for: a code reaches a phone only through a licensed operator. The name is
+    kept because docs/legal/special-category-measures.yaml (2018/10 measure
+    5a) cites this test id; that control's summary needs a legal-author
+    update now that the tier is not empty (docs/evidence/INT-528.md)."""
     allowlist = load_allowlist(ALLOWLIST_PATH)
-    assert allowlist.tiers.phi_path == [], (
-        "the PHI path is self-hosted (invariant 19 / D11); its vendor list must stay empty"
-    )
+    assert [(e.host, e.purpose_id) for e in allowlist.tiers.phi_path] == [
+        ("api.netgsm.com.tr", EgressPurpose.SMS_OTP_DELIVERY)
+    ], "the PHI path's vendor list holds the SMS processor and nothing else"
     assert all(not e.phi_allowed for e in allowlist.tiers.dev)
     dev_hosts = {e.host for e in allowlist.tiers.dev}
     assert REQUIRED_DEV_HOSTS <= dev_hosts

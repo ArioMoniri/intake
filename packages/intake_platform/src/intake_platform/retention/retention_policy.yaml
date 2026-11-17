@@ -93,10 +93,11 @@ classes:
     source: >-
       06 §3: "Transcript-derived structured data & notes: life of the record,
       patient-deletable (30-day grace, then crypto-shred)." Covers the
-      INT-030 session tree (sessions, slots, notes, shares rows, document
-      rows) and the INT-034 document objects; the 30-day grace window and the
-      key-shred itself are INT-037's DSAR flow, which drives this engine's
-      dsar path once the grace has run.
+      session tree as it now stands (sessions, slots, notes, the INT-317
+      previsit outputs, shares rows and the INT-150 Doctor Link rows that
+      hang off them, document rows) and the INT-034 document objects; the
+      30-day grace window and the key-shred itself are INT-037's DSAR flow,
+      which drives this engine's dsar path once the grace has run.
 
   - data_class: doctor_link_tokens
     basis: "KVKK m.6 — special-category health data under açık rıza per consent scope"
@@ -171,7 +172,11 @@ classes:
       default.
 
   - data_class: satisfaction
-    basis: "KVKK m.5/2-c — processing necessary for the service contract"
+    # INT-536 (INT-529 F5): the ground the routes enforce. Both satisfaction
+    # write routes require the `satisfaction` consent scope (files/06 §2), so
+    # the class rests on açık rıza, never on the contract; the comment text is
+    # health data under m.6/3-a (db/inventory.py BASIS_SATISFACTION_CONSENT).
+    basis: "KVKK m.5/1 — açık rıza per consent scope satisfaction (files/06 §2); the comment text, health data, under m.6/3-a"
     retention: { kind: with_account }
     action: destroy
     destruction_path: periodic

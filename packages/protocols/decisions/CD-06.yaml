@@ -1,0 +1,83 @@
+kind: clinical_decision
+id: CD-06
+title: "Staleness windows per document class"
+question: "For each document class (lab result, imaging report, discharge summary, medication list or prescription, ECG, vaccination record, pathology report), how old may an item be and still be eligible to inform a slot, and is an undated item ever eligible?"
+decision: "No retrieved current guideline states a recency window for any of the seven classes as a criterion for using a prior document, so every window stays draft_needs_source and no number is supplied. Until a window is signed, a document of that class can only arm a probe and be shown to the clinician with its date (CD-02, CD-03); it never fills a slot. One part is decided: an undated item is never slot-eligible, because a value whose time is unknown cannot be placed against a rule's tense window (the engine reads an undated anchor as Unknown) and NICE CG95 makes the time since the event part of interpreting a result. For the ECG class one boundary is also recorded: NICE CG95's ECG criterion refers to the resting 12-lead ECG of the current assessment, taken as soon as possible, so a stored ECG document can never stand in for it, whatever window is later signed."
+status: draft_needs_source
+scope: simulated_patient_stress_testing
+author_role: "emergency medicine and internal medicine/cardiology physician (agent)"
+source_gap: "None of the retrieved sources (NICE CG95, NICE NG5, EK-4, the two CKM archetypes) states how old a lab result, imaging report, discharge summary, medication list, ECG, vaccination record or pathology report may be when reused at a later encounter. NICE NG5 1.3.3 sets a time to carry out medicines reconciliation after discharge, which is a task deadline, not a staleness window, and is deliberately not used as one."
+sources:
+  - kind: guideline
+    guideline_id: NICE-CG95
+    title: "Recent-onset chest pain of suspected cardiac origin: assessment and diagnosis"
+    version_or_date: "CG95, published 24 March 2010, last updated 30 November 2016; minor changes January 2020, August 2020, November 2020 and October 2022"
+    url: "https://www.nice.org.uk/guidance/cg95/chapter/Recommendations"
+    retrieved_on: 2026-10-02
+    quote: "take into account the length of time since the suspected ACS when interpreting the troponin level."
+    snapshot: packages/protocols/sources/NICE-CG95.txt
+  - kind: guideline
+    guideline_id: NICE-CG95
+    title: "Recent-onset chest pain of suspected cardiac origin: assessment and diagnosis"
+    version_or_date: "CG95, published 24 March 2010, last updated 30 November 2016; minor changes January 2020, August 2020, November 2020 and October 2022"
+    url: "https://www.nice.org.uk/guidance/cg95/chapter/Recommendations"
+    retrieved_on: 2026-10-02
+    quote: "Take the ECG as soon as possible, but do not delay transfer to hospital."
+    snapshot: packages/protocols/sources/NICE-CG95.txt
+  - kind: guideline
+    guideline_id: NICE-NG5
+    title: "Medicines optimisation: the safe and effective use of medicines to enable the best possible outcomes"
+    version_or_date: "NG5, published 04 March 2015; minor changes September 2019, June 2021 and October 2021"
+    url: "https://www.nice.org.uk/guidance/ng5/chapter/Recommendations"
+    retrieved_on: 2026-10-03
+    quote: "This should happen as soon as is practically possible, before a prescription or new supply of medicines is issued and within 1 week of the GP practice receiving the information."
+    snapshot: packages/protocols/sources/NICE-NG5.txt
+value:
+  classes:
+    - class: lab_result
+      window_days: "TODO: staleness window for a lab result requires clinical sign-off"
+      status: draft_needs_source
+      source_gap: "No retrieved guideline gives a reuse window. NICE CG95 1.2.1.10 shows the time since the event changes how a troponin is read, which supports dating every result but sets no window."
+      sources: [NICE-CG95]
+    - class: imaging_report
+      window_days: "TODO: staleness window for an imaging report requires clinical sign-off"
+      status: draft_needs_source
+      source_gap: "No retrieved guideline gives a reuse window for an imaging report."
+    - class: discharge_summary
+      window_days: "TODO: staleness window for a discharge summary requires clinical sign-off"
+      status: draft_needs_source
+      source_gap: "No retrieved guideline gives a reuse window for a discharge summary."
+    - class: medication_list_or_prescription
+      window_days: "TODO: staleness window for a medication list or prescription requires clinical sign-off"
+      status: draft_needs_source
+      source_gap: "NICE NG5 1.3.3 sets a deadline for performing reconciliation after discharge, not a window after which a list is stale; it is not used as one. Class gates are never filled from a list in any case (CD-02)."
+      sources: [NICE-NG5]
+    - class: ecg
+      window_days: "TODO: staleness window for an ECG document requires clinical sign-off"
+      status: draft_needs_source
+      source_gap: "No retrieved guideline gives a reuse window. No active rule reads an ECG (ECG features are an excluded criterion of rf.chest_pain_cardiac_features)."
+      boundary: "a stored ECG document never satisfies NICE CG95's ECG criterion, which refers to the resting ECG of the current assessment"
+      sources: [NICE-CG95]
+    - class: vaccination_record
+      window_days: "TODO: staleness window for a vaccination record requires clinical sign-off"
+      status: draft_needs_source
+      source_gap: "No retrieved guideline gives a reuse window for a vaccination record."
+    - class: pathology_report
+      window_days: "TODO: staleness window for a pathology report requires clinical sign-off"
+      status: draft_needs_source
+      source_gap: "No retrieved guideline gives a reuse window for a pathology report."
+  undated_slot_eligible: false
+  undated_basis: "an undated value cannot be placed against a tense window (temporal_within returns Unknown for an undated anchor) and NICE CG95 1.2.1.10 makes the time since the event part of interpreting a result"
+  while_window_unsigned: "a document of that class may arm a probe and be shown with its date; it never fills a slot"
+  documents_may: "add or arm only; never clear a flag or lower a level (physician review 2 Oct 2026, item 7)"
+value_status:
+  classes: draft_needs_source
+  undated_slot_eligible: active
+  undated_basis: active
+  while_window_unsigned: active
+  documents_may: active
+verifier:
+  verdict: agree
+  role: "independent clinical verifier (agent; EM/IM/paediatrics)"
+  verified_on: 2026-10-03
+  notes: "Independent verification: round 1 agree; round 2 agree. Every quote re-checked against the live source; the verifier saw only the committed output and the sources, never the authors' reasoning. Scope D18: simulated-patient stress testing only; a licensed physician's review is required before any real patient."

@@ -1,0 +1,109 @@
+kind: clinical_decision
+id: CD-25
+title: "rf.chest_pain_cardiac_features why_tr (REMOTE and ON_SITE): the action and the service, never the patient's condition"
+question: "The two why_tr lines of rf.chest_pain_cardiac_features say 'Anlattığınız belirtiler kalple ilgili olabilir', which tells the patient something about their own condition (HB-C12b; CLAUDE.md invariant 2; the pack's own rule that why_tr is never a diagnosis). The REMOTE line also uses 'triyaj', an unexplained term above B1. What do the REMOTE and ON_SITE why_tr lines say instead, for simulated-patient stress testing on the synthetic host, so that they describe the action and the service without characterising the patient's condition?"
+decision: "Both lines are replaced by the service-fact why lines CD-24 already decided and had independently verified for the generic RED, sentence for sentence, because they hold for any KIRMIZI rule of either EK-4 category and name no condition. REMOTE: 'Verilen cevaplara göre beklemeden değerlendirme gerekiyor. 112 ambulansıyla getirilen hastalar, acil serviste ayrıca öncelik sırası için bekletilmez.' The first sentence states the KIRMIZI outcome as a need for assessment without waiting (EK-4 Kategori 2, the category this rule's level is, takes the patient for assessment and treatment within ten minutes). The second keeps the old line's MADDE 8(5) service fact and replaces 'triyaj' with the Tebliğ's own definition of it in MADDE 4(1)(p), 'öncelik sırası'. ON_SITE: 'Verilen cevaplara göre beklemeden değerlendirme gerekiyor. Acil serviste hastaların önceliği girişte belirlenir ve en öncelikli hastalar bekletilmeden içeri alınır.' It keeps the old line's door-triage service fact (MADDE 8(3): registration and triage together at the walk-in entrance) and does not reuse the MADDE 8(5) ambulance line, because the patient is not travelling. 'durumunuz' (your condition) and 'Bu belirtilerde' (with these symptoms) go with the condition sentence. Nothing else in the rule changes: the gate, level, route, register, action_tr, do_nots_tr and the UNKNOWN question are untouched. HB-C12b stays open: this is an agent decision for simulated patients (D18), and the physician of record rules on the wording before any real patient."
+status: active
+scope: simulated_patient_stress_testing
+scope_note: "Owner decision D18 (2 Oct 2026): agent-only sign-off, for simulated-patient stress testing only. A licensed physician's review is required before any real patient. HB-C12b stays open for the physician of record."
+question_origin: "INT-465 (PR #796) clinical review, blocker 1: files/protocols/base.life_threat.yaml rf.chest_pain_cardiac_features action.REMOTE.why_tr and action.ON_SITE.why_tr; HUMAN_BLOCKERS HB-C12b."
+author_role: "emergency medicine physician (agent)"
+inference_disclosure: "No new sentence is authored here. Both lines are CD-24's verified why lines, reused because they are statements about the service that hold for any KIRMIZI rule. Reading 'beklemeden değerlendirme' as fitting a Kategori 2 rule (assessment within ten minutes) is CD-24's own reading of EK-4, carried over; this author adds no time figure, because a numeral in a RED line would also have to be expanded for speech (invariant 22) and the ten minutes is a service target, not an instruction to the patient."
+sources:
+  - kind: guideline
+    guideline_id: TR-EK4-2022
+    title: "Yataklı Sağlık Tesislerinde Acil Servis Hizmetlerinin Uygulama Usul ve Esasları Hakkında Tebliğ, EK-4"
+    version_or_date: "RG 13/9/2022 sayı 31952"
+    url: "https://www.resmigazete.gov.tr/eskiler/2022/09/20220913-5-1.pdf"
+    retrieved_on: 2026-10-02
+    quote: "Kategori 2: Hayatı tehdit etme olasılığı yüksek olan ve 10 dakika içerisinde değerlendirilip tedavi edilmesi gerekli durumlar."
+    snapshot: packages/protocols/sources/TR-EK4-2022.txt
+    supports: "value.why_tr.remote first sentence, value.why_tr.on_site first sentence"
+  - kind: guideline
+    guideline_id: TR-EK4-2022
+    title: "Yataklı Sağlık Tesislerinde Acil Servis Hizmetlerinin Uygulama Usul ve Esasları Hakkında Tebliğ, EK-4"
+    version_or_date: "RG 13/9/2022 sayı 31952"
+    url: "https://www.resmigazete.gov.tr/eskiler/2022/09/20220913-5-1.pdf"
+    retrieved_on: 2026-10-02
+    quote: "Kardiyak ağrıya benzer göğüs ağrısı"
+    snapshot: packages/protocols/sources/TR-EK4-2022.txt
+    supports: "the rule's level (KIRMIZI Kategori 2), which the first sentence of both lines states as a need for assessment without waiting; the quote is the rule's own source and is not repeated to the patient"
+  - kind: guideline
+    guideline_id: TR-EK4-2022
+    title: "Yataklı Sağlık Tesislerinde Acil Servis Hizmetlerinin Uygulama Usul ve Esasları Hakkında Tebliğ (MADDE 8(5))"
+    version_or_date: "RG 13/9/2022 sayı 31952 (MADDE 8(1)-(5) unchanged by the 2023 and 2024 amendments)"
+    url: "https://www.resmigazete.gov.tr/eskiler/2022/09/20220913-5.htm"
+    retrieved_on: 2026-10-02
+    quote: "(5) 112 acil ambulanslarıyla sağlık tesisine getirilen hastalara ayrıca triyaj uygulaması yapılmaz."
+    snapshot: packages/protocols/sources/TR-EK4-2022.txt
+    supports: "value.why_tr.remote second sentence"
+  - kind: guideline
+    guideline_id: TR-EK4-2022
+    title: "Yataklı Sağlık Tesislerinde Acil Servis Hizmetlerinin Uygulama Usul ve Esasları Hakkında Tebliğ (MADDE 4(1)(p))"
+    version_or_date: "RG 13/9/2022 sayı 31952"
+    url: "https://www.resmigazete.gov.tr/eskiler/2022/09/20220913-5.htm"
+    retrieved_on: 2026-10-02
+    quote: "tıbbi önceliklerinin ve yönlendirilecekleri tedavi birimlerinin belirlenmesi işlemini"
+    snapshot: packages/protocols/sources/TR-EK4-2022.txt
+    supports: "'öncelik sırası' (REMOTE) and 'önceliği … belirlenir' (ON_SITE) as the plain rendering of triyaj"
+  - kind: guideline
+    guideline_id: TR-EK4-2022
+    title: "Yataklı Sağlık Tesislerinde Acil Servis Hizmetlerinin Uygulama Usul ve Esasları Hakkında Tebliğ (MADDE 8(3))"
+    version_or_date: "RG 13/9/2022 sayı 31952"
+    url: "https://www.resmigazete.gov.tr/eskiler/2022/09/20220913-5.htm"
+    retrieved_on: 2026-10-02
+    quote: "ayaktan hasta girişlerinde, mümkün olması halinde kayıt ve triyaj işleminin aynı anda yapılması esastır"
+    snapshot: packages/protocols/sources/TR-EK4-2022.txt
+    supports: "value.why_tr.on_site second sentence ('önceliği girişte belirlenir')"
+  - kind: guideline
+    guideline_id: TR-EK4-2022
+    title: "Yataklı Sağlık Tesislerinde Acil Servis Hizmetlerinin Uygulama Usul ve Esasları Hakkında Tebliğ, EK-4"
+    version_or_date: "RG 13/9/2022 sayı 31952"
+    url: "https://www.resmigazete.gov.tr/eskiler/2022/09/20220913-5-1.pdf"
+    retrieved_on: 2026-10-02
+    quote: "Kategori 1: Hayatı tehdit eden ve hızlı agresif yaklaşım ve acil olarak eş zamanlı değerlendirme ve tedavi gerektiren durumlar. Bu durumlarda hasta hiç bekletilmeden kırmızı alana alınır."
+    snapshot: packages/protocols/sources/TR-EK4-2022.txt
+    supports: "value.why_tr.on_site second sentence ('en öncelikli hastalar bekletilmeden içeri alınır')"
+spec_basis:
+  - file: CLAUDE.md
+    section: "Non-negotiable invariant 2"
+    quote: "Patient-facing text passes `PolicyGuard` (no diagnosis/treatment/prognosis language; one question per turn; B1 Turkish)."
+    supports: "the question: why the condition sentence and 'triyaj' go"
+  - file: files/HUMAN_BLOCKERS.md
+    section: "HB-C12b"
+    quote: "rewrite both to describe the ACTION and the SERVICE without characterising the patient's condition"
+    supports: "the shape of the replacement (action and service only)"
+  - file: files/02_PRODUCT_SPEC.md
+    section: "§5.3 The EMERGENCY_NOW persuasion line is location-specific"
+    quote: "Both are statements about the service rather than about the patient's condition, so both are safe in every register."
+    supports: "reuse of CD-24's service-fact lines; REMOTE keeps the ambulance line, ON_SITE the door line"
+  - file: packages/protocols/decisions/CD-24.yaml
+    section: "value.scripts.base.generic_red (remote.why_tr, on_site.why_tr)"
+    quote: "Verilen cevaplara göre beklemeden değerlendirme gerekiyor. 112 ambulansıyla getirilen hastalar, acil serviste ayrıca öncelik sırası için bekletilmez."
+    supports: "value.why_tr.remote, verbatim"
+  - file: packages/protocols/decisions/CD-24.yaml
+    section: "value.scripts.base.generic_red (remote.why_tr, on_site.why_tr)"
+    quote: "Verilen cevaplara göre beklemeden değerlendirme gerekiyor. Acil serviste hastaların önceliği girişte belirlenir ve en öncelikli hastalar bekletilmeden içeri alınır."
+    supports: "value.why_tr.on_site, verbatim"
+value:
+  rule: rf.chest_pain_cardiac_features
+  why_tr:
+    remote: "Verilen cevaplara göre beklemeden değerlendirme gerekiyor. 112 ambulansıyla getirilen hastalar, acil serviste ayrıca öncelik sırası için bekletilmez."
+    on_site: "Verilen cevaplara göre beklemeden değerlendirme gerekiyor. Acil serviste hastaların önceliği girişte belirlenir ve en öncelikli hastalar bekletilmeden içeri alınır."
+  replaced:
+    remote: "Anlattığınız belirtiler kalple ilgili olabilir ve hızlı değerlendirilmesi gerekir. 112 ile gelen hastalar acil serviste triyaj için bekletilmez."
+    on_site: "Anlattığınız belirtiler kalple ilgili olabilir. Bu belirtilerde değerlendirmenin hemen yapılması gerekir. Acil serviste durumunuz girişte değerlendirilir ve acil kabul edilen hastalar sıra beklemez."
+  unchanged: "gate, level, route, register, action_tr, do_nots_tr and the UNKNOWN question of the rule"
+  hb_c12b: open
+value_status:
+  rule: active
+  why_tr: active
+  replaced: active
+  unchanged: active
+  hb_c12b: active
+fail_closed_while_draft: "Nothing in this decision is draft. Before any real patient, the physician of record rules on HB-C12b; until then the rule is served only on the synthetic host under D23, and every real tenant keeps the HB-C1 interlock."
+verifier:
+  verdict: agree
+  role: "independent clinical verifier (agent; EM/IM)"
+  verified_on: 2026-10-03
+  notes: "Round 1 agree. All six quotes verbatim in TR-EK4-2022.txt, each supporting the sentence it is attached to; neither line names a condition or carries diagnosis, treatment or prognosis language; B1, no 'triyaj'; the ON_SITE line carries no 112 and no ambulance line; no new number or advice; HB-C12b stays open. The verifier saw only the committed decision, the snapshot, CD-24, the rule and HB-C12b, never the author's reasoning. Scope D18: simulated-patient stress testing only; a licensed physician's review is required before any real patient. A second verification is run separately by the coordinator."

@@ -1,0 +1,76 @@
+# guideline_id: NICE-NG232
+# title: Head injury: assessment and early management
+# publisher: National Institute for Health and Care Excellence (NICE)
+# version_or_date: NICE guideline NG232; published 18 May 2023; minor changes since publication July 2023, August 2023, October 2023 and March 2025 (Update information)
+# url: https://www.nice.org.uk/guidance/ng232/chapter/Recommendations
+# url_update_information: https://www.nice.org.uk/guidance/ng232/chapter/Update-information
+# retrieved_on: 2026-10-03
+# retrieval: curl with browser UA; HTML (utf-8) text-extracted; tags stripped and whitespace runs collapsed to single spaces as a browser renders them; blank lines dropped; non-breaking spaces (U+00A0) rendered as plain spaces; non-breaking hyphens (U+2011) kept as served
+# scope: verbatim excerpt of the page header, the head-injury definition, section 1.2 from its heading through recommendation 1.2.4, recommendations 1.2.6, 1.2.7 and 1.5.13 (Recommendations chapter) and two entries of the Update information chapter; nothing paraphrased or edited. '[...]' marks an omission between excerpts.
+---
+Reference number: NG232
+Published:
+18 May 2023
+[...]
+For the purposes of this guideline, a head injury is defined as any trauma to the head other than superficial injuries to the face. The term includes both closed head injuries and penetrating head injuries. Babies are defined as being under 1 year, and children and young people as being 1 year to under 16 years.
+[...]
+1.2 Pre-hospital assessment, advice and referral to hospital
+1.2.1
+Public health literature and other non-medical sources of advice (for example, St John Ambulance and police officers) should encourage people who have any concerns after a head injury to themselves or to another person, regardless of the injury severity, to seek immediate medical advice. [2003]
+Remote advice services
+1.2.2
+Remote advice services (for example, NHS 111) should refer people who have sustained a head injury to the emergency ambulance services (that is, 999) for emergency transport to the emergency department if there are any of these risk factors (see NICE's guidelines on shared decision making and decision making and mental capacity):
+unconsciousness or lack of full consciousness (for example, problems keeping eyes open)
+any focal neurological deficit since the injury
+any suspicion of a complex skull fracture or penetrating head injury
+any seizure ('convulsion' or 'fit') since the injury
+a high-energy head injury
+there is no other way of safely transporting the person to the hospital emergency department (see recommendation 1.2.3). [2003, amended 2007, 2014 and 2023]
+1.2.3
+Remote advice services (for example, NHS 111) should refer people who have sustained a head injury to a hospital emergency department if there are any of these risk factors (see NICE's guidelines on shared decision making and decision making and mental capacity):
+any loss of consciousness ('knocked out') because of the injury, from which the person has now recovered
+amnesia for events before or after the injury ('problems with memory'; it will not be possible to assess amnesia in children who are preverbal and is unlikely to be possible in children under 5)
+a persistent headache since the injury
+any vomiting episodes since the injury
+any previous brain surgery
+any history of bleeding or clotting disorders
+current anticoagulant or antiplatelet (except aspirin monotherapy) treatment
+current drug or alcohol intoxication
+any safeguarding concerns (for example, possible non-accidental injury or a vulnerable person is affected)
+irritability or altered behaviour (easily distracted, not themselves, no concentration, no interest in things around them), particularly in babies and children under 5
+continuing concern by helpline staff about the diagnosis. [2003, amended 2014 and 2023]
+Community health services and inpatient units without an emergency department
+1.2.4
+Community health services (GPs, ambulance crews, NHS walk-in or minor injury centres, dental practitioners) and inpatient units without an emergency department should refer people who have sustained a head injury to a hospital emergency department, using the ambulance service if necessary, if there are any of these risk factors (see NICE's guidelines on shared decision making and decision making and mental capacity):
+a Glasgow Coma Scale (GCS) score of less than 15 on initial assessment
+any loss of consciousness because of the injury
+any focal neurological deficit since the injury
+any suspicion of a complex skull fracture or penetrating head injury since the injury
+amnesia for events before or after the injury (it will not be possible to assess amnesia in children who are preverbal and is unlikely to be possible in children under 5)
+a persistent headache since the injury
+any vomiting episodes since the injury (use clinical judgement about the cause of vomiting in children 12 years or under and the need for referral)
+any seizure since the injury
+any previous brain surgery
+a high-energy head injury
+any history of bleeding or clotting disorders
+current anticoagulant or antiplatelet (except aspirin monotherapy) treatment
+current drug or alcohol intoxication
+any safeguarding concerns (for example, possible non-accidental injury or a vulnerable person is affected)
+continuing concern by the professional about the diagnosis. [2003, amended 2007, 2014 and 2023]
+[...]
+1.2.6
+Ensure people referred from community health services are accompanied by a competent adult during transport to the emergency department. [2003]
+1.2.7
+The referring professional should determine if an ambulance is needed, based on the person's clinical condition. If an ambulance is not needed, provided the person is accompanied, public transport or being driven in a car are appropriate means of transport. [2003]
+[...]
+People taking anticoagulant or antiplatelet medication
+1.5.13
+For people who have sustained a head injury and have no other indications for a CT head scan, but are on anticoagulant treatment (including vitamin K antagonists, direct-acting oral anticoagulants (DOACs), heparin and low molecular weight heparins) or antiplatelet treatment (excluding aspirin monotherapy), consider doing a CT head scan:
+within 8 hours of the injury (for example, if it is difficult to do a risk assessment or if the person might not return to the emergency department if they have signs of deterioration) or
+within the hour if they present more than 8 hours after the injury.
+For advice on reversing vitamin K antagonists for people with traumatic intracranial haemorrhage, see the section on prothrombin complex concentrate in NICE's guideline on blood transfusion. For advice on reversing DOACs, see the MHRA safety advice on DOACs for a list of reversal agents. [2023]
+[...]
+Minor changes since publication
+March 2025: We removed the link to NICE technology appraisal guidance on andexanet alfa (TA697) from recommendation 1.5.13 because the guidance has been updated and no longer applies to this guideline.
+[...]
+July 2023: In recommendations 1.2.3 and 1.2.4, we clarified that risk factors can include either current anticoagulant or antiplatelet treatment.

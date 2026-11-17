@@ -1,0 +1,24 @@
+# INT-463, INT-467 — the one resource ceiling for every runner of the
+# intake-aws-ci pool and its rootless Docker daemon: the pool shares it, so
+# adding a runner never takes more from staging than one runner could. The host
+# also serves synthetic staging, so CI gets a quarter of the default CPU and IO
+# weight, at most seven of the eight cores, and a hard memory ceiling. The job and
+# Docker units also set OOMScoreAdjust=500, so under memory pressure the kernel
+# kills CI before staging.
+#
+# INT-544: read on 16 Oct 2026 at 17:12Z (8 vCPU, CPU pressure avg60 0.05,
+# 30 GiB RAM with 25 GiB available), the slice's memory peak was 15.0 GB with
+# three runners, at its MemoryHigh of 14G (15.03 GB): the pool was already
+# being throttled. For five runners the ceiling rises to MemoryHigh 20G and
+# MemoryMax 22G, which leaves staging about 8 GiB, and to 700 % CPU.
+[Unit]
+Description=Resource ceiling for the intake-aws-ci Actions runner pool (INT-463, INT-467)
+Before=slices.target
+
+[Slice]
+CPUWeight=25
+CPUQuota=700%
+IOWeight=25
+MemoryHigh=20G
+MemoryMax=22G
+TasksMax=16384

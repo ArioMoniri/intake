@@ -26,8 +26,9 @@
  * - Patient quotes are DISPLAYED as text, never synthesized; the numeral
  *   guard sits before every /synthesize call (invariant 22 mirror).
  * - Agent clips are cache files deleted on unmount and session end;
- *   PATIENT recordings keep lib/voice.ts's delete-after-upload posture
- *   (invariant 3 governs those, and it is untouched here).
+ *   PATIENT audio never touches a file (INT-559): the hook captures through
+ *   lib/capture into a bounded in-memory buffer, zeroed on every trigger —
+ *   a RED here calls `leave`, which closes the microphone before it awaits.
  * - Any hard service failure lands in the existing manual steps via the
  *   outer machine, committed answers intact AND the unconfirmed suggestions
  *   riding as prefill (INT-261 — the same thing a hand-over carries, since
@@ -41,10 +42,12 @@
  * the production path is the LiveKit Talker (files/03 §4.9, files/13).
  */
 import { useRouter } from "expo-router";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useHeaderHeight } from "expo-router/react-navigation";
+import { Fragment, useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import {
   ActivityIndicator,
   Animated,
+  Easing,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -54,10 +57,11 @@ import {
   View,
   useColorScheme,
 } from "react-native";
-import { SymbolView } from "expo-symbols";
 
 import { GlassBar, useGlassBarClearance } from "@/components/GlassBar";
+import { Icon } from "@/components/Icon";
 import { Kicker } from "@/components/Kicker";
+import { RedInFlow } from "@/components/RedLayer";
 import { SectionSheet, SectionStrip } from "@/components/SectionPanel";
 import {
   AppText,
@@ -70,12 +74,15 @@ import { joinParts, spoken } from "@/lib/a11y/labels";
 import { loopingDecorationEnabled, scrollAnimated } from "@/lib/a11y/motion";
 import { useLiveAnnouncement, useReducedMotion } from "@/lib/a11y/prefs";
 import { MIN_TAP, verticalSlop } from "@/lib/a11y/target";
+import type { Utterance } from "@/lib/dialogue/delivery";
+import { asDeliveryKey } from "@/lib/dialogue/deliveryDeck";
 import { sectionPanelModel } from "@/lib/dialogue/sectionPanel";
 import { questionAsideTr } from "@/lib/dialogue/speech";
 import { answerWords, type StreamEntry } from "@/lib/dialogue/stream";
 import { useDialogueSession } from "@/lib/dialogue/useDialogueSession";
 import { t } from "@/lib/i18n";
 import { optionLabelKey, type IntakeQuestion } from "@/lib/intake/questions";
+import { dialogueFrozenAt, dialogueShown, redStopsDialogue, redStore } from "@/lib/red/store";
 import type { PrefillMap } from "@/lib/intake/voiceFirst";
 import { useSession } from "@/lib/session";
 import { fonts, motion, radius, scaledSize, spacing } from "@/lib/theme";
@@ -115,8 +122,13 @@ function valueLabels(questionId: string, values: readonly string[]): string {
     .join(", ");
 }
 
+/** The pulse's curve: ease-in-out sine, so the turn has no visible corner. */
+const BREATH = Easing.bezier(...motion.easing.breath);
+
 /** Quiet pulse for the open-mic turn — a single fading element, within
- * the 02 §5.2a budget (fades only, one animated element at a time). */
+ * the 02 §5.2a budget (fades only, one animated element at a time). Its
+ * period is `motion.loop.pulsePeriodMs`, a FULL cycle: each half is one
+ * fade, far slower than SC 2.3.1's 3 Hz (INT-335). */
 function PulseDot() {
   const theme = useTheme();
   const reduceMotion = useReducedMotion();
@@ -133,8 +145,18 @@ function PulseDot() {
     }
     const loop = Animated.loop(
       Animated.sequence([
-        Animated.timing(opacity, { toValue: 0.3, duration: 700, useNativeDriver: true }),
-        Animated.timing(opacity, { toValue: 1, duration: 700, useNativeDriver: true }),
+        Animated.timing(opacity, {
+          toValue: 0.3,
+          duration: motion.loop.pulsePeriodMs / 2,
+          easing: BREATH,
+          useNativeDriver: true,
+        }),
+        Animated.timing(opacity, {
+          toValue: 1,
+          duration: motion.loop.pulsePeriodMs / 2,
+          easing: BREATH,
+          useNativeDriver: true,
+        }),
       ]),
     );
     loop.start();
@@ -167,6 +189,9 @@ export function DialogueIntake({
   const session = useDialogueSession({
     questions,
     packName,
+    // The visit id seeds the delivery variation (INT-414): an id, never PHI,
+    // so one visit always replays the same words.
+    sessionSeed: visitId ?? "",
     onDone: () => router.replace(`/(tabs)/visits/${visitId}/review`),
     onFailed: (leftovers) => onFailed(toPrefill(leftovers)),
     onHandoff: (leftovers) => {
@@ -177,6 +202,24 @@ export function DialogueIntake({
   });
   const { state } = session;
   const { turn } = state;
+
+  // INT-446: a RED the patient is shown preempts the dialogue instead of
+  // advancing it — the agent stops mid-word and the microphone closes, for
+  // every register the patient sees (SILENT included: no audio, ever).
+  const red = useSyncExternalStore(redStore.subscribe, redStore.getSnapshot);
+  const stopsDialogue = redStopsDialogue(red);
+  // INT-465 (CD-24 generic_red_stops_intake): the stream freezes where the RED
+  // landed; a question the agent was already sending is never shown after it.
+  const frozenRef = useRef<number | null>(null);
+  frozenRef.current = dialogueFrozenAt(frozenRef.current, stopsDialogue, state.stream.length);
+  const frozenAt = frozenRef.current;
+  useEffect(() => {
+    if (stopsDialogue) {
+      setSheetOpen(false); // an open sheet's confirms are commits too (round 4)
+      void session.leave();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- leave() is stable in effect; the RED is the trigger
+  }, [stopsDialogue]);
 
   // On-screen selection for the live confirm turn (seeded pre-selected).
   const [selected, setSelected] = useState<string[]>([]);
@@ -191,6 +234,14 @@ export function DialogueIntake({
   // same hook the typed steps now use.
   const [barHeight, setBarHeight] = useState<number | null>(null);
   const barClearance = useGlassBarClearance(barHeight);
+  // INT-360: the keyboard and the stack pinned above it. The avoiding view
+  // measures its overlap with the keyboard from its OWN top, and the stack
+  // header sits above it, so the header's height is the offset. The frame is
+  // the height left between the header and the keyboard: the stack is capped
+  // at it, so in a landscape window with the keyboard up no control is pushed
+  // above its top edge.
+  const headerHeight = useHeaderHeight();
+  const [frameHeight, setFrameHeight] = useState<number | null>(null);
 
   // Seed the chips when a confirm turn opens (candidate pre-selected).
   const seedKeyRef = useRef("");
@@ -233,7 +284,7 @@ export function DialogueIntake({
   );
   // ASK-AHEAD makes two of these CONCURRENT: the next question starts
   // speaking in the same tick the utterance is taken, while ASR runs behind
-  // it. The turn phase therefore wins — "Vizite konuşuyor" is what the
+  // it. The turn phase therefore wins — "Önvizit konuşuyor" is what the
   // patient must act on, and reporting the background transcription instead
   // would describe the quieter of two simultaneous truths and never announce
   // the louder one at all. Transcribing is announced only when nothing else
@@ -280,6 +331,9 @@ export function DialogueIntake({
   /** Panel-row confirm of one pending suggestion (invariant 1: this tap
    * IS the patient's confirm — nothing commits without it). */
   const confirmRow = (questionId: string) => {
+    if (stopsDialogue) {
+      return; // CD-24 generic_red_stops_intake: nothing commits under a RED
+    }
     const candidate = state.pending[questionId];
     if (candidate === undefined) {
       return;
@@ -322,6 +376,37 @@ export function DialogueIntake({
   const chipsOpen = turn.phase === "confirming" && question !== null && question.kind !== "text";
   // While the agent speaks, the LAST logged agent turn is the live bubble.
   const liveAgentIndex = turn.phase === "speaking" ? state.stream.length - 1 : -1;
+
+  /**
+   * One conversational delivery line (INT-414) — a welcome, lead-in,
+   * transition or acknowledgement — as its own quiet bubble ahead of the
+   * question it introduces, never inside it: the question bubble below stays
+   * the scripted question alone (invariant 10), exactly as INT-293 kept its
+   * repair line apart. The words are the plan's own key, rendered from the
+   * catalogue in the reader's locale; the clip says the Turkish.
+   */
+  const renderDeliveryBubble = (utterance: Utterance, key: string) => {
+    const deckKey = asDeliveryKey(utterance.key);
+    if (deckKey === null) {
+      return null;
+    }
+    return (
+      <View
+        key={key}
+        accessible
+        accessibilityLabel={spoken(t("a11y.speaker.agent"), t(deckKey))}
+        style={[
+          styles.bubble,
+          styles.agentBubble,
+          { backgroundColor: theme.surface, borderColor: dark ? "transparent" : theme.border },
+        ]}
+      >
+        <AppText role="caption" color="inkSoft">
+          {t(deckKey)}
+        </AppText>
+      </View>
+    );
+  };
 
   const renderAgentBubble = (entry: StreamEntry, index: number) => {
     const live = index === liveAgentIndex;
@@ -437,31 +522,30 @@ export function DialogueIntake({
   };
 
   const renderEntry = (entry: StreamEntry, index: number) => {
-    if (entry.kind === "agent_question" || entry.kind === "agent_confirm") {
+    if (entry.kind === "agent_question") {
+      // INT-414: what is said around the question, then the question.
+      const lines = (session.delivery.get(index) ?? []).filter((u) => u.kind !== "question");
+      if (lines.length === 0) {
+        return renderAgentBubble(entry, index);
+      }
+      return (
+        <Fragment key={`t-${index}`}>
+          {lines.map((utterance, at) => renderDeliveryBubble(utterance, `d-${index}-${at}`))}
+          {renderAgentBubble(entry, index)}
+        </Fragment>
+      );
+    }
+    if (entry.kind === "agent_confirm") {
       return renderAgentBubble(entry, index);
     }
     // INT-293: the words the patient gave for the previous question mapped to
     // nothing — here or at the extractor — so the agent asks it once more and
-    // says why first. Its own quiet bubble rather than a line inside the
-    // question's: the question that follows is spoken verbatim from the pack
-    // (invariant 10), and this sentence is not part of it.
+    // says why first. INT-414 moved that sentence into the delivery plan of
+    // the re-asked question, where it is now SPOKEN as well as shown (it used
+    // to be shown only), still as its own quiet bubble ahead of the verbatim
+    // question. Rendering it here as well would say it twice.
     if (entry.kind === "agent_unclear") {
-      return (
-        <View
-          key={`u-${index}`}
-          accessible
-          accessibilityLabel={spoken(t("a11y.speaker.agent"), t("dialogue.notUnderstood"))}
-          style={[
-            styles.bubble,
-            styles.agentBubble,
-            { backgroundColor: theme.surface, borderColor: dark ? "transparent" : theme.border },
-          ]}
-        >
-          <AppText role="caption" color="inkSoft">
-            {t("dialogue.notUnderstood")}
-          </AppText>
-        </View>
-      );
+      return null;
     }
     // Patient turns, keyed by work id. A transcribing bubble is the
     // in-place stand-in the ASR text will replace (never a takeover).
@@ -501,243 +585,274 @@ export function DialogueIntake({
     <KeyboardAvoidingView
       style={styles.root}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
+      keyboardVerticalOffset={headerHeight}
     >
-      <ScrollView
-        ref={scrollRef}
-        // SC 1.3.1: the conversation is a named region, so a screen-reader
-        // user knows the scroller they landed in is the transcript and not
-        // the page.
-        accessibilityLabel={t("a11y.dialogue.transcript")}
-        contentContainerStyle={[styles.content, { paddingBottom: barClearance }]}
-        keyboardShouldPersistTaps="handled"
-        keyboardDismissMode="on-drag"
+      {/* INT-360: the frame the bottom stack pins to. The avoiding view lifts
+          its content with PADDING, and an absolutely positioned child ignores
+          its parent's padding (Yoga places it against the border box), so a
+          stack pinned in the avoiding view itself sat behind the keyboard.
+          Inside this frame, `bottom: 0` is the keyboard's top edge. */}
+      <View
+        style={styles.root}
+        onLayout={(event) => setFrameHeight(event.nativeEvent.layout.height)}
       >
-        <Kicker label={t("dialogue.kicker")} tone="accent" />
+        <ScrollView
+          ref={scrollRef}
+          // SC 1.3.1: the conversation is a named region, so a screen-reader
+          // user knows the scroller they landed in is the transcript and not
+          // the page.
+          accessibilityLabel={t("a11y.dialogue.transcript")}
+          contentContainerStyle={[styles.content, { paddingBottom: barClearance }]}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+        >
+          <Kicker label={t("dialogue.kicker")} tone="accent" />
 
-        {state.voiceMuted ? (
-          // INT-261: the agent lost its voice and the conversation carried
-          // on. Saying so once is the whole apology — the patient can see
-          // the questions and answer them; what they cannot see is WHY the
-          // sound stopped, and silence with no explanation reads as broken.
-          //
-          // NOT a live region, deliberately. This screen announces exactly
-          // one thing through useLiveAnnouncement (the turn state), and the
-          // a11y suite pins that there is no second channel. It also does
-          // not need one here: a screen-reader user never heard the agent
-          // clip in the first place — VoiceOver was already reading them
-          // the bubble — so the mute changes nothing for them. It stands at
-          // the head of the transcript as a condition of the session.
-          <View accessible>
-            <AppText role="caption" color="inkFaint">
-              {t("dialogue.voiceMuted")}
-            </AppText>
-          </View>
-        ) : null}
-
-        {state.stream.map(renderEntry)}
-
-        {turn.phase === "listening" ? (
-          // The open-mic turn, inside the stream: pulse + tap-to-stop.
-          <Pressable
-            accessibilityRole="button"
-            // SC 2.5.3: the bubble reads "Sizi dinliyoruz." and so must its
-            // name — an a11y-only paraphrase would put the control out of
-            // reach of a voice-control user saying what they can see.
-            accessibilityLabel={spoken(t("a11y.speaker.patient"), t("voiceFirst.listening"))}
-            accessibilityHint={t("a11y.dialogue.stopHint")}
-            onPress={() => void session.finishListening()}
-            style={({ pressed }) => [
-              styles.bubble,
-              styles.patientBubble,
-              styles.listeningBubble,
-              {
-                backgroundColor: theme.primarySoft,
-                borderColor: dark ? "transparent" : theme.primary,
-                opacity: pressed ? motion.press.rowOpacity : 1,
-              },
-            ]}
-          >
-            <View style={styles.stateRow}>
-              <PulseDot />
-              <AppText role="body" color="primary">
-                {t("voiceFirst.listening")}
+          {state.voiceMuted ? (
+            // INT-261: the agent lost its voice and the conversation carried
+            // on. Saying so once is the whole apology — the patient can see
+            // the questions and answer them; what they cannot see is WHY the
+            // sound stopped, and silence with no explanation reads as broken.
+            //
+            // NOT a live region, deliberately. This screen announces exactly
+            // one thing through useLiveAnnouncement (the turn state), and the
+            // a11y suite pins that there is no second channel. It also does
+            // not need one here: a screen-reader user never heard the agent
+            // clip in the first place — VoiceOver was already reading them
+            // the bubble — so the mute changes nothing for them. It stands at
+            // the head of the transcript as a condition of the session.
+            <View accessible>
+              <AppText role="caption" color="inkFaint">
+                {t("dialogue.voiceMuted")}
               </AppText>
             </View>
-            <AppText role="caption" color="inkFaint">
-              {t("dialogue.listeningHint")}
-            </AppText>
-          </Pressable>
-        ) : null}
-
-        {turn.phase === "settling" ? (
-          // The one honest wait: everything is asked, the last answers are
-          // still being worked into the note — quiet, in-stream.
-          <View accessible style={styles.stateRow}>
-            <ActivityIndicator size="small" color={theme.inkFaint} />
-            <AppText role="caption" color="inkSoft">
-              {t("voiceFirst.preparing")}
-            </AppText>
-          </View>
-        ) : null}
-
-        {chipsOpen && question !== null ? (
-          // The inline confirm chips on the agent's follow-up turn: the
-          // candidate arrives pre-selected; the patient adjusts, then
-          // confirms on the bar (nothing auto-commits).
-          <View style={styles.chipWrap}>
-            {question.options!.map((option) => {
-              const on = selected.includes(option.id);
-              return (
-                <Pressable
-                  key={option.id}
-                  // A checkbox tells the reader "you may pick several". On a
-                  // single-answer turn that is false, and the handler below
-                  // enforces the opposite — the role must agree with it.
-                  accessibilityRole={question.kind === "single" ? "radio" : "checkbox"}
-                  accessibilityLabel={t(option.labelKey)}
-                  accessibilityHint={t("a11y.selectHint")}
-                  accessibilityState={{ checked: on }}
-                  onPress={() =>
-                    setSelected((prev) =>
-                      question.kind === "single"
-                        ? [option.id]
-                        : prev.includes(option.id)
-                          ? prev.filter((x) => x !== option.id)
-                          : [...prev, option.id],
-                    )
-                  }
-                  style={[
-                    styles.chip,
-                    {
-                      backgroundColor: on ? theme.primarySoft : theme.surface,
-                      borderColor: on ? theme.primary : dark ? "transparent" : theme.border,
-                    },
-                  ]}
-                >
-                  <AppText role="label" color={on ? "primary" : "ink"}>
-                    {t(option.labelKey)}
-                  </AppText>
-                </Pressable>
-              );
-            })}
-          </View>
-        ) : null}
-
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={t("voiceFirst.typeInstead")}
-          accessibilityHint={t("a11y.dialogue.exitHint")}
-          hitSlop={verticalSlop(18)}
-          onPress={() => void exitToSteps()}
-        >
-          <AppText role="caption" color="inkFaint">
-            {t("voiceFirst.typeInstead")}
-          </AppText>
-        </Pressable>
-      </ScrollView>
-
-      <View style={styles.bottomStack}>
-        <GlassBar floating={false} onHeight={setBarHeight}>
-          <SectionStrip
-            filled={model.filled}
-            total={model.total}
-            onPress={() => setSheetOpen(true)}
-          />
-          {turn.phase === "listening" ? (
-            <View style={styles.barItem}>
-              <PrimaryButton
-                label={t("voiceFirst.stop")}
-                onPress={() => void session.finishListening()}
-              />
-            </View>
           ) : null}
-          {turn.phase === "confirming" ? (
-            <View style={[styles.barItem, styles.barStack]}>
-              <PrimaryButton
-                label={t("dialogue.confirm")}
-                // A text answer may be confirmed as spoken; option turns
-                // need at least one selection.
-                disabled={question !== null && question.kind !== "text" && selected.length === 0}
-                onPress={confirmTurn}
-              />
-              <SecondaryButton
-                label={t("dialogue.speakCorrection")}
-                onPress={session.speakCorrection}
-              />
-            </View>
-          ) : null}
-          {/* The persistent composer: typing is always available — voice
-              and text are one conversation, never two modes. */}
-          <View style={styles.composerRow}>
-            <View style={styles.composerFieldWrap}>
-              <TextInput
-                accessibilityLabel={t("dialogue.typeThisStep")}
-                accessibilityHint={t("a11y.dialogue.composerHint")}
-                // The field applies scaledSize itself, so the OS multiplier
-                // must be off or the patient's 200 % setting becomes 400 %
-                // and the composer truncates (SC 1.4.4).
-                allowFontScaling={false}
-                value={draft}
-                onChangeText={setDraft}
-                returnKeyType="send"
-                onSubmitEditing={send}
-                style={[
-                  styles.composerField,
-                  {
-                    backgroundColor: theme.surface,
-                    borderColor: dark ? "transparent" : theme.border,
-                    color: theme.ink,
-                    fontSize: scaledSize("body", fontScale),
-                  },
-                ]}
-              />
-              {draft.length === 0 ? (
-                // The field's own hint prop is a banned filler token in the
-                // app source (invariant 17 scan) — an overlaid caption
-                // carries the affordance instead.
-                <View
-                  pointerEvents="none"
-                  // The field already carries this text as its name; read
-                  // again as a sibling it says the same thing twice.
-                  accessibilityElementsHidden
-                  importantForAccessibility="no-hide-descendants"
-                  style={styles.composerHintWrap}
-                >
-                  <AppText role="body" color="inkFaint">
-                    {t("dialogue.typeThisStep")}
-                  </AppText>
-                </View>
-              ) : null}
-            </View>
+
+          {dialogueShown(state.stream, frozenAt).map(renderEntry)}
+
+          {!stopsDialogue && turn.phase === "listening" ? (
+            // The open-mic turn, inside the stream: pulse + tap-to-stop.
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel={t("dialogue.send")}
-              // Icon-only, so the disabled state has no visible word either:
-              // the disabled opacity is the sighted half and this is the other.
-              accessibilityState={{ disabled: draft.trim().length === 0 }}
-              disabled={draft.trim().length === 0}
-              onPress={send}
+              // SC 2.5.3: the bubble reads "Sizi dinliyoruz." and so must its
+              // name — an a11y-only paraphrase would put the control out of
+              // reach of a voice-control user saying what they can see.
+              accessibilityLabel={spoken(t("a11y.speaker.patient"), t("voiceFirst.listening"))}
+              accessibilityHint={t("a11y.dialogue.stopHint")}
+              onPress={() => void session.finishListening()}
               style={({ pressed }) => [
-                styles.sendButton,
+                styles.bubble,
+                styles.patientBubble,
+                styles.listeningBubble,
                 {
-                  backgroundColor: theme.cta,
-                  opacity:
-                    draft.trim().length === 0
-                      ? motion.press.disabledOpacity
-                      : pressed
-                        ? motion.press.opacity
-                        : 1,
+                  backgroundColor: theme.primarySoft,
+                  borderColor: dark ? "transparent" : theme.primary,
+                  opacity: pressed ? motion.press.rowOpacity : 1,
                 },
               ]}
             >
-              <SymbolView name="arrow.up" size={17} tintColor={theme.onCta} />
+              <View style={styles.stateRow}>
+                <PulseDot />
+                <AppText role="body" color="primary">
+                  {t("voiceFirst.listening")}
+                </AppText>
+              </View>
+              <AppText role="caption" color="inkFaint">
+                {t("dialogue.listeningHint")}
+              </AppText>
             </Pressable>
-          </View>
-        </GlassBar>
+          ) : null}
+
+          {!stopsDialogue && turn.phase === "settling" ? (
+            // The one honest wait: everything is asked, the last answers are
+            // still being worked into the note — quiet, in-stream.
+            <View accessible style={styles.stateRow}>
+              <ActivityIndicator size="small" color={theme.inkFaint} />
+              <AppText role="caption" color="inkSoft">
+                {t("voiceFirst.preparing")}
+              </AppText>
+            </View>
+          ) : null}
+
+          {!stopsDialogue && chipsOpen && question !== null ? (
+            // The inline confirm chips on the agent's follow-up turn: the
+            // candidate arrives pre-selected; the patient adjusts, then
+            // confirms on the bar (nothing auto-commits).
+            <View style={styles.chipWrap}>
+              {question.options!.map((option) => {
+                const on = selected.includes(option.id);
+                return (
+                  <Pressable
+                    key={option.id}
+                    // A checkbox tells the reader "you may pick several". On a
+                    // single-answer turn that is false, and the handler below
+                    // enforces the opposite — the role must agree with it.
+                    accessibilityRole={question.kind === "single" ? "radio" : "checkbox"}
+                    accessibilityLabel={t(option.labelKey)}
+                    accessibilityHint={t("a11y.selectHint")}
+                    accessibilityState={{ checked: on }}
+                    onPress={() =>
+                      setSelected((prev) =>
+                        question.kind === "single"
+                          ? [option.id]
+                          : prev.includes(option.id)
+                            ? prev.filter((x) => x !== option.id)
+                            : [...prev, option.id],
+                      )
+                    }
+                    style={[
+                      styles.chip,
+                      {
+                        backgroundColor: on ? theme.primarySoft : theme.surface,
+                        borderColor: on ? theme.primary : dark ? "transparent" : theme.border,
+                      },
+                    ]}
+                  >
+                    <AppText role="label" color={on ? "primary" : "ink"}>
+                      {t(option.labelKey)}
+                    </AppText>
+                  </Pressable>
+                );
+              })}
+            </View>
+          ) : null}
+
+          {/* INT-446: a SILENT RED, where the next turn would be. */}
+          <RedInFlow />
+
+          {/* INT-465: no way back into the steps while a RED stands. */}
+          {!stopsDialogue ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t("voiceFirst.typeInstead")}
+              accessibilityHint={t("a11y.dialogue.exitHint")}
+              hitSlop={verticalSlop(18)}
+              onPress={() => void exitToSteps()}
+            >
+              <AppText role="caption" color="inkFaint">
+                {t("voiceFirst.typeInstead")}
+              </AppText>
+            </Pressable>
+          ) : null}
+        </ScrollView>
+
+        <View
+          style={[styles.bottomStack, frameHeight !== null ? { maxHeight: frameHeight } : null]}
+        >
+          <GlassBar floating={false} onHeight={setBarHeight}>
+            {/* INT-360: the strip and the turn's CTAs scroll when the capped
+              stack cannot hold them (the largest step, landscape, keyboard
+              up); the composer below keeps its whole height, so the field
+              the patient is typing into stays in view. */}
+            <ScrollView style={styles.barScroll} keyboardShouldPersistTaps="handled">
+              <SectionStrip
+                filled={model.filled}
+                total={model.total}
+                onPress={stopsDialogue ? undefined : () => setSheetOpen(true)}
+              />
+              {!stopsDialogue && turn.phase === "listening" ? (
+                <View style={styles.barItem}>
+                  <PrimaryButton
+                    label={t("voiceFirst.stop")}
+                    onPress={() => void session.finishListening()}
+                  />
+                </View>
+              ) : null}
+              {!stopsDialogue && turn.phase === "confirming" ? (
+                <View style={[styles.barItem, styles.barStack]}>
+                  <PrimaryButton
+                    label={t("dialogue.confirm")}
+                    // A text answer may be confirmed as spoken; option turns
+                    // need at least one selection.
+                    disabled={
+                      question !== null && question.kind !== "text" && selected.length === 0
+                    }
+                    onPress={confirmTurn}
+                  />
+                  <SecondaryButton
+                    label={t("dialogue.speakCorrection")}
+                    onPress={session.speakCorrection}
+                  />
+                </View>
+              ) : null}
+            </ScrollView>
+            {/* The persistent composer: typing is always available — voice
+              and text are one conversation, never two modes — until a RED
+              stands (INT-465): then nothing more is committed. */}
+            {!stopsDialogue ? (
+              <View style={styles.composerRow}>
+                <View style={styles.composerFieldWrap}>
+                  <TextInput
+                    accessibilityLabel={t("dialogue.typeThisStep")}
+                    accessibilityHint={t("a11y.dialogue.composerHint")}
+                    // The field applies scaledSize itself, so the OS multiplier
+                    // must be off or the patient's 200 % setting becomes 400 %
+                    // and the composer truncates (SC 1.4.4).
+                    allowFontScaling={false}
+                    value={draft}
+                    onChangeText={setDraft}
+                    returnKeyType="send"
+                    onSubmitEditing={send}
+                    style={[
+                      styles.composerField,
+                      {
+                        backgroundColor: theme.surface,
+                        borderColor: dark ? "transparent" : theme.border,
+                        color: theme.ink,
+                        fontSize: scaledSize("body", fontScale),
+                      },
+                    ]}
+                  />
+                  {draft.length === 0 ? (
+                    // The field's own hint prop is a banned filler token in the
+                    // app source (invariant 17 scan) — an overlaid caption
+                    // carries the affordance instead.
+                    <View
+                      pointerEvents="none"
+                      // The field already carries this text as its name; read
+                      // again as a sibling it says the same thing twice.
+                      accessibilityElementsHidden
+                      importantForAccessibility="no-hide-descendants"
+                      style={styles.composerHintWrap}
+                    >
+                      <AppText role="body" color="inkFaint">
+                        {t("dialogue.typeThisStep")}
+                      </AppText>
+                    </View>
+                  ) : null}
+                </View>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={t("dialogue.send")}
+                  // Icon-only, so the disabled state has no visible word either:
+                  // the disabled opacity is the sighted half and this is the other.
+                  accessibilityState={{ disabled: draft.trim().length === 0 }}
+                  disabled={draft.trim().length === 0}
+                  onPress={send}
+                  style={({ pressed }) => [
+                    styles.sendButton,
+                    {
+                      backgroundColor: theme.cta,
+                      opacity:
+                        draft.trim().length === 0
+                          ? motion.press.disabledOpacity
+                          : pressed
+                            ? motion.press.opacity
+                            : 1,
+                    },
+                  ]}
+                >
+                  <Icon name="arrow.up" size={17} tintColor={theme.onCta} />
+                </Pressable>
+              </View>
+            ) : null}
+          </GlassBar>
+        </View>
       </View>
 
       <SectionSheet
-        visible={sheetOpen}
+        visible={sheetOpen && !stopsDialogue}
+        stopped={stopsDialogue}
         model={model}
         onClose={() => setSheetOpen(false)}
         onConfirmRow={confirmRow}
@@ -787,6 +902,9 @@ const styles = StyleSheet.create({
     maxWidth: "100%",
   },
   bottomStack: { position: "absolute", left: 0, right: 0, bottom: 0 },
+  // Its natural height while the stack has room, and it gives height back —
+  // then scrolls — once the stack is capped (INT-360).
+  barScroll: { flexGrow: 0, flexShrink: 1 },
   barItem: { marginBottom: spacing.sm },
   barStack: { gap: spacing.sm },
   composerRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm },

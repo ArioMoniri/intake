@@ -100,6 +100,8 @@ sections:
         required: false
         ask_tr:
           tr: Çalıştığınız işlerde uzun süre toz, duman ya da gaz soludunuz mu?
+        delivery: text_first
+        data_category: occupational
         openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.story.v1 recorded in docs/evidence/proposals/gogus_hastaliklari.md'
       istemsiz_kilo_kaybi:
         type: boolean

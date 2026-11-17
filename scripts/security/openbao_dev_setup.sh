@@ -36,6 +36,16 @@ path "database/creds/${policy}" { capabilities = ["read"] }
 POLICY
 done
 
+# INT-584 (owner decision D38) — the phone-tokenization key, which the API reads
+# from secret/api/tokenization only (intake_api.tokenization_key; the intake-api
+# policy's secret/data/api/* grant above). Random from openssl, never a literal,
+# and made once: a re-run keeps it, since a new key changes every pseudonym the
+# dev database holds. The value reaches the bao CLI on stdin only.
+if ! $BAO kv get -mount=secret -field=key api/tokenization >/dev/null 2>&1; then
+  printf '{"key": "%s", "origin": "generated"}' "$(openssl rand -hex 32)" |
+    $BAO_I kv put -mount=secret -cas=0 api/tokenization - >/dev/null
+fi
+
 # INT-032 — the openEHR export tier's CDR credentials. The compose `export`
 # profile configures EHRbase with the same dev pair; intake_platform.ehrbase
 # reads it from here and from nowhere else (invariant 14), so a machine that

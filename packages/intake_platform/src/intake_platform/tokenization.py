@@ -93,6 +93,19 @@ class Tokenizer:
         digest = hmac.new(self._keys[kid], _normalise(value).encode("utf-8"), hashlib.sha256)
         return f"{kid}.{digest.hexdigest()}"
 
+    @property
+    def key_ids(self) -> tuple[str, ...]:
+        """Every configured generation, active one first.
+
+        A pseudonym carries the key id it was signed under, so a LOOKUP by
+        identifier has to try each generation: after a rotation the rows
+        written before it are still reachable, instead of silently reading as
+        an unknown subject. Exposed rather than derived from configuration at
+        each call site, because "which keys exist" is this object's own fact.
+        """
+        others = tuple(sorted(key for key in self._keys if key != self._active))
+        return (self._active, *others)
+
     def log_ref(self, value: str) -> str:
         """What logs get: the first 8 hex chars of the digest — never the raw
         value, never the full pseudonym (invariant 6)."""

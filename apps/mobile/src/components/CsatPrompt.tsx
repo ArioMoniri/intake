@@ -28,6 +28,7 @@
  */
 import { useReducer } from "react";
 
+import { AnnouncedText } from "@/components/Announced";
 import { Segmented } from "@/components/Segmented";
 import { AppText, Card, Hairline } from "@/components/Themed";
 import { useConsentLedger } from "@/lib/consent/store";
@@ -86,9 +87,8 @@ export function CsatPrompt() {
               }
             }}
           />
-          <AppText role="caption" color="inkSoft">
-            {t("csat.thanks")}
-          </AppText>
+          {/* SC 4.1.3: the result of the patient's choice, announced (INT-362). */}
+          <AnnouncedText tone="status" role="caption" color="inkSoft" message={t("csat.thanks")} />
         </>
       )}
     </Card>

@@ -5,7 +5,7 @@
  * load-bearing one — native health modules cannot exist there, so the stub
  * answers `needs_dev_build` instead of crashing on a missing module.
  */
-import type { ConsentState } from "../dev/accounts";
+import type { ConsentState } from "../types/account";
 
 export type ConnectorKind = "expo_go_stub" | "healthkit" | "health_connect" | "unsupported";
 

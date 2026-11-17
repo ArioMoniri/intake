@@ -1,0 +1,567 @@
+{
+  "gpu_host_up": {
+    "status": "success",
+    "data": {
+      "resultType": "vector",
+      "result": [
+        {
+          "metric": {
+            "host_id": "gpu-a"
+          },
+          "value": [
+            1790503200.0,
+            "1"
+          ]
+        }
+      ]
+    }
+  },
+  "slo:api:availability:1h": {
+    "status": "success",
+    "data": {
+      "resultType": "vector",
+      "result": [
+        {
+          "metric": {},
+          "value": [
+            1790503200.0,
+            "0.0006"
+          ]
+        }
+      ]
+    }
+  },
+  "slo:api:availability:28d": {
+    "status": "success",
+    "data": {
+      "resultType": "vector",
+      "result": [
+        {
+          "metric": {},
+          "value": [
+            1790503200.0,
+            "0.0004"
+          ]
+        }
+      ]
+    }
+  },
+  "slo:api:availability:30m": {
+    "status": "success",
+    "data": {
+      "resultType": "vector",
+      "result": [
+        {
+          "metric": {},
+          "value": [
+            1790503200.0,
+            "0.0004"
+          ]
+        }
+      ]
+    }
+  },
+  "slo:api:availability:3d": {
+    "status": "success",
+    "data": {
+      "resultType": "vector",
+      "result": [
+        {
+          "metric": {},
+          "value": [
+            1790503200.0,
+            "0.0003"
+          ]
+        }
+      ]
+    }
+  },
+  "slo:api:availability:5m": {
+    "status": "success",
+    "data": {
+      "resultType": "vector",
+      "result": [
+        {
+          "metric": {},
+          "value": [
+            1790503200.0,
+            "0"
+          ]
+        }
+      ]
+    }
+  },
+  "slo:api:availability:6h": {
+    "status": "success",
+    "data": {
+      "resultType": "vector",
+      "result": [
+        {
+          "metric": {},
+          "value": [
+            1790503200.0,
+            "0.0005"
+          ]
+        }
+      ]
+    }
+  },
+  "slo:api:latency:1h": {
+    "status": "success",
+    "data": {
+      "resultType": "vector",
+      "result": [
+        {
+          "metric": {},
+          "value": [
+            1790503200.0,
+            "0.007"
+          ]
+        }
+      ]
+    }
+  },
+  "slo:api:latency:28d": {
+    "status": "success",
+    "data": {
+      "resultType": "vector",
+      "result": [
+        {
+          "metric": {},
+          "value": [
+            1790503200.0,
+            "0.009"
+          ]
+        }
+      ]
+    }
+  },
+  "slo:api:latency:30m": {
+    "status": "success",
+    "data": {
+      "resultType": "vector",
+      "result": [
+        {
+          "metric": {},
+          "value": [
+            1790503200.0,
+            "0.006"
+          ]
+        }
+      ]
+    }
+  },
+  "slo:api:latency:3d": {
+    "status": "success",
+    "data": {
+      "resultType": "vector",
+      "result": [
+        {
+          "metric": {},
+          "value": [
+            1790503200.0,
+            "0.012"
+          ]
+        }
+      ]
+    }
+  },
+  "slo:api:latency:5m": {
+    "status": "success",
+    "data": {
+      "resultType": "vector",
+      "result": [
+        {
+          "metric": {},
+          "value": [
+            1790503200.0,
+            "0.004"
+          ]
+        }
+      ]
+    }
+  },
+  "slo:api:latency:6h": {
+    "status": "success",
+    "data": {
+      "resultType": "vector",
+      "result": [
+        {
+          "metric": {},
+          "value": [
+            1790503200.0,
+            "0.008"
+          ]
+        }
+      ]
+    }
+  },
+  "slo:langfuse:trace_emission:1h": {
+    "status": "success",
+    "data": {
+      "resultType": "vector",
+      "result": []
+    }
+  },
+  "slo:langfuse:trace_emission:28d": {
+    "status": "success",
+    "data": {
+      "resultType": "vector",
+      "result": []
+    }
+  },
+  "slo:langfuse:trace_emission:30m": {
+    "status": "success",
+    "data": {
+      "resultType": "vector",
+      "result": []
+    }
+  },
+  "slo:langfuse:trace_emission:3d": {
+    "status": "success",
+    "data": {
+      "resultType": "vector",
+      "result": []
+    }
+  },
+  "slo:langfuse:trace_emission:5m": {
+    "status": "success",
+    "data": {
+      "resultType": "vector",
+      "result": []
+    }
+  },
+  "slo:langfuse:trace_emission:6h": {
+    "status": "success",
+    "data": {
+      "resultType": "vector",
+      "result": []
+    }
+  },
+  "slo:learning:availability:1h": {
+    "status": "success",
+    "data": {
+      "resultType": "vector",
+      "result": []
+    }
+  },
+  "slo:learning:availability:28d": {
+    "status": "success",
+    "data": {
+      "resultType": "vector",
+      "result": []
+    }
+  },
+  "slo:learning:availability:30m": {
+    "status": "success",
+    "data": {
+      "resultType": "vector",
+      "result": []
+    }
+  },
+  "slo:learning:availability:3d": {
+    "status": "success",
+    "data": {
+      "resultType": "vector",
+      "result": []
+    }
+  },
+  "slo:learning:availability:5m": {
+    "status": "success",
+    "data": {
+      "resultType": "vector",
+      "result": []
+    }
+  },
+  "slo:learning:availability:6h": {
+    "status": "success",
+    "data": {
+      "resultType": "vector",
+      "result": []
+    }
+  },
+  "slo:metrics:availability:1h": {
+    "status": "success",
+    "data": {
+      "resultType": "vector",
+      "result": []
+    }
+  },
+  "slo:metrics:availability:28d": {
+    "status": "success",
+    "data": {
+      "resultType": "vector",
+      "result": []
+    }
+  },
+  "slo:metrics:availability:30m": {
+    "status": "success",
+    "data": {
+      "resultType": "vector",
+      "result": []
+    }
+  },
+  "slo:metrics:availability:3d": {
+    "status": "success",
+    "data": {
+      "resultType": "vector",
+      "result": []
+    }
+  },
+  "slo:metrics:availability:5m": {
+    "status": "success",
+    "data": {
+      "resultType": "vector",
+      "result": []
+    }
+  },
+  "slo:metrics:availability:6h": {
+    "status": "success",
+    "data": {
+      "resultType": "vector",
+      "result": []
+    }
+  },
+  "slo:probes:availability:1h": {
+    "status": "success",
+    "data": {
+      "resultType": "vector",
+      "result": []
+    }
+  },
+  "slo:probes:availability:28d": {
+    "status": "success",
+    "data": {
+      "resultType": "vector",
+      "result": []
+    }
+  },
+  "slo:probes:availability:30m": {
+    "status": "success",
+    "data": {
+      "resultType": "vector",
+      "result": []
+    }
+  },
+  "slo:probes:availability:3d": {
+    "status": "success",
+    "data": {
+      "resultType": "vector",
+      "result": []
+    }
+  },
+  "slo:probes:availability:5m": {
+    "status": "success",
+    "data": {
+      "resultType": "vector",
+      "result": []
+    }
+  },
+  "slo:probes:availability:6h": {
+    "status": "success",
+    "data": {
+      "resultType": "vector",
+      "result": []
+    }
+  },
+  "slo:siem:alert_scrub:1h": {
+    "status": "success",
+    "data": {
+      "resultType": "vector",
+      "result": []
+    }
+  },
+  "slo:siem:alert_scrub:28d": {
+    "status": "success",
+    "data": {
+      "resultType": "vector",
+      "result": []
+    }
+  },
+  "slo:siem:alert_scrub:30m": {
+    "status": "success",
+    "data": {
+      "resultType": "vector",
+      "result": []
+    }
+  },
+  "slo:siem:alert_scrub:3d": {
+    "status": "success",
+    "data": {
+      "resultType": "vector",
+      "result": []
+    }
+  },
+  "slo:siem:alert_scrub:5m": {
+    "status": "success",
+    "data": {
+      "resultType": "vector",
+      "result": []
+    }
+  },
+  "slo:siem:alert_scrub:6h": {
+    "status": "success",
+    "data": {
+      "resultType": "vector",
+      "result": []
+    }
+  },
+  "slo:voice-runtime:availability:1h": {
+    "status": "success",
+    "data": {
+      "resultType": "vector",
+      "result": [
+        {
+          "metric": {},
+          "value": [
+            1790503200.0,
+            "0.075"
+          ]
+        }
+      ]
+    }
+  },
+  "slo:voice-runtime:availability:28d": {
+    "status": "success",
+    "data": {
+      "resultType": "vector",
+      "result": [
+        {
+          "metric": {},
+          "value": [
+            1790503200.0,
+            "0.004"
+          ]
+        }
+      ]
+    }
+  },
+  "slo:voice-runtime:availability:30m": {
+    "status": "success",
+    "data": {
+      "resultType": "vector",
+      "result": [
+        {
+          "metric": {},
+          "value": [
+            1790503200.0,
+            "0.08"
+          ]
+        }
+      ]
+    }
+  },
+  "slo:voice-runtime:availability:3d": {
+    "status": "success",
+    "data": {
+      "resultType": "vector",
+      "result": [
+        {
+          "metric": {},
+          "value": [
+            1790503200.0,
+            "0.006"
+          ]
+        }
+      ]
+    }
+  },
+  "slo:voice-runtime:availability:5m": {
+    "status": "success",
+    "data": {
+      "resultType": "vector",
+      "result": [
+        {
+          "metric": {},
+          "value": [
+            1790503200.0,
+            "0.09"
+          ]
+        }
+      ]
+    }
+  },
+  "slo:voice-runtime:availability:6h": {
+    "status": "success",
+    "data": {
+      "resultType": "vector",
+      "result": [
+        {
+          "metric": {},
+          "value": [
+            1790503200.0,
+            "0.02"
+          ]
+        }
+      ]
+    }
+  },
+  "vendor_breaker_state": {
+    "status": "success",
+    "data": {
+      "resultType": "vector",
+      "result": [
+        {
+          "metric": {
+            "component": "freya-tts",
+            "state": "closed"
+          },
+          "value": [
+            1790503200.0,
+            "1"
+          ]
+        },
+        {
+          "metric": {
+            "component": "freya-tts",
+            "state": "half_open"
+          },
+          "value": [
+            1790503200.0,
+            "0"
+          ]
+        },
+        {
+          "metric": {
+            "component": "freya-tts",
+            "state": "open"
+          },
+          "value": [
+            1790503200.0,
+            "0"
+          ]
+        },
+        {
+          "metric": {
+            "component": "voxcpm2-tts",
+            "state": "closed"
+          },
+          "value": [
+            1790503200.0,
+            "0"
+          ]
+        },
+        {
+          "metric": {
+            "component": "voxcpm2-tts",
+            "state": "half_open"
+          },
+          "value": [
+            1790503200.0,
+            "1"
+          ]
+        },
+        {
+          "metric": {
+            "component": "voxcpm2-tts",
+            "state": "open"
+          },
+          "value": [
+            1790503200.0,
+            "0"
+          ]
+        }
+      ]
+    }
+  }
+}

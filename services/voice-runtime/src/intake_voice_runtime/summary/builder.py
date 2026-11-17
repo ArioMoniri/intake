@@ -63,6 +63,7 @@ from clinical_schemas.note import (
     SelfReportedMeasure,
     SummaryCard,
 )
+from clinical_schemas.quantity import quantity_atom
 from clinical_schemas.triage import TriageLevel
 
 from intake_voice_runtime.note import (
@@ -84,9 +85,6 @@ from intake_voice_runtime.summary.copy import PatientSummaryCopy
 from intake_voice_runtime.summary.readability import assert_patient_readable
 
 __all__ = ["ComposedSummary", "SummaryLine", "SummaryRefused", "build_patient_summary"]
-
-#: One non-breaking space: number + unit is one atom (invariant 22).
-_NBSP: Final = " "
 
 #: What separates a line's authored marker from the words it is about.
 _SEPARATOR: Final = " — "
@@ -200,10 +198,11 @@ def _allergy_text(item: AllergyItem) -> str:
     return f"{item.substance} · {item.reaction}" if item.reaction else item.substance
 
 
-def _measure_text(item: SelfReportedMeasure) -> str:
-    # invariant 22: Decimal's str() never groups, and the number binds to its
-    # unit with a non-breaking space so no layout can split the pair.
-    return f"{item.magnitude}{_NBSP}{item.unit}"
+def _measure_text(item: SelfReportedMeasure, *, locale: str) -> str:
+    # invariant 22, through the one renderer (INT-386): no grouping, the
+    # patient's decimal point, and the number bound to its unit with a
+    # non-breaking space so no layout can split the pair.
+    return quantity_atom(item.magnitude, item.unit, locale=locale)
 
 
 def _imported_text(item: ImportedObjectiveItem) -> str:
@@ -342,7 +341,7 @@ def build_patient_summary(
     for fact, allergy in _paired(composed, "allergies", note.allergies):
         index.add(fact, _allergy_text(allergy))
     for fact, measure in _paired(composed, "measurements", note.measurements):
-        index.add(fact, _measure_text(measure))
+        index.add(fact, _measure_text(measure, locale=note.meta.language))
     for fact, imported in _paired(composed, "imported_objective", note.imported_objective):
         index.add(fact, _imported_text(imported))
 

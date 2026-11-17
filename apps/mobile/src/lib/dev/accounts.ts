@@ -4,71 +4,21 @@
  * fields deliberately fail the TCKN checksum shape). They exist so designers
  * and reviewers can walk the five tabs with realistic-looking state.
  *
- * These are compiled into __DEV__ builds only: the welcome screen renders
- * them behind `__DEV__`, and nothing else imports this module. Real sign-in
+ * Only development builds contain them (INT-410, audit F30). The welcome screen
+ * loads this module with an `import()` inside `if (__DEV__)`. A release build
+ * compiles `__DEV__` to `false`, and Metro drops the branch before it collects
+ * dependencies, so the module never enters the release bundle. No shipped
+ * module imports it statically, not even for a type: the shapes live in
+ * lib/types/account.ts. Tests import it directly.
+ * tests/release/test_release_bundle_has_no_fixtures.py builds the production
+ * export and checks that none of these strings is in it. Real sign-in
  * (INT-131, phone verification) replaces this path entirely.
  *
  * Pure TS — unit-testable; the consent shapes double as the fixture for the
  * tab-visibility rule (wellbeing hidden until consent — 02 §4).
  */
 
-import type { CarriedFact } from "../intake/carriedFacts";
-import type { VisitTypeId } from "../taxonomy/branches";
-
-export type NoteStatus = "draft" | "sent" | "viewed" | "filed";
-
-export interface ConsentState {
-  core: boolean;
-  voice: boolean;
-  wellbeing: boolean;
-  documents: boolean;
-  /**
-   * Device-local health data reading (INT-208): gates the HealthKit/Health
-   * Connect read on the phone itself. A NEW category of personal data, so it
-   * defaults OFF for every fixture — always an explicit patient opt-in, and
-   * nothing read under it is persisted or sent server-side.
-   */
-  health: boolean;
-}
-
-export interface VisitFixture {
-  id: string;
-  hospital: string;
-  /** The branch's tr name as the taxonomy prints it (invariant 5). */
-  department: string;
-  /** Taxonomy branch id (INT-134) — the visit's source of truth. */
-  branchId: string | null;
-  /** files/09 §1 visit type, carried into pack selection. */
-  visitType: VisitTypeId | null;
-  /** ISO date — null when the appointment is not booked yet (02 §2b). */
-  date: string | null;
-  noteStatus: NoteStatus | null;
-}
-
-export interface RecordFixture {
-  id: string;
-  title: string;
-  /** ISO date — synthetic. */
-  date: string;
-}
-
-export interface TestAccount {
-  id: string;
-  /** Display name — obviously synthetic, badge shown in Profil. */
-  name: string;
-  ageYears: number;
-  locale: "tr" | "en";
-  consents: ConsentState;
-  visits: VisitFixture[];
-  /**
-   * Facts carried out of the account's EARLIER visits (INT-247) — never
-   * "current medications". Each one names where it came from and when, and
-   * stays unconfirmed until the patient answers for the visit in hand
-   * (invariant 12). No doses invented; no dose is carried at all.
-   */
-  carriedFacts: CarriedFact[];
-  records: RecordFixture[];
-}
+import type { TestAccount } from "../types/account";
 
 export const testAccounts: readonly TestAccount[] = [
   {

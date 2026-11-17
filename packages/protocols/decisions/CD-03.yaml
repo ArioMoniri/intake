@@ -1,0 +1,76 @@
+kind: clinical_decision
+id: CD-03
+title: "Narrative PRESENT arms the scripted probe; it does not fire RED"
+question: "When the open narrative, the council or a document indicates that a red-flag feature is present, does that fire the RED rule directly, or does it only arm the class-4 scripted probe (StepPriority.RF_PROBE_ARMED)? What does a narrative denial yield?"
+decision: "A narrative, council or document reading of PRESENT or UNCLEAR on a rule-gate slot arms the class-4 probe and does not fire RED. The scripted question for that slot is asked at StepPriority.RF_PROBE_ARMED (class 4) at the first turn boundary with no class 0-3 step pending (SAFETY_SCRIPT, GATEKEEPER, OPEN_NARRATIVE, REENTRY), ahead of MUST_ASK and DETAIL; its answer is rendered on screen, and the rule fires only from the directly answered slot. NICE CG95 1.2.1.1 asks for this immediate direct check, and CLAUDE.md invariant 1 already bars council output from producing RED. A narrative denial never yields ASKED_ABSENT: the slot stays NOT_ASKED (rendered 'Sorulmadı') and the scripted question is still asked. The CKM history archetype records positive presence and sends explicit absence to a separate exclusion archetype, so this is the author's conservative choice rather than an openEHR rule (inference_disclosure), resting on the repository's rule that an unanswered slot is never an elicited negative. Arming does nothing for a slot already ASKED_ABSENT, because the frontier only picks NOT_ASKED or UNCLEAR steps; a red-flag value volunteered after its slot closed is the open blocker HB-C21 and is not decided here. Scope: patient-answerable rule slots. A rule whose gate is itself a deterministic transcript predicate (rf.crisis_disclosure_signposting, draft) is outside this decision. An armed probe that is never answered because the session ends is a clinician item; CD-08 (physician decision 7) names its recipient role and channel, and its deadline stays draft there."
+status: active
+scope: simulated_patient_stress_testing
+author_role: "emergency medicine and internal medicine/cardiology physician (agent)"
+inference_disclosure: "openEHR does model an explicitly reported absence (CLUSTER.exclusion_symptom_sign, named in the Symptom/Sign misuse text), so no cited source forbids recording an absence volunteered in narrative. Refusing it, so that ASKED_ABSENT comes only from a direct answer to the scripted question, is this author's conservative choice: a narrative denial is not the elicited negative a pertinent-negative list asserts. Arming rather than firing on a narrative PRESENT is likewise the author's operationalisation of NICE CG95 1.2.1.1's immediate check."
+spec_basis:
+  - file: files/13_QUESTION_FLOW.md
+    section: "§9.4 The budget governor — and which way it yields"
+    quote: "An 18-turn cap that can silently drop a must-ask is precisely the mechanism by which this product would generate a note asserting an unelicited negative."
+    supports: "narrative_absent, narrative_absent_state"
+  - file: files/protocols/base.life_threat.yaml
+    section: "RULE SCHEMA, gate"
+    quote: 'which renders as "Sorulmadı" — never as an elicited negative.'
+    supports: "narrative_absent_state"
+  - file: files/13_QUESTION_FLOW.md
+    section: "§9.1 Nine priority classes, one total order"
+    quote: "`RF_PROBE_ARMED (4)` — a red-flag probe whose arming evidence now exists"
+    supports: "probe_priority, probe_timing"
+  - file: files/13_QUESTION_FLOW.md
+    section: "§9.2 The frontier"
+    quote: "if S.state_of(s) in (NOT_ASKED, UNCLEAR)"
+    supports: "out_of_scope (arming does nothing for an ASKED_ABSENT slot)"
+  - file: files/HUMAN_BLOCKERS.md
+    section: "HB-C21"
+    quote: "A red-flag value disclosed AFTER its question closed binds nothing."
+    supports: "out_of_scope (value volunteered after the slot closed)"
+sources:
+  - kind: guideline
+    guideline_id: NICE-CG95
+    title: "Recent-onset chest pain of suspected cardiac origin: assessment and diagnosis"
+    version_or_date: "CG95, published 24 March 2010, last updated 30 November 2016; minor changes January 2020, August 2020, November 2020 and October 2022"
+    url: "https://www.nice.org.uk/guidance/cg95/chapter/Recommendations"
+    retrieved_on: 2026-10-02
+    quote: "Check immediately whether people currently have chest pain. If they are pain free, check when their last episode of pain was"
+    snapshot: packages/protocols/sources/NICE-CG95.txt
+  - kind: openehr_ckm
+    archetype_id: openEHR-EHR-CLUSTER.symptom_sign.v2
+    revision: "2.1.4"
+    url: "https://ckm.openehr.org/ckm/archetypes/1013.1.6769"
+    retrieved_on: 2026-10-03
+    quote: "This archetype has been designed to record the positive presence of the symptom or sign as part of history taking using OBSERVATION.story"
+    snapshot: packages/protocols/sources/openEHR-EHR-CLUSTER.symptom_sign.v2.txt
+  - kind: openehr_ckm
+    archetype_id: openEHR-EHR-CLUSTER.symptom_sign.v2
+    revision: "2.1.4"
+    url: "https://ckm.openehr.org/ckm/archetypes/1013.1.6769"
+    retrieved_on: 2026-10-03
+    quote: "Not to be used to record that a symptom or sign was explicitly reported as not present - use CLUSTER.exclusion_symptom_sign carefully for specific purposes where the overheads of recording in this way warrant the additional complexity."
+    caveat: "Cited for the separation of positive history from explicit absence; it does not itself forbid recording a volunteered absence (inference_disclosure)."
+    snapshot: packages/protocols/sources/openEHR-EHR-CLUSTER.symptom_sign.v2.txt
+  - kind: openehr_ckm
+    archetype_id: openEHR-EHR-OBSERVATION.symptom_sign_screening.v1
+    revision: "1.0.7"
+    url: "https://ckm.openehr.org/ckm/archetypes/1013.1.4432"
+    retrieved_on: 2026-10-03
+    quote: "Use to create a framework for recording answers to pre-defined screening questions about symptoms or signs."
+    snapshot: packages/protocols/sources/openEHR-EHR-OBSERVATION.symptom_sign_screening.v1.txt
+value:
+  narrative_present: arms_probe
+  narrative_unclear: arms_probe
+  narrative_absent: never_asked_absent
+  narrative_absent_state: NOT_ASKED
+  probe_priority: RF_PROBE_ARMED
+  probe_timing: "the first turn boundary with no class 0-3 step pending"
+  red_fires_from: direct_scripted_answer_only
+  applies_to: "rule_gate_slots and tense_anchors of CD-02"
+  out_of_scope: "rules whose gate is a system-derived transcript predicate (rf.crisis_disclosure_signposting, draft); a slot already ASKED_ABSENT, which arming cannot reopen because the frontier picks only NOT_ASKED or UNCLEAR steps (files/13 §9.2); a red-flag value volunteered after its slot closed, which is the open blocker HB-C21; recipient and deadline for an armed probe left unanswered at session end (CD-08)"
+verifier:
+  verdict: agree
+  role: "independent clinical verifier (agent; EM/IM/paediatrics)"
+  verified_on: 2026-10-03
+  notes: "Independent verification: round 1 agree_with_changes; round 2 agree. Every quote re-checked against the live source; the verifier saw only the committed output and the sources, never the authors' reasoning. Scope D18: simulated-patient stress testing only; a licensed physician's review is required before any real patient."

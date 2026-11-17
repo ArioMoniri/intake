@@ -1,7 +1,7 @@
 """INT-320 — the ``/embed/v1`` handshake routes (ADR-029).
 
 Two routes, both carrying the ``partner_embed`` consent-scan marker (there is
-no Vizite data subject at the door — the patient grants consent inside Vizite's
+no Önvizit data subject at the door — the patient grants consent inside Önvizit's
 own flow after the launch):
 
 - ``POST /embed/v1/launch-tickets`` — a partner backend mints a launch ticket.

@@ -86,7 +86,7 @@ sections:
         ask_tr:
           tr: Bebeğiniz son günlerde her zamankinden daha az mı besleniyor?
         openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/neonatoloji.md'
-      islak_bez_azalmasi:
+      az_cis:
         type: boolean
         required: false
         ask_tr:

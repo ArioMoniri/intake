@@ -79,7 +79,7 @@ export function withContext(
 /**
  * One turn of the voice dialogue, named for a screen reader.
  *
- * `speaker` is the catalog's Turkish speaker noun ("Vizite" / "Siz"); the
+ * `speaker` is the catalog's Turkish speaker noun ("Önvizit" / "Siz"); the
  * body parts are the words already rendered in the bubble. The speaker
  * always comes first because a transcript read without attribution is the
  * single largest accessibility defect the dialogue surface can have — left

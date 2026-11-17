@@ -29,7 +29,7 @@ def _config(tmp_path: Path) -> TenantEmbedConfig:
             "legal_root": "docs/legal/embed/dev-partner-alpha",
             "device_functions": False,
             "theme": {
-                "display_name": "Vizite Dev Partner",
+                "display_name": "Önvizit Dev Partner",
                 "locale": "tr",
                 "primary_color": "#0B5FFF",
                 "accent_color": "#00303C",
@@ -49,7 +49,7 @@ def test_resolve_returns_theme_and_consent_reference(tmp_path: Path) -> None:
     ctx = resolve_launch_context(claims, cfg)
     assert isinstance(ctx, LaunchContext)
     assert ctx.tenant_id == TENANT
-    assert ctx.display_name == "Vizite Dev Partner"
+    assert ctx.display_name == "Önvizit Dev Partner"
     assert ctx.locale == "tr"
     assert ctx.primary_color == "#0B5FFF"
     assert ctx.consent_doc_set_id == "embed.dev"

@@ -1,0 +1,17 @@
+# guideline_id: TR-CSGB-MESLEK-HASTALIKLARI-REHBERI-2012
+# title: Meslek Hastalıkları ve İş ile İlgili Hastalıklar Tanı Rehberi
+# publisher: T.C. Çalışma ve Sosyal Güvenlik Bakanlığı, İş Sağlığı ve Güvenliği Genel Müdürlüğü (İSGİP project TR0702.20-01/001)
+# version_or_date: No edition printed; PDF created 1 February 2012, modified 8 February 2012; 350 PDF pages; no later edition found on the Ministry site at retrieval
+# url: https://guvenlitarim.csgb.gov.tr/media/4l0jo25f/meslek-hastal%C4%B1klar%C4%B1-ve-i%C5%9F-ile-ilgili-hastal%C4%B1klar-rehberi.pdf
+# retrieved_on: 2026-10-03
+# retrieval: curl with a browser user-agent (HTTP 200, 3849455 bytes); text extracted with pdftotext (poppler); page numbers are PDF page indices; within each excerpted paragraph the PDF line wraps are joined with single spaces; characters otherwise kept as extracted
+# scope: verbatim excerpt of the preface opening (PDF p. 3) and the contact-dermatitis 'Semptom ve bulgular' paragraph (PDF p. 266); nothing paraphrased or edited; omissions marked [...]
+---
+[PDF p. 3]
+ÖNSÖZ
+[...]
+[PDF p. 266]
+Semptom ve bulgular
+Mesleki dermatitler sıklıkla ellerde başlar ve önkola yayılır. Fakat havadaki temas faktörleri aracılığıyla yüzde de görülebilir.
+İKD: Temas yerinde ısı artışı, kızarıklık, yanma, kaşınma, şişme, su toplanması, sızıntı, kuruluk, pullanma, ciltte kalınlaşma görülür. Ciddi olgularda su toplanması açık ve bazen enfekte yaralara dönüşebilir.
+AKD: Cildin kalın olduğu avuç içi gibi alanlar daha az, ince olduğu yüz ve genital bölge gibi alanlar daha çok etkilenir. Göz kapağı ve peniste sık görülür. Eller, önkollar, yüz, bazen boyun ve erkek genital bölgesi daha çok etkilenir. Ciltte kızarıklık, kaşıntı, inflamasyon, hassasiyet, lokal şişlik ve ciddi olgularda papül, bül, sızıntı, kabuklanma, pullanma, soyulma, kalınlaşma görülür.

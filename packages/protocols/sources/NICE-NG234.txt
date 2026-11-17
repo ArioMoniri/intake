@@ -1,0 +1,48 @@
+# guideline_id: NICE-NG234
+# title: Spinal metastases and metastatic spinal cord compression
+# publisher: National Institute for Health and Care Excellence (NICE)
+# version_or_date: NICE guideline NG234; published 06 September 2023; minor changes since publication August 2024 and March 2026 (Update information)
+# url: https://www.nice.org.uk/guidance/ng234/chapter/Recommendations
+# url_update_information: https://www.nice.org.uk/guidance/ng234/chapter/Update-information
+# retrieved_on: 2026-10-03
+# retrieval: curl with browser UA; HTML (utf-8) text-extracted; tags stripped and whitespace runs collapsed to single spaces as a browser renders them; blank lines dropped; non-breaking spaces (U+00A0) rendered as plain spaces; non-breaking hyphens (U+2011) kept as served
+# scope: verbatim excerpt of the page header, section 1.3 (Recognising spinal metastases or MSCC: 1.3.1, Box 1, 1.3.2, 1.3.3, 1.3.5) and two entries of the Update information chapter; nothing paraphrased or edited. '[...]' marks an omission between excerpts.
+---
+Reference number: NG234
+Published:
+06 September 2023
+[...]
+1.3 Recognising spinal metastases or MSCC
+For information on assessing low back pain, including risk assessment and the use of risk stratification tools, see NICE's guideline on low back pain and sciatica in over 16s.
+1.3.1
+Think about the possibility of spinal metastases or MSCC in people with any of the factors in box 1. See recommendations 1.3.2 to 1.3.6 for people presenting with current, past or suspected cancer and symptoms or signs of spinal metastases or cord compression. [2023]
+Box 1 Factors suggesting spinal metastases or MSCC
+Cancer:
+past or current diagnosis of cancer
+suspected diagnosis of cancer (see also NICE's guideline on suspected cancer).
+Pain characteristics suggesting spinal metastases:
+severe unremitting back pain
+progressive back pain
+mechanical pain (aggravated by standing, sitting or moving)
+back pain aggravated by straining (for example, coughing, sneezing or bowel movements)
+night-time back pain disturbing sleep
+localised tenderness
+claudication (muscle pain or cramping in the legs when walking or exercising).
+Symptoms and signs suggesting cord compression:
+bladder or bowel dysfunction
+gait disturbance or difficulty walking
+limb weakness
+neurological signs of spinal cord or cauda equina compression
+numbness, paraesthesia or sensory loss
+radicular pain.
+1.3.2
+Immediately contact the MSCC coordinator if a person with a past or current diagnosis of cancer presents with the symptoms or signs of cord compression listed in box 1. Treat this as an oncological emergency. [2023]
+1.3.3
+Seek advice through the MSCC coordinator (within 24 hours) if a person with a past or current diagnosis of cancer presents with pain with the characteristics suggesting spinal metastases listed in box 1. [2023]
+[...]
+1.3.5
+If a person without a past or current diagnosis of cancer has any of the pain characteristics listed in box 1 and cancer is suspected, refer them for urgent oncology assessment (see also the NICE guideline on suspected cancer). [2023]
+[...]
+September 2023: This guideline updates and replaces NICE guideline CG75 (November 2008).
+[...]
+March 2026: We simplified the guideline by removing recommendations on general principles of care that are covered in other NICE guidelines. We also updated the link to NICE's guideline on fertility problems in recommendation 1.10.1.

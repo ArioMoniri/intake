@@ -1,6 +1,6 @@
 """The kill switch: voice → typed, once, and never back (INT-096).
 
-Three routes into typed exist in the blueprint and each is a member of
+Four routes into typed exist in the blueprint and each is a member of
 :class:`LaneSwitchReason`:
 
 - **operator** — files/02 §375: *"the admin console can switch a tenant to
@@ -14,6 +14,11 @@ Three routes into typed exist in the blueprint and each is a member of
 - **``abort_voice``** — files/03 §4.5b T9: three T2 events in one session, or
   more than 25 % of turns degraded; *"complete in typed mode; mark the session
   ``modality_degraded``"*.
+- **``speech_lanes_exhausted``** — files/03 §4.9.4 row 11, *"then to row 12
+  for the rest of the session, then to ``typed``"*, and row 7, *"repeated
+  failure routes to ``typed``"* (INT-100): every speech lane the registry
+  orders has failed or is behind an open breaker, so the question the patient
+  could not hear is drawn on their screen in the same turn.
 
 **It is a latch, and that is a decision rather than an omission.** T9 says
 *complete* in typed. §4.5b's anti-flap rule — *"never change state more than
@@ -77,6 +82,7 @@ class LaneSwitchReason(enum.StrEnum):
     OPERATOR_KILL_SWITCH = "operator_kill_switch"
     UNRELIABLE_AUDIO = "unreliable_audio"
     ABORT_VOICE = "abort_voice"
+    SPEECH_LANES_EXHAUSTED = "speech_lanes_exhausted"
 
 
 class LaneSwitchRecord(FrozenModel):

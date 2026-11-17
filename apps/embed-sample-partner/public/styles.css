@@ -1,6 +1,6 @@
 /* INT-320 follow-up — sample partner page styling (ADR-029). Neutral, synthetic
    branding only; the real tenant theme is returned by /embed/v1/launch and
-   applied inside Vizite, not here. */
+   applied inside Önvizit, not here. */
 
 :root {
   --bg: #f4f6fb;
@@ -103,7 +103,7 @@ h1 {
   margin: 0 0 1.25rem;
 }
 
-#previsit-slot button[data-vizite-embed] {
+#previsit-slot button[data-onvizit-embed] {
   appearance: none;
   border: 0;
   border-radius: 10px;
@@ -115,11 +115,11 @@ h1 {
   cursor: pointer;
 }
 
-#previsit-slot button[data-vizite-embed]:hover {
+#previsit-slot button[data-onvizit-embed]:hover {
   filter: brightness(0.95);
 }
 
-#previsit-slot button[data-vizite-embed]:focus-visible {
+#previsit-slot button[data-onvizit-embed]:focus-visible {
   outline: 3px solid #9dc0ff;
   outline-offset: 2px;
 }

@@ -24,6 +24,7 @@ import { useEffect } from "react";
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { AnnouncedRegion } from "@/components/Announced";
 import { Kicker } from "@/components/Kicker";
 import { AppText, useTheme } from "@/components/Themed";
 import { verticalSlop } from "@/lib/a11y/target";
@@ -82,13 +83,19 @@ export function DialogueGate({ dispatch, onProbe }: DialogueGateProps) {
         {t("dialogue.entryBody")}
       </AppText>
       {/* The probe is a wait, and a spinner is invisible to a screen
-          reader — the row announces itself instead (SC 4.1.2). */}
-      <View style={styles.statusRow} accessible accessibilityLiveRegion="polite">
+          reader — the row announces itself instead (SC 4.1.2, 4.1.3), on
+          both platforms since INT-362. */}
+      <AnnouncedRegion
+        tone="status"
+        merged
+        message={t("voiceFirst.checking")}
+        style={styles.statusRow}
+      >
         <ActivityIndicator color={theme.primary} />
         <AppText role="label" color="inkSoft">
           {t("voiceFirst.checking")}
         </AppText>
-      </View>
+      </AnnouncedRegion>
       <View style={styles.typedRow}>
         <Pressable
           accessibilityRole="button"

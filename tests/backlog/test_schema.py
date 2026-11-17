@@ -64,9 +64,208 @@ def test_ids_unique_and_well_formed() -> None:
     # own issue instead of INT-352's)
     # + INT-358 (the owner's SMS vendor decision — DPA, KVKK Art. 9
     # cross-border mechanism, egress allow-list row — split out of INT-329
-    # because no agent may make it).
+    # because no agent may make it)
+    # + INT-359 (accessibility device audit and statement publication, split
+    # out of INT-226 because they are owner and counsel work)
+    # + INT-360..363 (the four WCAG defects the INT-226 report found:
+    # orientation lock, OTP paste/autofill, iOS error/status announcements,
+    # kiosk idle warning)
+    # + INT-364 (the owner's organisational evidence and counsel's readings
+    # for Board decision 2018/10, split out of INT-215)
+    # + INT-365..369 (the engineering gaps the INT-215 mapping found: staff
+    # second factor and session bounds, access review and offboarding, key
+    # rotation schedule, dependency updates, API fuzzing in CI).
+    # + INT-396 (backlog status reconciliation and its drift guard).
+    # + INT-401 (console rollback split out of INT-187; waits on a CD target).
+    # + INT-402..403 (split out of INT-123: the embedding-model choice and
+    # the consent-withdrawal handling of record vectors; both the owner's).
+    # + INT-408 (workers-tier SLO targets, split out of INT-021; the owner's).
+    # + INT-398..400 (split out of INT-122: the document-engine choice, the
+    # real e-Nabiz/MHRS samples, the on-device MHRS date-order defect).
+    # + INT-412 (Apple-native chrome: symbol registry, Liquid Glass, icon proposal).
+    # + INT-413 (counsel drafts for the open legal texts; never served).
     # Grow this count only with a stated reason.
-    assert len(ids) == 282
+    # + INT-372 (slice S5 of INT-354: the int-demo visit-card chevron fix,
+    # ported to main as its own one-issue PR).
+    # + INT-370 (slice S3 of INT-354: the int-demo visits calendar and Geçmiş
+    # list, ported to main as its own one-issue PR).
+    # + INT-317 (previsit output store + hospital read-back: filed on int-demo
+    # on 2026-09-04 and carried to main by INT-354 slice 1 with its code; the
+    # id is held by no other row on main or any remote branch).
+    # + INT-376 (the production API's move to Frankfurt, split out of INT-352
+    # because it waits on AWS approving the eu-central-1 GPU quota).
+    # + INT-318 (the Acıbadem appointments read source and /v1/visits/sync,
+    # INT-354 slice S2: cited by int-demo code with no backlog row anywhere).
+    # kiosk idle warning).
+    # + INT-377 (a malformed probe-results file 500'd /admin/models and
+    # /admin/ops; found by INT-181, fixed and closed in the same PR).
+    # + INT-380 (INT-121 clause 3, the LOINC+unit score on a named corpus,
+    # awaiting-human) + INT-381 (INT-124's on-hardware latency and live smoke,
+    # gpu), both split out by INT-124's PR so each delivered row can close.
+    # + INT-385 (record quantities render with the locale's decimal separator;
+    # found by INT-124's PR, filed as GitHub #635 and delivered as its own PR).
+    # + INT-373 (the Keycloak realm emits the claims the admin console
+    # requires; found by INT-365).
+    # + INT-392 (a session with a previsit output could not be deleted by the
+    # DSAR erasure, the retention executor or the integration teardown; found
+    # on main's check-integration, fixed and closed in the same PR).
+    # + INT-393 (a patient who issued a Doctor Link could not be erased; found
+    # by INT-392, fixed and closed in the same PR).
+    # + INT-391 (the console accepts every valid WebAuthn credential id; found
+    # by INT-378's PR, filed as GitHub #646 and delivered as its own PR).
+    # + INT-386 (the typed rail, note, patient summary and FHIR narrative write
+    # quantities through INT-385's renderer; INT-096's recorded defect, GitHub #638).
+    # + INT-387 (the accessibility conformance report re-rated after the
+    # INT-361..363 fixes, with a guard against rows that outlive their fix;
+    # found by INT-360's PR, filed as GitHub #640).
+    # + INT-397 (the three status lines INT-362 left silent are announced, and
+    # SC 4.1.3 moves to Supports; found by INT-387's MC-26, GitHub #659).
+    # + INT-390 (Keycloak 26.1.4 carried 64 OSV advisories and the realm on
+    # main never imported; found by INT-378, fixed and closed in the same PR).
+    # + INT-396 (backlog rows reconciled with what merged, and the status
+    # consistency guard; GitHub #655, carried by its own PR).
+    # + INT-405 (the backlog sync pages past 500 issues and keeps issue state in
+    # step with rows; found by INT-396, GitHub #675).
+    # + INT-409 (Vizitlerim reads "today" from an injected clock in the
+    # Europe/Istanbul day instead of a date pinned in every build; found by
+    # INT-179's close-out, GitHub #688).
+    # + INT-410 (the synthetic seed accounts leave the release bundle, proven
+    # over the production export; audit F30, found by INT-179's close-out,
+    # GitHub #689).
+    # + INT-404 (triage rule evidence lines write quantities for the reader's
+    # locale; INT-386's finding, GitHub #673).
+    # + INT-382 (the compiler refuses a suppress_slot in any layer that removes
+    # a slot a red-flag rule reads; H-1 of the PR #628 verification, GitHub #629).
+    # + INT-415 (ElevenLabs delivery profiles per question context and the
+    # on-prem TTS wiring guide; owner request, GitHub #706).
+    # + INT-429 (the vulnerabilities gate: brace-expansion and urllib3 upgrades,
+    # time-boxed node-forge exception; owner decision, GitHub #727).
+    # + INT-431 (the embed sample's JWT fixture is built at runtime so no
+    # token-shaped literal sits at rest; found merging main into #481, #733).
+    # + INT-395 (no path erased notification_preferences and the DSAR export
+    # did not list Doctor Links; found by INT-393, fixed and closed in the
+    # same PR).
+    # + INT-406 (RED acknowledgement: the clinic Safety inbox, its clock and
+    # SLA page — invariant 49, found unowned by INT-020's PR as GitHub #681).
+    # + INT-426 (CI on AWS: the gate runner over S3 + SSM with the aws-ci
+    # commit status; owner request, GitHub #721).
+    # + INT-407 (the files/02 §2b visit lifecycle — a RED visit cannot silently
+    # move; found by INT-406's PR, whose visit_transition had no caller, #684).
+    # + INT-432 (the clinical decisions register under owner decision D18,
+    # agent-authored and independently agent-verified; GitHub #735).
+    # + INT-378 (the Keycloak provider that writes the aaguid and credential_id
+    # session notes, GitHub #621) and INT-389 (its TOTP clause split out as an
+    # owner decision, GitHub #644).
+    # + INT-448 (the #642 sign-off packet items resolved under D18; GitHub #759).
+    # + INT-414 (conversational delivery around verbatim questions, stacked on
+    # INT-415; owner request, GitHub #705).
+    # + INT-447 (INT-414's 48 delivery lines verified under D18; GitHub #758).
+    # + INT-449 (Turkish voice casting: a native Turkish voice and model, owner
+    # request, GitHub #762).
+    # + INT-421 (production release: the admin tier on the AWS host, GitHub #713).
+    # + INT-463 (all CI jobs on the AWS self-hosted runner intake-aws-ci; owner
+    # order of 3 Oct 2026, GitHub #790) and INT-467 (that runner as a pool of
+    # three, each with its own user, daemon and network namespace, GitHub #799).
+    # + INT-500 (lockfile advisories since 4 Oct upgraded, not ignored, so the
+    # vulnerabilities gate stops blocking every merge; GitHub #851).
+    # order of 3 Oct 2026, GitHub #790).
+    # + INT-460 (a second admin approver on the synthetic host is a second
+    # Keycloak user, not a dev bearer; owner request, GitHub #785).
+    # + INT-453 (the voice-runtime RED path triggers the winning rule's own
+    # script, not rule_ids[0]; found by INT-446, GitHub #767).
+    # + INT-446 (a RED fires end to end in the app: the rules-engine hop on
+    # both lanes and the pre-positioned RED screen mounted; found by the
+    # INT-440 voice end-to-end test, GitHub #756).
+    # + INT-465 (the generic RED active from CD-24, and the synthetic host's red
+    # rule set signed with a synthetic-only OpenBao test key, D23; GitHub #794).
+    # + INT-524 (a pull request's superseded CI runs are cancelled, so the
+    # runner pool builds only current heads; GitHub #890).
+    # + INT-501 (http-cache-semantics lifted out of its advisory before its
+    # osv exception expires, GitHub #853) and INT-508 (node-forge and braces
+    # have no upstream fix: renew or replace before 1 Nov 2026, GitHub #865).
+    # + INT-424 (ElevenLabs delivery profiles v2 tuned from rendered samples and
+    # the expressive-model ADR proposal; owner request, GitHub #719).
+    # order of 3 Oct 2026, GitHub #790).
+    # + INT-430 (the agent council, reshaped into a post-bind verifier by the
+    # medical and AI/ML challenger reviews; owner request, GitHub #732).
+    # + INT-428 (hosted model lanes for the synthetic deployment, switchable
+    # from the admin panel with a GPU switch-over; owner decision, ADR-035,
+    # GitHub #724).
+    # + INT-475 (a hop RED reaches the clinic Safety inbox and the device's
+    # location answer reaches the server, so ON_SITE notifies staff; found by
+    # the #796 clinical reviews, INT-465 finding 6; GitHub #814).
+    # + INT-485 (the admin oauth2-proxy logs no staff email or client IP,
+    # invariant 6, GitHub #830).
+    # + INT-518 (live extraction gets the committed value table, so the code
+    # slots the active life-threat rules read can bind; from the INT-441
+    # clinical review, GitHub #884).
+    # + INT-521 (the live session evaluates triage on every bound answer, so a
+    # RED fires from the conversation; from INT-518, GitHub #887).
+    # + INT-522 (chest_pain.onset_at binds from its closed-choice answer by
+    # CD-05, so the K2 tense anchor is known live; from INT-518, GitHub #888).
+    # + INT-538 (one laptop command creates a staff user on the synthetic
+    # host; owner order, GitHub #906).
+    # + INT-442 (the synthetic AWS host's egress forward proxy, split from
+    # INT-428, GitHub #752).
+    # + INT-428 (hosted model lanes for the synthetic deployment, switchable
+    # from the admin panel with a GPU switch-over; owner decision, ADR-035,
+    # GitHub #724).
+    # + INT-442 (the synthetic AWS host's egress forward proxy, split from
+    # INT-428, GitHub #752).
+    # + INT-424 (ElevenLabs delivery profiles v2 tuned from rendered samples and
+    # the expressive-model ADR proposal; owner request, GitHub #719).
+    # + INT-443 (ElevenLabs as the synthetic host's hosted TTS, split from
+    # INT-428, GitHub #753).
+    # + INT-449 (Turkish voice casting: a native Turkish voice and model, owner
+    # request, GitHub #762).
+    # + INT-540 (the onset anchor always resolves: CD-04's UNCLEAR states, a
+    # defined clarification_needed and the session's close; from the INT-522
+    # clinical review, GitHub #913).
+    # + INT-531 (a RED evaluated between turns reaches the patient within the
+    # 300 ms budget; INT-521 residual 1, GitHub #898).
+    # + INT-544 (a pull request clears CI in under 20 minutes on the
+    # intake-aws-ci pool; owner order, GitHub #919).
+    # + INT-550 (a new staff user enrols a passkey after the password step;
+    # found on the synthetic host, GitHub #930).
+    # + INT-528 (the Netgsm OTP SMS adapter behind the INT-329 port, after the
+    # owner's vendor decision on INT-358; GitHub #895).
+    # + INT-573 (next/certifi/filelock lifted past the 27 Oct advisories, GitHub #965)
+    # + INT-450 (admin-web UI upgrade with the owner-listed component libraries,
+    # each licence-checked; owner request, GitHub #763).
+    # + INT-459 (admin-web premium redesign: Apple-native shell, glass on
+    # chrome only, tokens and AA contrast tested; owner request, GitHub #783).
+    # + INT-574 (the RED-never-waits test is deterministic under runner load:
+    # no wall-clock budget, a store the test holds; GitHub #967).
+    # + INT-576 (the Netgsm adapter parses the live success shape and never
+    # retries an unreadable 200; the owner's real send, GitHub #971).
+    # + INT-420 (Önvizit everywhere: the owner's rebrand finished on main, with
+    # a guard against the old name; owner request, GitHub #712).
+    # + INT-560 (the operability registry page tells the truth about the host
+    # it runs on; owner request, GitHub #948).
+    # + INT-529 (synthetic-scope consent texts, marked sentetik test metni and
+    # loaded only on the synthetic host; owner yes of 16 Oct 2026, GitHub #896).
+    # + INT-537 (the app grants the core consent that visits and notes
+    # require; INT-529 legal-author finding F2, GitHub #904).
+    # + INT-586 (opentelemetry-api past GHSA-ccrj-gw8r-854m, GitHub #986).
+    # + INT-590 (decode-uri-component past CVE-2026-118664, GitHub #991).
+    # + INT-559 (the app's voice lane never writes patient audio to a file —
+    # invariant 3 with no dev exception, from the INT-536 legal review;
+    # GitHub #947).
+    # + INT-536 (consent-screen copy true for the host and matching the
+    # consent texts; from the INT-529 legal-author findings, GitHub #903).
+    # + INT-585 (the owner's 28 Oct SMS decisions recorded as D34-D38, and the
+    # live Netgsm OTP confirmation; owner in chat, GitHub #984).
+    # + INT-587 (the note reaches the clinician from a release build: the
+    # note-sync client, the in-app share consent and Doctor Link from the app;
+    # store-listing legal review B4, GitHub #988).
+    # + INT-588 (patient copy is true in the no-voice release build; store-
+    # listing legal review B6 precondition, GitHub #989).
+    # + INT-591 (a release build offers no voice consent it cannot use, GitHub #993).
+    # + INT-592 (a truthful NSHealthUpdateUsageDescription so App Store
+    # processing accepts the iOS build, ITMS-90683; GitHub #1000).
+    # + INT-584 (the phone-tokenization key moves into OpenBao with the same
+    # key material, no pseudonym changes; owner decision D38, GitHub #983).
+    assert len(ids) == 386
     import re
 
     for i in ids:

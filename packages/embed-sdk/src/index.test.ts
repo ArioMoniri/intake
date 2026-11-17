@@ -29,7 +29,7 @@ describe("startPrevisit", () => {
   it("fetches a ticket and opens the branded https launch url", async () => {
     let opened: string | undefined;
     const result = await startPrevisit({
-      ticketEndpoint: "https://partner.example/vizite/ticket",
+      ticketEndpoint: "https://partner.example/onvizit/ticket",
       fetchImpl: okFetch(GOOD),
       open: (url) => {
         opened = url;
@@ -48,11 +48,11 @@ describe("startPrevisit", () => {
       return { ok: true, status: 200, json: async () => GOOD } as unknown as Response;
     }) as unknown as typeof fetch;
     await startPrevisit({
-      ticketEndpoint: "/vizite/ticket",
+      ticketEndpoint: "/onvizit/ticket",
       fetchImpl: spyFetch,
       open: () => undefined,
     });
-    expect(calledUrl).toBe("/vizite/ticket");
+    expect(calledUrl).toBe("/onvizit/ticket");
     expect(method).toBe("POST");
   });
 
@@ -155,7 +155,7 @@ describe("createStartButton", () => {
     const el = createStartButton(config) as unknown as FakeButton;
     expect(el.type).toBe("button");
     expect(el.textContent).toBe("Ön muayeneyi başlat");
-    expect(el.dataset["viziteEmbed"]).toBe("start-previsit");
+    expect(el.dataset["onvizitEmbed"]).toBe("start-previsit");
     button.click();
     await flush();
     expect(opened).toBe(GOOD.launch_url);

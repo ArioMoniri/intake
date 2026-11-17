@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import { getTestAccount, type TestAccount } from "../dev/accounts";
+import { getTestAccount } from "../dev/accounts";
+import type { TestAccount } from "../types/account";
 import type { FactDecision } from "./carriedFacts";
 import {
   buildNote,

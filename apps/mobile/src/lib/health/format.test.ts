@@ -27,6 +27,16 @@ describe("formatQuantity — invariant 22 display discipline", () => {
     expect(formatQuantity(6.4, "saat", "tr")).toBe(`6,4${NBSP}saat`);
     expect(formatQuantity(6.4, "h", "en")).toBe(`6.4${NBSP}h`);
   });
+
+  it("writes every digit the value has, and adds none (INT-385)", () => {
+    // A cap of one fraction digit printed 0.05 as 0,1: a clinical quantity
+    // rounded on its way to the screen.
+    expect(formatQuantity(0.05, "mg/L", "tr")).toBe(`0,05${NBSP}mg/L`);
+    expect(formatQuantity(1.25, "mg", "en")).toBe(`1.25${NBSP}mg`);
+    // No exponent at either end of the range.
+    expect(formatQuantity(5e-7, "g", "tr")).toBe(`0,0000005${NBSP}g`);
+    expect(formatQuantity(1e21, "g", "en")).toBe(`1000000000000000000000${NBSP}g`);
+  });
 });
 
 describe("formatRange", () => {

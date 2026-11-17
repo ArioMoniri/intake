@@ -24,6 +24,7 @@ from protocols.triage.engine import (
     evaluate_triage,
     rule_truth,
     when_truth,
+    winning_red_rule,
     with_candidates,
 )
 from protocols.triage.expr import (
@@ -49,5 +50,6 @@ __all__ = [
     "rule_truth",
     "temporal_within",
     "when_truth",
+    "winning_red_rule",
     "with_candidates",
 ]

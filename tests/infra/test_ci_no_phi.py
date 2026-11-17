@@ -454,11 +454,16 @@ def test_an_unpinned_action_fails(tmp_path: Path) -> None:
 # --- runner pools ---------------------------------------------------------------------
 
 
-def test_no_runner_pool_is_declared_today() -> None:
-    """HB-I7 (spend) and HB-L11 (physical residency is not legal residency). The
-    mechanism is here; the content is empty, and no location, provider or
-    hostname is invented to fill it."""
-    assert load_runner_pools(POOLS_FILE).pools == ()
+def test_the_only_declared_pool_is_the_aws_ci_pool() -> None:
+    """INT-463 declared intake-aws-ci on the owner's order of 3 Oct 2026. Every
+    field was read from the host and the GitHub API. The TR-DC pool stays
+    undeclared (HB-I7 spend for an in-country pool, HB-L11 residency), so no TR
+    location, provider or hostname is invented."""
+    pools = load_runner_pools(POOLS_FILE).pools
+    assert [pool.label for pool in pools] == ["intake-aws-ci"]
+    assert "Türkiye" in pools[0].location
+    assert pools[0].ephemeral is True
+    assert pools[0].phi_path is False
 
 
 def test_the_pool_ask_names_the_blocker_rows() -> None:
@@ -526,7 +531,8 @@ def test_a_github_hosted_label_resolves() -> None:
     assert "ubuntu-latest" in GITHUB_HOSTED_LABELS
 
 
-def test_a_self_hosted_label_fails_closed_while_no_pool_exists() -> None:
+def test_an_undeclared_self_hosted_label_fails_closed() -> None:
+    """The TR-DC label is still undeclared, so it resolves to nothing."""
     resolution = resolve_runs_on(["self-hosted", "intake-tr-1"], load_runner_pools(POOLS_FILE))
     assert resolution.kind is RunsOnKind.UNRESOLVED
     assert "HB-I7" in resolution.reason
@@ -718,8 +724,10 @@ def test_a_non_yaml_file_in_the_workflow_directory_is_skipped(tmp_path: Path) ->
 # --- the heartbeat --------------------------------------------------------------------
 
 
-def test_heartbeats_with_no_pool_report_nothing_to_check() -> None:
-    report = evaluate_heartbeats(load_runner_pools(POOLS_FILE), seen={}, now=0.0)
+def test_heartbeats_with_no_pool_report_nothing_to_check(tmp_path: Path) -> None:
+    path = tmp_path / "runners.yaml"
+    path.write_text("pools: []\n", encoding="utf-8")
+    report = evaluate_heartbeats(load_runner_pools(path), seen={}, now=0.0)
     assert report.checked == ()
     assert report.healthy is False
     assert "HB-I7" in report.detail
@@ -764,12 +772,25 @@ def test_the_probe_is_wired_into_the_registry() -> None:
     assert row.self_hosted_now is False
 
 
-def test_the_probe_reports_the_blocker_rather_than_a_fake_result() -> None:
+def test_the_probe_reports_the_blocker_rather_than_a_fake_result(tmp_path: Path) -> None:
     from intake_probes.probes import Skipped, runner_heartbeat
 
-    outcome = runner_heartbeat(load_runner_pools(POOLS_FILE), seen={}, now=0.0)
+    path = tmp_path / "runners.yaml"
+    path.write_text("pools: []\n", encoding="utf-8")
+    outcome = runner_heartbeat(load_runner_pools(path), seen={}, now=0.0)
     assert isinstance(outcome, Skipped)
     assert "HB-I7" in outcome.reason
+
+
+def test_the_declared_pool_without_a_collected_heartbeat_is_not_healthy() -> None:
+    """INT-463 declares intake-aws-ci, and no collector reads its status into
+    the sweep yet. A missing heartbeat must report as a failure, never as
+    healthy and never as skipped."""
+    from intake_probes.probes import Failed, runner_heartbeat
+
+    outcome = runner_heartbeat(load_runner_pools(POOLS_FILE), seen={}, now=0.0)
+    assert isinstance(outcome, Failed)
+    assert "intake-aws-ci" in outcome.detail
 
 
 def test_the_probe_fails_on_a_stale_pool(tmp_path: Path) -> None:
