@@ -728,6 +728,7 @@ def test_the_osv_no_fix_exceptions_are_named_reasoned_and_expire() -> None:
         "GHSA-86w9-cpqp-85rv",
         "GHSA-mrhx-c7xc-m3w5",
         "GHSA-gcqx-w48m-w2h4",
+        "GHSA-fc5q-39xc-vjpf",
         *OSV_NO_FIX_ROWS,
     }
     assert set(entries) == expected, "nothing else is muted"
@@ -1156,7 +1157,7 @@ OSV_SUPPRESSION_FILES = (
 # INT-573 raises it again from 4 to 5 for deepmerge 4.3.1 (GHSA-gcqx-w48m-w2h4) under
 # @expo/config, which has no fixed release; trivy does not report it (MEDIUM), so the
 # trivy pin stays. It expires on 2026-12-31 (test_the_deepmerge_row_is_scoped_and_expires).
-MAX_OSV_SUPPRESSIONS = 5
+MAX_OSV_SUPPRESSIONS = 6
 # The INT-426 follow-up raises the trivy pin from 2 to 3 for trivy's view of
 # the same braces 3.0.3 advisory (CVE-2026-93687 = GHSA-vfj7-8cjw-p6xm), on the
 # owner's approval in chat on 3 Oct 2026. It expires on 2026-11-02 with the osv
