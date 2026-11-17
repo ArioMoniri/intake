@@ -43,14 +43,14 @@ from __future__ import annotations
 import argparse
 import base64
 import hashlib
+import http.client
 import json
 import os
 import re
 import struct
 import sys
 import time
-import urllib.error
-import urllib.request
+import urllib.parse
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -515,7 +515,7 @@ class Transport(Protocol):
 
 
 class HttpTransport:
-    """urllib over HTTPS. Used only by --live."""
+    """HTTPS only, through http.client. Used only by --live."""
 
     def request(
         self,
@@ -525,16 +525,19 @@ class HttpTransport:
         headers: Mapping[str, str],
         body: bytes | None,
     ) -> tuple[int, bytes]:
-        if not url.startswith("https://"):
+        parts = urllib.parse.urlsplit(url)
+        if parts.scheme != "https" or not parts.hostname:
             raise ForbiddenRequest("only https is allowed")
-        req = urllib.request.Request(  # noqa: S310 - https checked above
-            url, data=body, method=method, headers=dict(headers)
-        )
+        target = parts.path or "/"
+        if parts.query:
+            target = f"{target}?{parts.query}"
+        conn = http.client.HTTPSConnection(parts.hostname, parts.port or 443, timeout=60)
         try:
-            with urllib.request.urlopen(req, timeout=60) as response:  # noqa: S310 - https only
-                return int(response.status), bytes(response.read())
-        except urllib.error.HTTPError as exc:
-            return int(exc.code), bytes(exc.read())
+            conn.request(method, target, body=body, headers=dict(headers))
+            response = conn.getresponse()
+            return int(response.status), bytes(response.read())
+        finally:
+            conn.close()
 
 
 @dataclass
