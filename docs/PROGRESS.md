@@ -4685,3 +4685,33 @@
   - Tests first: red 4 vitest + 2 pytest; green brand 19, mobile 2972, legal + release 964.
 - Next: merge #995 (INT-587) before or with #1001, then TestFlight build 7.
 - LOOP_STATUS: CONTINUE
+
+### 2026-11-17T22:40:00+03:00 · INT-354 · doing (branch int-354-build-source, local commit, no PR)
+- Goal: INT-354, acceptance verbatim:
+  - "every int-demo commit not on main (git log main..int-demo) lands through one-issue PRs or is dropped with its reason recorded in docs/evidence/INT-354.md"
+  - "demo-scoped code (hardcoded connector refs, recipients.demo.yaml) never reaches main"
+  - "main carries exactly one apps/mobile/app.json and one apps/mobile/eas.json"
+  - "an EAS build from main installs on a device and shows Önvizit"
+- Plan:
+  - The branch as found was `2c662f12`: the TestFlight build source, 748 commits behind main, never a PR.
+  - Merge origin/main (no rebase) and resolve every path to main's tree, so the demo-scoped `visits_acibadem.py` and the content still waiting for its own PR leave the branch tip.
+  - Record a per-commit disposition ledger and pin it with a test.
+- Tests added: `tests/release/test_int354_consolidation.py` (8 tests).
+  - The pinned 26-commit set has one ledger row each, from a closed vocabulary.
+  - A landed row names a backlog row and a PR; a dropped row names its reason.
+  - No `recipients.demo.yaml` is tracked, and no demo connector ref appears outside prose.
+  - There is exactly one app.json and one eas.json, with production profiles.
+  - Near-miss controls: the branch tip as found fails the demo-ref test, and a landed row naming an id with no backlog row (INT-371) fails.
+- Result:
+  - Red: 5 failed on `2c662f12`; 4 failed after the merge, before the ledger.
+  - Green: 8 passed. backlog + smoke + release 318 passed. intakeMode.spec 8 passed. Mobile typecheck exit 0. no_placeholders OK.
+  - `make check-ts` exit 0 (mobile 3151 tests). check-py-static exit 0. check-py: 6 env-only failures (shellcheck, NER artefact), coverage 94.80 %.
+  - check-integration, safety and security were not run (no Docker daemon).
+- Invariants touched and still passing: 17 (no placeholders) and 19/F06 (no demo connector refs on the tree). No code path changed: the tree is origin/main plus docs and the test.
+- Decisions / ADRs / `00_STATE.md` rows: none. Follow-up ids INT-615..618 are proposals only; none is filed.
+- Blocked on:
+  - Owner, HB-A3: "Run an EAS production build from main on a device and confirm it shows Önvizit." That needs EXPO_TOKEN, the Apple account, the App Attest entitlement (proposed INT-615) and INTAKE_APP_ATTEST_TEAM_ID.
+  - Owner: allocate or confirm the INT-615..617 ids, and decide S7/S8 (land or drop).
+  - clinical-reviewer: sign-off on INT-371 (#615).
+- Next: INT-371 merges main in; INT-615. INT-354 closes when every ledger row is landed or dropped and the device step is recorded.
+- LOOP_STATUS: WAITING_HUMAN
