@@ -4685,3 +4685,13 @@
   - Tests first: red 4 vitest + 2 pytest; green brand 19, mobile 2972, legal + release 964.
 - Next: merge #995 (INT-587) before or with #1001, then TestFlight build 7.
 - LOOP_STATUS: CONTINUE
+
+### 2026-11-17T21:30:00+03:00 · INT-358 · awaiting-human (PR open)
+- Goal: record the owner's KVKK m.9 cross-border mechanism for the Netgsm OTP path and the ElevenLabs clip text.
+- Plan: add a `files/00_STATE.md` D41 row quoting the owner, a changelog line, and an update to INT-529's blocker question; evidence in docs/evidence/INT-358.md.
+- Tests: `uv run pytest tests/backlog tests/docs -q`; `no_placeholders` OK.
+- Invariants touched and still passing: 17; 18 (no legal text changed).
+- Decisions / ADRs / `00_STATE.md` rows: D41.
+- Blocked on: the owner's signed standard contract and its Board notification date, and the Netgsm DPA.
+- Next: INT-529's notice text, once counsel says what the phone-entry notice must state.
+- LOOP_STATUS: WAITING_HUMAN
