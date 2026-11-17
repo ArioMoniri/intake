@@ -265,7 +265,10 @@ def test_ids_unique_and_well_formed() -> None:
     # processing accepts the iOS build, ITMS-90683; GitHub #1000).
     # + INT-584 (the phone-tokenization key moves into OpenBao with the same
     # key material, no pseudonym changes; owner decision D38, GitHub #983).
-    assert len(ids) == 386
+    # + INT-609, INT-610, INT-611 (the three widenings of the owner's ADR-033
+    # answers of 17 Nov 2026, D44: the ALERT haptic with a cold microphone, the
+    # SILENT screen-reader announcement, the orb's breathing scale <= 1.06).
+    assert len(ids) == 389
     import re
 
     for i in ids:
