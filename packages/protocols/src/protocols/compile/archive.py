@@ -40,6 +40,7 @@ __all__ = [
     "BUNDLE_ARCHIVE",
     "DIGEST_SUFFIX",
     "SIGNATURE_SUFFIX",
+    "SYNTHETIC_SIGNATURE_SUFFIX",
     "archive_sha256",
     "bundle_archive",
     "write_archive",
@@ -54,6 +55,11 @@ DIGEST_SUFFIX: Final = ".sha256"
 SIGNATURE_SUFFIX: Final = ".sigstore.json"
 """What ``cosign sign-blob --bundle`` writes beside the archive: a sigstore
 bundle carrying the message signature (see ``make sign``)."""
+
+SYNTHETIC_SIGNATURE_SUFFIX: Final = ".synthetic.json"
+"""The synthetic host's envelope beside the archive: the D23 OpenBao Transit test
+key's ed25519 signature over a ``intake.protocol_bundle.v1`` payload
+(``scripts/protocols/bundle_signature.py``). Only a synthetic tenant reads it."""
 
 _MEMBER_MODE: Final = 0o644
 

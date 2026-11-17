@@ -698,10 +698,17 @@
   title: "Signed protocol bundles: cosign sign + runtime verification + per-session hash pin"
   depends_on: [INT-041, INT-019]
   labels: [area:protocols, risk:security]
-  status: todo
+  status: awaiting-human
+  evidence: docs/evidence/INT-058.md
+  # BUILT ON THE BRANCH, PR #579 (17 Nov 2026). Compiler emits bundle.tar.gz; make sign
+  # (cosign, production) and scripts/protocols/bundle_signature.py (the D23 OpenBao
+  # Transit test key, synthetic host only) sign it; the runtime refuses unsigned or
+  # tampered bundles on both paths; the session pins the hash and the note meta shows it.
+  # Awaiting the owner: CODEOWNER review (packages/protocols), the INT-019 production
+  # key (HB-O6), and the ready security.yml patch in the evidence §11 (protected path).
   acceptance:
     - "compiler emits bundle.tar.gz signed; runtime refuses unsigned/tampered; note meta shows protocol hash"
-  tests: [tests/protocols/test_bundle_signature.py]
+  tests: [tests/protocols/test_bundle_signature.py, tests/protocols/test_bundle_synthetic_signature.py]
   sec_row: "protocol-registry"
 - id: INT-059
   epic: E03-protocols

@@ -1119,6 +1119,15 @@ it or whose tests exercise it.
   everything (key custody is INT-019); a session keeps its pinned hash across a deploy
   and never falls forward on resume; the note meta renders the pinned hash. Quarantine
   drill with the pack-lifecycle issues.
+- **Bundles on the synthetic host (INT-058, D23).** [S/E] a test-key bundle signature
+  trusted for a real tenant, or a red-rule-set signature replayed as a bundle signature.
+  Control: `intake_voice_runtime.protocol_trust.bundle_trust_for` picks one trust path by
+  tenant kind — a real tenant only ever gets the cosign trust root, a synthetic tenant only
+  the `trusted_keys.yaml` keys `admitted_scopes` admits, bound to the host it names
+  (`protocols.serving.trust.SyntheticTrust`). The payload kind `intake.protocol_bundle.v1`
+  differs from `intake.red_rule_set.v1`, and binds the archive sha256 and the host. The key,
+  token and signing step are D23's, unchanged (`infra/staging/redset_signer.sh sign`).
+  Tests: `tests/protocols/test_bundle_synthetic_signature.py`.
 - **Synthetic-only test key (INT-465, D23).** [S/E] a test signature trusted where a real
   patient may be. Control: the red rule set of the synthetic AWS host is signed by an ed25519
   key held non-exportable in OpenBao Transit there, used only through a sign-only token; the

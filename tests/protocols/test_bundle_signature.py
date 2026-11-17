@@ -280,8 +280,22 @@ class TestCompilerEmitsTheArchive:
         assert document.resolved_protocol_hash == bundle.resolved_protocol_hash
 
     def test_the_cli_prints_the_archive_digest(
-        self, tmp_path: Path, pack_tree: Path, capsys: pytest.CaptureFixture[str]
+        self,
+        tmp_path: Path,
+        pack_tree: Path,
+        capsys: pytest.CaptureFixture[str],
+        monkeypatch: pytest.MonkeyPatch,
     ) -> None:
+        # The SENTETİK set cites a tests/fixtures snapshot (INT-465), which the CLI
+        # refuses. The test opts in here, in test code, never in the CLI.
+        from functools import partial
+
+        import protocols.cli as cli
+        from protocols.compile import load_life_threat_set
+
+        monkeypatch.setattr(
+            cli, "load_life_threat_set", partial(load_life_threat_set, allow_fixture_snapshots=True)
+        )
         fixtures = pack_tree.parent
         exit_code = main(
             [

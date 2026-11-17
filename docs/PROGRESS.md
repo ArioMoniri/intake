@@ -1,5 +1,33 @@
 # PROGRESS — one entry per LOOP iteration (template in LOOP.md)
 
+### 2026-11-17T23:00:00+00:00 · INT-058 · awaiting-human (PR #579; CODEOWNER review, INT-019 key, protected CI patch)
+- Goal: acceptance verbatim — *"compiler emits bundle.tar.gz signed; runtime refuses unsigned/tampered; note meta shows protocol hash"*.
+- Plan:
+  - The branch (PR #579, `a6dcc53e`) was 715 commits behind `origin/main`. Merge main in, never rebase.
+  - Give the synthetic host a signing path with the existing D23 OpenBao Transit key. The key, the token, `redset_signer.sh sign` and `trusted_keys.yaml` are all unchanged. The new payload kind `intake.protocol_bundle.v1` binds the archive sha256 and the host.
+  - Add one `BundleTrust` seam in `protocols.serving.trust`, with two paths: cosign `TrustRoot` and `SyntheticTrust`.
+  - `intake_voice_runtime.protocol_trust.bundle_trust_for` picks the path by tenant kind alone.
+  - Write the CI half as a ready `security.yml` patch in the evidence §11.7. It is not applied.
+- Tests added (with the near-miss negative for any safety rule):
+  - `tests/protocols/test_bundle_synthetic_signature.py` (26): unsigned, tampered, edited-payload, forged, wrong-key, unknown-key, other-host, other-scope, malformed, red-set-envelope replay and sigstore-file cases are all refused; the script round-trips; the pin equals the NoteMeta hash.
+  - `tests/engine/test_protocol_trust.py` (4).
+  - Near-miss: the same registry that admits the key for a synthetic tenant gives a real tenant `TrustRootMissing`; an in-memory key claiming the committed D23 key id is refused.
+  - RED: collection error (`intake_voice_runtime.protocol_trust` missing). GREEN: 96 passed; `serving/trust.py`, `serving/pins.py` and `protocol_trust.py` are at 100 % branch coverage.
+- Result (`make check` / `make safety` / `make security` summary): `make check-py`: ruff and mypy (603 files) clean; every coverage lane passed (protocols 97.83 %, triage 100 %, voice-runtime 98.39 %, platform+api 94.80 %); 6 environmental failures (no `shellcheck`, no deid NER cache in a fresh worktree). `make safety` exit 0, mutations 18/18. `make security` was not run: its scanners are not installed here (evidence §11.6).
+- Invariants touched and still passing:
+  - **14**: signed packs on both paths; no key in the tree; fail closed without a trust root or with no host.
+  - **8**: coverage only rose.
+  - **17**: no bypass, no placeholder key.
+  - **13**: the L0 guard is unchanged.
+- Decisions / ADRs / `00_STATE.md` rows: none taken. This applies D23's key to a second payload kind on the same host. Confirmation is asked below.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id):
+  - owner, INT-019 / HB-O6 — *which key signs production protocol bundles, and where does its public half live?*
+  - owner — apply the evidence §11.7 `security.yml` patch (protected path).
+  - owner — *does D23's test key also sign protocol bundles for the synthetic host?*
+  - CODEOWNER review (packages/protocols).
+- Next: the owner's review of PR #579.
+- LOOP_STATUS: WAITING_HUMAN
+
 ### 2026-10-28T16:30:00+03:00 · INT-585 · done (PR open)
 - Goal: GitHub #984, Sec-Row `onboarding`. Record the owner's 28 Oct SMS decisions ("1Y 2Y 3Y 4Y 5Y") as D34-D38 in files/00_STATE.md §3, and the live Netgsm OTP confirmation in docs/evidence/INT-576.md.
 - Plan:

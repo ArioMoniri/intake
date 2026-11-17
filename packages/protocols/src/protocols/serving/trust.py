@@ -37,6 +37,23 @@ no default and no development bypass: with nothing configured,
 The production key's custody (KMS, OpenBao transit, or keyless CI identity)
 is INT-019's decision, awaiting the owner; tests mint an ephemeral key.
 
+**Two trust paths, one per tenant kind, and no third.** A :class:`BundleTrust`
+verifies the signature over the archive digest; everything after step 4 is
+shared. The composition root picks the trust for the tenant
+(``intake_voice_runtime.protocol_trust.bundle_trust_for``):
+
+- :class:`TrustRoot` — production, ``cosign sign-blob`` (``make sign``), read
+  from ``<archive>.sigstore.json``. The only path a real tenant has.
+- :class:`SyntheticTrust` — the synthetic AWS host only (files/00_STATE.md D23):
+  the existing ed25519 OpenBao Transit test key ``redset-synthetic-test``, signing
+  through ``infra/staging/redset_signer.sh sign`` exactly as it signs the red rule
+  set, read from ``<archive>.synthetic.json``. Its payload kind is
+  :data:`BUNDLE_PAYLOAD_KIND`, so a red-rule-set signature is never a bundle
+  signature, and it binds the archive digest and the one host it is for. It holds
+  only keys the tenant admitted (``intake_platform.red_signature.admitted_scopes``),
+  so the admission check runs before any cryptography: a real tenant cannot build
+  one with a key in it.
+
 **Deliberately not verified here.** No transparency-log inclusion proof: the
 serving tier is offline and in-country, and a Rekor entry would add a public
 network dependency to every session start. No keyless (Fulcio certificate)
@@ -60,20 +77,22 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
 from types import MappingProxyType
-from typing import ClassVar, Final
+from typing import ClassVar, Final, Literal, Protocol
 
 from clinical_schemas.common import FrozenModel, Sha256
 from cryptography.exceptions import InvalidSignature, UnsupportedAlgorithm
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import ec
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
 from cryptography.hazmat.primitives.asymmetric.utils import Prehashed
-from pydantic import ValidationError
+from pydantic import Field, ValidationError, field_validator
 
-from protocols.compile.archive import SIGNATURE_SUFFIX
+from protocols.compile.archive import SIGNATURE_SUFFIX, SYNTHETIC_SIGNATURE_SUFFIX
 from protocols.compile.bundle import MANIFEST, RESOLVED
 from protocols.compile.resolve import ResolvedProtocol, protocol_hash_of
 
 __all__ = [
+    "BUNDLE_PAYLOAD_KIND",
     "MAX_ARCHIVE_BYTES",
     "MAX_UNPACKED_BYTES",
     "TRUST_ROOT_ENV",
@@ -82,13 +101,18 @@ __all__ = [
     "BundleKey",
     "BundleManifest",
     "BundleRefused",
+    "BundleSignatureEnvelope",
     "BundleSignatureInvalid",
+    "BundleSignaturePayload",
+    "BundleTrust",
     "BundleUnsigned",
     "BundleUntrustedSigner",
+    "SyntheticTrust",
     "TrustRoot",
     "TrustRootInvalid",
     "TrustRootMissing",
     "VerifiedBundle",
+    "canonical_bundle_payload",
     "load_trust_root",
     "load_verified_bundle",
     "verify_bundle",
@@ -171,12 +195,41 @@ class BundleArchiveMalformed(BundleRefused):
 # --------------------------------------------------------------------------- trust root
 
 
+class BundleTrust(Protocol):
+    """What :func:`verify_bundle` needs from a trust path: where the signature
+    sits beside the archive, and a check of it over the archive's sha256.
+
+    ``verify_signature`` returns the signer's key id or raises a
+    :class:`BundleRefused` subclass. It parses nothing inside the archive.
+    """
+
+    @property
+    def signature_suffix(self) -> str: ...
+
+    def verify_signature(self, digest: bytes, signature: bytes) -> str: ...
+
+
 @dataclass(frozen=True, eq=False)
 class TrustRoot:
-    """The one public key protocol bundles must be signed by."""
+    """The one public key cosign-signed protocol bundles must be signed by."""
 
     key_id: str
     public_key: ec.EllipticCurvePublicKey
+    signature_suffix: ClassVar[str] = SIGNATURE_SUFFIX
+
+    def verify_signature(self, digest: bytes, signature: bytes) -> str:
+        """Steps 2-4 for a ``cosign sign-blob --bundle`` sigstore bundle."""
+        message = _parse_signature(signature)
+        if message.digest is not None and not hmac.compare_digest(message.digest, digest):
+            raise BundleHashMismatch("the archive is not the blob the signature declares")
+        try:
+            self.public_key.verify(message.signature, digest, ec.ECDSA(Prehashed(hashes.SHA256())))
+        except InvalidSignature as exc:
+            raise BundleSignatureInvalid(
+                f"the signature does not verify under trust-root key {self.key_id}: the "
+                "archive or the signature was altered, or another key signed it"
+            ) from exc
+        return self.key_id
 
     @classmethod
     def from_pem(cls, pem: bytes) -> TrustRoot:
@@ -217,6 +270,128 @@ def load_trust_root(env: Mapping[str, str] | None = None) -> TrustRoot:
             f"{TRUST_ROOT_ENV} names {path}, which cannot be read; no bundle loads — {_INT_019}"
         ) from exc
     return TrustRoot.from_pem(pem)
+
+
+# --------------------------------------------------------------------------- synthetic (D23)
+
+BUNDLE_PAYLOAD_KIND: Final = "intake.protocol_bundle.v1"
+"""The payload kind the D23 test key signs for a bundle. The red rule set's is
+``intake.red_rule_set.v1``: one key, two kinds, never interchangeable."""
+
+_ED25519_PUBLIC_BYTES: Final = 32
+_ED25519_SIGNATURE_BYTES: Final = 64
+
+
+class BundleSignaturePayload(FrozenModel):
+    """Exactly what the synthetic host's Transit key signs for one bundle."""
+
+    kind: Literal["intake.protocol_bundle.v1"] = Field(description="Payload kind.")
+    scope: str = Field(
+        pattern=r"^[a-z][a-z0-9_]{0,63}$", description="The key scope it was signed for."
+    )
+    archive_sha256: Sha256 = Field(description="sha256 of the exact bundle.tar.gz bytes.")
+    deployment: str = Field(
+        pattern=r"^[a-z0-9][a-z0-9-]{2,63}$",
+        description="The one host this signature is for: the synthetic AWS host's instance id.",
+    )
+
+
+class BundleSignatureEnvelope(FrozenModel):
+    """``bundle.tar.gz.synthetic.json``: the payload, its key and its signature."""
+
+    payload: BundleSignaturePayload = Field(description="What is signed.")
+    key_id: str = Field(
+        pattern=r"^[a-z0-9][a-z0-9-]*@[1-9][0-9]*$", description="<transit key>@<version>."
+    )
+    signature: str = Field(description="Raw 64-byte ed25519 signature, base64.")
+
+    @field_validator("signature")
+    @classmethod
+    def _is_an_ed25519_signature(cls, value: str) -> str:
+        try:
+            raw = base64.b64decode(value, validate=True)
+        except binascii.Error as exc:
+            raise ValueError("signature is not base64") from exc
+        if len(raw) != _ED25519_SIGNATURE_BYTES:
+            raise ValueError(f"signature is {len(raw)} bytes, not {_ED25519_SIGNATURE_BYTES}")
+        return value
+
+
+def canonical_bundle_payload(payload: BundleSignaturePayload) -> bytes:
+    """The bytes Transit signs: sorted keys, no whitespace, UTF-8 (as for the
+    red rule set, ``intake_platform.red_signature.canonical_payload_bytes``)."""
+    return json.dumps(
+        payload.model_dump(mode="json"), sort_keys=True, separators=(",", ":"), ensure_ascii=False
+    ).encode("utf-8")
+
+
+class SyntheticTrust:
+    """The D23 test keys a synthetic tenant admitted, and the host it runs on.
+
+    ``keys`` maps a key id to ``(scope, raw 32-byte ed25519 public key)``. The
+    caller passes only keys the tenant admits; an empty map is no trust root.
+    """
+
+    signature_suffix: ClassVar[str] = SYNTHETIC_SIGNATURE_SUFFIX
+
+    def __init__(self, *, keys: Mapping[str, tuple[str, bytes]], deployment: str) -> None:
+        if not keys:
+            raise TrustRootMissing(
+                "no test key is admitted for this tenant; no synthetic bundle loads"
+            )
+        loaded: dict[str, tuple[str, Ed25519PublicKey]] = {}
+        for key_id, (scope, raw) in keys.items():
+            if len(raw) != _ED25519_PUBLIC_BYTES:
+                raise TrustRootInvalid(f"test key {key_id} is not a raw ed25519 public key")
+            loaded[key_id] = (scope, Ed25519PublicKey.from_public_bytes(raw))
+        self._keys: Mapping[str, tuple[str, Ed25519PublicKey]] = MappingProxyType(loaded)
+        self._deployment = deployment
+
+    @property
+    def key_ids(self) -> frozenset[str]:
+        return frozenset(self._keys)
+
+    @property
+    def deployment(self) -> str:
+        return self._deployment
+
+    def verify_signature(self, digest: bytes, signature: bytes) -> str:
+        try:
+            envelope = BundleSignatureEnvelope.model_validate_json(signature)
+        except ValidationError as exc:
+            raise BundleSignatureInvalid(
+                "the signature file is not a synthetic protocol-bundle envelope"
+            ) from exc
+        admitted = self._keys.get(envelope.key_id)
+        if admitted is None:
+            raise BundleUntrustedSigner(
+                f"key {envelope.key_id} is not admitted for this tenant; nothing is verified"
+            )
+        scope, public_key = admitted
+        payload = envelope.payload
+        if payload.scope != scope:
+            raise BundleUntrustedSigner(
+                f"the payload names scope {payload.scope}, its key is {scope}"
+            )
+        try:
+            public_key.verify(
+                base64.b64decode(envelope.signature), canonical_bundle_payload(payload)
+            )
+        except InvalidSignature as exc:
+            raise BundleSignatureInvalid(
+                f"the signature does not verify under test key {envelope.key_id}: the "
+                "payload or the signature was altered, or another key signed it"
+            ) from exc
+        if not hmac.compare_digest(payload.archive_sha256.encode("ascii"), digest.hex().encode()):
+            raise BundleHashMismatch("the archive is not the one the test key signed")
+        if payload.deployment != self._deployment:
+            raise BundleUntrustedSigner(
+                f"the signature is for host {payload.deployment}, not this host"
+            )
+        return envelope.key_id
+
+    def __repr__(self) -> str:
+        return f"SyntheticTrust(key_ids={sorted(self._keys)!r}, deployment={self._deployment!r})"
 
 
 # --------------------------------------------------------------------------- the bundle
@@ -467,7 +642,7 @@ def _check_contents(
 def verify_bundle(
     archive: bytes,
     signature: bytes | None,
-    trust_root: TrustRoot,
+    trust_root: BundleTrust,
     *,
     expected_sha256: str | None = None,
 ) -> VerifiedBundle:
@@ -485,18 +660,7 @@ def verify_bundle(
         expected_sha256.strip().lower().encode("utf-8"), digest.hex().encode("ascii")
     ):
         raise BundleHashMismatch("the archive is not the one the deploy record pins")
-    message = _parse_signature(signature)
-    if message.digest is not None and not hmac.compare_digest(message.digest, digest):
-        raise BundleHashMismatch("the archive is not the blob the signature declares")
-    try:
-        trust_root.public_key.verify(
-            message.signature, digest, ec.ECDSA(Prehashed(hashes.SHA256()))
-        )
-    except InvalidSignature as exc:
-        raise BundleSignatureInvalid(
-            f"the signature does not verify under trust-root key {trust_root.key_id}: the "
-            "archive or the signature was altered, or another key signed it"
-        ) from exc
+    signer_key_id = trust_root.verify_signature(digest, signature)
     members = _read_members(archive)
     manifest, protocol = _check_contents(members)
     return VerifiedBundle(
@@ -505,21 +669,23 @@ def verify_bundle(
         protocol=protocol,
         artifacts=members,
         archive_sha256=digest.hex(),
-        signer_key_id=trust_root.key_id,
+        signer_key_id=signer_key_id,
     )
 
 
 def load_verified_bundle(
     archive_path: Path,
-    trust_root: TrustRoot,
+    trust_root: BundleTrust,
     *,
     expected_sha256: str | None = None,
 ) -> VerifiedBundle:
-    """Read ``bundle.tar.gz`` and the ``.sigstore.json`` beside it, once, then
-    :func:`verify_bundle` the bytes that were read (no check-then-reread)."""
+    """Read ``bundle.tar.gz`` and the signature beside it (the trust path's
+    ``signature_suffix``: ``.sigstore.json`` for cosign, ``.synthetic.json`` for
+    the D23 test key), once, then :func:`verify_bundle` the bytes that were read
+    (no check-then-reread)."""
     if archive_path.stat().st_size > MAX_ARCHIVE_BYTES:
         raise BundleArchiveMalformed(f"{archive_path} is larger than {MAX_ARCHIVE_BYTES} bytes")
-    signature_path = archive_path.with_name(archive_path.name + SIGNATURE_SUFFIX)
+    signature_path = archive_path.with_name(archive_path.name + trust_root.signature_suffix)
     signature = signature_path.read_bytes() if signature_path.is_file() else None
     return verify_bundle(
         archive_path.read_bytes(), signature, trust_root, expected_sha256=expected_sha256

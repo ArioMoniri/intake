@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**386 issues.** By phase: P0 184 · P1 148 · P2 47 · P3 7. By status: awaiting-human 39 · doing 7 · done 265 · todo 74 · withdrawn 1.
+**386 issues.** By phase: P0 184 · P1 148 · P2 47 · P3 7. By status: awaiting-human 40 · doing 7 · done 265 · todo 73 · withdrawn 1.
 
 ## P0
 
@@ -57,7 +57,7 @@
 | INT-055 | Deep pack: rheumatology | E03-protocols | INT-044 | area:protocols, risk:clinical, approval:human-clinical | todo |
 | INT-056 | Patient overlays set (8) + overlay_monotonicity property test | E03-protocols | INT-043 | area:protocols, risk:clinical | todo |
 | INT-057 | Protocol Authoring Agent: L0 drafts for every branch + no-serve guard | E03-protocols | INT-042 | area:protocols | done |
-| INT-058 | Signed protocol bundles: cosign sign + runtime verification + per-session hash pin | E03-protocols | INT-041, INT-019 | area:protocols, risk:security | todo |
+| INT-058 | Signed protocol bundles: cosign sign + runtime verification + per-session hash pin | E03-protocols | INT-041, INT-019 | area:protocols, risk:security | awaiting-human |
 | INT-059 | Triage golden suite >=200 + mutation tests | E03-protocols | INT-080 | area:protocols, risk:clinical | done |
 | INT-060 | Clip cache builder per voice + MinIO + coverage test | E03-protocols | INT-041, INT-034 | area:voice | done |
 | INT-080 | Deterministic triage engine (levels, monotonic merge, action scripts) | E04-engines | INT-040 | area:safety, risk:clinical | done |
