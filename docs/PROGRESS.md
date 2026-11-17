@@ -4685,3 +4685,31 @@
   - Tests first: red 4 vitest + 2 pytest; green brand 19, mobile 2972, legal + release 964.
 - Next: merge #995 (INT-587) before or with #1001, then TestFlight build 7.
 - LOOP_STATUS: CONTINUE
+
+### 2026-11-17T23:30:00+03:00 · INT-615 · awaiting-human (approval:human-clinical; committed locally, not pushed)
+- Goal: owner, 17 Nov 2026, *"yes source the 15 red flag rules"*. Source each draft_needs_source rule of base.life_threat against a committed verbatim snapshot, or leave it draft with the reason. Fill no value a snapshot does not state, and relax nothing (invariant 7).
+- Plan: count the draft rules; find a current guideline per trigger, threshold and level (Turkish first); commit snapshots; record the decision in the register (CD-107); run a verifier pass against each snapshot; tests first.
+- Tests added (with the near-miss negative for any safety rule): tests/protocols/test_int615_life_threat_sourcing.py (15). Near misses:
+  - "Stridor at rest", which RCH does not print, is not found;
+  - CD-107 with the age band flipped active is refused;
+  - the airway rule keeps K1 and all four triggers.
+  Red: 10 failed / 5 passed (snapshot and CD-107 absent). Green: 15 passed.
+- Result:
+  - protocols 1454 passed; no_placeholders 6 passed; backlog + smoke 74 passed (count pins 386 → 387, files/11 re-rendered);
+  - `make safety` exit 0 (triage 100 % branch, 18/18 mutations, 2366 + 121 passed);
+  - check-i18n 236 passed; check-ts exit 0; check-py: see docs/evidence/INT-615.md §8;
+  - not run here: check-integration (docker stack) and `make security` (tools absent).
+- Invariants touched and still passing:
+  - 7: nothing relaxed; K1 kept where EK-4 prints the named features at K2.
+  - 17: every unsourced value is the sanctioned literal in CD-107.
+  - 1, 10, 21: no rule, script or register changed.
+- Decisions / ADRs / `00_STATE.md` rows: CD-107. Findings:
+  - Count: base.life_threat holds 2 drafts. The 15 is the compiler's DRAFT_RULE_NOT_SERVED count: these 2 plus 13 base.intake red_flags skeletons, which are authorship (HB-C2/C4/C7, HB-L2, HB-C8) and were not touched.
+  - Airway rule: the trigger set is now sourced (RCH Melbourne acute upper airway obstruction CPG, March 2021, snapshot RCH-CPG-AUAO-2021). It stays draft because three values are unstated: level K1 vs K2, upper age bound, stridor qualifier.
+  - Crisis rule: stays draft (HB-C17, HB-C8).
+  - files/protocols/base.life_threat.yaml is byte-identical, so the D23 signature still verifies. One re-sign is needed after the physician's sign-off.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id):
+  - Dr Efe Onganer + a paediatrician (HB-C1): "Is a parent-reported stridor / drooling / tripod / muffled voice in a child EK-4 Kırmızı Kategori 1 or 2, what is the rule's upper age bound, and is the stridor trigger qualified?"
+  - Crisis lexicon: HB-C17 / HB-C8, unchanged.
+- Next: the independent clinical reviewer's verdict on CD-107. After sign-off, narrow the airway source_gap and re-sign the D23 set once.
+- LOOP_STATUS: WAITING_HUMAN

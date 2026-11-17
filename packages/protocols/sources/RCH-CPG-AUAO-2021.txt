@@ -1,0 +1,70 @@
+# guideline_id: RCH-CPG-AUAO-2021
+# title: Clinical Practice Guidelines: Acute upper airway obstruction
+# publisher: The Royal Children's Hospital, Melbourne (Paediatric Improvement Collaborative endorsed)
+# version_or_date: Last updated March 2021 (the date the page prints at retrieval)
+# url: https://www.rch.org.au/clinicalguide/guideline_index/Acute_upper_airway_obstruction/
+# retrieved_on: 2026-11-17
+# retrieval: curl with a browser user-agent (HTTP 200, HTML 109,525 bytes, sha256 67b4cf086a32813b02c9ac85f9ef3733e7be917dc13aad334a53903d15a59fcf); script and style removed, tags stripped, HTML entities decoded, whitespace runs inside an element collapsed to one space; a line break inside one bullet caused only by an inline link is joined with a single space. The assessment table is three columns: its header row is written on one line with ' | ' between the cells, then each column's cell is transcribed in column order (Mild, Moderate, Severe to complete), one <br/>-separated item per line. The differential-diagnoses table is written one row per block: the diagnosis line, then its features one per line. Words and punctuation are as printed.
+# scope: verbatim excerpt of the title and endorsement line, the Key points, the first Background line, the Assessment lead-in and severity table, three rows of the differential-diagnoses table (Retropharyngeal abscess, Peritonsillar abscess (quinsy), Epiglottitis) and the first Investigations paragraph, and the 'Last updated' line; nothing paraphrased or edited. '[...]' marks an omission between excerpts.
+# paediatric: yes — a children's-hospital guideline for children; the page states no numeric upper age bound (searched 2026-11-17 for 'age', 'years', 'adolescen').
+---
+Acute upper airway obstruction
+PIC Endorsed
+[...]
+Key points
+Allow children with acute upper airway obstruction to adopt a position of their choice and avoid causing distress
+Decompensation of acute upper airway obstruction can be rapid and requires emergency airway management
+In any child with severe acute upper airway obstruction, nebulised adrenaline may provide temporary relief while awaiting other definitive measures
+Background
+Due to their size, infants are most at risk of severe upper airway obstruction
+[...]
+Assessment
+Allow the child to settle quietly on parent’s lap in a position of their choice, and observe closely with minimal examination
+Rapidly assess airway patency and respiratory status:
+Mild obstruction | Moderate obstruction | Severe to complete obstruction
+Able to speak or cry, may be hoarse
+Intermittent stridor or occasional stertor
+Minimal or no work of breathing
+Good air entry
+Tachypnoea
+Stridor
+Prolonged inspiratory time
+Moderate work of breathing, nasal flaring, grunting, paradoxical chest movement
+Decreased air entry
+Hypoxia (late sign)
+Slow respiratory rate or marked tachypnoea
+Sniffing or tripod position
+Agitated or drowsy conscious state
+Severe work of breathing
+Markedly reduced or no air movement
+Silent gagging or coughing
+Total obstruction will rapidly progress to unconsciousness and cardiorespiratory arrest
+Differential diagnoses (the table below is not an exhaustive list)
+Presentations, particularly the bacterial causes, often overlap
+[...]
+Retropharyngeal abscess
+Sore throat
+Fever
+Neck pain and stiffness or torticollis
+Fullness and redness of posterior pharyngeal wall; may be midline but can be laterally behind tonsil
+Dysphagia and drooling
+Peritonsillar abscess (quinsy)
+Severe sore throat (often unilateral)
+Hot potato/muffled voice
+Trismus
+Swollen posterior palate and tonsil, with medial displacement of tonsil and deviation of the uvula
+Epiglottitis
+Inadequate Hib immunisation or immunocompromised
+High fever and systemically unwell
+Muffled voice
+Hyperextension of neck
+Dysphagia
+Pooling of secretions, drooling
+Absent cough
+Low pitched expiratory stridor or stertor
+[...]
+Management
+Investigations
+Children with moderate to severe upper airway obstruction are at high risk of deterioration and complete obstruction if they are upset, sedated or repositioned. Investigations should be deferred until the airway is secure
+[...]
+Last updated March 2021

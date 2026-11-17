@@ -265,7 +265,9 @@ def test_ids_unique_and_well_formed() -> None:
     # processing accepts the iOS build, ITMS-90683; GitHub #1000).
     # + INT-584 (the phone-tokenization key moves into OpenBao with the same
     # key material, no pseudonym changes; owner decision D38, GitHub #983).
-    assert len(ids) == 386
+    # + INT-615 (the draft red-flag rules of base.life_threat sourced or kept
+    # draft against committed snapshots; owner, 17 Nov 2026; CD-107).
+    assert len(ids) == 387
     import re
 
     for i in ids:
