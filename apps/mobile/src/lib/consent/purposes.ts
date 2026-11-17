@@ -20,12 +20,10 @@
  *   No optional purpose is needed to grant it or to use the service it
  *   covers. Withdrawing it closes every other purpose with it (the server
  *   cascade, which the core text states); re-granting it re-opens none.
- * - `optout` — the two learning purposes. They were on by default under
- *   their stated non-consent bases; INT-603 (legal review round 2, the
- *   owner's KVKK approval, D43 pending number) turned them OFF here and in
- *   the server registry until counsel records a lawful basis (HB-L27). The
- *   basis labels stay for counsel's review and grant nothing; turning one on
- *   needs its text, like any purpose. `optout` now only words the off switch.
+ * The two learning purposes are `toggle` açık rıza purposes too (INT-603
+ *   legal review round 2, legal lane, synthetic scope D25; D43): they start
+ *   OFF, and the registry's former service-performance and de-identified
+ *   opt-out bases are deleted — neither is a KVKK m.6/3 ground.
  */
 import type { MessageKey } from "@/lib/i18n";
 import type { ConsentState } from "@/lib/types/account";
@@ -42,8 +40,8 @@ export type PurposeId =
   | "satisfaction"
   | "research";
 
-export type LegalBasis = "explicit_consent" | "service_performance" | "deidentified_optout";
-export type PurposeUi = "toggle" | "optout";
+export type LegalBasis = "explicit_consent";
+export type PurposeUi = "toggle";
 
 export interface PurposeDef {
   id: PurposeId;
@@ -157,26 +155,26 @@ export const PURPOSES: readonly PurposeDef[] = [
   },
   {
     id: "learning:personal",
-    basis: "service_performance",
-    ui: "optout",
+    basis: "explicit_consent",
+    ui: "toggle",
     defaultGranted: false,
     parent: null,
     cascadeChildren: [],
     labelKey: "consent.learning.personal",
     whoKey: "consent.who.learningPersonal",
-    basisKey: "consent.basis.learningPersonal",
+    basisKey: "consent.basis.explicit",
     sessionKey: null,
   },
   {
     id: "learning:service_improvement",
-    basis: "deidentified_optout",
-    ui: "optout",
+    basis: "explicit_consent",
+    ui: "toggle",
     defaultGranted: false,
     parent: null,
     cascadeChildren: [],
     labelKey: "consent.learning.service",
     whoKey: "consent.who.learningService",
-    basisKey: "consent.basis.learningService",
+    basisKey: "consent.basis.explicit",
     sessionKey: null,
   },
   {

@@ -769,11 +769,7 @@ export const en: Record<MessageKey, string> = {
     "Your answers are used to evaluate the service; they do not go to your doctor.",
   "consent.who.research": "Your data is used in research only if you approve.",
   "consent.basis.explicit":
-    "Based on your explicit consent. You can withdraw at any moment; withdrawal takes effect immediately.",
-  "consent.basis.learningPersonal":
-    "Used so the service you configured can work. If you turn it off, personal learning stops.",
-  "consent.basis.learningService":
-    "The service is improved with aggregated data separated from your identity. Turning it off restricts no feature.",
+    "Based on your explicit consent. You can withdraw it at any time; withdrawal takes effect on this device immediately.",
   "consent.state.pending": "Text in preparation",
   "consent.state.stale": "Needs new approval",
   "consent.pending.body":
@@ -790,14 +786,10 @@ export const en: Record<MessageKey, string> = {
   "consent.detail.needsVoice":
     "This option can only be switched on while the voice session permission is on.",
   "consent.confirm.withdrawTitle": "Do you want to withdraw this consent?",
-  "consent.confirm.optoutTitle": "Do you want to turn this option off?",
   "consent.confirm.stops": "This stops:",
-  "consent.confirm.optoutNote":
-    "Turning it off takes effect on this device immediately and is sent at once while you are online.",
-  "consent.confirm.optoutAction": "Turn off",
   "consent.confirm.cancel": "Cancel",
   "consent.queue.note":
-    "Your changes were applied on this device; they will reach the server once a connection is available.",
+    "Your changes were applied on this device; they are sent once a connection is available while the app is open.",
 
   "me.health": "Health data",
   "health.guide.devBuild.kicker": "Preview build",
@@ -838,7 +830,6 @@ export const en: Record<MessageKey, string> = {
   "a11y.otp.digit": "Verification code digit",
   "a11y.consent.rowHint": "Double tap to open the consent text and details.",
   "a11y.consent.switchHint": "Double tap to turn this consent on or off.",
-  "a11y.consent.optoutHint": "Turns this option on or off.",
   // INT-140 — hints state the RESULT of the action (iOS HIG): a screen-reader
   // user knows what will happen before they act.
   "a11y.data.exportHint": "Double tapping sends your copy request.",

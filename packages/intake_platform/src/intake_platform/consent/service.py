@@ -18,12 +18,12 @@ Semantics, stated once and pinned by tests/legal/:
 - **withdraw** revokes the scope's live rows, then cascades in the SAME
   evaluation pass: dependent purposes (registry ``cascade_children``; core
   reaches everything) and live shares (core and share-family withdrawals
-  drop live Doctor-Link rows — files/06 §2.3). Withdrawal of a default-on
-  purpose with no rows materialises an opt-out row, because an opt-out that
-  leaves no record is an opt-out nobody can prove. A core withdrawal does
-  the same for every default-on purpose that has no row (INT-537): the core
-  text tells the patient every other permission closes with it, and a
-  re-grant of core re-enables none of them.
+  drop live Doctor-Link rows — files/06 §2.3). The core text tells the
+  patient every other permission closes with it, and a re-grant of core
+  re-enables none of them. No purpose defaults on (D43, INT-603), so a
+  purpose with no live row has nothing to revoke: withdrawing it writes
+  nothing, and its state is ``absent`` — not granted. Rows written as
+  opt-outs before INT-603 are revoked rows and read ``withdrawn``.
 - **sweep** is crash recovery for the window between the revocation mark
   and its cascade: it re-derives incomplete cascades and completes them,
   sparing anything granted after the withdrawal instant. Its schedule

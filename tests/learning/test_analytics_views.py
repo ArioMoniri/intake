@@ -175,7 +175,7 @@ def test_int603_loop_two_counts_only_a_live_grant() -> None:
     source = _INT603.read_text(encoding="utf-8")
     assert 'revision = "0015_int603"' in source
     assert 'down_revision = "0014_int123"' in source
-    upgrade = source[source.index("_OPT_IN_DDL =") : source.index("_OPT_OUT_DDL_0009 =")]
+    upgrade = source[source.index("_OPT_IN_DDL =") : source.index("def upgrade()")]
     assert "CREATE OR REPLACE VIEW analytics.v_loop2_sessions" in upgrade
     assert "WHERE EXISTS (" in upgrade
     assert "NOT EXISTS" not in upgrade  # near miss: the 0009 opt-out shape
@@ -183,6 +183,21 @@ def test_int603_loop_two_counts_only_a_live_grant() -> None:
     assert "g.revoked_at IS NULL" in upgrade
     # the upgrade is the only thing it runs, and it grants nothing new
     assert "GRANT" not in source
+
+
+def test_int603_downgrade_refuses_to_count_patients_who_never_granted() -> None:
+    """INT-603 legal review round 2: going back to 0009 would put every
+    patient with no row back into Loop 2, contradicting D43 — so the
+    downgrade raises, and says why."""
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location("int603_migration", _INT603)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    with pytest.raises(RuntimeError, match="never granted") as raised:
+        module.downgrade()
+    assert "D43" in str(raised.value)
 
 
 def test_the_opt_out_base_view_is_not_a_registered_view() -> None:

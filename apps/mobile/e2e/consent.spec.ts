@@ -141,9 +141,7 @@ describe("06 §2 purpose structure — closed list, registry order", () => {
   });
 
   it("no purpose is information-only any more, and its chrome is gone", () => {
-    expect(PURPOSES.map((p) => p.ui).filter((ui) => ui !== "toggle" && ui !== "optout")).toEqual(
-      [],
-    );
+    expect(PURPOSES.map((p) => p.ui).filter((ui) => ui !== "toggle")).toEqual([]);
     expect(Object.keys(tr)).not.toContain("consent.basis.service");
     expect(Object.keys(tr)).not.toContain("consent.state.service");
     for (const file of [
@@ -191,15 +189,15 @@ describe("06 §2 purpose structure — closed list, registry order", () => {
     expect(purposeDef("voice")!.cascadeChildren).not.toContain("lane:linguistic");
   });
 
-  it("learning purposes default OFF (INT-603 round 2), their basis labels kept for counsel", () => {
-    const personal = purposeDef("learning:personal")!;
-    const service = purposeDef("learning:service_improvement")!;
-    expect(personal.ui).toBe("optout");
-    expect(personal.basis).toBe("service_performance");
-    expect(personal.defaultGranted).toBe(false);
-    expect(service.ui).toBe("optout");
-    expect(service.basis).toBe("deidentified_optout");
-    expect(service.defaultGranted).toBe(false);
+  it("learning purposes are açık rıza toggles, default OFF (INT-603 legal review round 2)", () => {
+    for (const id of ["learning:personal", "learning:service_improvement"]) {
+      const def = purposeDef(id)!;
+      expect(def.ui, id).toBe("toggle");
+      expect(def.basis, id).toBe("explicit_consent");
+      expect(def.basisKey, id).toBe("consent.basis.explicit");
+      expect(def.defaultGranted, id).toBe(false);
+    }
+    expect(new Set(PURPOSES.map((p) => p.basis))).toEqual(new Set(["explicit_consent"]));
   });
 });
 
@@ -415,10 +413,11 @@ describe("INT-603 acceptance 1 — the first-run copy and its rows agree", () =>
     expect(list).toContain('t("consent.group.learning")');
   });
 
-  it("an opt-out row's switch is not announced as a consent", () => {
+  it("every switch is announced as the consent it is; no opt-out wording remains", () => {
     const list = read(SRC, "components", "ConsentList.tsx");
-    expect(list).toContain('t("a11y.consent.optoutHint")');
-    expect(tr["a11y.consent.optoutHint"]).not.toContain("izin");
+    expect(list).toContain('t("a11y.consent.switchHint")');
+    expect(list).not.toContain("optoutHint");
+    expect(list).not.toContain("consent.basis.learning");
   });
 });
 

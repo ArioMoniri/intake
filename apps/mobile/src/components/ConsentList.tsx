@@ -9,8 +9,8 @@
  *   after one confirmation; it keeps its own group because everything else rides on it;
  * - both lanes nest under voice as inset sub-rows; lane:linguistic is
  *   independent of the voice cascade and the group footer says so;
- * - the two learning purposes are default-on OPT-OUT switches with their
- *   honest basis copy as the sublabel;
+ * - the two learning purposes are açık rıza switches like the rest, off
+ *   until granted (INT-603 legal review round 2, D43);
  * - a purpose without a loaded text shows "Metin hazırlanıyor" and its
  *   switch is disabled for granting (fail closed — invariant 18);
  * - a stale grant shows "Yeniden onay gerekli"; tapping leads to the
@@ -39,12 +39,7 @@ import { MIN_TAP } from "@/lib/a11y/target";
 import { currentBuildMode, voiceGroupNoteKey } from "@/lib/buildCopy";
 import type { PurposeView } from "@/lib/consent/ledger";
 import type { PurposeId } from "@/lib/consent/purposes";
-import {
-  isConsentScope,
-  switchChecked,
-  switchIntent,
-  withdrawConfirmation,
-} from "@/lib/consent/switchIntent";
+import { switchChecked, switchIntent, withdrawConfirmation } from "@/lib/consent/switchIntent";
 import { t } from "@/lib/i18n";
 import { spacing } from "@/lib/theme";
 
@@ -76,9 +71,7 @@ function ConsentSwitch({ view, onPress }: { view: PurposeView; onPress: () => vo
       // voice-control user says) and the purpose follows as the context the
       // eye takes from the row.
       accessibilityLabel={withContext(label, t(view.labelKey))}
-      accessibilityHint={
-        isConsentScope(view) ? t("a11y.consent.switchHint") : t("a11y.consent.optoutHint")
-      }
+      accessibilityHint={t("a11y.consent.switchHint")}
       accessibilityState={{
         checked: switchChecked(view),
         disabled: view.display === "pending_text",
@@ -197,10 +190,8 @@ export function ConsentList({ views, onOpenDetail, onWithdraw }: ConsentListProp
       <View style={styles.section}>
         <Kicker label={t("consent.group.learning")} />
         <ListGroup>
-          {row("learning:personal", { sublabel: t("consent.basis.learningPersonal") })}
-          {row("learning:service_improvement", {
-            sublabel: t("consent.basis.learningService"),
-          })}
+          {row("learning:personal")}
+          {row("learning:service_improvement")}
         </ListGroup>
         {confirmFor(LEARNING)}
       </View>

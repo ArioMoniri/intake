@@ -10,7 +10,7 @@
  * - no consent-scope (açık rıza) row is checked before the patient acts, for a
  *   fresh ledger and for a real (otp) account's all-off seed;
  * - no row at all is checked on first run: legal review round 2 (the owner's
- *   KVKK approval, D43 pending number) turned the two learning rows off too,
+ *   KVKK approval, D43) turned the two learning rows off too,
  *   on the phone and in the server registry, until counsel records a basis;
  * - granting needs no confirmation: an unchecked switch opens the text, where
  *   the grant is made against it;
@@ -82,16 +82,10 @@ describe("acceptance 1 — no consent row defaults on, checked by purpose id", (
     }
   });
 
-  it("near miss: any id defaulting on fails, whatever its basis label says", () => {
-    const flipped = PURPOSES.map((p) =>
-      p.id === "research"
-        ? { ...p, defaultGranted: true, basis: "service_performance" as const }
-        : p,
-    );
+  it("near miss: any id defaulting on fails", () => {
+    const flipped = PURPOSES.map((p) => (p.id === "research" ? { ...p, defaultGranted: true } : p));
     expect(defaultOnViolations(flipped)).toEqual(["research"]);
-    const core = PURPOSES.map((p) =>
-      p.id === "core" ? { ...p, defaultGranted: true, basis: "deidentified_optout" as const } : p,
-    );
+    const core = PURPOSES.map((p) => (p.id === "core" ? { ...p, defaultGranted: true } : p));
     expect(defaultOnViolations(core)).toEqual(["core"]);
     const extra = [...PURPOSES, { id: "learning:other", defaultGranted: true }];
     expect(defaultOnViolations(extra)).toEqual(["learning:other"]);
@@ -114,8 +108,8 @@ describe("acceptance 1 — no consent row defaults on, checked by purpose id", (
         .filter(isConsentScope)
         .map((v) => v.id),
     ).toEqual(scopes);
-    expect(scopes).not.toContain("learning:personal");
-    expect(scopes).not.toContain("learning:service_improvement");
+    // every purpose, the learning ones included (legal review round 2)
+    expect(scopes).toEqual(PURPOSES.map((p) => p.id));
   });
 
   it("on a fresh ledger no consent-scope switch is checked", () => {
@@ -231,16 +225,22 @@ describe("acceptance 2 — granting needs no confirmation; withdrawing asks once
     expect(withdrawConfirmation(viewOf(freshLedger()), "learning:personal")).toBeNull();
   });
 
-  it("turning a granted learning row off is worded as turning an option off", () => {
-    let state = applyTexts(freshLedger(), { "learning:personal": loaded("v1", "d".repeat(64)) });
-    state = grant(state, "learning:personal", "2026-11-17T00:00:00Z").state;
-    const confirm = withdrawConfirmation(viewOf(state), "learning:personal")!;
-    expect(switchIntent(viewFor(state, "learning:personal"))).toBe("confirm_withdraw");
-    expect(confirm.titleKey).toBe("consent.confirm.optoutTitle");
-    expect(confirm.actionKey).toBe("consent.confirm.optoutAction");
-    expect(confirm.noteKey).toBe("consent.confirm.optoutNote");
-    expect(tr[confirm.noteKey]).toContain("hemen");
-    expect(confirm.stopKeys).toEqual(["consent.learning.personal"]);
+  it("a granted learning row withdraws as the consent it is (legal review round 2)", () => {
+    // both learning purposes are açık rıza now, so their confirmation is the
+    // consent withdrawal's: no separate opt-out wording exists any more
+    for (const [id, label] of [
+      ["learning:personal", "consent.learning.personal"],
+      ["learning:service_improvement", "consent.learning.service"],
+    ] as const) {
+      let state = applyTexts(freshLedger(), { [id]: loaded("v1", "d".repeat(64)) });
+      state = grant(state, id, "2026-11-17T00:00:00Z").state;
+      expect(switchIntent(viewFor(state, id)), id).toBe("confirm_withdraw");
+      const confirm = withdrawConfirmation(viewOf(state), id)!;
+      expect(confirm.titleKey, id).toBe("consent.confirm.withdrawTitle");
+      expect(confirm.noteKey, id).toBe("consent.detail.withdrawNote");
+      expect(confirm.actionKey, id).toBe("consent.detail.withdraw");
+      expect(confirm.stopKeys, id).toEqual([label]);
+    }
   });
 
   it("asking changes nothing; only the confirmed withdrawal queues the one audited op", () => {
@@ -258,13 +258,23 @@ describe("acceptance 2 — granting needs no confirmation; withdrawing asks once
 describe("acceptance 4 — the confirmation copy is catalogue chrome, tr first with an en mirror", () => {
   const KEYS = [
     "consent.confirm.withdrawTitle",
-    "consent.confirm.optoutTitle",
     "consent.confirm.stops",
-    "consent.confirm.optoutNote",
-    "consent.confirm.optoutAction",
     "consent.confirm.cancel",
-    "a11y.consent.optoutHint",
   ] as const;
+
+  it("the opt-out wording and the learning basis lines are gone (legal review round 2)", () => {
+    for (const key of [
+      "consent.basis.learningPersonal",
+      "consent.basis.learningService",
+      "consent.confirm.optoutTitle",
+      "consent.confirm.optoutNote",
+      "consent.confirm.optoutAction",
+      "a11y.consent.optoutHint",
+    ]) {
+      expect(Object.keys(tr), key).not.toContain(key);
+      expect(Object.keys(en), key).not.toContain(key);
+    }
+  });
 
   it("every new key exists in both catalogues", () => {
     for (const key of KEYS) {
@@ -275,12 +285,7 @@ describe("acceptance 4 — the confirmation copy is catalogue chrome, tr first w
 
   it("the Turkish copy is the siz register, short and factual", () => {
     expect(tr["consent.confirm.withdrawTitle"]).toBe("Bu izni geri çekmek istiyor musunuz?");
-    expect(tr["consent.confirm.optoutTitle"]).toBe("Bu seçeneği kapatmak istiyor musunuz?");
     expect(tr["consent.confirm.stops"]).toBe("Şunlar durur:");
-    expect(tr["consent.confirm.optoutNote"]).toBe(
-      "Kapatmak bu cihazda hemen geçerli olur; internete bağlıyken hemen gönderilir.",
-    );
-    expect(tr["consent.confirm.optoutAction"]).toBe("Kapatın");
     expect(tr["consent.confirm.cancel"]).toBe("Vazgeçin");
     for (const key of KEYS) {
       expect(tr[key], key).not.toMatch(/\b(sen|senin|sana)\b/i);
@@ -304,14 +309,32 @@ describe("acceptance 4 — the confirmation copy is catalogue chrome, tr first w
   it("the immediacy lines claim only what is true without a stored queue (item 4)", () => {
     // the consent queue is in memory (store.ts); persisting it is a new
     // on-device data category, a stop-and-ask, so the copy says what holds now
-    for (const key of ["consent.detail.withdrawNote", "consent.confirm.optoutNote"] as const) {
-      expect(tr[key].toLocaleLowerCase("tr"), key).toContain("bu cihazda hemen");
-      expect(tr[key], key).toContain("internete bağlıyken");
-      expect(en[key], key).toContain("on this device");
-      expect(en[key], key).toContain("while you are online");
-    }
+    const key = "consent.detail.withdrawNote";
+    expect(tr[key].toLocaleLowerCase("tr"), key).toContain("bu cihazda hemen");
+    expect(tr[key], key).toContain("internete bağlıyken");
+    expect(en[key], key).toContain("on this device");
+    expect(en[key], key).toContain("while you are online");
     expect(tr["consent.detail.withdrawNote"]).toBe(
       "Bu cihazda hemen geçerli olur; internete bağlıyken hemen gönderilir.",
+    );
+  });
+
+  it("the açık rıza basis line says withdrawal is immediate on this device (round 2, item 5)", () => {
+    expect(tr["consent.basis.explicit"]).toBe(
+      "Açık rızanıza bağlıdır. İstediğiniz an geri çekebilirsiniz; geri çekmek bu cihazda hemen geçerli olur.",
+    );
+    expect(tr["consent.basis.explicit"]).toContain("bu cihazda hemen");
+    expect(en["consent.basis.explicit"]).toBe(
+      "Based on your explicit consent. You can withdraw it at any time; withdrawal takes effect on this device immediately.",
+    );
+  });
+
+  it("the queue note says sending needs the app open (round 2, item 6)", () => {
+    expect(tr["consent.queue.note"]).toBe(
+      "Değişiklikleriniz bu cihazda uygulandı; uygulama açıkken bağlantı kurulunca iletilir.",
+    );
+    expect(en["consent.queue.note"]).toBe(
+      "Your changes were applied on this device; they are sent once a connection is available while the app is open.",
     );
   });
 });

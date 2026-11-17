@@ -4718,10 +4718,15 @@
   - Item 4 was reworded rather than persisted, because persisting consent ops on the device is a new on-device data category.
   - Item 1 is only partly done. The default-on check now reads purpose ids, with a shrink-only exception for the two learning ids. Seeding them OFF needs the server registry and files/06 §2 to change, which is a consent-semantics stop-and-ask, so it is left to the owner and counsel (HB-L27).
   - Green run: mobile vitest 3190; release/legal/backlog pytest 1020.
-- Update (legal review round 2): the coordinator relayed the owner's KVKK approval. Fail-closed changes:
+- Update (legal review round 2, first pass): the coordinator relayed the owner's KVKK approval. Fail-closed changes:
   - Both learning purposes now default OFF in the server registry and on the phone. The server's default-on paths are removed.
   - Migration 0015 makes Loop 2 count only patients with a live grant.
   - Wait-time rollups now exclude patients who never granted. An empty cohort shows as suppressed (n=0, no mean), never as zero.
-  - files/06 §2 and §4 now say "off until the patient turns it on" and point to D43 (number pending). The coordinator adds the 00_STATE row.
+  - files/06 §2 and §8 now say "off until the patient turns it on" and point to D43 (number pending). The coordinator adds the 00_STATE row.
   - The learning group line is removed, and the learning basis sublabels no longer say "comes switched on".
   - Merge note: 0015 is a new alembic head.
+- Update (legal review round 2 on f719128a, legal lane, synthetic scope D25):
+  - Every purpose is now açık rıza; the service-performance and de-identified-opt-out bases are deleted.
+  - All opt-out copy and keys are removed. `consent.basis.explicit` and `consent.queue.note` are set to the reviewer's wording.
+  - The 0015 downgrade raises.
+  - The stale-hash gap is a blockers.md row (HB-L27).

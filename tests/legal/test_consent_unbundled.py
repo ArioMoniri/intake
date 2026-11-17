@@ -67,15 +67,24 @@ def _defaults_on(purposes: tuple[PurposeDef, ...]) -> tuple[str, ...]:
 
 
 def test_no_purpose_defaults_on_not_even_the_learning_ones() -> None:
-    # INT-603 legal review round 2 (the owner's KVKK approval, D43 pending
-    # number): files/06 §2 now says both learning purposes are off until the
-    # patient turns them on. KVKK m.6 as amended by Law 7499 leaves no
+    # INT-603 legal review round 2 (the owner's KVKK approval, D43): files/06
+    # §2 now says both learning purposes are off until the patient turns them
+    # on. KVKK m.6 as amended by Law 7499 leaves no
     # non-consent ground that plainly carries health data for them, and until
     # counsel records one (HB-L27) the answer fails closed.
     assert _defaults_on(PURPOSES) == ()
     by_id = {p.id: p for p in PURPOSES}
-    assert by_id["learning:personal"].legal_basis is LegalBasis.SERVICE_PERFORMANCE
-    assert by_id["learning:service_improvement"].legal_basis is LegalBasis.DEIDENTIFIED_OPTOUT
+    assert by_id["learning:personal"].legal_basis is LegalBasis.EXPLICIT_CONSENT
+    assert by_id["learning:service_improvement"].legal_basis is LegalBasis.EXPLICIT_CONSENT
+
+
+def test_every_purpose_basis_is_explicit_consent() -> None:
+    """INT-603 legal review round 2 (legal lane, synthetic scope, D25):
+    SERVICE_PERFORMANCE and DEIDENTIFIED_OPTOUT were deleted — neither is a
+    KVKK m.6/3 ground — so every purpose, the learning ones included, is
+    açık rıza, and the enum offers no other basis to pick."""
+    assert {p.legal_basis for p in PURPOSES} == {LegalBasis.EXPLICIT_CONSENT}
+    assert [basis.value for basis in LegalBasis] == ["explicit_consent"]
 
 
 def test_near_miss_a_learning_default_flipped_on_fails_the_check() -> None:
@@ -84,14 +93,11 @@ def test_near_miss_a_learning_default_flipped_on_fails_the_check() -> None:
             dataclasses.replace(p, default_granted=True) if p.id == scope else p for p in PURPOSES
         )
         assert _defaults_on(flipped) == (scope,)
-    # and relabelling the basis does not hide it
-    relabelled = tuple(
-        dataclasses.replace(p, default_granted=True, legal_basis=LegalBasis.SERVICE_PERFORMANCE)
-        if p.id == "research"
-        else p
-        for p in PURPOSES
+    # and the check reads ids, so any other id flipped on fails the same way
+    research = tuple(
+        dataclasses.replace(p, default_granted=True) if p.id == "research" else p for p in PURPOSES
     )
-    assert _defaults_on(relabelled) == ("research",)
+    assert _defaults_on(research) == ("research",)
 
 
 def test_server_side_state_matches_the_defaults_for_a_fresh_patient(

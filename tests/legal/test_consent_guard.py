@@ -718,8 +718,9 @@ def test_consent_state_reports_stale_against_the_current_text(
 def test_purpose_definitions_carry_their_lawful_basis() -> None:
     by_id = {p.id: p for p in PURPOSES}
     assert by_id["core"].legal_basis is LegalBasis.EXPLICIT_CONSENT
-    assert by_id["learning:personal"].legal_basis is LegalBasis.SERVICE_PERFORMANCE
-    assert by_id["learning:service_improvement"].legal_basis is LegalBasis.DEIDENTIFIED_OPTOUT
+    # INT-603 legal review round 2: açık rıza for both learning purposes
+    assert by_id["learning:personal"].legal_basis is LegalBasis.EXPLICIT_CONSENT
+    assert by_id["learning:service_improvement"].legal_basis is LegalBasis.EXPLICIT_CONSENT
     assert by_id["share"].parameterised is True
 
 

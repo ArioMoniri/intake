@@ -20,10 +20,8 @@
  * Withdrawal stays as easy as grant (files/06 §2): two taps each from the list
  * (switch + confirm; row + "Okudum, kabul ediyorum").
  *
- * The two learning rows carry the registry's non-consent basis labels
- * (service performance, de-identified opt-out), so turning a granted one off
- * is worded as turning an option off. Since INT-603 round 2 both start off;
- * whether any ground beyond açık rıza carries them is HB-L27.
+ * Every purpose is açık rıza (INT-603 legal review round 2), the learning
+ * ones included, so every confirmation is the consent withdrawal's.
  */
 import type { MessageKey } from "@/lib/i18n";
 
@@ -45,7 +43,7 @@ export interface WithdrawConfirmation {
 
 /**
  * Purpose ids allowed to default on. Round 1 named the two learning ids here;
- * round 2 (the owner's KVKK approval, D43 pending number) turned them off on
+ * round 2 (the owner's KVKK approval, D43) turned them off on
  * the phone and in the server registry, so the list is EMPTY and may only
  * stay so — a new entry is a pre-tick.
  */
@@ -63,8 +61,8 @@ export function defaultOnViolations(
     .map((p) => p.id);
 }
 
-/** An açık rıza purpose — a consent scope in the files/06 §2 sense. Used for
- * wording only (withdraw vs opt out); the default-on check reads ids. */
+/** An açık rıza purpose — a consent scope in the files/06 §2 sense. Every
+ * purpose is one since INT-603 round 2; the default-on check reads ids. */
 export function isConsentScope(view: PurposeView): boolean {
   return view.basis === "explicit_consent";
 }
@@ -96,13 +94,12 @@ export function withdrawConfirmation(
     .map((scope) => byId.get(scope))
     .filter((v): v is PurposeView => v !== undefined && v.withdrawable)
     .map((v) => v.labelKey);
-  const consent = isConsentScope(view);
   return {
     id,
-    titleKey: consent ? "consent.confirm.withdrawTitle" : "consent.confirm.optoutTitle",
+    titleKey: "consent.confirm.withdrawTitle",
     stopKeys,
-    noteKey: consent ? "consent.detail.withdrawNote" : "consent.confirm.optoutNote",
-    actionKey: consent ? "consent.detail.withdraw" : "consent.confirm.optoutAction",
+    noteKey: "consent.detail.withdrawNote",
+    actionKey: "consent.detail.withdraw",
     cancelKey: "consent.confirm.cancel",
   };
 }
