@@ -790,6 +790,12 @@ export const en: Record<MessageKey, string> = {
   "consent.detail.withdrawNote": "Withdrawal takes effect immediately.",
   "consent.detail.needsVoice":
     "This option can only be switched on while the voice session permission is on.",
+  "consent.confirm.withdrawTitle": "Do you want to withdraw this consent?",
+  "consent.confirm.optoutTitle": "Do you want to turn this option off?",
+  "consent.confirm.stops": "This stops:",
+  "consent.confirm.optoutNote": "Turning it off takes effect immediately.",
+  "consent.confirm.optoutAction": "Turn off",
+  "consent.confirm.cancel": "Cancel",
   "consent.queue.note":
     "Your changes were applied on this device; they will reach the server once a connection is available.",
 
@@ -832,6 +838,7 @@ export const en: Record<MessageKey, string> = {
   "a11y.otp.digit": "Verification code digit",
   "a11y.consent.rowHint": "Double tap to open the consent text and details.",
   "a11y.consent.switchHint": "Double tap to turn this consent on or off.",
+  "a11y.consent.optoutHint": "Turns this option on or off.",
   // INT-140 — hints state the RESULT of the action (iOS HIG): a screen-reader
   // user knows what will happen before they act.
   "a11y.data.exportHint": "Double tapping sends your copy request.",

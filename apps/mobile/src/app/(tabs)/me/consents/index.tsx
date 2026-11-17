@@ -1,9 +1,10 @@
 /**
  * İzinleriniz (INT-132, 02 §7): the permanent, patient-visible consent
- * record — every 06 §2 purpose, its current state, and a one-tap withdrawal.
+ * record — every 06 §2 purpose, its current state, and its withdrawal (one
+ * confirmation in place, INT-603).
  * Reachable from Profilim; the same list runs the post-onboarding first-run.
  *
- * Withdrawal is INSTANT: the ledger flips synchronously and the affected
+ * Withdrawal, once confirmed, is INSTANT: the ledger flips synchronously and the affected
  * legacy session consents flip in the same handler, so the existing
  * visibleTabs gate (wellbeing) reacts before the next frame. The server
  * call rides the honest offline queue behind it.
@@ -58,24 +59,18 @@ export default function Consents() {
     router.push(`/(tabs)/me/consents/${purposeParam(id)}`);
   };
 
-  const onToggle = (id: PurposeId) => {
-    const view = views.find((v) => v.id === id);
-    if (view === undefined) {
-      return;
-    }
-    if (view.withdrawable) {
-      // Instant: ledger + session gate flip in this same handler.
-      const flipped = withdrawLocal(id);
-      for (const scope of flipped) {
-        const key = purposeDef(scope)?.sessionKey;
-        if (key !== null && key !== undefined) {
-          setConsent(key, false);
-        }
+  // Called by the list only after the patient confirmed the one question it
+  // asks (INT-603). Instant from there: ledger + session gate flip in this same
+  // handler, and withdrawLocal queues the one op the server records and
+  // audits (invariant 4).
+  const onWithdraw = (id: PurposeId) => {
+    const flipped = withdrawLocal(id);
+    for (const scope of flipped) {
+      const key = purposeDef(scope)?.sessionKey;
+      if (key !== null && key !== undefined) {
+        setConsent(key, false);
       }
-      return;
     }
-    // OFF / pending / stale → the decision belongs next to the text.
-    openDetail(id);
   };
 
   return (
@@ -87,7 +82,7 @@ export default function Consents() {
         <AppText role="body" color="inkSoft">
           {t("consent.entry.sub")}
         </AppText>
-        <ConsentList views={views} onOpenDetail={openDetail} onToggle={onToggle} />
+        <ConsentList views={views} onOpenDetail={openDetail} onWithdraw={onWithdraw} />
         {ledger.queue.length > 0 ? (
           <AnnouncedText
             tone="status"

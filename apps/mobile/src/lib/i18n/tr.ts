@@ -771,6 +771,8 @@ export const tr = {
   "consent.group.voice.release": "Bu sürümde sesli görüşme yok; bu izinler kullanılmaz.",
   "consent.group.purposes": "Diğer amaçlar",
   "consent.group.learning": "Öğrenme",
+  // INT-603 (audit K1): unchanged, but now read BEFORE the two rows that come
+  // on, so the first-run promise above them is not seen to break.
   "consent.group.learning.hint":
     "Bu iki seçenek hizmetin çalışması içindir ve açık gelir; dilediğiniz an kapatabilirsiniz.",
   "consent.lane.affect": "Ses tonundan duygu ipuçları",
@@ -820,6 +822,15 @@ export const tr = {
   "consent.detail.withdraw": "İzni geri çekin",
   "consent.detail.withdrawNote": "Geri çekmek hemen geçerli olur.",
   "consent.detail.needsVoice": "Bu seçenek yalnızca sesli görüşme izni açıkken açılabilir.",
+  // INT-603 (audit K2): the one confirmation before a switch turns something
+  // off. UI chrome only; "hemen geçerli olur" reuses consent.detail.withdrawNote
+  // for a consent, and says the same of an opt-out.
+  "consent.confirm.withdrawTitle": "Bu izni geri çekmek istiyor musunuz?",
+  "consent.confirm.optoutTitle": "Bu seçeneği kapatmak istiyor musunuz?",
+  "consent.confirm.stops": "Şunlar durur:",
+  "consent.confirm.optoutNote": "Kapatmak hemen geçerli olur.",
+  "consent.confirm.optoutAction": "Kapatın",
+  "consent.confirm.cancel": "Vazgeçin",
   "consent.queue.note":
     "Değişiklikleriniz bu cihazda uygulandı; sunucuya bağlantı kurulunca iletilecek.",
 
@@ -867,6 +878,9 @@ export const tr = {
   "a11y.otp.digit": "Doğrulama kodu hanesi",
   "a11y.consent.rowHint": "İzin metnini ve ayrıntıları açmak için iki kez dokunun.",
   "a11y.consent.switchHint": "Bu izni açıp kapatmak için iki kez dokunun.",
+  // INT-603: the learning rows are opt-outs on the registry's non-consent bases,
+  // so their switch is not named a consent (the grounds themselves: HB-L27)
+  "a11y.consent.optoutHint": "Bu seçeneği açar ya da kapatır.",
   // INT-140 — ipuçları eylemin SONUCUNU söyler (iOS HIG): ekran okuyucu
   // kullanan hasta, dokunmadan önce ne olacağını bilir.
   "a11y.data.exportHint": "İki kez dokunmak kopya isteğinizi gönderir.",

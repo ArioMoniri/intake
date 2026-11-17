@@ -32,6 +32,7 @@ import {
   type TextEntry,
 } from "../src/lib/consent/ledger";
 import { PURPOSES, purposeDef } from "../src/lib/consent/purposes";
+import { LARGE_TEXT_SCALE, glassBarFloor } from "../src/lib/prefs/appearance";
 
 const APP = join(__dirname, "..", "src", "app");
 const SRC = join(__dirname, "..", "src");
@@ -386,5 +387,140 @@ describe("Turkish primary; en mirror; NO legal copy in the catalogs", () => {
       expect(tr[purpose.whoKey], purpose.id).toBeTruthy();
       expect(tr[purpose.basisKey], purpose.id).toBeTruthy();
     }
+  });
+});
+
+/* ------------------------------------------------------------------ */
+/* INT-603 — design audit 2026-11 K1-K3                                */
+/* ------------------------------------------------------------------ */
+
+describe("INT-603 acceptance 1 — the first-run copy and its rows agree", () => {
+  it("no consent-scope row defaults on (the pure rule lives in switchIntent.test.ts)", () => {
+    for (const view of viewOf(
+      seedFromSession({
+        core: false,
+        voice: false,
+        wellbeing: false,
+        documents: false,
+        health: false,
+      }),
+    )) {
+      if (view.basis === "explicit_consent") {
+        expect(view.display, view.id).not.toBe("on");
+      }
+    }
+  });
+
+  it("the default-on learning rows are explained BEFORE their switches", () => {
+    const list = read(SRC, "components", "ConsentList.tsx");
+    const learning = list.slice(list.indexOf('t("consent.group.learning")'));
+    const hint = learning.indexOf('t("consent.group.learning.hint")');
+    const firstRow = learning.indexOf('row("learning:personal"');
+    expect(hint).toBeGreaterThan(-1);
+    expect(firstRow).toBeGreaterThan(hint);
+    // the hint is no longer a footer read after the "Açık" it explains
+    expect(list).not.toContain('footer={t("consent.group.learning.hint")}');
+    expect(tr["consent.group.learning.hint"]).toContain("hizmetin çalışması içindir ve açık gelir");
+  });
+
+  it("an opt-out row's switch is not announced as a consent", () => {
+    const list = read(SRC, "components", "ConsentList.tsx");
+    expect(list).toContain('t("a11y.consent.optoutHint")');
+    expect(tr["a11y.consent.optoutHint"]).not.toContain("izin");
+  });
+});
+
+describe("INT-603 acceptance 2 — a real switch; withdrawal confirms once, grant does not", () => {
+  const list = () => read(SRC, "components", "ConsentList.tsx");
+
+  it("the state control is a switch with its checked state, not a badge-like pill", () => {
+    const source = list();
+    expect(source).not.toContain("StatePill");
+    expect(source).not.toContain("styles.pill");
+    expect(source).toContain("<ConsentSwitch");
+    const sw = read(SRC, "components", "SwitchRow.tsx");
+    expect(sw).toContain("export function SwitchTrack");
+    const control = source.slice(source.indexOf("function ConsentSwitch"));
+    expect(control).toContain('accessibilityRole="switch"');
+    expect(control).toContain("checked: switchChecked(view)");
+    expect(control).toContain("<SwitchTrack");
+  });
+
+  it("the switch routes through the pure intent; it never withdraws by itself", () => {
+    const source = list();
+    expect(source).toContain("switchIntent(view)");
+    expect(source).toContain("withdrawConfirmation(views, ");
+    expect(source).not.toContain("withdrawLocal");
+    expect(source).toContain("<WithdrawConfirm");
+  });
+
+  it("the confirmation shows what stops, that it is immediate, and one confirm and one cancel", () => {
+    const confirm = read(SRC, "components", "WithdrawConfirm.tsx");
+    expect(confirm).toContain("t(confirmation.titleKey)");
+    expect(confirm).toContain('t("consent.confirm.stops")');
+    expect(confirm).toContain("confirmation.stopKeys.map(");
+    expect(confirm).toContain("t(confirmation.noteKey)");
+    expect(confirm).toContain("t(confirmation.actionKey)");
+    expect(confirm).toContain("t(confirmation.cancelKey)");
+    // it is announced where it appears (SC 4.1.3)
+    expect(confirm).toContain("<AnnouncedRegion");
+  });
+
+  it("both list screens withdraw only on confirm, through the audited store path", () => {
+    for (const file of [
+      join(APP, "(auth)", "consent.tsx"),
+      join(APP, "(tabs)", "me", "consents", "index.tsx"),
+    ]) {
+      const source = read(file);
+      expect(source, file).toContain("onWithdraw={");
+      expect(source, file).not.toContain("onToggle");
+      // withdrawLocal queues the op the server records and audits (invariant 4)
+      expect(source, file).toContain("withdrawLocal(id)");
+      expect(source, file).toContain("setConsent(key, false)");
+    }
+  });
+});
+
+describe("INT-603 acceptance 3 — 'Devam edin' is reachable without scrolling at 320 × 568", () => {
+  const firstRun = () => read(APP, "(auth)", "consent.tsx");
+
+  it("the continue CTA sits in a bottom-pinned bar, outside the scrolling list", () => {
+    const source = firstRun();
+    const scrollEnd = source.indexOf("</ScrollView>");
+    const bar = source.indexOf("<GlassBar");
+    const cta = source.indexOf('t("consent.firstRun.continue")');
+    expect(scrollEnd).toBeGreaterThan(-1);
+    expect(bar).toBeGreaterThan(scrollEnd);
+    expect(cta).toBeGreaterThan(bar);
+    expect(cta).toBeLessThan(source.indexOf("</GlassBar>"));
+    // the list scrolls clear of the bar, by the bar's measured height
+    expect(source).toContain("useGlassBarClearance(barHeight)");
+    expect(source).toContain("onHeight={setBarHeight}");
+  });
+
+  it("the bar is pinned to the bottom edge, so its place does not depend on the list", () => {
+    const bar = read(SRC, "components", "GlassBar.tsx");
+    expect(bar).toContain("floating = true");
+    expect(bar).toMatch(/floating: \{\s*position: "absolute",\s*left: 0,\s*right: 0,\s*bottom: 0,/);
+  });
+
+  it("on a 320 × 568 screen the whole bar fits on the first screen at every text step", () => {
+    const VIEWPORT = { width: 320, height: 568 };
+    // the 320 × 568 iPhones have a 20 pt status bar and no home indicator
+    const TOP_INSET = 20;
+    for (const scale of [1.0, LARGE_TEXT_SCALE, 2.0]) {
+      const bar = glassBarFloor(scale, 0);
+      const barTop = VIEWPORT.height - bar;
+      expect(barTop, `scale ${scale}`).toBeGreaterThan(TOP_INSET);
+      // and leaves most of the screen to the list it sits under
+      expect(bar, `scale ${scale}`).toBeLessThan(VIEWPORT.height / 3);
+    }
+  });
+
+  it("the first run owns its bottom edge through the bar", () => {
+    const source = firstRun();
+    const edges = source.match(/edges=\{\[([^\]]*)\]\}/);
+    expect(edges).not.toBeNull();
+    expect(edges![1]).not.toContain('"bottom"');
   });
 });
