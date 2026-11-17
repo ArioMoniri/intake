@@ -7687,3 +7687,28 @@
     - "The API's OpenBao policy grants read-only access to the path; the migration outcome is observable with ids only and catalogued; files/10 §9 and the threat-model residual are updated; tests first with near misses."
   tests: [tests/api/test_tokenization_key.py, tests/api/test_tokenization_probe.py, tests/infra/test_staging_tokenization_key.py, tests/infra/test_staging_compose.py, tests/infra/test_staging_netgsm.py, tests/api/test_previsit_output.py, tests/api/test_otp_netgsm_wiring.py]
   sec_row: "onboarding"
+- id: INT-602
+  epic: E08-mobile
+  phase: P1
+  title: "RED layer: the 112 control is the strongest control, CALM has a visible edge, ON_SITE is never control-less, safe areas respected"
+  # GitHub #1027, 17 Nov 2026, from the patient-app design audit Part B
+  # (docs/design/audit-2026-11, R1-R6). App-side only: no pack text, red-flag
+  # semantics or server route changes. The ON_SITE control is a UI affordance
+  # that posts this RED's staff notification on the INT-475 route. Awaiting
+  # human: the RED chrome wording ("Yapmayın", the staff control, the dial
+  # fallback) carries approval:human-clinical, and the generic REMOTE why_tr's
+  # "bekletilmez" consequence is not stated by its committed snapshot, so it
+  # goes to the physician of record instead of being rewritten here.
+  depends_on: [INT-446, INT-465, INT-475, INT-333]
+  labels: [area:mobile, risk:clinical, approval:human-clinical]
+  status: awaiting-human
+  evidence: docs/evidence/INT-602.md
+  acceptance:
+    - "The 112 control is the strongest control on the RED layer. It is at least as large as the primary CTA, with a label size no smaller than the CTA's. It gives immediate pressed feedback and opens the phone's dialer with 112 (`tel:112`); a failure to open falls back to showing the number. Haptics stay as ADR-033 / HB-C26 say (none for RED)."
+    - "Under CALM, the 112 control has a visible boundary of at least 3:1 against its background (WCAG 1.4.11), in both themes."
+    - "Under ON_SITE, the 112 affordance stays absent (invariant 21). The patient instead gets a non-112 control, such as alerting staff or reaching the clinic desk, taken from the pack's ON_SITE action. If the pack defines none, the layer fails closed to the guidance text and a visible control to call for nearby staff. The layer is never control-less."
+    - "The RED layer respects safe-area insets on every edge."
+    - "RED copy uses the bare imperative plural (CLAUDE.md: \"Tutun · Arayın · Bakmayın\"), not \"Lütfen yapmayın\". The factual claim the audit flags is checked against its committed source snapshot; if it isn't supported there, it goes through the clinical route instead of being rewritten here."
+    - "There are tests for each item with near-miss controls. `make safety` stays green, and invariants 9, 10 and 21 still pass."
+  tests: [apps/mobile/src/lib/red/controls.test.ts, apps/mobile/e2e/red.spec.ts, apps/mobile/e2e/motion.spec.ts, apps/mobile/src/lib/red/store.test.ts, apps/mobile/src/lib/red/locationReport.test.ts, apps/mobile/src/lib/i18n.test.ts]
+  sec_row: "clinical-core"

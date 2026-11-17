@@ -4685,3 +4685,35 @@
   - Tests first: red 4 vitest + 2 pytest; green brand 19, mobile 2972, legal + release 964.
 - Next: merge #995 (INT-587) before or with #1001, then TestFlight build 7.
 - LOOP_STATUS: CONTINUE
+
+### 2026-11-17T19:00:00+03:00 · INT-602 · awaiting-human (approval:human-clinical)
+- Goal: the RED layer, from the design audit's Part B R1–R6 (GitHub #1027). Acceptance, verbatim from the row: "The 112 control is the strongest control on the RED layer. It is at least as large as the primary CTA, with a label size no smaller than the CTA's. It gives immediate pressed feedback and opens the phone's dialer with 112 (`tel:112`); a failure to open falls back to showing the number. Haptics stay as ADR-033 / HB-C26 say (none for RED)." "Under CALM, the 112 control has a visible boundary of at least 3:1 against its background (WCAG 1.4.11), in both themes." "Under ON_SITE, the 112 affordance stays absent (invariant 21). The patient instead gets a non-112 control, such as alerting staff or reaching the clinic desk, taken from the pack's ON_SITE action. If the pack defines none, the layer fails closed to the guidance text and a visible control to call for nearby staff. The layer is never control-less." "The RED layer respects safe-area insets on every edge." "RED copy uses the bare imperative plural (CLAUDE.md: "Tutun · Arayın · Bakmayın"), not "Lütfen yapmayın". The factual claim the audit flags is checked against its committed source snapshot; if it isn't supported there, it goes through the clinical route instead of being rewritten here." "There are tests for each item with near-miss controls. `make safety` stays green, and invariants 9, 10 and 21 still pass."
+- Plan: put the control looks, the frame and the dial fallback in a pure module, `lib/red/controls.ts`. Add `callStaff` to the RED screen model (ON_SITE only). The staff control posts this RED's ids and ON_SITE on the INT-475 route. Change `red.doNots` to "Yapmayın". Check the audit's service claim against TR-EK4-2022.txt.
+- Tests added (each with its near miss):
+  - `src/lib/red/controls.test.ts`, one block per item:
+    - CTA floor; old look below it;
+    - 3:1 CALM edge in both themes; old fill 1.04:1;
+    - every ON_SITE path × register × script has a staff control and no 112; REMOTE has 112 and no staff control;
+    - every inset edge; zero insets keep the old geometry;
+    - "Yapmayın"; no lütfen/please in RED chrome;
+    - the claim's supported and unsupported halves pinned.
+  - `e2e/red.spec.ts` INT-602, the source half.
+  - `e2e/motion.spec.ts`: `controls.ts` added to the pinned RED surface list.
+- Result:
+  - Red run: 4 failures plus the missing module.
+  - Green: mobile vitest 3202 passed; `tsc` clean; lint 0 errors; `no_placeholders` OK.
+  - `make safety`: exit 0 (triage 626 at 100 % branch; mutations 18/18; voice 2366 at 98.39 %; red-team 121).
+  - `uv run pytest tests/release tests/legal tests/backlog tests/smoke`: 1038 passed.
+  - Backlog pins 386 → 387; backlog re-rendered.
+- Invariants touched and still passing:
+  - 9: no runtime change.
+  - 10: no pack text changed.
+  - 21: ON_SITE never renders 112; the RED path reaches no media module.
+  - 6: ids only.
+  - 17: no placeholders.
+- Decisions / ADRs / `00_STATE.md` rows: none. The DSL has no ON_SITE patient-control field (`notify_staff_immediate` is the server's automatic notification), so every ON_SITE RED takes the fail-closed staff control. This is recorded in the evidence.
+- Blocked on: the physician of record (**Dr Efe Onganer**), two questions, nearest row HB-C12b (blockers.md "INT-602"):
+  - Are "Yapmayın", "Görevli çağırın" and the dial fallback the right words inside RED, and does files/02 §5.3 change with them?
+  - May the generic REMOTE why_tr keep "… ayrıca öncelik sırası için bekletilmez", which MADDE 8(5)'s snapshot does not state?
+- Next: the PR needs `approval:human-clinical`. Out-of-scope findings for new issues: a REMOTE RED without 112 has no control; a second staff page needs a server change.
+- LOOP_STATUS: WAITING_HUMAN

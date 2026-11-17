@@ -26,7 +26,7 @@
  */
 import { backoffDelayMs } from "../livekit/reconnect";
 import type { HopTransport } from "./hop";
-import type { RedState, RedStore } from "./store";
+import { redScreen, type RedState, type RedStore } from "./store";
 
 export const LOCATION_PATH = "/v1/triage/red-location";
 
@@ -110,13 +110,13 @@ function realTimeout(ms: number): RequestDeadline {
   return { expired, cancel: () => clearTimeout(handle) };
 }
 
-export function createLocationReporter({
+/** Offer one body to the server until it is taken, refused for good, or out of tries. */
+function createDelivery({
   transport,
   sleep = realSleep,
   jitter = Math.random,
   timeout = realTimeout,
-}: LocationReporterOptions): LocationReporter {
-  const sent = new Set<string>();
+}: LocationReporterOptions): (body: string) => Promise<void> {
   /** One request: its status, or null when it failed or hung past its deadline. */
   const attempt = async (body: string): Promise<number | null> => {
     const deadline = timeout(LOCATION_REPORT_TIMEOUT_MS);
@@ -142,6 +142,12 @@ export function createLocationReporter({
       }
     }
   };
+  return deliver;
+}
+
+export function createLocationReporter(options: LocationReporterOptions): LocationReporter {
+  const sent = new Set<string>();
+  const deliver = createDelivery(options);
   return {
     observe: (state) => {
       const report = locationReportFor(state);
@@ -164,4 +170,54 @@ export function subscribeLocationReports(
   reporter: LocationReporter,
 ): () => void {
   return store.subscribe(() => reporter.observe(store.getSnapshot()));
+}
+
+/**
+ * The staff control under ON_SITE (INT-602; files/02 §5.3 action table:
+ * "Hastanedeyim — personele bildir" — it fires automatically with the alert, and
+ * "the button remains only as confirmation and repeat").
+ *
+ * The call it owes is the same body as an "evet": this RED's ids and ON_SITE,
+ * posted to the same route, which puts the on-site staff notification in the
+ * clinic Safety inbox (intake_api.red_notify). One notification per RED is the
+ * server's rule, so a press after the automatic one lands on the same entry and
+ * makes sure it exists; it never notifies anyone twice. Null unless the screen
+ * shows an ON_SITE action.
+ */
+export function staffCallFor(state: RedState | null): LocationReport | null {
+  if (state === null) {
+    return null;
+  }
+  const screen = redScreen(state);
+  if (screen.kind !== "act" || !screen.callStaff) {
+    return null;
+  }
+  return {
+    session_id: state.origin.sessionId,
+    visit_id: state.origin.visitId,
+    rule_id: state.trigger.ruleId,
+    location: "ON_SITE",
+  };
+}
+
+export interface StaffCaller {
+  /** The patient pressed the staff control. Never waits; one request in flight at a time. */
+  call: (state: RedState | null) => void;
+}
+
+export function createStaffCaller(options: LocationReporterOptions): StaffCaller {
+  const deliver = createDelivery(options);
+  let inFlight = false;
+  return {
+    call: (state) => {
+      const report = staffCallFor(state);
+      if (report === null || inFlight) {
+        return;
+      }
+      inFlight = true;
+      void deliver(JSON.stringify(report)).finally(() => {
+        inFlight = false;
+      });
+    },
+  };
 }

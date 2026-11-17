@@ -1486,9 +1486,17 @@ export const tr = {
   // they come verbatim from the rule's `tr` (invariant 10). Inside RED the
   // bare imperative plural is the register, because ambiguity is the harm.
   "red.call112": "112'yi arayın",
+  // INT-602: when the dialer cannot open, the number is already on screen as
+  // selectable text; this line says to dial it.
+  "red.call112Failed": "Arama açılamadı. 112'yi telefonunuzdan arayın.",
+  // INT-602: under ON_SITE there is no 112 (invariant 21). This control takes its
+  // place and sends this RED's staff notification. A UI affordance, not clinical copy.
+  "red.callStaff": "Görevli çağırın",
+  "red.callStaff.hint": "Hastanedeki görevlilere haber gönderir.",
   "red.location.yes": "Evet",
   "red.location.no": "Hayır",
-  "red.doNots": "Lütfen yapmayın",
+  // INT-602: bare imperative inside RED (CLAUDE.md), as in the items themselves.
+  "red.doNots": "Yapmayın",
 } as const;
 
 export type MessageKey = keyof typeof tr;

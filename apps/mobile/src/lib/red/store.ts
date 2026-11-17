@@ -124,6 +124,11 @@ export type RedScreen =
       /** Mounted only when the location allows it; never under ON_SITE. */
       readonly call112: boolean;
       /**
+       * The staff control (INT-602): under ON_SITE, always, and nowhere else. It
+       * takes 112's place, so an ON_SITE RED is never control-less (`redCallsStaff`).
+       */
+      readonly callStaff: boolean;
+      /**
        * The location question, still open after the unsigned wait took the
        * no-answer branch, or null (INT-465; LD-05, INT-471 #800). The patient's own
        * answer, given late, still moves the RED to the answered location, which is
@@ -191,6 +196,7 @@ export function redScreen(state: RedState | null): RedScreen {
     doNotsTr: presentation.script.doNotsTr,
     whyTr: presentation.script.whyTr,
     call112: redAffordances(presentation, answer).call112,
+    callStaff: redCallsStaff(located),
     lateAskTr,
     motion: RED_MOTION,
   };
@@ -274,9 +280,27 @@ function genericScreen(
     doNotsTr: presentation.script.doNotsTr,
     whyTr: presentation.script.whyTr,
     call112: redAffordances(presentation, answer).call112,
+    callStaff: redCallsStaff(location),
     lateAskTr,
     motion: RED_MOTION,
   };
+}
+
+/**
+ * Whether the RED's action at this location carries the staff control
+ * (INT-602; files/02 §5.3 action table, "Hastanedeyim — personele bildir";
+ * CLAUDE.md invariant 21). Under ON_SITE the 112 affordance is absent, and the
+ * patient gets a control that reaches the staff in the building instead.
+ *
+ * It depends on the location alone, so it fails closed. The pack's ON_SITE action
+ * names no patient control the device receives: `notify_staff_immediate` is the
+ * server's automatic notification at the RED (intake_api.red_notify `raise_red`),
+ * and the catalog carries `primary` and the words only. So every ON_SITE RED —
+ * the rule's own script, the generic one, or a script that says nothing of
+ * staff — shows the guidance text and this control. Never under REMOTE.
+ */
+export function redCallsStaff(location: Exclude<RedLocation, "UNKNOWN">): boolean {
+  return location === "ON_SITE";
 }
 
 /**

@@ -38,7 +38,7 @@ import {
 } from "../src/lib/red/locationReport";
 import { createRedHop, createRedStore, redScreen, type RedStore } from "../src/lib/red/store";
 import { code } from "./motionSource";
-import { specifiers } from "./redSurface";
+import { specifiers, WAITS } from "./redSurface";
 
 const MOBILE = join(__dirname, "..");
 const FIXTURES = join(MOBILE, "..", "..", "tests", "fixtures", "triage_hop");
@@ -740,5 +740,60 @@ describe("INT-446 — the RED path", () => {
       /importantForAccessibility=\{covered \? "no-hide-descendants" : "auto"\}/,
     );
     expect(layer).toMatch(/accessibilityElementsHidden=\{covered\}/);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// INT-602 — the layer's controls, source half (the pure half is
+// src/lib/red/controls.test.ts). Each with a near miss.
+// ---------------------------------------------------------------------------
+
+describe("INT-602 — RedLayer renders the controls the screen model asks for", () => {
+  const layer = () => code(readFileSync(join(SRC, "components/RedLayer.tsx"), "utf8"));
+
+  it("(1) the 112 control is the primary control, dials tel:112 and falls back to the number", () => {
+    const source = layer();
+    const start = source.indexOf("{screen.call112 ? (");
+    const end = source.indexOf(") : null}", start);
+    const block = source.slice(start, end);
+    expect(block).toMatch(/<RedPrimaryControl\b/);
+    expect(block).toMatch(
+      /callOrShowNumber\(\s*\(\) => Linking\.openURL\(`tel:\$\{EMERGENCY_NUMBER\}`\),\s*\(\) => setDialFailed\(true\),?\s*\)/,
+    );
+    expect(block).toMatch(/\{dialFailed \? <AnnouncedText tone="error"/);
+    expect(block).toMatch(/t\("red\.call112Failed"\)/);
+    // Near miss: the 112 control is no longer the small secondary RedButton.
+    expect(block).not.toMatch(/<RedButton\b/);
+    // The primary control takes its look from lib/red/controls, pressed state included.
+    expect(source).toMatch(/redPrimaryControl\(register, theme\)/);
+    expect(source).toMatch(/redPressedOpacity\(pressed\)/);
+  });
+
+  it("(3) under ON_SITE a staff control renders, gated on the screen model, with no 112 in it", () => {
+    const source = layer();
+    const start = source.indexOf("{screen.callStaff ? (");
+    expect(start).toBeGreaterThan(-1);
+    const end = source.indexOf(") : null}", start);
+    const block = source.slice(start, end);
+    expect(block).toMatch(/<RedPrimaryControl\b/);
+    expect(block).toMatch(/t\("red\.callStaff"\)/);
+    expect(block).toMatch(/staffCaller\.call\(redStore\.getSnapshot\(\)\)/);
+    // Near miss (invariant 21): nothing in the staff block can dial or show 112.
+    expect(block).not.toMatch(/EMERGENCY_NUMBER|tel:|call112/);
+    // The press waits on nothing: the call is fire-and-forget.
+    expect(WAITS.test(block)).toBe(false);
+  });
+
+  it("(4) the root layer pads every edge from useSafeAreaInsets, through redLayerFrame", () => {
+    const source = layer();
+    expect(source).toMatch(/const frame = redLayerFrame\(useSafeAreaInsets\(\)\);/);
+    expect(source).toMatch(/height: frame\.bandHeight/);
+    for (const edge of ["Top", "Right", "Bottom", "Left"]) {
+      expect(source).toMatch(new RegExp(`padding${edge}: frame\\.padding\\.${edge.toLowerCase()}`));
+    }
+    // Near miss: the fixed 64 pt band is gone.
+    expect(source).not.toMatch(/height: spacing\.xl \* 2/);
+    // No SafeAreaView: nothing animates the insets in (ADR-033 zero motion).
+    expect(source).not.toMatch(/SafeAreaView/);
   });
 });

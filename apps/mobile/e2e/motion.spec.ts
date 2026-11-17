@@ -602,6 +602,9 @@ const RED_SURFACE_FILES: readonly string[] = [
   "src/lib/dialogue/delivery.ts",
   // INT-446: the RED screen and the rules-engine hop that feeds it.
   "src/components/RedLayer.tsx",
+  // INT-602: the RED layer's control looks (the 112 control's fill is the
+  // emergency colour under ALERT), so it is under the same scan.
+  "src/lib/red/controls.ts",
   "src/lib/red/hop.ts",
   "src/lib/red/location.ts",
   "src/lib/red/store.ts",
