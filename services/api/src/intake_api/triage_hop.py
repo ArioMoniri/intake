@@ -57,6 +57,7 @@ from clinical_schemas.common import JsonValue
 from clinical_schemas.session import AnswerState
 from clinical_schemas.triage import RedLocation, RedRegister, TriageLevel
 from fastapi import APIRouter, BackgroundTasks
+from protocols.choices import submitted_set_answer
 from protocols.dsl import RedFlagRule
 from protocols.triage import TriageContext, TriageEvaluation, evaluate_triage
 from protocols.triage.context import SlotAnswer
@@ -130,9 +131,22 @@ class LevelOut(BaseModel):
 
 
 def _context(payload: EvaluateIn) -> TriageContext:
+    """The bound answers as the engine reads them.
+
+    A chips answer (a list) is the whole submitted set (INT-604, ADR-043): one
+    member is that member, several are the files/12 §7.3 union, so any member
+    that fires, fires. It used to be one list value, which reads Unknown, so a
+    symptom chosen among several could never fire. No exclusivity is applied
+    here: trimming a set after submit, or refusing it, would each leave a firing
+    symptom unevaluated. An empty list is no answer."""
     answers: dict[str, SlotAnswer] = {}
     for ref, value in payload.answers.items():
-        carried: JsonValue = list(value) if isinstance(value, list) else value
+        if isinstance(value, list):
+            whole = submitted_set_answer(value)
+            if whole is not None:
+                answers[ref] = whole
+            continue
+        carried: JsonValue = value
         answers[ref] = SlotAnswer(state=AnswerState.ASKED_PRESENT, values=(carried,))
     return TriageContext(reference_time=payload.reference_time, answers=answers)
 

@@ -80,8 +80,14 @@ import { sectionPanelModel } from "@/lib/dialogue/sectionPanel";
 import { questionAsideTr } from "@/lib/dialogue/speech";
 import { answerWords, type StreamEntry } from "@/lib/dialogue/stream";
 import { useDialogueSession } from "@/lib/dialogue/useDialogueSession";
+import { deviceClock, todayIso } from "@/lib/clock";
 import { t } from "@/lib/i18n";
-import { optionLabelKey, type IntakeQuestion } from "@/lib/intake/questions";
+import {
+  optionLabelKey,
+  reconcileExclusive,
+  toggleOption,
+  type IntakeQuestion,
+} from "@/lib/intake/questions";
 import { dialogueFrozenAt, dialogueShown, redStopsDialogue, redStore } from "@/lib/red/store";
 import type { PrefillMap } from "@/lib/intake/voiceFirst";
 import { useSession } from "@/lib/session";
@@ -253,9 +259,16 @@ export function DialogueIntake({
     }
     seedKeyRef.current = key;
     if (turn.phase === "confirming" || (turn.phase === "speaking" && turn.intent === "confirm")) {
-      setSelected([...turn.candidate.values]);
+      // INT-604: the candidate is already consistent (stream.ts), and the seed
+      // reconciles again so a symptom is never hidden behind an exclusive "Yok".
+      const seeded = questions[step];
+      setSelected(
+        seeded === undefined
+          ? [...turn.candidate.values]
+          : reconcileExclusive(seeded, turn.candidate.values),
+      );
     }
-  }, [turn]);
+  }, [turn, questions]);
 
   // The conversation reads bottom-up: keep the newest turn in view.
   const streamLength = state.stream.length;
@@ -323,6 +336,7 @@ export function DialogueIntake({
         questionId: question.id,
         values,
         words: answerWords(question, turn.candidate.quote),
+        answeredOn: todayIso(deviceClock),
       });
     }
     session.confirm(values);
@@ -351,6 +365,7 @@ export function DialogueIntake({
         questionId,
         values: [...candidate.values],
         words: answerWords(rowQuestion, candidate.quote),
+        answeredOn: todayIso(deviceClock),
       });
     }
     session.confirmPending(questionId);
@@ -691,15 +706,9 @@ export function DialogueIntake({
                     accessibilityLabel={t(option.labelKey)}
                     accessibilityHint={t("a11y.selectHint")}
                     accessibilityState={{ checked: on }}
-                    onPress={() =>
-                      setSelected((prev) =>
-                        question.kind === "single"
-                          ? [option.id]
-                          : prev.includes(option.id)
-                            ? prev.filter((x) => x !== option.id)
-                            : [...prev, option.id],
-                      )
-                    }
+                    // INT-604 (ADR-043): the same rule as the typed lane —
+                    // "Yok" clears the others, any other clears "Yok".
+                    onPress={() => setSelected((prev) => toggleOption(question, prev, option.id))}
                     style={[
                       styles.chip,
                       {

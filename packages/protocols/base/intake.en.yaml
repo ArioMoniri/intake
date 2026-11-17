@@ -48,10 +48,10 @@ entries:
   "identity_check.consent_recap_confirmed.follow_up_tr": "If you confirm it say yes, and if you do not say no."
 
   # --- reason_for_visit -------------------------------------------------------------
-  "reason_for_visit.chief_complaint_text.ask_tr": "Could you tell me in your own words what has brought you to the doctor today? I will listen without interrupting."
+  "reason_for_visit.chief_complaint_text.ask_tr": "Could you tell me in your own words what has been bringing you to the doctor lately? I will listen without interrupting."
   "reason_for_visit.chief_complaint_text.follow_up_tr": "You can briefly describe whatever is troubling you most."
   "reason_for_visit.patient_goals.ask_tr": "What do you most hope to get from this visit?"
-  "reason_for_visit.patient_goals.follow_up_tr": "When you leave here today, what would you most like to have been sorted out?"
+  "reason_for_visit.patient_goals.follow_up_tr": "When you leave this appointment, what would you most like to have been sorted out?"
 
   # --- hpi --------------------------------------------------------------------------
   "hpi.onset_date.ask_tr": "When did this problem start?"

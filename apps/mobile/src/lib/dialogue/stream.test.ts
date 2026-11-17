@@ -1250,3 +1250,33 @@ describe("dialogueStreamReducer — a refused answer and a failed clip stay sepa
     expect(s.unclear.complaint).toBe(1); // untouched by the clip that never was
   });
 });
+
+describe("INT-604 (ADR-043) — a suggestion never hides a symptom behind an exclusive Yok", () => {
+  it("an extract candidate holding a symptom AND Yok keeps the symptom", () => {
+    const before = state({
+      turn: { phase: "speaking", step: 1, intent: "question" },
+      asked: ["complaint"],
+      inflight: [1],
+    });
+    const after = runCardio(before, {
+      type: "extract_settled",
+      workId: 1,
+      candidates: { associated: { values: ["none", "sweating"], quote: "terledim ama yok" } },
+    });
+    expect(after.pending.associated?.values).toEqual(["sweating"]);
+  });
+
+  it("near miss: Yok alone stays Yok", () => {
+    const before = state({
+      turn: { phase: "speaking", step: 1, intent: "question" },
+      asked: ["complaint"],
+      inflight: [1],
+    });
+    const after = runCardio(before, {
+      type: "extract_settled",
+      workId: 1,
+      candidates: { associated: { values: ["none"], quote: "yok" } },
+    });
+    expect(after.pending.associated?.values).toEqual(["none"]);
+  });
+});

@@ -545,8 +545,8 @@
       "expanded": "Yaklaşık bir değer de yeterli olur."
     },
     "sections/reason_for_visit/slots/chief_complaint_text/ask_tr": {
-      "authored": "Sizi bugün hekime getiren şeyi kendi sözlerinizle anlatır mısınız? Sözünüzü kesmeden dinleyeceğim.",
-      "expanded": "Sizi bugün hekime getiren şeyi kendi sözlerinizle anlatır mısınız? Sözünüzü kesmeden dinleyeceğim."
+      "authored": "Sizi şu sıralar hekime getiren şeyi kendi sözlerinizle anlatır mısınız? Sözünüzü kesmeden dinleyeceğim.",
+      "expanded": "Sizi şu sıralar hekime getiren şeyi kendi sözlerinizle anlatır mısınız? Sözünüzü kesmeden dinleyeceğim."
     },
     "sections/reason_for_visit/slots/chief_complaint_text/follow_up_tr": {
       "authored": "Sizi en çok rahatsız eden şeyi kısaca anlatabilirsiniz.",
@@ -557,8 +557,8 @@
       "expanded": "Bu ziyaretten en çok ne bekliyorsunuz?"
     },
     "sections/reason_for_visit/slots/patient_goals/follow_up_tr": {
-      "authored": "Bugün buradan ayrılırken en çok neyin çözülmüş olmasını istersiniz?",
-      "expanded": "Bugün buradan ayrılırken en çok neyin çözülmüş olmasını istersiniz?"
+      "authored": "Bu görüşmeden ayrılırken en çok neyin çözülmüş olmasını istersiniz?",
+      "expanded": "Bu görüşmeden ayrılırken en çok neyin çözülmüş olmasını istersiniz?"
     },
     "sections/trauma/slots/recent/ask_tr": {
       "authored": "Bu ağrı ya da rahatsızlık başlamadan önce göğsünüz bir darbe ya da kaza sonucu yaralandı mı?",
@@ -571,8 +571,8 @@
   },
   "packages/protocols/specialty/adli_tip.yaml": {
     "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
-      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
-      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+      "authored": "Bu randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bu randevunuzun sebebini kısaca anlatır mısınız?"
     },
     "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
       "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
@@ -589,8 +589,8 @@
   },
   "packages/protocols/specialty/agiz_dis_cene_radyolojisi.yaml": {
     "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
-      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
-      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+      "authored": "Bu randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bu randevunuzun sebebini kısaca anlatır mısınız?"
     },
     "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
       "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
@@ -607,8 +607,8 @@
   },
   "packages/protocols/specialty/agiz_dis_ve_cene_cerrahisi.yaml": {
     "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
-      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
-      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+      "authored": "Bu randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bu randevunuzun sebebini kısaca anlatır mısınız?"
     },
     "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
       "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
@@ -625,8 +625,8 @@
   },
   "packages/protocols/specialty/aile_hekimligi.yaml": {
     "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
-      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
-      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+      "authored": "Bu randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bu randevunuzun sebebini kısaca anlatır mısınız?"
     },
     "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
       "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
@@ -643,8 +643,8 @@
   },
   "packages/protocols/specialty/algoloji.yaml": {
     "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
-      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
-      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+      "authored": "Bu randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bu randevunuzun sebebini kısaca anlatır mısınız?"
     },
     "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
       "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
@@ -661,8 +661,8 @@
   },
   "packages/protocols/specialty/amatem.yaml": {
     "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
-      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
-      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+      "authored": "Bu randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bu randevunuzun sebebini kısaca anlatır mısınız?"
     },
     "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
       "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
@@ -679,8 +679,8 @@
   },
   "packages/protocols/specialty/anesteziyoloji.yaml": {
     "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
-      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
-      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+      "authored": "Bu randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bu randevunuzun sebebini kısaca anlatır mısınız?"
     },
     "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
       "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
@@ -697,8 +697,8 @@
   },
   "packages/protocols/specialty/asi.yaml": {
     "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
-      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
-      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+      "authored": "Bu randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bu randevunuzun sebebini kısaca anlatır mısınız?"
     },
     "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
       "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
@@ -715,8 +715,8 @@
   },
   "packages/protocols/specialty/beslenme_ve_diyet.yaml": {
     "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
-      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
-      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+      "authored": "Bu randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bu randevunuzun sebebini kısaca anlatır mısınız?"
     },
     "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
       "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
@@ -733,8 +733,8 @@
   },
   "packages/protocols/specialty/beyin_ve_sinir_cerrahisi.yaml": {
     "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
-      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
-      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+      "authored": "Bu randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bu randevunuzun sebebini kısaca anlatır mısınız?"
     },
     "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
       "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
@@ -751,8 +751,8 @@
   },
   "packages/protocols/specialty/cematem.yaml": {
     "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
-      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
-      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+      "authored": "Bu randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bu randevunuzun sebebini kısaca anlatır mısınız?"
     },
     "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
       "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
@@ -769,8 +769,8 @@
   },
   "packages/protocols/specialty/cerrahi_onkoloji.yaml": {
     "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
-      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
-      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+      "authored": "Bu randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bu randevunuzun sebebini kısaca anlatır mısınız?"
     },
     "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
       "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
@@ -787,8 +787,8 @@
   },
   "packages/protocols/specialty/cocuk_cerrahisi.yaml": {
     "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
-      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
-      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+      "authored": "Bu randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bu randevunuzun sebebini kısaca anlatır mısınız?"
     },
     "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
       "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
@@ -805,8 +805,8 @@
   },
   "packages/protocols/specialty/cocuk_endokrinolojisi.yaml": {
     "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
-      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
-      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+      "authored": "Bu randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bu randevunuzun sebebini kısaca anlatır mısınız?"
     },
     "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
       "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
@@ -823,8 +823,8 @@
   },
   "packages/protocols/specialty/cocuk_enfeksiyon_hastaliklari.yaml": {
     "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
-      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
-      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+      "authored": "Bu randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bu randevunuzun sebebini kısaca anlatır mısınız?"
     },
     "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
       "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
@@ -841,8 +841,8 @@
   },
   "packages/protocols/specialty/cocuk_gastroenterolojisi.yaml": {
     "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
-      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
-      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+      "authored": "Bu randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bu randevunuzun sebebini kısaca anlatır mısınız?"
     },
     "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
       "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
@@ -859,8 +859,8 @@
   },
   "packages/protocols/specialty/cocuk_genetik_hastaliklari.yaml": {
     "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
-      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
-      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+      "authored": "Bu randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bu randevunuzun sebebini kısaca anlatır mısınız?"
     },
     "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
       "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
@@ -877,8 +877,8 @@
   },
   "packages/protocols/specialty/cocuk_gogus_hastaliklari.yaml": {
     "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
-      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
-      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+      "authored": "Bu randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bu randevunuzun sebebini kısaca anlatır mısınız?"
     },
     "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
       "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
@@ -895,8 +895,8 @@
   },
   "packages/protocols/specialty/cocuk_hematolojisi_ve_onkolojisi.yaml": {
     "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
-      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
-      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+      "authored": "Bu randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bu randevunuzun sebebini kısaca anlatır mısınız?"
     },
     "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
       "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
@@ -913,8 +913,8 @@
   },
   "packages/protocols/specialty/cocuk_immunolojisi_ve_alerjisi.yaml": {
     "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
-      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
-      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+      "authored": "Bu randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bu randevunuzun sebebini kısaca anlatır mısınız?"
     },
     "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
       "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
@@ -931,8 +931,8 @@
   },
   "packages/protocols/specialty/cocuk_kardiyolojisi.yaml": {
     "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
-      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
-      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+      "authored": "Bu randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bu randevunuzun sebebini kısaca anlatır mısınız?"
     },
     "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
       "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
@@ -949,8 +949,8 @@
   },
   "packages/protocols/specialty/cocuk_metabolizma_hastaliklari.yaml": {
     "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
-      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
-      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+      "authored": "Bu randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bu randevunuzun sebebini kısaca anlatır mısınız?"
     },
     "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
       "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
@@ -967,8 +967,8 @@
   },
   "packages/protocols/specialty/cocuk_nefrolojisi.yaml": {
     "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
-      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
-      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+      "authored": "Bu randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bu randevunuzun sebebini kısaca anlatır mısınız?"
     },
     "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
       "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
@@ -985,8 +985,8 @@
   },
   "packages/protocols/specialty/cocuk_norolojisi.yaml": {
     "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
-      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
-      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+      "authored": "Bu randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bu randevunuzun sebebini kısaca anlatır mısınız?"
     },
     "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
       "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
@@ -1003,8 +1003,8 @@
   },
   "packages/protocols/specialty/cocuk_romatolojisi.yaml": {
     "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
-      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
-      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+      "authored": "Bu randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bu randevunuzun sebebini kısaca anlatır mısınız?"
     },
     "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
       "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
@@ -1021,8 +1021,8 @@
   },
   "packages/protocols/specialty/cocuk_sagligi_ve_hastaliklari.yaml": {
     "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
-      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
-      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+      "authored": "Bu randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bu randevunuzun sebebini kısaca anlatır mısınız?"
     },
     "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
       "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
@@ -1039,8 +1039,8 @@
   },
   "packages/protocols/specialty/cocuk_urolojisi.yaml": {
     "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
-      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
-      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+      "authored": "Bu randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bu randevunuzun sebebini kısaca anlatır mısınız?"
     },
     "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
       "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
@@ -1057,8 +1057,8 @@
   },
   "packages/protocols/specialty/cocuk_ve_ergen_ruh_sagligi.yaml": {
     "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
-      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
-      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+      "authored": "Bu randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bu randevunuzun sebebini kısaca anlatır mısınız?"
     },
     "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
       "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
@@ -1075,8 +1075,8 @@
   },
   "packages/protocols/specialty/deri_ve_zuhrevi_hastaliklari.yaml": {
     "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
-      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
-      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+      "authored": "Bu randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bu randevunuzun sebebini kısaca anlatır mısınız?"
     },
     "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
       "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
@@ -1093,8 +1093,8 @@
   },
   "packages/protocols/specialty/dis_hekimligi.yaml": {
     "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
-      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
-      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+      "authored": "Bu randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bu randevunuzun sebebini kısaca anlatır mısınız?"
     },
     "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
       "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
@@ -1111,8 +1111,8 @@
   },
   "packages/protocols/specialty/diyabet_poliklinigi.yaml": {
     "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
-      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
-      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+      "authored": "Bu randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bu randevunuzun sebebini kısaca anlatır mısınız?"
     },
     "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
       "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
@@ -1129,8 +1129,8 @@
   },
   "packages/protocols/specialty/el_cerrahisi.yaml": {
     "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
-      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
-      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+      "authored": "Bu randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bu randevunuzun sebebini kısaca anlatır mısınız?"
     },
     "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
       "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
@@ -1147,8 +1147,8 @@
   },
   "packages/protocols/specialty/endodonti.yaml": {
     "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
-      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
-      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+      "authored": "Bu randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bu randevunuzun sebebini kısaca anlatır mısınız?"
     },
     "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
       "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
@@ -1165,8 +1165,8 @@
   },
   "packages/protocols/specialty/endokrinoloji_ve_metabolizma.yaml": {
     "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
-      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
-      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+      "authored": "Bu randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bu randevunuzun sebebini kısaca anlatır mısınız?"
     },
     "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
       "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
@@ -1183,8 +1183,8 @@
   },
   "packages/protocols/specialty/enfeksiyon_hastaliklari.yaml": {
     "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
-      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
-      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+      "authored": "Bu randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bu randevunuzun sebebini kısaca anlatır mısınız?"
     },
     "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
       "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
@@ -1201,8 +1201,8 @@
   },
   "packages/protocols/specialty/evde_saglik.yaml": {
     "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
-      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
-      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+      "authored": "Bu randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bu randevunuzun sebebini kısaca anlatır mısınız?"
     },
     "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
       "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
@@ -1219,8 +1219,8 @@
   },
   "packages/protocols/specialty/fiziksel_tip_ve_rehabilitasyon.yaml": {
     "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
-      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
-      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+      "authored": "Bu randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bu randevunuzun sebebini kısaca anlatır mısınız?"
     },
     "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
       "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
@@ -1237,8 +1237,8 @@
   },
   "packages/protocols/specialty/fizyoterapi.yaml": {
     "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
-      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
-      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+      "authored": "Bu randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bu randevunuzun sebebini kısaca anlatır mısınız?"
     },
     "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
       "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
@@ -1255,8 +1255,8 @@
   },
   "packages/protocols/specialty/gastroenteroloji.yaml": {
     "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
-      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
-      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+      "authored": "Bu randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bu randevunuzun sebebini kısaca anlatır mısınız?"
     },
     "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
       "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
@@ -1273,8 +1273,8 @@
   },
   "packages/protocols/specialty/gastroenteroloji_cerrahisi.yaml": {
     "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
-      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
-      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+      "authored": "Bu randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bu randevunuzun sebebini kısaca anlatır mısınız?"
     },
     "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
       "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
@@ -1291,8 +1291,8 @@
   },
   "packages/protocols/specialty/gebe_poliklinigi.yaml": {
     "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
-      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
-      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+      "authored": "Bu randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bu randevunuzun sebebini kısaca anlatır mısınız?"
     },
     "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
       "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
@@ -1309,8 +1309,8 @@
   },
   "packages/protocols/specialty/gelisimsel_pediatri.yaml": {
     "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
-      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
-      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+      "authored": "Bu randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bu randevunuzun sebebini kısaca anlatır mısınız?"
     },
     "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
       "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
@@ -1327,8 +1327,8 @@
   },
   "packages/protocols/specialty/genel_cerrahi.yaml": {
     "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
-      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
-      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+      "authored": "Bu randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bu randevunuzun sebebini kısaca anlatır mısınız?"
     },
     "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
       "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
@@ -1345,8 +1345,8 @@
   },
   "packages/protocols/specialty/geriatri.yaml": {
     "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
-      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
-      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+      "authored": "Bu randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bu randevunuzun sebebini kısaca anlatır mısınız?"
     },
     "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
       "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
@@ -1363,8 +1363,8 @@
   },
   "packages/protocols/specialty/getat.yaml": {
     "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
-      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
-      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+      "authored": "Bu randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bu randevunuzun sebebini kısaca anlatır mısınız?"
     },
     "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
       "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
@@ -1381,8 +1381,8 @@
   },
   "packages/protocols/specialty/gogus_cerrahisi.yaml": {
     "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
-      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
-      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+      "authored": "Bu randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bu randevunuzun sebebini kısaca anlatır mısınız?"
     },
     "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
       "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
@@ -1399,8 +1399,8 @@
   },
   "packages/protocols/specialty/gogus_hastaliklari.yaml": {
     "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
-      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
-      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+      "authored": "Bu randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bu randevunuzun sebebini kısaca anlatır mısınız?"
     },
     "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
       "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
@@ -1417,8 +1417,8 @@
   },
   "packages/protocols/specialty/goz_hastaliklari.yaml": {
     "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
-      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
-      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+      "authored": "Bu randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bu randevunuzun sebebini kısaca anlatır mısınız?"
     },
     "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
       "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
@@ -1435,8 +1435,8 @@
   },
   "packages/protocols/specialty/halk_sagligi.yaml": {
     "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
-      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
-      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+      "authored": "Bu randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bu randevunuzun sebebini kısaca anlatır mısınız?"
     },
     "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
       "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
@@ -1453,8 +1453,8 @@
   },
   "packages/protocols/specialty/hava_ve_uzay_hekimligi.yaml": {
     "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
-      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
-      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+      "authored": "Bu randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bu randevunuzun sebebini kısaca anlatır mısınız?"
     },
     "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
       "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
@@ -1471,8 +1471,8 @@
   },
   "packages/protocols/specialty/hematoloji.yaml": {
     "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
-      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
-      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+      "authored": "Bu randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bu randevunuzun sebebini kısaca anlatır mısınız?"
     },
     "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
       "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
@@ -1489,8 +1489,8 @@
   },
   "packages/protocols/specialty/hemsirelik_egitim_poliklinikleri.yaml": {
     "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
-      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
-      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+      "authored": "Bu randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bu randevunuzun sebebini kısaca anlatır mısınız?"
     },
     "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
       "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
@@ -1507,8 +1507,8 @@
   },
   "packages/protocols/specialty/ic_hastaliklari.yaml": {
     "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
-      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
-      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+      "authored": "Bu randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bu randevunuzun sebebini kısaca anlatır mısınız?"
     },
     "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
       "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
@@ -1525,8 +1525,8 @@
   },
   "packages/protocols/specialty/immunoloji_ve_alerji.yaml": {
     "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
-      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
-      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+      "authored": "Bu randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bu randevunuzun sebebini kısaca anlatır mısınız?"
     },
     "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
       "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
@@ -1543,8 +1543,8 @@
   },
   "packages/protocols/specialty/is_ve_meslek_hastaliklari.yaml": {
     "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
-      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
-      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+      "authored": "Bu randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bu randevunuzun sebebini kısaca anlatır mısınız?"
     },
     "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
       "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
@@ -1561,8 +1561,8 @@
   },
   "packages/protocols/specialty/jinekolojik_onkoloji.yaml": {
     "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
-      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
-      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+      "authored": "Bu randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bu randevunuzun sebebini kısaca anlatır mısınız?"
     },
     "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
       "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
@@ -1579,8 +1579,8 @@
   },
   "packages/protocols/specialty/kadin_hastaliklari_ve_dogum.yaml": {
     "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
-      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
-      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+      "authored": "Bu randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bu randevunuzun sebebini kısaca anlatır mısınız?"
     },
     "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
       "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
@@ -1597,8 +1597,8 @@
   },
   "packages/protocols/specialty/kalp_ve_damar_cerrahisi.yaml": {
     "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
-      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
-      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+      "authored": "Bu randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bu randevunuzun sebebini kısaca anlatır mısınız?"
     },
     "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
       "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
@@ -1615,8 +1615,8 @@
   },
   "packages/protocols/specialty/kardiyoloji.yaml": {
     "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
-      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
-      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+      "authored": "Bu randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bu randevunuzun sebebini kısaca anlatır mısınız?"
     },
     "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
       "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
@@ -1633,8 +1633,8 @@
   },
   "packages/protocols/specialty/klinik_norofizyoloji.yaml": {
     "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
-      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
-      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+      "authored": "Bu randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bu randevunuzun sebebini kısaca anlatır mısınız?"
     },
     "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
       "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
@@ -1651,8 +1651,8 @@
   },
   "packages/protocols/specialty/klinik_psikoloji_poliklinigi.yaml": {
     "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
-      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
-      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+      "authored": "Bu randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bu randevunuzun sebebini kısaca anlatır mısınız?"
     },
     "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
       "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
@@ -1669,8 +1669,8 @@
   },
   "packages/protocols/specialty/kulak_burun_bogaz_hastaliklari.yaml": {
     "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
-      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
-      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+      "authored": "Bu randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bu randevunuzun sebebini kısaca anlatır mısınız?"
     },
     "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
       "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
@@ -1687,8 +1687,8 @@
   },
   "packages/protocols/specialty/nefroloji.yaml": {
     "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
-      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
-      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+      "authored": "Bu randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bu randevunuzun sebebini kısaca anlatır mısınız?"
     },
     "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
       "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
@@ -1705,8 +1705,8 @@
   },
   "packages/protocols/specialty/neonatoloji.yaml": {
     "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
-      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
-      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+      "authored": "Bu randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bu randevunuzun sebebini kısaca anlatır mısınız?"
     },
     "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
       "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
@@ -1723,8 +1723,8 @@
   },
   "packages/protocols/specialty/noroloji.yaml": {
     "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
-      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
-      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+      "authored": "Bu randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bu randevunuzun sebebini kısaca anlatır mısınız?"
     },
     "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
       "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
@@ -1741,8 +1741,8 @@
   },
   "packages/protocols/specialty/nukleer_tip.yaml": {
     "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
-      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
-      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+      "authored": "Bu randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bu randevunuzun sebebini kısaca anlatır mısınız?"
     },
     "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
       "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
@@ -1759,8 +1759,8 @@
   },
   "packages/protocols/specialty/obezite_poliklinigi.yaml": {
     "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
-      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
-      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+      "authored": "Bu randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bu randevunuzun sebebini kısaca anlatır mısınız?"
     },
     "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
       "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
@@ -1777,8 +1777,8 @@
   },
   "packages/protocols/specialty/odyoloji.yaml": {
     "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
-      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
-      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+      "authored": "Bu randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bu randevunuzun sebebini kısaca anlatır mısınız?"
     },
     "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
       "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
@@ -1795,8 +1795,8 @@
   },
   "packages/protocols/specialty/ortodonti.yaml": {
     "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
-      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
-      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+      "authored": "Bu randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bu randevunuzun sebebini kısaca anlatır mısınız?"
     },
     "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
       "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
@@ -1813,8 +1813,8 @@
   },
   "packages/protocols/specialty/ortopedi_ve_travmatoloji.yaml": {
     "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
-      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
-      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+      "authored": "Bu randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bu randevunuzun sebebini kısaca anlatır mısınız?"
     },
     "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
       "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
@@ -1831,8 +1831,8 @@
   },
   "packages/protocols/specialty/pedodonti.yaml": {
     "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
-      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
-      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+      "authored": "Bu randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bu randevunuzun sebebini kısaca anlatır mısınız?"
     },
     "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
       "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
@@ -1849,8 +1849,8 @@
   },
   "packages/protocols/specialty/perinatoloji.yaml": {
     "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
-      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
-      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+      "authored": "Bu randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bu randevunuzun sebebini kısaca anlatır mısınız?"
     },
     "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
       "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
@@ -1867,8 +1867,8 @@
   },
   "packages/protocols/specialty/periodontoloji.yaml": {
     "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
-      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
-      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+      "authored": "Bu randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bu randevunuzun sebebini kısaca anlatır mısınız?"
     },
     "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
       "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
@@ -1885,8 +1885,8 @@
   },
   "packages/protocols/specialty/plastik_rekonstruktif_ve_estetik_cerrahi.yaml": {
     "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
-      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
-      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+      "authored": "Bu randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bu randevunuzun sebebini kısaca anlatır mısınız?"
     },
     "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
       "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
@@ -1903,8 +1903,8 @@
   },
   "packages/protocols/specialty/protetik.yaml": {
     "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
-      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
-      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+      "authored": "Bu randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bu randevunuzun sebebini kısaca anlatır mısınız?"
     },
     "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
       "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
@@ -1921,8 +1921,8 @@
   },
   "packages/protocols/specialty/radyasyon_onkolojisi.yaml": {
     "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
-      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
-      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+      "authored": "Bu randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bu randevunuzun sebebini kısaca anlatır mısınız?"
     },
     "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
       "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
@@ -1939,8 +1939,8 @@
   },
   "packages/protocols/specialty/restoratif.yaml": {
     "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
-      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
-      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+      "authored": "Bu randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bu randevunuzun sebebini kısaca anlatır mısınız?"
     },
     "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
       "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
@@ -1957,8 +1957,8 @@
   },
   "packages/protocols/specialty/romatoloji.yaml": {
     "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
-      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
-      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+      "authored": "Bu randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bu randevunuzun sebebini kısaca anlatır mısınız?"
     },
     "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
       "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
@@ -1975,8 +1975,8 @@
   },
   "packages/protocols/specialty/ruh_sagligi_ve_hastaliklari.yaml": {
     "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
-      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
-      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+      "authored": "Bu randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bu randevunuzun sebebini kısaca anlatır mısınız?"
     },
     "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
       "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
@@ -1993,8 +1993,8 @@
   },
   "packages/protocols/specialty/saglik_kurulu.yaml": {
     "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
-      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
-      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+      "authored": "Bu randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bu randevunuzun sebebini kısaca anlatır mısınız?"
     },
     "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
       "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
@@ -2011,8 +2011,8 @@
   },
   "packages/protocols/specialty/sigara_birakma_poliklinigi.yaml": {
     "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
-      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
-      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+      "authored": "Bu randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bu randevunuzun sebebini kısaca anlatır mısınız?"
     },
     "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
       "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
@@ -2029,8 +2029,8 @@
   },
   "packages/protocols/specialty/sosyal_pediatri.yaml": {
     "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
-      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
-      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+      "authored": "Bu randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bu randevunuzun sebebini kısaca anlatır mısınız?"
     },
     "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
       "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
@@ -2047,8 +2047,8 @@
   },
   "packages/protocols/specialty/spor_hekimligi.yaml": {
     "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
-      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
-      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+      "authored": "Bu randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bu randevunuzun sebebini kısaca anlatır mısınız?"
     },
     "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
       "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
@@ -2065,8 +2065,8 @@
   },
   "packages/protocols/specialty/sualti_ve_hiperbarik_tip.yaml": {
     "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
-      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
-      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+      "authored": "Bu randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bu randevunuzun sebebini kısaca anlatır mısınız?"
     },
     "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
       "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
@@ -2083,8 +2083,8 @@
   },
   "packages/protocols/specialty/tibbi_ekoloji_ve_hidroklimatoloji.yaml": {
     "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
-      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
-      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+      "authored": "Bu randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bu randevunuzun sebebini kısaca anlatır mısınız?"
     },
     "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
       "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
@@ -2101,8 +2101,8 @@
   },
   "packages/protocols/specialty/tibbi_genetik.yaml": {
     "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
-      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
-      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+      "authored": "Bu randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bu randevunuzun sebebini kısaca anlatır mısınız?"
     },
     "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
       "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
@@ -2119,8 +2119,8 @@
   },
   "packages/protocols/specialty/tibbi_onkoloji.yaml": {
     "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
-      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
-      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+      "authored": "Bu randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bu randevunuzun sebebini kısaca anlatır mısınız?"
     },
     "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
       "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
@@ -2137,8 +2137,8 @@
   },
   "packages/protocols/specialty/ureme_endokrinolojisi_ve_infertilite.yaml": {
     "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
-      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
-      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+      "authored": "Bu randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bu randevunuzun sebebini kısaca anlatır mısınız?"
     },
     "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
       "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
@@ -2155,8 +2155,8 @@
   },
   "packages/protocols/specialty/uroloji.yaml": {
     "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
-      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
-      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+      "authored": "Bu randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bu randevunuzun sebebini kısaca anlatır mısınız?"
     },
     "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
       "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
@@ -2173,8 +2173,8 @@
   },
   "packages/protocols/specialty/uyku_poliklinigi.yaml": {
     "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
-      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
-      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+      "authored": "Bu randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bu randevunuzun sebebini kısaca anlatır mısınız?"
     },
     "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
       "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",
@@ -2191,8 +2191,8 @@
   },
   "packages/protocols/specialty/yasli_sagligi_poliklinigi.yaml": {
     "sections/ziyaret_baglami/slots/basvuru_nedeni/ask_tr": {
-      "authored": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?",
-      "expanded": "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+      "authored": "Bu randevunuzun sebebini kısaca anlatır mısınız?",
+      "expanded": "Bu randevunuzun sebebini kısaca anlatır mısınız?"
     },
     "sections/ziyaret_baglami/slots/basvuru_nedeni/follow_up_tr": {
       "authored": "Sizi hekime getiren en önemli şikâyetiniz nedir?",

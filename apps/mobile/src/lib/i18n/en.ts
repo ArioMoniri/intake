@@ -313,7 +313,7 @@ export const en: Record<MessageKey, string> = {
   "me.signOut": "Sign out",
   "me.syntheticBadge": "Synthetic test account",
 
-  "intake.q.complaint": "What brings you to the doctor today?",
+  "intake.q.complaint": "What brings you to the doctor these days?",
   "intake.q.complaint.hint": "You can pick more than one.",
   "intake.opt.pain": "Pain",
   "intake.opt.fever": "Fever",
@@ -670,12 +670,12 @@ export const en: Record<MessageKey, string> = {
   // INT-321 — the mode is asked once, up front (02 §2), not on every
   // question. Two calm doors; the old per-question row is gone; the
   // checkpoint survives as the first-person "I am done".
-  "intake.mode.q": "How shall we go about this?",
-  "intake.mode.hospital": "I am at the hospital",
+  "intake.mode.q": "Are you at the hospital right now?",
+  "intake.mode.hospital": "Yes, I am at the hospital",
   "intake.mode.hospitalSub":
     "Let us go in detail. If your turn comes, you can finish whenever you like.",
-  "intake.mode.brief": "Let us keep it short",
-  "intake.mode.briefSub": "Only the few most essential questions.",
+  "intake.mode.away": "No, I am not at the hospital",
+  "intake.mode.awaySub": "Only the few most essential questions.",
   // The clinic-interruptible checkpoint (02 §34): first-person, plain.
   "intake.finishNow": "I am done",
   // Environment self-check (02 §33) — asked only in the detailed flow.
@@ -709,6 +709,7 @@ export const en: Record<MessageKey, string> = {
   "note.deferred.wellbeing": "Wellbeing screening",
   "note.deferred.marker": "missing: the setting was not suitable",
   "review.hpi.staleCondition": "condition changed",
+  "note.answeredOn": "answered on",
   "review.eksik.title": "Still missing",
   "review.eksik.intro": "These questions have not been answered yet:",
   "review.resume": "Continue where you left off",
@@ -972,7 +973,7 @@ export const en: Record<MessageKey, string> = {
   "carried.source.confirmed_imported_record": "It came from a document you confirmed",
   "carried.empty": "Nothing has been carried over from earlier visits.",
   "carried.ledger.body":
-    "Here you can see what has been carried over from your earlier visits and where each item came from. Which of them still holds today is asked at each visit's review step.",
+    "Here you can see what has been carried over from your earlier visits and where each item came from. Which of them still holds is asked at each visit's review step.",
   "note.fact.previousRecord": "previously recorded",
   "note.fact.unconfirmed": "not confirmed at this visit",
   "note.fact.confirmed.patient": "the patient says they are still taking it",
@@ -981,7 +982,7 @@ export const en: Record<MessageKey, string> = {
   "note.fact.changed.clinician": "the clinician recorded a change; no new detail taken",
   "note.fact.stopped.patient": "the patient says they stopped it",
   "note.fact.stopped.clinician": "the clinician recorded it as stopped",
-  "a11y.carried.hint": "Double tap to say whether this still holds today.",
+  "a11y.carried.hint": "Double tap to say whether this still holds.",
   // ---- INT-256: the universal history every intake asks -------------------
   // Mirrors the tr block key-for-key (invariant 5; tr is the source of
   // truth). Nothing here grades a reaction or concludes anything from an

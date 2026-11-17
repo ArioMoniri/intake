@@ -7687,3 +7687,24 @@
     - "The API's OpenBao policy grants read-only access to the path; the migration outcome is observable with ids only and catalogued; files/10 §9 and the threat-model residual are updated; tests first with near misses."
   tests: [tests/api/test_tokenization_key.py, tests/api/test_tokenization_probe.py, tests/infra/test_staging_tokenization_key.py, tests/infra/test_staging_compose.py, tests/infra/test_staging_netgsm.py, tests/api/test_previsit_output.py, tests/api/test_otp_netgsm_wiring.py]
   sec_row: "onboarding"
+- id: INT-604
+  epic: E03-protocols
+  phase: P1
+  title: "Question wording: an exclusive \"Yok\", answers anchored to the answering day, and a visit-mode question that asks one thing"
+  # GitHub #1029, from the 2026-11 design audit Part B M1-M3. Owner decisions
+  # of 17 Nov 2026 under D18 (synthetic host, simulated patients only; a
+  # licensed physician signs before any real patient), recorded in
+  # docs/evidence/INT-604.md: M1 "yes", M2 "su siralar", M3 "on site". Every
+  # acceptance item is met, so the row is done; approval:human-clinical stays
+  # for the physician's later signature on the changed text_tr. ADR-043.
+  depends_on: [INT-441, INT-446, INT-321]
+  labels: [area:protocols, area:mobile, risk:clinical, approval:human-clinical]
+  status: done
+  evidence: docs/evidence/INT-604.md
+  acceptance:
+    - "A multi-select option can be declared `exclusive: true` in the DSL. Selecting it clears the others, and selecting another option clears it. An ADR records the DSL change. Every \"Yok\"/\"Hiçbiri\" option in served-candidate packs is marked exclusive. Golden tests include a near-miss negative control."
+    - "Questions that say \"bugün\" or other day-relative words are anchored to the time of answering, not the visit date: either the wording is made explicit (e.g. \"şu sıralar\") or the anchor is stated. The `text_tr` changes follow invariant 10 and are listed for `approval:human-clinical`."
+    - "The visit-mode question asks one thing. Location (REMOTE / ON_SITE / UNKNOWN) feeds the RED location axis only from an unambiguous answer, and an ambiguous answer resolves to UNKNOWN. A golden test proves a preference answer can never set ON_SITE."
+    - "`make safety` is green, and red-flag rules stay monotonic (invariant 7)."
+  tests: [tests/protocols/test_exclusive_options.py, tests/protocols/test_day_relative_wording.py, tests/safety/test_exclusive_choice_triage.py, tests/api/test_triage_hop.py, apps/mobile/src/lib/intake/exclusive.test.ts, apps/mobile/src/lib/intake/dayAnchor.test.ts, apps/mobile/src/lib/red/location.test.ts, apps/mobile/src/lib/dialogue/stream.test.ts, apps/mobile/e2e/intakeMode.spec.ts]
+  sec_row: "clinical-content"

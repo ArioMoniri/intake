@@ -265,7 +265,9 @@ def test_ids_unique_and_well_formed() -> None:
     # processing accepts the iOS build, ITMS-90683; GitHub #1000).
     # + INT-584 (the phone-tokenization key moves into OpenBao with the same
     # key material, no pseudonym changes; owner decision D38, GitHub #983).
-    assert len(ids) == 386
+    # + INT-604 (an exclusive "Yok", answers anchored to the answering day, a
+    # visit-mode question that asks one thing; design audit M1-M3, GitHub #1029).
+    assert len(ids) == 387
     import re
 
     for i in ids:

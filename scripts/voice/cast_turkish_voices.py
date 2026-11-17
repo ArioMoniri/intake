@@ -123,7 +123,7 @@ LINES: Final[tuple[CatalogueLine, ...]] = (
     ),
     CatalogueLine(
         "routine",
-        "Sizi bugün hekime getiren şeyi kendi sözlerinizle anlatır mısınız? "
+        "Sizi şu sıralar hekime getiren şeyi kendi sözlerinizle anlatır mısınız? "
         "Sözünüzü kesmeden dinleyeceğim.",
         "packages/protocols/base/intake.yaml",
     ),
