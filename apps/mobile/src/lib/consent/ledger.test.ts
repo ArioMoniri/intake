@@ -34,13 +34,13 @@ const view = (state: ReturnType<typeof freshLedger>, id: string) =>
   viewOf(state).find((v) => v.id === id)!;
 
 describe("fresh ledger (a new otp account)", () => {
-  it("explicit purposes are off, learning purposes are default-on, queue empty", () => {
+  it("every purpose is off, the learning ones included (INT-603 round 2), queue empty", () => {
     const state = freshLedger();
     expect(view(state, "voice").allowed).toBe(false);
     expect(view(state, "wellbeing").allowed).toBe(false);
     expect(view(state, "research").allowed).toBe(false);
-    expect(view(state, "learning:personal").allowed).toBe(true);
-    expect(view(state, "learning:service_improvement").allowed).toBe(true);
+    expect(view(state, "learning:personal").allowed).toBe(false);
+    expect(view(state, "learning:service_improvement").allowed).toBe(false);
     expect(state.queue).toEqual([]);
   });
 
@@ -132,18 +132,21 @@ describe("withdraw — instant, cascading, one queued op for the root", () => {
     expect(withdrawals).toEqual([{ kind: "withdraw", scope: "voice", atIso: NOW }]);
   });
 
-  it("opting out of a default-on purpose is withdrawable and leaves it off", () => {
-    const result = withdraw(freshLedger(), "learning:service_improvement", NOW);
+  it("turning off a granted learning purpose leaves it off, one op queued", () => {
+    let state = applyTexts(freshLedger(), { "learning:service_improvement": text("v1", "s") });
+    state = grant(state, "learning:service_improvement", NOW).state;
+    const before = state.queue.length;
+    const result = withdraw(state, "learning:service_improvement", NOW);
     expect(result.flipped).toEqual(["learning:service_improvement"]);
     expect(view(result.state, "learning:service_improvement").allowed).toBe(false);
-    expect(result.state.queue).toEqual([
+    expect(result.state.queue.slice(before)).toEqual([
       { kind: "withdraw", scope: "learning:service_improvement", atIso: NOW },
     ]);
   });
 
   it("core withdrawal drags every explicit grant down, one op for the root (INT-537)", () => {
     // the server's dependents_of("core") is every other purpose: its cascade
-    // revokes the live rows and writes the opt-out of each default-on one
+    // revokes the live rows (no purpose defaults on since INT-603 round 2)
     let state = applyTexts(grantedVoiceStack(), {
       core: text("v1", "c"),
       documents: text("v1", "d"),
@@ -151,15 +154,7 @@ describe("withdraw — instant, cascading, one queued op for the root", () => {
     state = grant(state, "core", NOW).state;
     state = grant(state, "documents", NOW).state;
     const result = withdraw(state, "core", NOW);
-    const fallen = [
-      "core",
-      "voice",
-      "lane:affect",
-      "lane:linguistic",
-      "documents",
-      "learning:personal",
-      "learning:service_improvement",
-    ];
+    const fallen = ["core", "voice", "lane:affect", "lane:linguistic", "documents"];
     expect(result.flipped).toEqual(fallen);
     for (const id of fallen) {
       expect(view(result.state, id).allowed, id).toBe(false);
@@ -168,11 +163,17 @@ describe("withdraw — instant, cascading, one queued op for the root", () => {
     expect(withdrawals).toEqual([{ kind: "withdraw", scope: "core", atIso: NOW }]);
   });
 
-  it("core withdrawal turns the default-on learning purposes off too, as the server does", () => {
+  it("core withdrawal turns granted learning purposes off too, as the server does", () => {
     // INT-537 legal review B1: the core text says every other permission
-    // closes with it, and the server writes each learning purpose's opt-out
-    let state = applyTexts(freshLedger(), { core: text("v1", "c") });
+    // closes with it; the server revokes each live learning grant
+    let state = applyTexts(freshLedger(), {
+      core: text("v1", "c"),
+      "learning:personal": text("v1", "p"),
+      "learning:service_improvement": text("v1", "s"),
+    });
     state = grant(state, "core", NOW).state;
+    state = grant(state, "learning:personal", NOW).state;
+    state = grant(state, "learning:service_improvement", NOW).state;
     const result = withdraw(state, "core", NOW);
     expect(result.flipped).toEqual(["core", "learning:personal", "learning:service_improvement"]);
     expect(view(result.state, "learning:personal").display).toBe("off");
@@ -184,8 +185,14 @@ describe("withdraw — instant, cascading, one queued op for the root", () => {
     expect(view(regranted, "learning:service_improvement").allowed).toBe(false);
   });
 
-  it("withdrawing voice leaves the learning purposes on (near miss: only core reaches them)", () => {
-    const result = withdraw(grantedVoiceStack(), "voice", NOW);
+  it("withdrawing voice leaves granted learning purposes on (near miss: only core reaches them)", () => {
+    let state = applyTexts(grantedVoiceStack(), {
+      "learning:personal": text("v1", "p"),
+      "learning:service_improvement": text("v1", "s"),
+    });
+    state = grant(state, "learning:personal", NOW).state;
+    state = grant(state, "learning:service_improvement", NOW).state;
+    const result = withdraw(state, "voice", NOW);
     expect(view(result.state, "learning:personal").allowed).toBe(true);
     expect(view(result.state, "learning:service_improvement").allowed).toBe(true);
   });
@@ -247,12 +254,10 @@ describe("versioning — stale on change, re-prompt, never a silent re-grant", (
     expect(grant(seeded, "wellbeing", NOW).flipped).toEqual([]);
   });
 
-  it("default-on learning purposes never go stale from a text landing", () => {
-    // no açık rıza text governs a non-consent basis; text arrival must not
-    // flip a default-on purpose into a re-prompt
+  it("a text landing never turns a learning purpose on (INT-603 round 2)", () => {
     const state = applyTexts(freshLedger(), { "learning:personal": text("v1", "e") });
-    expect(view(state, "learning:personal").allowed).toBe(true);
-    expect(view(state, "learning:personal").display).toBe("on");
+    expect(view(state, "learning:personal").allowed).toBe(false);
+    expect(view(state, "learning:personal").display).toBe("off");
   });
 });
 
@@ -262,13 +267,13 @@ describe("server snapshot reconciliation", () => {
       { scope: "voice", reason: "granted", version: "v3", textHash: "h".repeat(64) },
       { scope: "documents", reason: "stale", version: "v1", textHash: "x".repeat(64) },
       { scope: "wellbeing", reason: "withdrawn", version: null, textHash: null },
-      { scope: "learning:personal", reason: "default_on", version: null, textHash: null },
+      { scope: "learning:personal", reason: "absent", version: null, textHash: null },
     ]);
     expect(view(state, "voice").allowed).toBe(true);
     expect(view(state, "documents").allowed).toBe(false);
     expect(view(state, "documents").display).toBe("stale");
     expect(view(state, "wellbeing").allowed).toBe(false);
-    expect(view(state, "learning:personal").allowed).toBe(true);
+    expect(view(state, "learning:personal").allowed).toBe(false);
   });
 
   it("a server-declared stale is honoured even before the new text arrives", () => {

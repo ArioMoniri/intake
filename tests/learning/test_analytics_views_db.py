@@ -67,6 +67,9 @@ WEEK_START = datetime(2026, 8, 3, 9, 0, tzinfo=UTC)
 BIG_PROTOCOL = "int171.big"
 THIN_PROTOCOL = "int171.thin"
 OPTOUT_PROTOCOL = "int171.optout"
+#: INT-603 round 2: a pack of K+2 patients none of whom granted Loop 2. Before
+#: INT-603 they were counted (opt-out semantics); now none of them is.
+NOGRANT_PROTOCOL = "int603.nogrant"
 
 #: files/06 §2 — the opt-out purpose Loop 2 runs under.
 LOOP2_SCOPE = "learning:service_improvement"
@@ -89,6 +92,7 @@ class Seed:
     patients: tuple[uuid.UUID, ...]
     lonely_patient: uuid.UUID
     optout_patients: tuple[uuid.UUID, ...]
+    nogrant_patients: tuple[uuid.UUID, ...]
 
 
 @pytest.fixture(scope="module")
@@ -113,7 +117,17 @@ def seed(migrated: None) -> Iterator[Seed]:
         patients=tuple(uuid.uuid4() for _ in range(K_ANONYMITY_FLOOR + 2)),
         lonely_patient=uuid.uuid4(),
         optout_patients=tuple(uuid.uuid4() for _ in range(K_ANONYMITY_FLOOR + 2)),
+        nogrant_patients=tuple(uuid.uuid4() for _ in range(K_ANONYMITY_FLOOR + 2)),
     )
+
+    def _grant(cur: psycopg.Cursor, tenant: uuid.UUID, patient: uuid.UUID) -> None:
+        # INT-603 round 2: Loop 2 counts only a LIVE grant of its scope
+        cur.execute(
+            "INSERT INTO consents (tenant_id, patient_id, scope, version, granted_at) "
+            "VALUES (%s, %s, %s, %s, %s)",
+            (tenant, patient, LOOP2_SCOPE, "int603-test", WEEK_START - timedelta(days=1)),
+        )
+
     tenants = (ids.tenant_a, ids.tenant_b)
     with _connect(SUPERUSER, SUPERPASS) as conn, conn.cursor() as cur:
         for tenant, label in ((ids.tenant_a, "int171-a"), (ids.tenant_b, "int171-b")):
@@ -128,6 +142,7 @@ def seed(migrated: None) -> Iterator[Seed]:
                 "INSERT INTO patients (id, tenant_id, pseudonym) VALUES (%s, %s, %s)",
                 (patient, tenant, f"v1.{uuid.uuid4().hex}{uuid.uuid4().hex}"),
             )
+            _grant(cur, tenant, patient)
             session_id = uuid.uuid4()
             cur.execute(
                 "INSERT INTO sessions (id, tenant_id, patient_id, protocol_id, "
@@ -145,6 +160,7 @@ def seed(migrated: None) -> Iterator[Seed]:
             "INSERT INTO patients (id, tenant_id, pseudonym) VALUES (%s, %s, %s)",
             (ids.lonely_patient, ids.tenant_a, f"v1.{uuid.uuid4().hex}{uuid.uuid4().hex}"),
         )
+        _grant(cur, ids.tenant_a, ids.lonely_patient)
         for offset in range(40):
             cur.execute(
                 "INSERT INTO sessions (id, tenant_id, patient_id, protocol_id, "
@@ -187,6 +203,28 @@ def seed(migrated: None) -> Iterator[Seed]:
                     "granted_at, revoked_at) VALUES (%s, %s, %s, %s, %s, %s)",
                     (tenant, patient, LOOP2_SCOPE, "opt-out", WEEK_START, WEEK_START),
                 )
+            else:
+                _grant(cur, tenant, patient)
+        # ... and a pack of K+2 patients with NO consent row: never granted.
+        for index, patient in enumerate(ids.nogrant_patients):
+            tenant = tenants[index % 2]
+            cur.execute(
+                "INSERT INTO patients (id, tenant_id, pseudonym) VALUES (%s, %s, %s)",
+                (patient, tenant, f"v1.{uuid.uuid4().hex}{uuid.uuid4().hex}"),
+            )
+            cur.execute(
+                "INSERT INTO sessions (id, tenant_id, patient_id, protocol_id, "
+                "protocol_version, status, created_at) VALUES (%s, %s, %s, %s, %s, %s, %s)",
+                (
+                    uuid.uuid4(),
+                    tenant,
+                    patient,
+                    NOGRANT_PROTOCOL,
+                    "1.0.0",
+                    "completed",
+                    WEEK_START,
+                ),
+            )
     yield ids
     with _connect(SUPERUSER, SUPERPASS) as conn, conn.cursor() as cur:
         for table in ("slots", "sessions", "consents", "patients"):
@@ -344,6 +382,30 @@ def test_the_loop_two_opt_out_is_honoured_before_the_floor_is_applied(seed: Seed
     assert in_the_view < K_ANONYMITY_FLOOR
     with pytest.raises(KAnonymityRefusal):
         _read(SESSION_OUTCOMES, k=K_ANONYMITY_FLOOR, where={"protocol_id": OPTOUT_PROTOCOL})
+
+
+def test_a_patient_who_never_granted_loop_two_is_not_counted(seed: Seed) -> None:
+    """INT-603 legal review round 2: ``learning:service_improvement`` is off
+    until the patient turns it on, so a session whose patient holds no live
+    grant is not in the base view. The pack is above the floor in the table
+    and EMPTY in the view, so the read refuses rather than reporting a zero."""
+    with _connect(SUPERUSER, SUPERPASS) as conn, conn.cursor() as cur:
+        cur.execute(
+            "SELECT count(DISTINCT patient_id) FROM sessions WHERE protocol_id = %s",
+            (NOGRANT_PROTOCOL,),
+        )
+        row = cur.fetchone()
+        assert row is not None
+        assert int(row[0]) == K_ANONYMITY_FLOOR + 2
+        cur.execute(
+            "SELECT count(*) FROM analytics.v_loop2_sessions WHERE protocol_id = %s",
+            (NOGRANT_PROTOCOL,),
+        )
+        row = cur.fetchone()
+        assert row is not None
+        assert int(row[0]) == 0
+    with pytest.raises(KAnonymityRefusal):
+        _read(SESSION_OUTCOMES, k=K_ANONYMITY_FLOOR, where={"protocol_id": NOGRANT_PROTOCOL})
 
 
 def test_the_learning_reader_cannot_select_the_unaggregated_base_view(seed: Seed) -> None:

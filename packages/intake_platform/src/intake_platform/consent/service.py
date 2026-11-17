@@ -47,7 +47,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from intake_platform.consent.registry import (
     CHANNELS,
     CORE,
-    PURPOSES,
     dependents_of,
     resolve_scope,
 )
@@ -55,7 +54,6 @@ from intake_platform.consent.texts import ConsentTextCatalog
 from intake_platform.db.models import Consent, Note, Share
 
 __all__ = [
-    "OPT_OUT_VERSION",
     "ConsentAudit",
     "ConsentDecision",
     "Reason",
@@ -71,12 +69,12 @@ __all__ = [
 # anything with spaces or non-ASCII — has no carrier here either.
 _REF_SHAPE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:/@-]{0,127}$")
 
-# The version marker on a materialised opt-out of a default-on purpose:
-# no açık rıza text governs a non-consent lawful basis, so there is no
-# consent-text version to record — but the opt-out itself must leave a row.
-OPT_OUT_VERSION = "opt-out"
-
-Reason = Literal["granted", "default_on", "unbound", "absent", "withdrawn", "stale"]
+# INT-603 (legal review round 2, owner's KVKK approval): no purpose defaults
+# on, so there is no "default_on" answer and no opt-out row to materialise.
+# A purpose with no live grant is "absent" — fail closed — whatever its
+# registry basis label says. Rows written as opt-outs before INT-603 (version
+# "opt-out", granted and revoked at one instant) still read as "withdrawn".
+Reason = Literal["granted", "unbound", "absent", "withdrawn", "stale"]
 
 
 class ConsentAudit(Protocol):
@@ -148,8 +146,6 @@ async def consent_state(
         return decision(False, "stale")
     if rows:
         return decision(False, "withdrawn")
-    if purpose.default_granted:
-        return decision(True, "default_on")
     return decision(False, "absent")
 
 
@@ -281,49 +277,6 @@ def _cascade_scope_ids(purpose_id: str) -> tuple[str, ...]:
     return dependents_of(purpose_id)
 
 
-def _opt_out_row(
-    *, tenant_id: uuid.UUID, patient_id: uuid.UUID, scope: str, instant: datetime
-) -> Consent:
-    """The record of an opt-out from a default-on purpose: granted and
-    revoked at the same instant, versioned OPT_OUT_VERSION (no açık rıza
-    text governs a non-consent basis)."""
-    return Consent(
-        tenant_id=tenant_id,
-        patient_id=patient_id,
-        scope=scope,
-        version=OPT_OUT_VERSION,
-        granted_at=instant,
-        revoked_at=instant,
-    )
-
-
-async def _materialise_default_opt_outs(
-    session: AsyncSession, *, tenant_id: uuid.UUID, patient_id: uuid.UUID, instant: datetime
-) -> list[Consent]:
-    """INT-537 (legal review B1): a core withdrawal closes every other
-    purpose, and the core text says so. A default-on purpose nobody decided
-    has no row to revoke, so its opt-out is written here. A purpose that
-    already has a row — a live one the core cascade just revoked, or an
-    earlier opt-out — is a recorded decision and gets nothing new."""
-    written: list[Consent] = []
-    for purpose in PURPOSES:
-        if not purpose.default_granted or purpose.parameterised:
-            continue
-        rows = await _rows_for_scope(
-            session, tenant_id=tenant_id, patient_id=patient_id, scope=purpose.id
-        )
-        if rows:
-            continue
-        row = _opt_out_row(
-            tenant_id=tenant_id, patient_id=patient_id, scope=purpose.id, instant=instant
-        )
-        session.add(row)
-        written.append(row)
-    if written:
-        await session.flush()  # ids for the audit refs
-    return written
-
-
 def _shares_fall_with(purpose_id: str) -> bool:
     # files/06 §2.3: withdrawal revokes delivered Doctor Links; a share
     # rides on the share-family consent, which rides on core.
@@ -350,11 +303,6 @@ async def _cascade(
                 continue
             row.revoked_at = revoke_at
             dependents.append(row)
-        dependents.extend(
-            await _materialise_default_opt_outs(
-                session, tenant_id=tenant_id, patient_id=patient_id, instant=revoke_at
-            )
-        )
     else:
         for child in _cascade_scope_ids(purpose_id):
             dependents.extend(
@@ -410,17 +358,6 @@ async def withdraw_consent(
     revoked = await _revoke_rows(
         session, tenant_id=tenant_id, patient_id=patient_id, scope=scope, instant=instant
     )
-    if not revoked and purpose.default_granted:
-        rows = await _rows_for_scope(
-            session, tenant_id=tenant_id, patient_id=patient_id, scope=scope
-        )
-        if all(row.revoked_at is not None for row in rows):
-            opt_out = _opt_out_row(
-                tenant_id=tenant_id, patient_id=patient_id, scope=scope, instant=instant
-            )
-            session.add(opt_out)
-            await session.flush()
-            revoked = [opt_out]
     for row in revoked:
         await audit.record(
             actor=actor,

@@ -24,8 +24,9 @@ files/08 §4 G states a target for two group G ids, and rendering it beside a
 measurement is how a measurement becomes a claim.
 
 **Consent.** The declared scope is ``learning:service_improvement`` — files/06
-§2's de-identified-aggregate purpose (k >= 10, files/06 §8), "an opt-out
-purpose whose refusal costs no feature". Declared through ``require_scopes``,
+§2's de-identified-aggregate purpose (k >= 10, files/06 §8), off until the
+patient turns it on since INT-603 (legal review round 2), and whose refusal
+costs no feature. Declared through ``require_scopes``,
 so a subject principal is checked by the one ``ensure_consent`` path like any
 other route. A console principal has no patient row, so the guard defers to
 the record-level control — and here that control is the aggregate itself:

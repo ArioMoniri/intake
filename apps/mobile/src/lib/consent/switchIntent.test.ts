@@ -9,8 +9,9 @@
  * Pinned here:
  * - no consent-scope (açık rıza) row is checked before the patient acts, for a
  *   fresh ledger and for a real (otp) account's all-off seed;
- * - the only rows checked on first run are the two non-consent learning rows,
- *   which the list labels as part of the service, not as a consent;
+ * - no row at all is checked on first run: legal review round 2 (the owner's
+ *   KVKK approval, D43 pending number) turned the two learning rows off too,
+ *   on the phone and in the server registry, until counsel records a basis;
  * - granting needs no confirmation: an unchecked switch opens the text, where
  *   the grant is made against it;
  * - withdrawing asks once, and the confirmation names what stops (the purpose
@@ -66,20 +67,22 @@ function withVoiceAndAffect(): LedgerState {
 
 describe("acceptance 1 — no consent row defaults on, checked by purpose id", () => {
   // Legal review round 1: the check reads purpose IDS, never the registry's
-  // basis label, so relabelling a basis cannot make it pass. The two learning
-  // rows are the one named exception — they are default-on in the SERVER
-  // registry (consent/registry.py) the app mirrors, and turning them off
-  // there is a server change waiting on counsel (HB-L27); the list may only
-  // shrink.
-  it("no purpose id defaults on outside the named, shrink-only exception", () => {
+  // basis label, so relabelling a basis cannot make it pass. Round 2 emptied
+  // the exception list (both learning rows are off until counsel records a
+  // basis, HB-L27); it may only stay empty.
+  it("no purpose id defaults on, and the exception list is empty", () => {
     expect(defaultOnViolations(PURPOSES)).toEqual([]);
-    expect([...DEFAULT_ON_AWAITING_COUNSEL]).toEqual([
-      "learning:personal",
-      "learning:service_improvement",
-    ]);
+    expect([...DEFAULT_ON_AWAITING_COUNSEL]).toEqual([]);
   });
 
-  it("near miss: any other id defaulting on fails, whatever its basis label says", () => {
+  it("near miss: flipping a learning default on fails the check", () => {
+    for (const id of ["learning:personal", "learning:service_improvement"]) {
+      const flipped = PURPOSES.map((p) => (p.id === id ? { ...p, defaultGranted: true } : p));
+      expect(defaultOnViolations(flipped), id).toEqual([id]);
+    }
+  });
+
+  it("near miss: any id defaulting on fails, whatever its basis label says", () => {
     const flipped = PURPOSES.map((p) =>
       p.id === "research"
         ? { ...p, defaultGranted: true, basis: "service_performance" as const }
@@ -90,18 +93,18 @@ describe("acceptance 1 — no consent row defaults on, checked by purpose id", (
       p.id === "core" ? { ...p, defaultGranted: true, basis: "deidentified_optout" as const } : p,
     );
     expect(defaultOnViolations(core)).toEqual(["core"]);
-  });
-
-  it("near miss: an unknown learning-like id is not covered by the exception", () => {
     const extra = [...PURPOSES, { id: "learning:other", defaultGranted: true }];
     expect(defaultOnViolations(extra)).toEqual(["learning:other"]);
   });
 
-  it("the switches checked on a fresh ledger are, by id, only the named exception", () => {
-    const checked = viewOf(freshLedger())
-      .filter(switchChecked)
-      .map((v) => v.id);
-    expect(checked.every((id) => DEFAULT_ON_AWAITING_COUNSEL.includes(id))).toBe(true);
+  it("no switch at all is checked on a fresh ledger or a real account's first run", () => {
+    for (const state of [freshLedger(), seedFromSession(ALL_OFF)]) {
+      expect(
+        viewOf(state)
+          .filter(switchChecked)
+          .map((v) => v.id),
+      ).toEqual([]);
+    }
   });
 
   it("a consent scope is exactly an açık rıza purpose", () => {
@@ -136,14 +139,15 @@ describe("acceptance 1 — no consent row defaults on, checked by purpose id", (
     }
   });
 
-  it("the rows checked on first run are only the two non-consent learning rows", () => {
-    const checked = viewOf(freshLedger())
-      .filter(switchChecked)
-      .map((v) => v.id);
-    expect(checked).toEqual(["learning:personal", "learning:service_improvement"]);
-    for (const view of viewOf(freshLedger()).filter(switchChecked)) {
-      expect(isConsentScope(view), view.id).toBe(false);
-    }
+  it("with every text loaded, the learning rows too stay off until the patient grants", () => {
+    const texts: Record<string, TextEntry> = {};
+    for (const p of PURPOSES) texts[p.id] = loaded("v1", "a".repeat(64));
+    const state = applyTexts(freshLedger(), texts);
+    expect(
+      viewOf(state)
+        .filter(switchChecked)
+        .map((v) => v.id),
+    ).toEqual([]);
   });
 
   it("near miss: a granted consent scope IS checked — the switch shows the real state", () => {
@@ -193,17 +197,24 @@ describe("acceptance 2 — granting needs no confirmation; withdrawing asks once
     expect(withdrawConfirmation(viewOf(state), "voice")!.stopKeys).toEqual(["consent.voice"]);
   });
 
-  it("withdrawing core lists every purpose the cascade takes down, learning included", () => {
-    let state = applyTexts(freshLedger(), { core: loaded("v1", "c".repeat(64)) });
+  it("withdrawing core lists every granted purpose the cascade takes down", () => {
+    let state = applyTexts(freshLedger(), {
+      core: loaded("v1", "c".repeat(64)),
+      "learning:personal": loaded("v1", "d".repeat(64)),
+    });
+    expect(
+      withdrawConfirmation(viewOf(grant(state, "core", "2026-11-17T00:00:00Z").state), "core")!
+        .stopKeys,
+    ).toEqual(["consent.core"]);
     state = grant(state, "core", "2026-11-17T00:00:00Z").state;
+    state = grant(state, "learning:personal", "2026-11-17T00:00:01Z").state;
     expect(withdrawConfirmation(viewOf(state), "core")!.stopKeys).toEqual([
       "consent.core",
       "consent.learning.personal",
-      "consent.learning.service",
     ]);
     // the list is exactly what withdraw() flips — the two cannot drift
     const flipped = withdraw(state, "core", "2026-11-17T00:01:00Z").flipped;
-    expect(flipped).toEqual(["core", "learning:personal", "learning:service_improvement"]);
+    expect(flipped).toEqual(["core", "learning:personal"]);
   });
 
   it("a consent withdrawal says it takes effect immediately, through the existing fact", () => {
@@ -215,9 +226,16 @@ describe("acceptance 2 — granting needs no confirmation; withdrawing asks once
     expect(confirm.cancelKey).toBe("consent.confirm.cancel");
   });
 
-  it("turning a learning row off is an opt-out, not a consent withdrawal, and says so", () => {
-    const confirm = withdrawConfirmation(viewOf(freshLedger()), "learning:personal")!;
-    expect(switchIntent(viewFor(freshLedger(), "learning:personal"))).toBe("confirm_withdraw");
+  it("a learning row starts off, so its switch opens the text like any other", () => {
+    expect(switchIntent(viewFor(freshLedger(), "learning:personal"))).toBe("open_detail");
+    expect(withdrawConfirmation(viewOf(freshLedger()), "learning:personal")).toBeNull();
+  });
+
+  it("turning a granted learning row off is worded as turning an option off", () => {
+    let state = applyTexts(freshLedger(), { "learning:personal": loaded("v1", "d".repeat(64)) });
+    state = grant(state, "learning:personal", "2026-11-17T00:00:00Z").state;
+    const confirm = withdrawConfirmation(viewOf(state), "learning:personal")!;
+    expect(switchIntent(viewFor(state, "learning:personal"))).toBe("confirm_withdraw");
     expect(confirm.titleKey).toBe("consent.confirm.optoutTitle");
     expect(confirm.actionKey).toBe("consent.confirm.optoutAction");
     expect(confirm.noteKey).toBe("consent.confirm.optoutNote");
@@ -270,17 +288,16 @@ describe("acceptance 4 — the confirmation copy is catalogue chrome, tr first w
     }
   });
 
-  it("the learning line states no legal basis (legal review round 1, item 2)", () => {
-    // whether the learning grounds hold for health data is the open HB-L27
-    // question, so the line says only what the screen shows
-    expect(tr["consent.group.learning.hint"]).toBe(
-      "Bu iki seçenek açık gelir; dilediğiniz an kapatabilirsiniz.",
-    );
-    expect(en["consent.group.learning.hint"]).toBe(
-      "These two options come switched on; you can turn them off at any time.",
-    );
-    for (const text of [tr["consent.group.learning.hint"], en["consent.group.learning.hint"]]) {
-      expect(text).not.toMatch(/hizmet|service|çalışma|works/i);
+  it("no consent line says a row comes on (legal review round 2)", () => {
+    // the group line that said the learning rows come on is gone, and the
+    // basis sublabels no longer say "bu yüzden açık gelir"
+    expect(Object.keys(tr)).not.toContain("consent.group.learning.hint");
+    expect(Object.keys(en)).not.toContain("consent.group.learning.hint");
+    for (const key of Object.keys(tr).filter((k) =>
+      k.startsWith("consent."),
+    ) as (keyof typeof tr)[]) {
+      expect(tr[key], key).not.toMatch(/açık gelir/);
+      expect(en[key], key).not.toMatch(/why it comes switched on|options come switched on/);
     }
   });
 

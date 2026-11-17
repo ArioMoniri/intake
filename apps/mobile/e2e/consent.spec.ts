@@ -127,11 +127,9 @@ describe("06 §2 purpose structure — closed list, registry order", () => {
     expect(granted.state.records.core.boundHash).toBe("c".repeat(64));
     // withdrawn in one tap, closing the default-on learning purposes with it
     // (legal review B1: the core text says every other permission closes)
-    expect(withdraw(granted.state, "core", "2026-10-16T00:01:00Z").flipped).toEqual([
-      "core",
-      "learning:personal",
-      "learning:service_improvement",
-    ]);
+    // (INT-603 round 2: the learning purposes no longer default on, so an
+    // ungranted one has nothing to close)
+    expect(withdraw(granted.state, "core", "2026-10-16T00:01:00Z").flipped).toEqual(["core"]);
   });
 
   it("core withdrawal cascades to every other purpose — the server's dependents_of(core)", () => {
@@ -193,15 +191,15 @@ describe("06 §2 purpose structure — closed list, registry order", () => {
     expect(purposeDef("voice")!.cascadeChildren).not.toContain("lane:linguistic");
   });
 
-  it("learning purposes are default-on OPT-OUT with their honest non-consent bases", () => {
+  it("learning purposes default OFF (INT-603 round 2), their basis labels kept for counsel", () => {
     const personal = purposeDef("learning:personal")!;
     const service = purposeDef("learning:service_improvement")!;
     expect(personal.ui).toBe("optout");
     expect(personal.basis).toBe("service_performance");
-    expect(personal.defaultGranted).toBe(true);
+    expect(personal.defaultGranted).toBe(false);
     expect(service.ui).toBe("optout");
     expect(service.basis).toBe("deidentified_optout");
-    expect(service.defaultGranted).toBe(true);
+    expect(service.defaultGranted).toBe(false);
   });
 });
 
@@ -214,9 +212,9 @@ describe("no pre-ticking anywhere (KVKK m.6 unbundling)", () => {
     }
   });
 
-  it("exactly the two learning purposes are default-on", () => {
+  it("no purpose is default-on (INT-603 round 2)", () => {
     const defaultOn = PURPOSES.filter((p) => p.defaultGranted).map((p) => p.id);
-    expect(defaultOn).toEqual(["learning:personal", "learning:service_improvement"]);
+    expect(defaultOn).toEqual([]);
   });
 
   it("a fresh account starts with every explicit purpose off and an empty queue", () => {
@@ -411,16 +409,10 @@ describe("INT-603 acceptance 1 — the first-run copy and its rows agree", () =>
     }
   });
 
-  it("the default-on learning rows are explained BEFORE their switches", () => {
+  it("the learning group says nothing about a default (INT-603 round 2)", () => {
     const list = read(SRC, "components", "ConsentList.tsx");
-    const learning = list.slice(list.indexOf('t("consent.group.learning")'));
-    const hint = learning.indexOf('t("consent.group.learning.hint")');
-    const firstRow = learning.indexOf('row("learning:personal"');
-    expect(hint).toBeGreaterThan(-1);
-    expect(firstRow).toBeGreaterThan(hint);
-    // the hint is no longer a footer read after the "Açık" it explains
-    expect(list).not.toContain('footer={t("consent.group.learning.hint")}');
-    expect(tr["consent.group.learning.hint"]).not.toContain("hizmetin çalışması");
+    expect(list).not.toContain("consent.group.learning.hint");
+    expect(list).toContain('t("consent.group.learning")');
   });
 
   it("an opt-out row's switch is not announced as a consent", () => {

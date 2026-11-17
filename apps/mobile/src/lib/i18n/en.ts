@@ -743,8 +743,6 @@ export const en: Record<MessageKey, string> = {
     "This version has no voice sessions; these permissions are not used.",
   "consent.group.purposes": "Other purposes",
   "consent.group.learning": "Learning",
-  "consent.group.learning.hint":
-    "These two options come switched on; you can turn them off at any time.",
   "consent.lane.affect": "Mood cues from tone of voice",
   "consent.lane.linguistic": "Language cues from text",
   "consent.learning.personal": "Learning for you",
@@ -773,9 +771,9 @@ export const en: Record<MessageKey, string> = {
   "consent.basis.explicit":
     "Based on your explicit consent. You can withdraw at any moment; withdrawal takes effect immediately.",
   "consent.basis.learningPersonal":
-    "Used so the service you configured can work; that is why it comes switched on. If you turn it off, personal learning stops.",
+    "Used so the service you configured can work. If you turn it off, personal learning stops.",
   "consent.basis.learningService":
-    "The service is improved with aggregated data separated from your identity; that is why it comes switched on. Turning it off restricts no feature.",
+    "The service is improved with aggregated data separated from your identity. Turning it off restricts no feature.",
   "consent.state.pending": "Text in preparation",
   "consent.state.stale": "Needs new approval",
   "consent.pending.body":

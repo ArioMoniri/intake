@@ -771,9 +771,6 @@ export const tr = {
   "consent.group.voice.release": "Bu sürümde sesli görüşme yok; bu izinler kullanılmaz.",
   "consent.group.purposes": "Diğer amaçlar",
   "consent.group.learning": "Öğrenme",
-  // INT-603 (audit K1): read BEFORE the two rows that come on. Legal review
-  // round 1: it states no legal basis — that is counsel's (HB-L27).
-  "consent.group.learning.hint": "Bu iki seçenek açık gelir; dilediğiniz an kapatabilirsiniz.",
   "consent.lane.affect": "Ses tonundan duygu ipuçları",
   "consent.lane.linguistic": "Yazıdan dil ipuçları",
   "consent.learning.personal": "Sizin için öğrenme",
@@ -805,9 +802,9 @@ export const tr = {
   "consent.basis.explicit":
     "Açık rızanıza bağlıdır. İstediğiniz an geri çekebilirsiniz; geri çekmek hemen geçerli olur.",
   "consent.basis.learningPersonal":
-    "Ayarladığınız hizmetin çalışması için kullanılır; bu yüzden açık gelir. Kapatırsanız kişisel öğrenme durur.",
+    "Ayarladığınız hizmetin çalışması için kullanılır. Kapatırsanız kişisel öğrenme durur.",
   "consent.basis.learningService":
-    "Kimliğinizden ayrılmış toplu verilerle hizmet iyileştirilir; bu yüzden açık gelir. Kapatmak hiçbir özelliği kısıtlamaz.",
+    "Kimliğinizden ayrılmış toplu verilerle hizmet iyileştirilir. Kapatmak hiçbir özelliği kısıtlamaz.",
   "consent.state.pending": "Metin hazırlanıyor",
   "consent.state.stale": "Yeniden onay gerekli",
   "consent.pending.body":

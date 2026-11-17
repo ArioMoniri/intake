@@ -20,8 +20,12 @@
  *   No optional purpose is needed to grant it or to use the service it
  *   covers. Withdrawing it closes every other purpose with it (the server
  *   cascade, which the core text states); re-granting it re-opens none.
- * - `optout` — the two learning purposes: on by default under their stated
- *   non-consent bases, with an opt-out switch and honest basis copy.
+ * - `optout` — the two learning purposes. They were on by default under
+ *   their stated non-consent bases; INT-603 (legal review round 2, the
+ *   owner's KVKK approval, D43 pending number) turned them OFF here and in
+ *   the server registry until counsel records a lawful basis (HB-L27). The
+ *   basis labels stay for counsel's review and grant nothing; turning one on
+ *   needs its text, like any purpose. `optout` now only words the off switch.
  */
 import type { MessageKey } from "@/lib/i18n";
 import type { ConsentState } from "@/lib/types/account";
@@ -45,8 +49,8 @@ export interface PurposeDef {
   id: PurposeId;
   basis: LegalBasis;
   ui: PurposeUi;
-  /** Mirrors the server registry's default_granted — true ONLY for the two
-   * non-consent-basis learning purposes. */
+  /** Mirrors the server registry's default_granted — false for every
+   * purpose since INT-603 round 2. */
   defaultGranted: boolean;
   /** UI nesting only: both lanes render under voice. Cascade is separate. */
   parent: PurposeId | null;
@@ -155,7 +159,7 @@ export const PURPOSES: readonly PurposeDef[] = [
     id: "learning:personal",
     basis: "service_performance",
     ui: "optout",
-    defaultGranted: true,
+    defaultGranted: false,
     parent: null,
     cascadeChildren: [],
     labelKey: "consent.learning.personal",
@@ -167,7 +171,7 @@ export const PURPOSES: readonly PurposeDef[] = [
     id: "learning:service_improvement",
     basis: "deidentified_optout",
     ui: "optout",
-    defaultGranted: true,
+    defaultGranted: false,
     parent: null,
     cascadeChildren: [],
     labelKey: "consent.learning.service",

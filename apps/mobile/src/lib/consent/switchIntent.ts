@@ -20,10 +20,10 @@
  * Withdrawal stays as easy as grant (files/06 §2): two taps each from the list
  * (switch + confirm; row + "Okudum, kabul ediyorum").
  *
- * The two default-on learning rows sit on the registry's non-consent bases
- * (service performance, de-identified opt-out), so turning one off is an
- * opt-out and is worded as one. Whether those grounds carry health data is
- * the open HB-L27 question; this wording makes no claim either way.
+ * The two learning rows carry the registry's non-consent basis labels
+ * (service performance, de-identified opt-out), so turning a granted one off
+ * is worded as turning an option off. Since INT-603 round 2 both start off;
+ * whether any ground beyond açık rıza carries them is HB-L27.
  */
 import type { MessageKey } from "@/lib/i18n";
 
@@ -44,15 +44,12 @@ export interface WithdrawConfirmation {
 }
 
 /**
- * The ONLY purpose ids allowed to default on (legal review round 1). They are
- * default-on in the server registry this app mirrors (consent/registry.py);
- * turning them off is a server and blueprint change waiting on counsel's
- * lawful-basis answer (HB-L27). The list may only shrink.
+ * Purpose ids allowed to default on. Round 1 named the two learning ids here;
+ * round 2 (the owner's KVKK approval, D43 pending number) turned them off on
+ * the phone and in the server registry, so the list is EMPTY and may only
+ * stay so — a new entry is a pre-tick.
  */
-export const DEFAULT_ON_AWAITING_COUNSEL: readonly string[] = [
-  "learning:personal",
-  "learning:service_improvement",
-];
+export const DEFAULT_ON_AWAITING_COUNSEL: readonly string[] = [];
 
 /**
  * Purpose ids that default on outside that list — read by ID, never by the

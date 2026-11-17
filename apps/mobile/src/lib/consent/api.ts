@@ -24,7 +24,6 @@ export interface ConsentSnapshot {
 
 const REASONS: readonly ServerScope["reason"][] = [
   "granted",
-  "default_on",
   "unbound",
   "absent",
   "withdrawn",

@@ -165,6 +165,26 @@ def test_the_loop_two_opt_out_is_applied_before_anything_is_counted() -> None:
         assert "analytics.v_loop2_sessions" in block, relation
 
 
+_INT603 = REPO / "migrations" / "versions" / "0015_int603_loop2_opt_in.py"
+
+
+def test_int603_loop_two_counts_only_a_live_grant() -> None:
+    """INT-603 legal review round 2: ``learning:service_improvement`` is off
+    until the patient turns it on, so the base view requires a LIVE grant —
+    no row, an old opt-out row and a revoked grant are all out."""
+    source = _INT603.read_text(encoding="utf-8")
+    assert 'revision = "0015_int603"' in source
+    assert 'down_revision = "0014_int123"' in source
+    upgrade = source[source.index("_OPT_IN_DDL =") : source.index("_OPT_OUT_DDL_0009 =")]
+    assert "CREATE OR REPLACE VIEW analytics.v_loop2_sessions" in upgrade
+    assert "WHERE EXISTS (" in upgrade
+    assert "NOT EXISTS" not in upgrade  # near miss: the 0009 opt-out shape
+    assert "g.scope = 'learning:service_improvement'" in upgrade
+    assert "g.revoked_at IS NULL" in upgrade
+    # the upgrade is the only thing it runs, and it grants nothing new
+    assert "GRANT" not in source
+
+
 def test_the_opt_out_base_view_is_not_a_registered_view() -> None:
     """It carries row-level ids, so it is plumbing the owner runs — never a
     relation the learning reader is granted."""

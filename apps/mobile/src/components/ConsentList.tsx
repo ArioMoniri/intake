@@ -21,12 +21,10 @@
  * takes effect immediately (INT-603, design audit K2) — two taps either way,
  * so withdrawal stays as easy as grant.
  *
- * INT-603 (audit K1): the two learning rows are the only ones on before the
- * patient acts; the registry puts them on non-consent bases (whether those
- * grounds carry health data is the open HB-L27 question, so no new claim is
- * made here). Their existing group line now sits ABOVE the rows, so the
- * first-run promise ("no option that needs consent comes on") is read with
- * its explanation, not seen broken two rows later.
+ * INT-603 (audit K1, legal review round 2): no row is on before the patient
+ * acts — the two learning rows included, here and in the server registry —
+ * so the first-run promise ("no option that needs consent comes on") holds
+ * for every row, and no group line says otherwise.
  */
 import { useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
@@ -198,10 +196,6 @@ export function ConsentList({ views, onOpenDetail, onWithdraw }: ConsentListProp
       </View>
       <View style={styles.section}>
         <Kicker label={t("consent.group.learning")} />
-        {/* INT-603 (audit K1): said before the rows that come on, not after */}
-        <AppText role="caption" color="inkSoft">
-          {t("consent.group.learning.hint")}
-        </AppText>
         <ListGroup>
           {row("learning:personal", { sublabel: t("consent.basis.learningPersonal") })}
           {row("learning:service_improvement", {

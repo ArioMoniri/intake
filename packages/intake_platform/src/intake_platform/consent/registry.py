@@ -17,10 +17,14 @@ consequences are encoded rather than commented:
   ``share:<qualifier>`` (e.g. ``share:previsit_note``), because a share
   consent without its parameters would be a bundled consent.
 
-Defaults are the unbundling rule made data: every purpose whose lawful
-basis is açık rıza (KVKK m.6) starts OFF — there is no pre-tick the server
-could even represent — and only the two purposes files/06 §2 marks with a
-non-consent basis start ON, each carrying its stated basis.
+Defaults are the unbundling rule made data: EVERY purpose starts OFF — there
+is no pre-tick the server could even represent. INT-603 (legal review round 2,
+the owner's KVKK approval, D43 pending number) turned the two learning
+purposes off too: KVKK m.6 as amended by Law 7499 leaves no non-consent ground
+that plainly carries health data for them, and until counsel records one
+(HB-L27) the fail-closed answer is "not granted". Their ``legal_basis`` labels
+below are the files/06 §2 wording kept for counsel's review; they grant
+nothing, and a test pins every ``default_granted`` to False.
 """
 
 from __future__ import annotations
@@ -108,12 +112,12 @@ PURPOSES: tuple[PurposeDef, ...] = (
     PurposeDef(
         id="learning:personal",
         legal_basis=LegalBasis.SERVICE_PERFORMANCE,
-        default_granted=True,
+        default_granted=False,
     ),
     PurposeDef(
         id="learning:service_improvement",
         legal_basis=LegalBasis.DEIDENTIFIED_OPTOUT,
-        default_granted=True,
+        default_granted=False,
     ),
     PurposeDef(id="satisfaction", legal_basis=_OPTIONAL, default_granted=False),
     PurposeDef(id="share", legal_basis=_OPTIONAL, default_granted=False, parameterised=True),

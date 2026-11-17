@@ -36,7 +36,6 @@ from intake_api.db import tenant_session
 from intake_api.dev_fixture import DEV_PATIENT_ID, DEV_TENANT_ID
 from intake_platform.consent import (
     CHANNELS,
-    OPT_OUT_VERSION,
     PURPOSES,
     SWEEP_INTERVAL,
     WITHDRAWAL_CASCADE_BUDGET,
@@ -441,12 +440,12 @@ def test_voice_withdrawal_cascades_exactly_its_dependent_lane(
     assert "lane:affect" not in live  # rides the voice stream (files/06 §2.1)
     assert "lane:linguistic" in live  # text-only lane is independent (files/06 §2.1)
     assert "core" in live  # withdrawal never over-reaches
-    # near miss for the core cascade below: no default-on purpose is touched
-    for scope in DEFAULT_ON_PURPOSES:
+    # near miss for the core cascade below: no learning purpose is touched
+    for scope in LEARNING_PURPOSES:
         assert _scope_rows(bound_harness, scope) == [], scope
 
 
-DEFAULT_ON_PURPOSES = ("learning:personal", "learning:service_improvement")
+LEARNING_PURPOSES = ("learning:personal", "learning:service_improvement")
 
 
 def _scope_rows(harness: ApiHarness, scope: str) -> list[Consent]:
@@ -467,13 +466,13 @@ def _scope_rows(harness: ApiHarness, scope: str) -> list[Consent]:
     return result
 
 
-def test_core_withdrawal_writes_the_opt_out_of_every_undecided_default_on_purpose(
+def test_core_withdrawal_writes_no_row_for_a_learning_purpose_never_granted(
     bound_harness: ApiHarness,
 ) -> None:
-    """INT-537 (legal review B1): the core text says every other permission
-    closes with it. A default-on purpose nobody decided has no row to revoke,
-    so the cascade writes its opt-out — the same construct a direct opt-out
-    writes — and audits it as a cascade."""
+    """INT-603 legal review round 2: no purpose defaults on, so a learning
+    purpose nobody granted has nothing to close and the core cascade writes no
+    opt-out row for it (INT-537 wrote one while they were default-on). It is
+    "absent", which is not granted."""
     state = api_state(bound_harness)
 
     async def _withdraw() -> tuple[str, ...]:
@@ -489,17 +488,52 @@ def test_core_withdrawal_writes_the_opt_out_of_every_undecided_default_on_purpos
             return report.withdrawn_scopes
 
     withdrawn: tuple[str, ...] = run(_withdraw())
-    for scope in DEFAULT_ON_PURPOSES:
-        assert scope in withdrawn
-        (row,) = _scope_rows(bound_harness, scope)
-        assert row.version == OPT_OUT_VERSION
-        assert row.revoked_at is not None and row.granted_at == row.revoked_at
+    for scope in LEARNING_PURPOSES:
+        assert scope not in withdrawn
+        assert _scope_rows(bound_harness, scope) == [], scope
+
+
+def test_core_withdrawal_revokes_a_granted_learning_purpose(bound_harness: ApiHarness) -> None:
+    """Near miss for the test above: a learning purpose the patient DID grant
+    is a live row, and the core cascade revokes and audits it like any other."""
+    state = api_state(bound_harness)
+
+    async def _seed_grant() -> None:
+        async with AsyncSession(bound_harness.engine) as session, session.begin():
+            session.add(
+                Consent(
+                    tenant_id=DEV_TENANT_ID,
+                    patient_id=DEV_PATIENT_ID,
+                    scope="learning:personal",
+                    version="seed",
+                    granted_at=datetime.now(UTC) - timedelta(minutes=1),
+                )
+            )
+
+    run(_seed_grant())
+
+    async def _withdraw() -> tuple[str, ...]:
+        async with tenant_session(bound_harness.engine, DEV_TENANT_ID) as session:
+            report = await withdraw_consent(
+                session,
+                tenant_id=DEV_TENANT_ID,
+                patient_id=DEV_PATIENT_ID,
+                scope="core",
+                audit=state.audit,
+                actor="dev-patient",
+            )
+            return report.withdrawn_scopes
+
+    withdrawn: tuple[str, ...] = run(_withdraw())
+    assert "learning:personal" in withdrawn
+    (row,) = _scope_rows(bound_harness, "learning:personal")
+    assert row.revoked_at is not None
     cascaded = {
         e.consent_scope_ref
         for e in bound_harness.audit_store.entries()
         if e.action == "consent.cascade"
     }
-    assert {f"scope:{scope}" for scope in DEFAULT_ON_PURPOSES} <= cascaded
+    assert "scope:learning:personal" in cascaded
 
 
 class FakeClock:
@@ -584,10 +618,9 @@ def test_sweep_completes_a_crash_interrupted_cascade_within_the_budget(
     assert repaired > 0
     assert _live_scopes(bound_harness) == set()
     assert _live_share_count(bound_harness) == 0
-    # INT-537: the repair completes the default-on opt-outs too
-    for scope in DEFAULT_ON_PURPOSES:
-        (row,) = _scope_rows(bound_harness, scope)
-        assert row.version == OPT_OUT_VERSION, scope
+    # INT-603 round 2: nothing defaults on, so the repair writes no opt-out
+    for scope in LEARNING_PURPOSES:
+        assert _scope_rows(bound_harness, scope) == [], scope
     assert clock.now() - withdrawal_at <= schedule.interval
     assert clock.now() + schedule.pass_budget - withdrawal_at <= WITHDRAWAL_CASCADE_BUDGET
     cascade = [e for e in bound_harness.audit_store.entries() if e.action == "consent.cascade"]
