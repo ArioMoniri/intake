@@ -134,7 +134,7 @@ def test_a_marked_none_choice_compiles() -> None:
     )
 
 
-@pytest.mark.parametrize("none_word", ["yok", "Yok", "hiçbiri", "Hiçbiri"])
+@pytest.mark.parametrize("none_word", ["yok", "Yok", "YOK", "hiçbiri", "Hiçbiri", "HİÇBİRİ"])
 def test_an_unmarked_none_choice_on_a_multi_select_slot_is_refused(none_word: str) -> None:
     members = ("kol", "çene", none_word)
     slot = _slot(multiple=True, choices_tr={TR: members})

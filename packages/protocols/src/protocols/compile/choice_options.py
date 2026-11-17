@@ -11,7 +11,7 @@ document, beside :mod:`protocols.compile.gate_values`:
   misspelt "yok" would leave the real one unmarked.
 - ``NONE_CHOICE_NOT_EXCLUSIVE`` — a multi-select slot offers a choice that
   means "none of these" (:data:`NONE_WORDS`, compared whole after NFC and
-  lower-casing) without declaring it exclusive. Without the flag a patient can
+  Turkish casefolding) without declaring it exclusive. Without the flag a patient can
   hold "yok" beside a symptom, and the note reads both.
 
 The check only refuses. It never marks an option, rewrites a choice or touches
@@ -27,6 +27,7 @@ from typing import Final
 from protocols.bindings import fhir_link_id
 from protocols.compile.errors import Refusal, RefusalCode
 from protocols.dsl import Slot
+from protocols.lexicon import turkish_fold
 from protocols.locale_text import DEFAULT_LOCALE
 from protocols.types import SlotType
 from protocols.valuesets import ValueSetTable
@@ -43,7 +44,9 @@ _CITATION = "(INT-604; ADR-043)"
 
 
 def _normal(text: str) -> str:
-    return unicodedata.normalize("NFC", text).strip().lower()
+    # Turkish casefolding (İ → i, I → ı): str.lower() turns "İ" into "i̇", so
+    # "HİÇBİRİ" would escape the check (INT-604 clinical review round 1).
+    return turkish_fold(unicodedata.normalize("NFC", text).strip())
 
 
 def _choices(slot: Slot) -> tuple[str, ...]:

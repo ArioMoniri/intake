@@ -44,7 +44,7 @@ __all__ = [
 #: ``float`` for the numeric ones — files/13 §9.5, "no floats anywhere": a
 #: decimal literal that round-trips through binary floating point is exactly
 #: the silent corruption files/03 §4.9.6 is about.
-type SlotValue = bool | int | Decimal | str
+type SlotValue = bool | int | Decimal | str | list[str]
 
 
 class FlagReason(StrEnum):
@@ -67,6 +67,10 @@ class FlagReason(StrEnum):
     WRONG_TYPE = "wrong_type"
     #: A code slot answered outside its valueset.
     VALUESET_VIOLATION = "valueset_violation"
+    #: A multi-select slot answered with its exclusive option ("yok") beside
+    #: another member (INT-604, ADR-043). Refused whole, never trimmed: which
+    #: of the two the patient meant is theirs to say, so the step is asked again.
+    EXCLUSIVE_CONFLICT = "exclusive_conflict"
 
 
 class SlotOutcome(StrEnum):

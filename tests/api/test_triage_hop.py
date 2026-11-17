@@ -619,3 +619,43 @@ def test_a_chips_answer_is_evaluated_as_the_whole_submitted_set(
 def test_an_empty_chips_answer_is_no_answer(harness: ApiHarness) -> None:
     body = _evaluate(harness, {**FIRING, "ziyaret.basvuru_nedeni": []})
     assert body == {"kind": "triage_level", "level": "GREEN"}
+
+
+@pytest.mark.parametrize(
+    "answers",
+    [
+        {"chest_pain.radiation": ["kol", "kalça"]},
+        {"chest_pain.radiation": ["kol"] + [f"x{i}" for i in range(63)]},
+        {"chest_pain.character": ["baskı", "yanma"]},
+    ],
+    ids=["outside-the-set", "longer-than-the-set", "two-on-a-single-select"],
+)
+def test_a_set_that_does_not_fit_its_slot_is_refused(
+    harness: ApiHarness, answers: dict[str, Any]
+) -> None:
+    response = harness.client.post(
+        "/v1/triage/evaluate",
+        headers=harness.patient(),
+        json={**IDS, "location": "REMOTE", "reference_time": REFERENCE_TIME, "answers": answers},
+    )
+    assert response.status_code == 422, response.text
+
+
+def test_near_miss_a_set_of_members_is_evaluated(harness: ApiHarness) -> None:
+    body = _evaluate(harness, {**FIRING, "chest_pain.radiation": ["omuz", "kol", "yok"]})
+    assert body["kind"] == "red_trigger"
+
+
+def test_the_widest_set_the_hop_admits_is_inside_the_red_budget(harness: ApiHarness) -> None:
+    """Both slots the served rule reads, each at the boundary's 64-member limit:
+    4096 worlds, the engine's cap, evaluated in full and inside the budget."""
+    wide = {
+        "ziyaret.basvuru_nedeni": [f"sentetik_{i}" for i in range(63)] + ["sentetik_yasamsal"],
+        "sure_dakika": [f"2026-08-{day:02d}" for day in range(1, 30)]
+        + [f"sentetik_{i}" for i in range(35)],
+    }
+    started = time.perf_counter()
+    body = _evaluate(harness, wide)
+    elapsed_ms = (time.perf_counter() - started) * 1000
+    assert body["kind"] == "red_trigger"
+    assert elapsed_ms < RED_BUDGET_MS, f"{elapsed_ms:.1f} ms"

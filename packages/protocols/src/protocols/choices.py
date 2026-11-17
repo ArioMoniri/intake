@@ -23,20 +23,39 @@ Nothing here logs and no error message carries a submitted value (invariant 6).
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
+from functools import cache
+from pathlib import Path
+from typing import Final
 
 from clinical_schemas.session import AnswerState
 
 from protocols.dsl import Slot
+from protocols.loader import load_pack
 from protocols.triage.context import SlotAnswer
 from protocols.types import SlotType
+from protocols.valuesets import load_committed_valuesets
 
-__all__ = ["ChoiceSetRefused", "bind_choice_set", "submitted_set_answer"]
+__all__ = [
+    "BASE_INTAKE",
+    "ChoiceSetRefused",
+    "bind_choice_set",
+    "committed_choice_slots",
+    "submitted_set_answer",
+]
+
+BASE_INTAKE: Final[Path] = Path(__file__).resolve().parents[2] / "base" / "intake.yaml"
+"""base.intake, found from this package like the committed value sets."""
 
 
 class ChoiceSetRefused(ValueError):
     """A submitted set the slot's declared shape does not admit. Names the rule
-    broken, never a value (invariant 6)."""
+    broken, never a value (invariant 6). ``kind`` is one closed word, so a caller
+    can count the refusal without reading its message."""
+
+    def __init__(self, kind: str, message: str) -> None:
+        super().__init__(message)
+        self.kind = kind
 
 
 def _distinct(values: Sequence[str]) -> tuple[str, ...]:
@@ -45,6 +64,23 @@ def _distinct(values: Sequence[str]) -> tuple[str, ...]:
         if value not in seen:
             seen.append(value)
     return tuple(seen)
+
+
+@cache
+def committed_choice_slots() -> Mapping[str, tuple[Slot, tuple[str, ...]]]:
+    """Every base.intake code slot with a committed value set, by ``section.slot``.
+
+    What a boundary that receives a submitted set checks it against
+    (``services/api triage_hop``): the members it may hold and, so, how many.
+    """
+    table = load_committed_valuesets()
+    found: dict[str, tuple[Slot, tuple[str, ...]]] = {}
+    for section_id, section in load_pack(BASE_INTAKE).sections.items():
+        for key, slot in section.slots.items():
+            members = table.members(slot.valueset or "")
+            if slot.type is SlotType.CODE and members is not None:
+                found[f"{section_id}.{key}"] = (slot, members)
+    return found
 
 
 def submitted_set_answer(values: Sequence[str]) -> SlotAnswer | None:
@@ -60,20 +96,23 @@ def submitted_set_answer(values: Sequence[str]) -> SlotAnswer | None:
 def bind_choice_set(slot: Slot, values: Sequence[str], members: Sequence[str]) -> SlotAnswer:
     """Bind ``values`` to a code slot whose value set is ``members``, or refuse."""
     if slot.type is not SlotType.CODE:
-        raise ChoiceSetRefused("a choice set binds to a code slot only")
+        raise ChoiceSetRefused("not_code", "a choice set binds to a code slot only")
     chosen = _distinct(values)
     if not chosen:
-        raise ChoiceSetRefused("an empty choice set is no answer")
+        raise ChoiceSetRefused("empty", "an empty choice set is no answer")
     allowed = set(members)
     if any(value not in allowed for value in chosen):
-        raise ChoiceSetRefused("a submitted choice is not a member of the slot's value set")
+        raise ChoiceSetRefused(
+            "not_member", "a submitted choice is not a member of the slot's value set"
+        )
     if len(chosen) > 1 and not slot.multiple:
-        raise ChoiceSetRefused("a single-select slot binds exactly one member")
+        raise ChoiceSetRefused("single_select", "a single-select slot binds exactly one member")
     exclusive = set(slot.exclusive_choices())
     if len(chosen) > 1 and exclusive.intersection(chosen):
         raise ChoiceSetRefused(
+            "exclusive_conflict",
             "the slot's exclusive option was submitted beside another member; the set "
-            "is refused whole, never trimmed (ADR-043)"
+            "is refused whole, never trimmed (ADR-043)",
         )
     state = AnswerState.ASKED_PRESENT if len(chosen) == 1 else AnswerState.CONTESTED
     return SlotAnswer(state=state, values=chosen)

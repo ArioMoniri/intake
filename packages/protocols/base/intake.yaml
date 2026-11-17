@@ -516,13 +516,17 @@ sections:
         # kol/çene/sırt are the K2 rule's literals (NICE CG95 1.2.1.3: arms, back,
         # jaw); boyun/omuz are CG95 1.3.3.1 sites outside the rule's set (finding
         # F5); `yok` is the literal the SARI rule requires. More than one site may
-        # be named (`multiple: true`, INT-604/ADR-043): an answer naming several
-        # sites carries every named site, which triage evaluates in the escalating
-        # world (12 §7.3) — never one site chosen for the patient. `yok` is
-        # exclusive (owner decision M1, 17 Nov 2026, D18 scope): choosing it clears
-        # the sites on screen before submit and choosing a site clears it, so the
-        # SARI rule's `== "yok"` is never read beside a named site. Nothing after
-        # submit trims a set (protocols.choices).
+        # be named (`multiple: true`, INT-604/ADR-043). The answer is the SET of
+        # named sites in every lane: the app's chips; the voice extraction, whose
+        # schema is an array of these members ("omzuma ve koluma" binds both, never
+        # one); and the triage hop. Triage reads a set of two or more as the 12
+        # §7.3 union — any named site that fires, fires — never one site chosen
+        # for the patient. `yok` is exclusive (owner decision M1, 17 Nov 2026, D18
+        # scope): on screen, choosing it clears the sites before submit and choosing
+        # a site clears it; in the voice lane a set holding `yok` beside a site is
+        # refused and asked again (protocols.choices.bind_choice_set). Nothing ever
+        # trims a set, so the SARI rule's `== "yok"` is never read in place of a
+        # named site.
         type: code
         valueset: vs.chest_pain_radiation
         multiple: true
