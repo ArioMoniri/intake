@@ -122,3 +122,28 @@ export function redLayerFrame(insets: Insets): RedLayerFrame {
     },
   };
 }
+
+/** The line under the staff control for each phase of its press (INT-602 round 1). */
+export interface StaffCallLine {
+  readonly key: "red.callStaff.sending" | "red.callStaff.sent" | "red.callStaff.failed";
+  readonly tone: "status" | "error";
+}
+
+/**
+ * What the patient reads about their press. Never silent once pressed:
+ * `sending` is neutral, `sent` exists only for a confirmed send, and `failed`
+ * says to ask a staff member or go to the emergency department. `idle` shows
+ * nothing, so nothing claims a notification before the patient acts.
+ */
+export function staffCallLine(phase: "idle" | "sending" | "sent" | "failed"): StaffCallLine | null {
+  switch (phase) {
+    case "idle":
+      return null;
+    case "sending":
+      return { key: "red.callStaff.sending", tone: "status" };
+    case "sent":
+      return { key: "red.callStaff.sent", tone: "status" };
+    case "failed":
+      return { key: "red.callStaff.failed", tone: "error" };
+  }
+}

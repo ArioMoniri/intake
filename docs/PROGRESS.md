@@ -4717,3 +4717,12 @@
   - May the generic REMOTE why_tr keep "… ayrıca öncelik sırası için bekletilmez", which MADDE 8(5)'s snapshot does not state?
 - Next: the PR needs `approval:human-clinical`. Out-of-scope findings for new issues: a REMOTE RED without 112 has no control; a second staff page needs a server change.
 - LOOP_STATUS: WAITING_HUMAN
+- Update (clinical review round 1, changes requested on a5afb3d4):
+  - **Staff call is never silent.** It has a phase per RED: sending, sent (only on 2xx with `staffNotified: true`) or failed (4xx, spent retries, unconfirmed 2xx), each shown as an announced line under the control.
+  - **The press is audited as a press.** It now goes to its own route, `POST /v1/triage/red-staff-call`, audited `api.triage.red_staff_called`, never as a location answer (invariant 4).
+  - **Label changed.** "Görevli çağırın" → "Görevlilere haber verin"; a repeat press after a confirmed send re-shows sent.
+  - **Near misses added:** 4xx and spent retries → failed; DEFERRED_CLINICIAN × every location → nothing; no sent before confirmation.
+  - **files/02 §5.3 gloss** now matches MADDE 8(5).
+  - **Blocked: the reviewer's REMOTE sentence.** Editing either pack file voids the synthetic red-rule-set signature: the host would serve no RED, and `make safety` goes red (measured). Re-signing needs the host's Transit key (owner; runbook; blockers.md INT-602, HB-C1). The patch is ready in the evidence.
+  - **Not fixable in the render path:** the pack line "Görevlilere haber verildi." shows before confirmation. It is noted for Dr Efe Onganer, with the other five decisions, in docs/evidence/INT-602.md "Clinical review round 1".
+- LOOP_STATUS: WAITING_HUMAN

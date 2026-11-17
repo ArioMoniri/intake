@@ -782,6 +782,17 @@ describe("INT-602 — RedLayer renders the controls the screen model asks for", 
     expect(block).not.toMatch(/EMERGENCY_NUMBER|tel:|call112/);
     // The press waits on nothing: the call is fire-and-forget.
     expect(WAITS.test(block)).toBe(false);
+    // Round 1: the press is never silent. Its line comes from the caller's phase
+    // for this RED, through staffCallLine, inside the staff block.
+    expect(source).toMatch(
+      /staffCallLine\(\s*staffCallPhase\(\s*useSyncExternalStore\(staffCaller\.subscribe, staffCaller\.getSnapshot\),\s*redStore\.getSnapshot\(\),?\s*\),?\s*\)/,
+    );
+    expect(source.slice(start)).toMatch(
+      /\{staffLine !== null \? \(\s*<AnnouncedText\s+tone=\{staffLine\.tone === "error" \? "error" : "status"\}\s+message=\{t\(staffLine\.key\)\}\s*\/>/,
+    );
+    // Near miss: "sent" is never named in the layer, so no branch can show it
+    // except the phase the server confirmed.
+    expect(source).not.toMatch(/red\.callStaff\.sent/);
   });
 
   it("(4) the root layer pads every edge from useSafeAreaInsets, through redLayerFrame", () => {

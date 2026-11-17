@@ -348,7 +348,7 @@
 | INT-588 | Patient copy is true in the no-voice release build: no voice clause, no 'sent' before delivery, consent rows match the served texts | E08-mobile | INT-587, INT-253, INT-529 | area:mobile | done |
 | INT-591 | Release build hides the grant action for voice and lane:affect consents, keeps standing grants withdrawable | E08-mobile | INT-588, INT-132 | area:mobile | done |
 | INT-584 | The phone-tokenization key moves into OpenBao with the same key material — no pseudonym changes (D38) | E01-platform | INT-013, INT-017, INT-131, INT-345, INT-352 | area:api, risk:security | done |
-| INT-602 | RED layer: the 112 control is the strongest control, CALM has a visible edge, ON_SITE is never control-less, safe areas respected | E08-mobile | INT-446, INT-465, INT-475, INT-333 | area:mobile, risk:clinical, approval:human-clinical | awaiting-human |
+| INT-602 | RED layer: the 112 control is the strongest control, CALM has a visible edge, ON_SITE is never control-less, safe areas respected | E08-mobile | INT-446, INT-465, INT-475, INT-333 | area:mobile, area:api, risk:clinical, approval:human-clinical | awaiting-human |
 
 ## P2
 

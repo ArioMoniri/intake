@@ -1490,9 +1490,17 @@ export const tr = {
   // selectable text; this line says to dial it.
   "red.call112Failed": "Arama açılamadı. 112'yi telefonunuzdan arayın.",
   // INT-602: under ON_SITE there is no 112 (invariant 21). This control takes its
-  // place and sends this RED's staff notification. A UI affordance, not clinical copy.
-  "red.callStaff": "Görevli çağırın",
-  "red.callStaff.hint": "Hastanedeki görevlilere haber gönderir.",
+  // place and sends this RED's staff notification. A UI affordance, not clinical
+  // copy. It names the act, never that someone will come (the server writes one
+  // inbox entry per RED). "sent" shows only after the server confirms; "failed"
+  // uses the ON_SITE guidance's own words (bir görevliden yardım isteyin; Acil
+  // Servis'e gidin).
+  "red.callStaff": "Görevlilere haber verin",
+  "red.callStaff.hint": "Görevlilere bir bildirim gönderir.",
+  "red.callStaff.sending": "Görevlilere haber gönderiliyor.",
+  "red.callStaff.sent": "Görevlilere haber gönderildi.",
+  "red.callStaff.failed":
+    "Haber gönderilemedi. Bir görevliden yardım isteyin ya da Acil Servis'e gidin.",
   "red.location.yes": "Evet",
   "red.location.no": "Hayır",
   // INT-602: bare imperative inside RED (CLAUDE.md), as in the items themselves.

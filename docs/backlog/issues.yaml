@@ -7699,8 +7699,12 @@
   # fallback) carries approval:human-clinical, and the generic REMOTE why_tr's
   # "bekletilmez" consequence is not stated by its committed snapshot, so it
   # goes to the physician of record instead of being rewritten here.
+  # Clinical review round 1: the press has its own route and audit action
+  # (api.triage.red_staff_called) and a visible sending/sent/failed state; the
+  # reviewer's snapshot-only REMOTE sentence waits on re-signing the red rule set
+  # on the synthetic host (blockers.md INT-602; HB-C1).
   depends_on: [INT-446, INT-465, INT-475, INT-333]
-  labels: [area:mobile, risk:clinical, approval:human-clinical]
+  labels: [area:mobile, area:api, risk:clinical, approval:human-clinical]
   status: awaiting-human
   evidence: docs/evidence/INT-602.md
   acceptance:
@@ -7710,5 +7714,5 @@
     - "The RED layer respects safe-area insets on every edge."
     - "RED copy uses the bare imperative plural (CLAUDE.md: \"Tutun · Arayın · Bakmayın\"), not \"Lütfen yapmayın\". The factual claim the audit flags is checked against its committed source snapshot; if it isn't supported there, it goes through the clinical route instead of being rewritten here."
     - "There are tests for each item with near-miss controls. `make safety` stays green, and invariants 9, 10 and 21 still pass."
-  tests: [apps/mobile/src/lib/red/controls.test.ts, apps/mobile/e2e/red.spec.ts, apps/mobile/e2e/motion.spec.ts, apps/mobile/src/lib/red/store.test.ts, apps/mobile/src/lib/red/locationReport.test.ts, apps/mobile/src/lib/i18n.test.ts]
+  tests: [apps/mobile/src/lib/red/controls.test.ts, apps/mobile/e2e/red.spec.ts, apps/mobile/e2e/motion.spec.ts, apps/mobile/src/lib/red/store.test.ts, apps/mobile/src/lib/red/locationReport.test.ts, apps/mobile/src/lib/i18n.test.ts, apps/mobile/src/lib/buildCopy.test.ts, tests/api/test_red_notify.py]
   sec_row: "clinical-core"

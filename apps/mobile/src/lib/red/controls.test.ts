@@ -32,13 +32,17 @@ import {
   redPressedOpacity,
   redPrimaryControl,
   redWash,
+  staffCallLine,
 } from "./controls";
 import { decodeRedCatalog, scriptIdFor, type PrePositionedRed, type RedOrigin } from "./hop";
 import {
   createLocationReporter,
   createStaffCaller,
   LOCATION_PATH,
+  LOCATION_REPORT_MAX_ATTEMPTS,
+  STAFF_CALL_PATH,
   staffCallFor,
+  staffCallPhase,
 } from "./locationReport";
 import { createRedStore, redScreen } from "./store";
 
@@ -68,6 +72,45 @@ function withoutRuleScripts(): PrePositionedRed {
     Object.entries(CATALOG.scripts).filter(([id]) => !id.startsWith(`${RULE}.`)),
   );
   return { scripts, questions: CATALOG.questions };
+}
+
+// --- the staff caller's rig (INT-602 clinical review round 1) ---
+
+const STAFF_BODY = { session_id: "visit-1", visit_id: "visit-1", rule_id: RULE };
+const NEVER_EXPIRES = () => ({
+  expired: new Promise<void>(() => undefined),
+  cancel: () => undefined,
+});
+const FAST = { sleep: async () => undefined, jitter: () => 0.5, timeout: NEVER_EXPIRES };
+
+function json(body: unknown): Uint8Array {
+  return new TextEncoder().encode(JSON.stringify(body));
+}
+
+/** A server answering each request with the next status (the last repeats). */
+function staffRig(statuses: readonly number[], body: unknown) {
+  const sent: { path: string; body: unknown }[] = [];
+  const caller = createStaffCaller({
+    ...FAST,
+    transport: async (path, raw) => {
+      sent.push({ path, body: JSON.parse(raw ?? "null") as unknown });
+      const status = statuses[Math.min(sent.length, statuses.length) - 1] ?? 500;
+      return { status, bytes: json(status < 300 ? body : { error: "refused" }) };
+    },
+  });
+  return { sent, caller };
+}
+
+function onSiteStore() {
+  const store = createRedStore();
+  store.present(trigger("ALERT", "ON_SITE"), CATALOG, ORIGIN);
+  return store;
+}
+
+async function settle(rounds = 200): Promise<void> {
+  for (let i = 0; i < rounds; i += 1) {
+    await Promise.resolve();
+  }
 }
 
 // WCAG 2.x relative luminance and contrast ratio (the same formula as theme.test.ts).
@@ -261,54 +304,159 @@ describe("INT-602 (3) — under ON_SITE: no 112, and never control-less", () => 
   });
 
   it("the staff control's words are a non-clinical UI affordance, in tr first with an en mirror", () => {
-    expect(tr["red.callStaff"]).toBe("Görevli çağırın");
-    expect(en["red.callStaff"]).toBe("Call staff");
-    expect(tr["red.callStaff.hint"].length).toBeGreaterThan(0);
-    expect(en["red.callStaff.hint"].length).toBeGreaterThan(0);
-    // Near miss (invariant 21): nothing about the staff control names 112.
-    for (const key of ["red.callStaff", "red.callStaff.hint"] as const) {
+    expect(tr["red.callStaff"]).toBe("Görevlilere haber verin");
+    expect(en["red.callStaff"]).toBe("Notify staff");
+    expect(tr["red.callStaff.sent"]).toBe("Görevlilere haber gönderildi.");
+    expect(tr["red.callStaff.failed"]).toContain("Bir görevliden yardım isteyin");
+    expect(tr["red.callStaff.failed"]).toContain("Acil Servis'e gidin");
+    const keys = [
+      "red.callStaff",
+      "red.callStaff.hint",
+      "red.callStaff.sending",
+      "red.callStaff.sent",
+      "red.callStaff.failed",
+    ] as const;
+    for (const key of keys) {
+      expect(en[key].length, key).toBeGreaterThan(0);
+      // Near miss (invariant 21): nothing about the staff control names 112.
       expect(tr[key]).not.toMatch(/112|ambulans/iu);
       expect(en[key]).not.toMatch(/112|ambulance/iu);
+      // It never promises that a person will come: one inbox entry is written.
+      expect(tr[key], key).not.toMatch(/geliyor|gelecek|çağır/iu);
+      expect(en[key], key).not.toMatch(/\bcom(e|ing)\b|\bcall\b|on (the|their) way/iu);
+    }
+    // The detector is not vacuous: the round-0 label is caught.
+    expect("Görevli çağırın").toMatch(/geliyor|gelecek|çağır/iu);
+    expect("Call staff").toMatch(/\bcall\b/iu);
+  });
+
+  it("pressing it posts this RED's ids to the staff-call route, never as a location answer", async () => {
+    const { sent, caller } = staffRig([202], { staffNotified: true });
+    const store = onSiteStore();
+    expect(staffCallFor(store.getSnapshot())).toEqual(STAFF_BODY);
+    caller.call(store.getSnapshot());
+    caller.call(store.getSnapshot()); // a second press while the first is in flight: one request
+    await settle();
+    expect(sent).toEqual([{ path: STAFF_CALL_PATH, body: STAFF_BODY }]);
+    // Near miss (invariant 4): it is not the location route, and carries no location.
+    expect(sent[0]?.path).not.toBe(LOCATION_PATH);
+    expect(Object.keys(STAFF_BODY)).not.toContain("location");
+  });
+
+  it("sent shows only after the server confirms staffNotified, never before", async () => {
+    let release: (() => void) | null = null;
+    const sent: string[] = [];
+    const caller = createStaffCaller({
+      ...FAST,
+      transport: (path) =>
+        new Promise((resolve) => {
+          sent.push(path);
+          release = () => resolve({ status: 202, bytes: json({ staffNotified: true }) });
+        }),
+    });
+    const store = onSiteStore();
+    expect(staffCallPhase(caller.getSnapshot(), store.getSnapshot())).toBe("idle");
+    caller.call(store.getSnapshot());
+    await settle();
+    // The request is out and unanswered: sending, not sent.
+    expect(staffCallPhase(caller.getSnapshot(), store.getSnapshot())).toBe("sending");
+    expect(sent).toHaveLength(1);
+    (release as (() => void) | null)?.();
+    await settle();
+    expect(staffCallPhase(caller.getSnapshot(), store.getSnapshot())).toBe("sent");
+  });
+
+  it("near miss: a 2xx that does not say staff were notified is not sent", async () => {
+    for (const body of [{ staffNotified: false }, {}, null] as const) {
+      const { caller } = staffRig([202], body);
+      const store = onSiteStore();
+      caller.call(store.getSnapshot());
+      await settle();
+      expect(staffCallPhase(caller.getSnapshot(), store.getSnapshot()), JSON.stringify(body)).toBe(
+        "failed",
+      );
     }
   });
 
-  it("pressing it posts the staff notification for this RED: ids and ON_SITE only", async () => {
-    const sent: { path: string; body: unknown }[] = [];
-    const caller = createStaffCaller({
-      transport: async (path, body) => {
-        sent.push({ path, body: JSON.parse(body ?? "null") as unknown });
-        return { status: 202, bytes: new Uint8Array() };
-      },
-      sleep: async () => undefined,
-      jitter: () => 0.5,
-      timeout: () => ({ expired: new Promise<void>(() => undefined), cancel: () => undefined }),
-    });
-    const store = createRedStore();
-    store.present(trigger("ALERT", "ON_SITE"), CATALOG, ORIGIN);
-    expect(staffCallFor(store.getSnapshot())).toEqual({
-      session_id: "visit-1",
-      visit_id: "visit-1",
-      rule_id: RULE,
-      location: "ON_SITE",
-    });
+  it.each([401, 403, 422])(
+    "a %i refusal is the visible failed state, after one request",
+    async (status) => {
+      const { sent, caller } = staffRig([status], { error: "rule_not_served" });
+      const store = onSiteStore();
+      caller.call(store.getSnapshot());
+      await settle();
+      expect(sent).toHaveLength(1); // not retriable
+      expect(staffCallPhase(caller.getSnapshot(), store.getSnapshot())).toBe("failed");
+    },
+  );
+
+  it("retries that run out are the visible failed state", async () => {
+    const { sent, caller } = staffRig([503], { error: "safety_inbox_unconfigured" });
+    const store = onSiteStore();
     caller.call(store.getSnapshot());
-    caller.call(store.getSnapshot()); // a second press while the first is in flight: one request
-    for (let i = 0; i < 50; i += 1) {
-      await Promise.resolve();
-    }
-    expect(sent).toEqual([
-      {
-        path: LOCATION_PATH,
-        body: { session_id: "visit-1", visit_id: "visit-1", rule_id: RULE, location: "ON_SITE" },
+    await settle(4000);
+    expect(sent).toHaveLength(LOCATION_REPORT_MAX_ATTEMPTS);
+    expect(staffCallPhase(caller.getSnapshot(), store.getSnapshot())).toBe("failed");
+    // Near miss: a network that throws on every try fails the same way.
+    const down = createStaffCaller({
+      ...FAST,
+      transport: async () => {
+        throw new Error("network down");
       },
-    ]);
-    // A press after that request settled is sent again: the patient can repeat it.
-    caller.call(store.getSnapshot());
-    for (let i = 0; i < 50; i += 1) {
-      await Promise.resolve();
-    }
-    expect(sent).toHaveLength(2);
+    });
+    down.call(store.getSnapshot());
+    await settle(4000);
+    expect(staffCallPhase(down.getSnapshot(), store.getSnapshot())).toBe("failed");
   });
+
+  it("after a failure the patient can press again; after a confirmed send a repeat re-shows sent", async () => {
+    const { sent, caller } = staffRig([422, 202], { staffNotified: true });
+    const store = onSiteStore();
+    caller.call(store.getSnapshot());
+    await settle();
+    expect(staffCallPhase(caller.getSnapshot(), store.getSnapshot())).toBe("failed");
+    caller.call(store.getSnapshot());
+    await settle();
+    expect(staffCallPhase(caller.getSnapshot(), store.getSnapshot())).toBe("sent");
+    expect(sent).toHaveLength(2);
+    // A repeat press after a confirmed send pages nobody: no request, still sent.
+    caller.call(store.getSnapshot());
+    await settle();
+    expect(sent).toHaveLength(2);
+    expect(staffCallPhase(caller.getSnapshot(), store.getSnapshot())).toBe("sent");
+  });
+
+  it("near miss: another RED's press shows nothing on this one", async () => {
+    const { caller } = staffRig([202], { staffNotified: true });
+    caller.call(onSiteStore().getSnapshot());
+    await settle();
+    const other = createRedStore();
+    other.present({ ...trigger("ALERT", "ON_SITE"), ruleId: "rf.baska_kural" }, CATALOG, ORIGIN);
+    expect(staffCallPhase(caller.getSnapshot(), other.getSnapshot())).toBe("idle");
+    expect(staffCallPhase(caller.getSnapshot(), null)).toBe("idle");
+  });
+
+  it("each phase has its line; sent is the only one that says staff were told", () => {
+    expect(staffCallLine("idle")).toBeNull();
+    expect(staffCallLine("sending")).toEqual({ key: "red.callStaff.sending", tone: "status" });
+    expect(staffCallLine("sent")).toEqual({ key: "red.callStaff.sent", tone: "status" });
+    expect(staffCallLine("failed")).toEqual({ key: "red.callStaff.failed", tone: "error" });
+    // Near miss: no line before confirmation reads as done.
+    for (const phase of ["idle", "sending", "failed"] as const) {
+      const line = staffCallLine(phase);
+      expect(line === null ? "" : tr[line.key], phase).not.toMatch(/gönderildi/u);
+    }
+  });
+
+  it.each(["ON_SITE", "REMOTE", "UNKNOWN"] as const)(
+    "near miss: DEFERRED_CLINICIAN × %s shows no staff control and no 112",
+    (location) => {
+      const store = createRedStore();
+      store.present(trigger("DEFERRED_CLINICIAN", location), CATALOG, ORIGIN);
+      expect(redScreen(store.getSnapshot())).toEqual({ kind: "none" });
+      expect(staffCallFor(store.getSnapshot())).toBeNull();
+    },
+  );
 
   it("near miss: a REMOTE RED, an unanswered question and no RED owe no staff call", () => {
     const remote = createRedStore();

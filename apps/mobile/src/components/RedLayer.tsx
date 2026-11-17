@@ -30,7 +30,9 @@
  * least the primary CTA's height and label, with the instant opacity step when
  * pressed and a visible edge in every register. A dialer that cannot open adds a
  * line saying to dial the number shown. Under ON_SITE the layer is never
- * control-less: the staff control posts this RED's staff notification. The root
+ * control-less: the staff control posts this RED's staff notification, and a
+ * line below it says what became of the press (sending, sent only once the
+ * server confirms, or failed with what to do instead). The root
  * layer pads every edge by its safe-area inset, with no SafeAreaView animation. The patient's answer, on time or
  * late, is posted to the server (`useLocationReports`, INT-475), so an ON_SITE
  * answer notifies staff; the screen never waits for that request.
@@ -59,6 +61,7 @@ import {
   redPressedOpacity,
   redPrimaryControl,
   redWash,
+  staffCallLine,
   type RedRegister,
 } from "@/lib/red/controls";
 import type { HopTransport } from "@/lib/red/hop";
@@ -67,6 +70,7 @@ import { deriveRedLocation } from "@/lib/red/location";
 import {
   createLocationReporter,
   createStaffCaller,
+  staffCallPhase,
   subscribeLocationReports,
 } from "@/lib/red/locationReport";
 import { startNoAnswerClock } from "@/lib/red/noAnswerClock";
@@ -95,8 +99,8 @@ const transport: HopTransport = async (path, body) => {
 };
 
 /**
- * The ON_SITE staff control's sender (INT-602): fire-and-forget with the answer
- * reporter's retry, one request in flight. Nothing on the screen reads its result.
+ * The ON_SITE staff control's sender (INT-602): the answer reporter's retry, one
+ * request in flight. The screen reads its phase, never the response itself.
  */
 const staffCaller = createStaffCaller({ transport });
 
@@ -171,6 +175,14 @@ function RedBody({ screen }: { screen: Extract<RedScreen, { kind: "ask" | "act" 
   const lead = useRedFocus(screen);
   // INT-602: the dialer did not open; the number above is the way to call.
   const [dialFailed, setDialFailed] = useState(false);
+  // INT-602 round 1: the press is never silent. "sent" only once the server
+  // confirmed staffNotified; a refusal or spent retries say what to do instead.
+  const staffLine = staffCallLine(
+    staffCallPhase(
+      useSyncExternalStore(staffCaller.subscribe, staffCaller.getSnapshot),
+      redStore.getSnapshot(),
+    ),
+  );
   if (screen.kind === "ask") {
     return (
       <View style={styles.body}>
@@ -224,6 +236,12 @@ function RedBody({ screen }: { screen: Extract<RedScreen, { kind: "ask" | "act" 
             hint={t("red.callStaff.hint")}
             onPress={() => staffCaller.call(redStore.getSnapshot())}
           />
+          {staffLine !== null ? (
+            <AnnouncedText
+              tone={staffLine.tone === "error" ? "error" : "status"}
+              message={t(staffLine.key)}
+            />
+          ) : null}
         </View>
       ) : null}
       {screen.lateAskTr !== null ? (
