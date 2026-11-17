@@ -4685,3 +4685,42 @@
   - Tests first: red 4 vitest + 2 pytest; green brand 19, mobile 2972, legal + release 964.
 - Next: merge #995 (INT-587) before or with #1001, then TestFlight build 7.
 - LOOP_STATUS: CONTINUE
+
+### 2026-11-17T18:45:00+03:00 · INT-601 · done (committed locally; PR to be opened by the owner's session)
+- Goal: fix findings 1-7 of the November 2026 design audit (`docs/design/audit-2026-11/README.md` Part A), GitHub #1026. Acceptance, verbatim:
+  1. Bugün shows the next upcoming visit, never a past one. After the intake is finished it reflects the delivered state, not "Muayeneye hazırlanın" at %70 (`today.tsx`).
+  2. A visit detail opened from Bugün always has a working back control. Its primary action is never hidden under the tab bar (`visits/_layout.tsx`, `[visitId]/index.tsx`).
+  3. Light-theme `inkFaint` and the `success` pill text meet WCAG AA, at least 4.5:1, asserted by a test in both themes (`theme.ts`).
+  4. A selected chip is distinguishable without colour (check mark or shape change) in both intake lanes, with an accessibilityState.selected test.
+  5. The multi-line answer field uses a rounded-rectangle radius, not a pill.
+  6. The OTP code boxes fit at 320pt width, scale with Dynamic Type, do not mask the digits, and the countdown carries its unit.
+  7. On review, "Düzenleyin" and the share toggle each meet the minimum tap target, with spacing between them, and the share toggle sits in the same position on every card.
+- Plan:
+  - Item 1 is INT-594's (PR #1013), fully, so it is not duplicated here (evidence §2).
+  - Item 2: the anchor plus `withAnchor` on cross-tab pushes, and the CTA under the visit card.
+  - Items 3 and 5: palette hexes and `radius.field`.
+  - Item 4: one pure chip rule (`lib/a11y/chip.ts`) used by both lanes.
+  - Item 6: a pure OTP layout (`lib/auth/otpForm.ts`), visible digits and a unit key.
+  - Item 7: an edit text button with a 44 pt box, and a full-width share row at every card's foot.
+- Tests added (with the near-miss negative for any safety rule):
+  - New tests: `theme.test.ts` (AA in both schemes; near miss: the inkFaint step stays distinct), `lib/a11y/chip.test.ts`, `lib/auth/otpForm.test.ts`, and `e2e/designAudit.spec.ts`, each with near misses.
+  - Inverted pins: the OTP masking tests in `auth.spec.ts` and `a11y.spec.ts`.
+  - Re-pointed controls: `typed_intake.spec.ts` (chip chrome) and `tests/legal/test_a11y_report.py` (1.4.3 → 1.4.11).
+  - Runs: red 25 failed / 162 passed across 7 files. Green: mobile vitest 3202, `pnpm -r typecheck` clean, lint 0 errors, no_placeholders OK, `tests/release tests/legal tests/backlog` 1020. 7 of 7 mutations killed.
+- Result (`make check` / `make safety` / `make security` summary): the gates above ran locally. `make check` fan-out, `make safety` and `make security` run on the PR's runner. No protocol, triage or voice-runtime file changed.
+- Invariants touched and still passing:
+  - 2 and 5: one new key, `auth.otp.resendUnit`, tr first with an en mirror, PolicyGuard-clean.
+  - 4: share scope is moved, not changed.
+  - 16: Sec-Row `mobile`.
+  - 17: no placeholders.
+  - 20: no duration figure added.
+  - 22: number and unit form one NBSP atom, with no grouping.
+- Decisions / ADRs / `00_STATE.md` rows: none.
+  - Dark `inkFaint` also changes (`#969286`), so the both-themes AA test holds on the raised ground.
+  - The chip state stays `checked` on its checkbox and radio roles; `selected` would double-announce. Both are flagged in evidence §4 for the owner.
+  - WCAG 1.4.3 is now Supports, and the report is re-rendered.
+- Blocked on: nothing. The legal-reviewer should see the review-card layout, because share scope sits next to invariant 4.
+- Next:
+  - Whichever of #1013 and this PR lands second resolves one line in `today.tsx`: keep `focus.visit.id` and add `{ withAnchor: true }`.
+  - Capture the three code-level-only changes on the next TestFlight build.
+- LOOP_STATUS: CONTINUE

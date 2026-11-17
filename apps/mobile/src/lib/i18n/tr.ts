@@ -41,6 +41,9 @@ export const tr = {
   "auth.otp.verifyCta": "Giriş yapın",
   "auth.otp.resend": "Kodu yeniden isteyin",
   "auth.otp.resendWait": "Yeni kod isteyebilmek için kalan süre:",
+  // INT-601 (audit A6): the countdown's unit, spelled out as the catalogue
+  // spells its other units ("saat", "adım"); a screen reader reads "sn" as letters.
+  "auth.otp.resendUnit": "saniye",
   "auth.otp.devPeek": "Kodu getirin (geliştirme)",
   "auth.error.generic": "Bir sorun oldu. Lütfen yeniden deneyin.",
   "auth.error.limited": "Çok sık denediniz. Lütfen biraz bekleyip yeniden deneyin.",

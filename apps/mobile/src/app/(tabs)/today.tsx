@@ -49,7 +49,7 @@ export default function Today() {
             <VisitCard visit={next} hero />
             <PrimaryButton
               label={next.noteStatus === "draft" ? t("today.continueCta") : t("today.prepareCta")}
-              onPress={() => router.push(`/(tabs)/visits/${next.id}`)}
+              onPress={() => router.push(`/(tabs)/visits/${next.id}`, { withAnchor: true })}
             />
           </View>
         ) : (
@@ -62,7 +62,7 @@ export default function Today() {
             </Card>
             <PrimaryButton
               label={t("today.addVisit")}
-              onPress={() => router.push("/(tabs)/visits/new")}
+              onPress={() => router.push("/(tabs)/visits/new", { withAnchor: true })}
             />
           </View>
         )}

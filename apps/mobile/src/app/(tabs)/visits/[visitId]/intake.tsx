@@ -49,12 +49,14 @@ import {
 import { DevVoiceBanner } from "@/components/DevVoiceBanner";
 import { DialogueGate } from "@/components/DialogueGate";
 import { DialogueIntake } from "@/components/DialogueIntake";
+import { Icon } from "@/components/Icon";
 import { InstrumentStep } from "@/components/InstrumentStep";
 import { RedInFlow } from "@/components/RedLayer";
 import { VoiceNote } from "@/components/VoiceNote";
 import { voiceAllowedForIntegrity } from "@/lib/auth/integrity";
 import { asDeliveryKey } from "@/lib/dialogue/deliveryDeck";
 import { typedStepDelivery } from "@/lib/dialogue/deliveryPlan";
+import { chipGlyphSize, chipLook } from "@/lib/a11y/chip";
 import { joinParts } from "@/lib/a11y/labels";
 import { useReducedMotion } from "@/lib/a11y/prefs";
 import { MIN_TAP } from "@/lib/a11y/target";
@@ -280,7 +282,7 @@ interface StepFlowProps {
 function StepFlow({ visitId, requestedQ, intakeQuestions, prefill, voiceFailed }: StepFlowProps) {
   const router = useRouter();
   const theme = useTheme();
-  const dark = useScheme() === "dark";
+  const scheme = useScheme();
   const fontScale = useFontScale();
   const { notes, updateNote, consents } = useSession();
   const note = notes[visitId ?? ""];
@@ -725,25 +727,35 @@ function StepFlow({ visitId, requestedQ, intakeQuestions, prefill, voiceFailed }
                 <View style={styles.chipWrap}>
                   {question.options!.map((o) => {
                     const on = selected.includes(o.id);
+                    // INT-601 (audit A4): selection is a check glyph and a
+                    // heavier outline as well as the wash (SC 1.4.1).
+                    const look = chipLook(on, scheme);
                     return (
                       <Pressable
                         key={o.id}
                         accessibilityRole="checkbox"
                         accessibilityLabel={t(o.labelKey)}
                         accessibilityHint={t("a11y.selectHint")}
-                        accessibilityState={{ checked: on }}
+                        accessibilityState={look.accessibilityState}
                         onPress={() => toggleChip(o.id)}
                         style={[
                           styles.chip,
                           {
-                            backgroundColor: on ? theme.primarySoft : theme.surface,
-                            // Oura chips are filled, borderless in dark (tonal
-                            // separation); light keeps the hairline (pass 4).
-                            borderColor: on ? theme.primary : dark ? "transparent" : theme.border,
+                            backgroundColor: theme[look.fill],
+                            borderColor:
+                              look.border === "transparent" ? "transparent" : theme[look.border],
+                            borderWidth: look.borderWidth,
                           },
                         ]}
                       >
-                        <AppText role="label" color={on ? "primary" : "ink"}>
+                        {look.glyph !== null ? (
+                          <Icon
+                            name={look.glyph}
+                            size={chipGlyphSize(fontScale)}
+                            tintColor={theme.primary}
+                          />
+                        ) : null}
+                        <AppText role="label" color={look.labelColor} style={styles.chipLabel}>
                           {t(o.labelKey)}
                         </AppText>
                       </Pressable>
@@ -1004,10 +1016,13 @@ const styles = StyleSheet.create({
   chipWrap: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
   chip: {
     borderRadius: radius.chip,
-    borderWidth: 1,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
     minHeight: MIN_TAP,
+    // The selected check glyph leads the label (INT-601).
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.xs,
     justifyContent: "center",
     // A wrap item gets no shrink in React Native, so without this an option
     // label wider than the row makes the CHIP wider than the row and there is
@@ -1041,8 +1056,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  // The label gives width back so a long one wraps beside the glyph.
+  chipLabel: { flexShrink: 1 },
+  // INT-601 (audit A5): a 120 pt field at 999 was a stadium.
   textField: {
-    borderRadius: radius.control,
+    borderRadius: radius.field,
     borderWidth: 1,
     minHeight: 120,
     padding: spacing.md,
