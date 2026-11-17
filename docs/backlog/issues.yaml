@@ -7687,3 +7687,25 @@
     - "The API's OpenBao policy grants read-only access to the path; the migration outcome is observable with ids only and catalogued; files/10 §9 and the threat-model residual are updated; tests first with near misses."
   tests: [tests/api/test_tokenization_key.py, tests/api/test_tokenization_probe.py, tests/infra/test_staging_tokenization_key.py, tests/infra/test_staging_compose.py, tests/infra/test_staging_netgsm.py, tests/api/test_previsit_output.py, tests/api/test_otp_netgsm_wiring.py]
   sec_row: "onboarding"
+- id: INT-614
+  epic: E08-mobile
+  phase: P1
+  title: "The resolved iOS Info.plist carries a Turkish Face ID string, no photo-library key and no background audio mode"
+  # Found by INT-613's App Store readiness checklist (rows 21-23), read from
+  # `expo config --type introspect` on main 5d6984a7: Face ID carried Expo's
+  # English default although the app gates app open and the note review on
+  # it; expo-image-picker's auto-applied plugin wrote a photo-library string
+  # for a library the app never opens; expo-audio re-added the `audio`
+  # UIBackgroundMode after withVoiceAudio stripped it. No GitHub issue yet:
+  # committed locally, not pushed. The new strings need approval:human-legal.
+  depends_on: [INT-103, INT-131, INT-138, INT-592]
+  labels: [area:mobile]
+  status: done
+  evidence: docs/evidence/INT-614.md
+  acceptance:
+    - "NSFaceIDUsageDescription in the resolved base Info.plist is a truthful, B1, siz-register Turkish string set through the expo-local-authentication plugin option, equal to app-tr.json, with an en mirror in app-en.json; PolicyGuard is clean and the store-label inventory classifies the key as carrying no personal data"
+    - "the resolved Info.plist carries no NSPhotoLibraryUsageDescription (expo-image-picker photosPermission false), and every purpose string in it names a production call site; near miss: the camera key stays"
+    - "the resolved Info.plist declares no audio or voip UIBackgroundMode (expo-audio enableBackgroundPlayback and enableBackgroundRecording false), asserted on `expo config --type introspect` output"
+  tests: [apps/mobile/e2e/iosInfoPlist.spec.ts, tests/legal/test_ios_purpose_strings.py]
+  legal: "STORE"
+  sec_row: "mobile"

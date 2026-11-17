@@ -49,6 +49,14 @@
  *    a backgrounded medical app — the opposite of the requirement, and an
  *    App Review question we would have no good answer to.
  *
+ *    The strip alone is not enough, and INT-613 found why: expo-audio's own
+ *    plugin defaults `enableBackgroundPlayback` to true, and its Info.plist
+ *    mod runs after this one, so it added `audio` back. Since INT-614 app.json
+ *    passes expo-audio `enableBackgroundPlayback: false` and
+ *    `enableBackgroundRecording: false`, which is the deterministic switch;
+ *    this strip stays as the second fence. e2e/iosInfoPlist.spec.ts reads the
+ *    resolved config (`expo config --type introspect`), not this file.
+ *
  * 2. It does not write NSMicrophoneUsageDescription. That string is already
  *    localised through `expo.locales` (src/locales/app-tr.json and
  *    app-en.json), which is the right mechanism for a Turkish-first app:
@@ -56,10 +64,12 @@
  *    source of truth (invariant 5). A hardcoded English default here would
  *    quietly outrank the localised file on some builds. INT-138's
  *    NSCameraUsageDescription is declared the same way and for the same
- *    reason, which is also why `expo-image-picker`'s config plugin is NOT
- *    registered: passing it `microphonePermission: false` would block
- *    RECORD_AUDIO app-wide and silence the voice path, and omitting the field
- *    would write Apple's English default over the localised microphone string.
+ *    reason. `expo-image-picker`'s config plugin is registered with one
+ *    option only, `photosPermission: false` (INT-614): the app never opens the
+ *    photo library, and the plugin, which Expo applies even when unlisted,
+ *    otherwise writes an English NSPhotoLibraryUsageDescription. Its camera
+ *    and microphone options stay unset on purpose: `microphonePermission:
+ *    false` would block RECORD_AUDIO app-wide and silence the voice path.
  *
  * Expo Go never runs plugin output, so none of this applies there — which is
  * exactly why src/lib/livekit/capability.ts reports `needs_dev_build` instead

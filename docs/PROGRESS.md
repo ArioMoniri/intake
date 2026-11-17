@@ -4685,3 +4685,24 @@
   - Tests first: red 4 vitest + 2 pytest; green brand 19, mobile 2972, legal + release 964.
 - Next: merge #995 (INT-587) before or with #1001, then TestFlight build 7.
 - LOOP_STATUS: CONTINUE
+### 2026-11-17T20:30:00+03:00 · INT-614 · done (committed locally; not pushed; the Face ID string needs approval:human-legal)
+- Goal: close INT-613's App Store readiness rows 21–23 on the resolved iOS config (`expo config --type introspect`). Face ID carried Expo's English default, expo-image-picker wrote a photo-library string for a library the app never opens, and expo-audio re-added the `audio` UIBackgroundMode after withVoiceAudio stripped it.
+- Plan:
+  - Register expo-local-authentication with a Turkish `faceIDPermission`, equal to app-tr.json, with an en mirror. The string names the two real gates (app open, note review), not D36 passkeys, which are not built.
+  - Register expo-image-picker with `photosPermission: false` only.
+  - Pass expo-audio `enableBackgroundPlayback: false` and `enableBackgroundRecording: false`. Background audio is not intended (INT-103, INT-559).
+  - Add a `store/facts.py` row for Face ID with no flow.
+- Tests added (with the near-miss negative for any safety rule):
+  - New `e2e/iosInfoPlist.spec.ts` on the introspected plist. Every purpose key names a production call site; there is no photo-library key (near miss: the camera key stays); there is no audio or voip mode; Face ID is the tr catalogue.
+  - Extended `tests/legal/test_ios_purpose_strings.py` (plugin options, classification, PolicyGuard and B1 over the new string).
+  - `records.spec.ts`'s "picker not registered" pin is rewritten to "registered with photosPermission false only". Its premise was false: Expo applies the plugin when it is unlisted.
+  - Red: 5 vitest and 4 pytest failures. Green: mobile 155 files / 3156 tests.
+- Result (`make check` / `make safety` / `make security` summary):
+  - `make check-ts` exit 0, typecheck clean.
+  - `tests/legal tests/release tests/backlog` green, backlog pins at 387, no_placeholders green.
+  - check-py (full), check-integration, make safety and make security did not run here. Reasons are in evidence §4.
+- Invariants touched and still passing: 2, 3, 5, 13, 18.
+- Decisions / ADRs / `00_STATE.md` rows: none.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): the legal lane records `approval:human-legal` on the tr and en NSFaceIDUsageDescription.
+- Next: INT-613's readiness rows 21–23 move to done when this merges; push when the freeze lifts.
+- LOOP_STATUS: CONTINUE
