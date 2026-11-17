@@ -431,7 +431,9 @@ def test_backlog_parses_and_is_complete() -> None:
     # with a stated reason.
     # + INT-584 (the phone-tokenization key moves into OpenBao with the same key
     # material, owner decision D38, GitHub #983); grows only with a stated reason.
-    assert len(ids) == 386, f"expected 175 blueprint + 211 added issues, got {len(ids)}"
+    # + INT-605 (the synthetic host's clip set cached in the real voice, owner
+    # decision D42, GitHub #1035); grows only with a stated reason.
+    assert len(ids) == 387, f"expected 175 blueprint + 212 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 

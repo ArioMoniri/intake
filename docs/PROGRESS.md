@@ -1,5 +1,16 @@
 # PROGRESS — one entry per LOOP iteration (template in LOOP.md)
 
+### 2026-11-17T21:45:00+03:00 · INT-605 · done (PR open)
+- Goal: GitHub #1035, Sec-Row `cloud-clipgen`. Carry out the owner's 17 Nov clip-caching decision (D42) on the synthetic host, in the D20 voice, within a 100 USD ElevenLabs cap.
+- Plan: enumerate the route's catalogue with `george_prebake plan`; read the ElevenLabs quota server-side; synthesise misses only through `george_prebake apply`; verify every clip; record D42.
+- Tests added (with the near-miss negative for any safety rule): `tests/docs/test_state_decisions.py` pins D42's owner date, quote, issue and scope. Near miss: a row without its scope is refused. Red: 1 failed. Green: 79 passed across tests/backlog, the state test and the make-check smoke.
+- Result (`make check` / `make safety` / `make security` summary): the catalogue is 319 routine rows (28426 wire characters), and all 319 were already cached under `delivery.routine@v4`. 0 characters were synthesised and 0 USD spent. Aggregate cache hash `d4b19f35…4245`. make safety is not affected; make security was not run (docs and tests only).
+- Invariants touched and still passing: 10, 17, 21, 22.
+- Decisions / ADRs / `00_STATE.md` rows: D42.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): pack questions, instrument items and RED scripts cannot be cached until a pack compiles. That needs the physician of record (HB-C1).
+- Next: none for INT-605.
+- LOOP_STATUS: CONTINUE
+
 ### 2026-10-28T16:30:00+03:00 · INT-585 · done (PR open)
 - Goal: GitHub #984, Sec-Row `onboarding`. Record the owner's 28 Oct SMS decisions ("1Y 2Y 3Y 4Y 5Y") as D34-D38 in files/00_STATE.md §3, and the live Netgsm OTP confirmation in docs/evidence/INT-576.md.
 - Plan:
