@@ -1389,6 +1389,7 @@ export const en: Record<MessageKey, string> = {
   "kiosk.idle.extendHint": "Keeps the session open.",
   "red.call112": "Call 112",
   "red.call112Failed": "The call could not be opened. Dial 112 from your phone.",
+  "red.goToAcil": "Go to the emergency department",
   "red.callStaff": "Notify staff",
   "red.callStaff.hint": "Sends a notification to the staff.",
   "red.callStaff.sending": "Sending word to the staff.",

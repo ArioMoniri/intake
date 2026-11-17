@@ -540,7 +540,7 @@ question about the seven built texts. `docs/evidence/INT-529.md` §4 has the tab
 
 ## INT-602 — RED chrome wording, a generic REMOTE service claim, and a pack edit that needs re-signing
 
-**Raised:** 17 Nov 2026, updated after clinical review round 1 the same day · **Named humans:** the physician of record (**Dr Efe Onganer**) for the wording; the owner for re-signing the red rule set on the synthetic host. Under D18 the INT-432 medical-agent lane may answer for simulated patients only; a licensed physician is needed before any real patient.
+**Raised:** 17 Nov 2026, updated after clinical review round 1 and the owner's decisions the same day · **Named humans:** the physician of record (**Dr Efe Onganer**) for the wording; the owner for re-signing the red rule set on the synthetic host. Under D18 the INT-432 medical-agent lane may answer for simulated patients only; a licensed physician is needed before any real patient.
 
 The app-side RED changes are built and tested (`docs/evidence/INT-602.md`). What stays open:
 
@@ -559,9 +559,15 @@ The app-side RED changes are built and tested (`docs/evidence/INT-602.md`). What
    - The patch, its goldens and its near miss are ready to apply in the same PR as the new envelope (`docs/evidence/INT-602.md` "Clinical review round 1", item 5).
 3. **The pack line "Görevlilere haber verildi."** (generic ON_SITE `action_tr`) is shown, verbatim (invariant 10), before any server confirmation. It is pack text, so the render path cannot change it; it waits for the same review.
 
+**Owner decisions, 17 Nov 2026** (D18: the synthetic host and simulated patients only; a licensed physician, Dr Efe Onganer, still signs before any real patient, and HB-C1 stays open; `docs/evidence/INT-602.md` "Owner decisions, 17 Nov 2026"):
+- "Acil Servis'e gidin" leads under ON_SITE ("give the button of acil servise gidin").
+- The staff wording is approved ("approve").
+- A repeat press pages nobody again ("no").
+- "Yapmayın" holds, CALM included ("ok"). This closes the RED-chrome wording question raised here under HB-C12b; HB-C12b's own why_tr question about the patient's condition is unaffected.
+- The snapshot-only REMOTE sentence is approved ("ok").
+- The pack line "Görevlilere haber verildi." stays ("ok").
+
 | issue | status | who | the one sentence they must answer | HB id |
 |---|---|---|---|---|
-| INT-602 | awaiting-human (RED chrome wording; app-side, synthetic tenants only) | physician of record (**Dr Efe Onganer**) | Are "Yapmayın", "Görevlilere haber verin" with its hint and its three state lines, and "Arama açılamadı. 112'yi telefonunuzdan arayın." the right words inside RED, and should files/02 §5.3's "Lütfen yapmayın" change with them? | HB-C12b (nearest row: RED patient copy for the physician of record) |
-| INT-602 | awaiting-human (ON_SITE staff control) | physician of record (**Dr Efe Onganer**) | Does a staff control compete with "Acil Servis'e gidin", should a repeat press page staff again, and may the pack keep "Görevlilere haber verildi." before the server confirms? | HB-C12b (nearest row) |
-| INT-602 | awaiting-human (generic REMOTE why_tr, sentence 2) | physician of record (**Dr Efe Onganer**) | May the reviewer's "112 ambulansıyla getirilen hastalara acil serviste ayrıca öncelik belirleme (triyaj) yapılmaz." replace "… ayrıca öncelik sırası için bekletilmez." in CD-24 and CD-25? | HB-C12b (nearest row; a new row is the coordinator's to allocate) |
-| INT-602 | blocked on re-signing (the pack edit) | owner, on the synthetic host | Will you re-sign the red rule set with the synthetic test key (runbook steps 1–4) once the replacement sentence is in both files? | HB-C1 (the sign-off interlock the test key stands in for) |
+| INT-602 | **closed 17 Nov 2026 (owner, D18 scope)**: RED chrome wording, the ON_SITE control order, the repeat-press rule and the pack's "Görevlilere haber verildi." | owner (synthetic); physician of record (**Dr Efe Onganer**) before any real patient | — (answered: see the owner decisions above) | HB-C12b (the wording question only), HB-C1 open |
+| INT-602 | blocked on re-signing (the approved REMOTE sentence in CD-24 and CD-25) | owner, on the synthetic host | Will you re-sign the red rule set with the synthetic test key (runbook steps 1–4) once "112 ambulansıyla getirilen hastalara acil serviste ayrıca öncelik belirleme (triyaj) yapılmaz." is in both files? | HB-C1 (the sign-off interlock the test key stands in for) |

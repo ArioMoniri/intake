@@ -31,6 +31,8 @@ import {
   redLayerFrame,
   redPressedOpacity,
   redPrimaryControl,
+  redOnSiteControls,
+  redSecondaryControl,
   redWash,
   staffCallLine,
 } from "./controls";
@@ -556,5 +558,123 @@ describe("INT-602 (5) — RED copy is the bare imperative plural", () => {
     const at = blockers.indexOf("## INT-602");
     expect(at).toBeGreaterThan(-1);
     expect(blockers.slice(at)).toContain("öncelik sırası için bekletilmez");
+  });
+});
+
+describe("INT-602 owner decisions (17 Nov 2026) — under ON_SITE, Acil Servis'e gidin leads", () => {
+  const ON_SITE_PATHS = [
+    ["known ON_SITE", "ON_SITE", []],
+    ["UNKNOWN answered evet", "UNKNOWN", ["inHospital"]],
+  ] as const;
+
+  for (const [name, catalog] of [
+    ["the rule's own script", CATALOG],
+    ["the generic RED", withoutRuleScripts()],
+  ] as const) {
+    for (const register of SHOWN) {
+      for (const [path, location, answers] of ON_SITE_PATHS) {
+        it(`${register} · ${path} · ${name}: Acil Servis'e gidin first and primary, staff second and weaker`, () => {
+          const store = createRedStore();
+          store.present(trigger(register, location), catalog, ORIGIN);
+          for (const answer of answers) {
+            store.answerLocation(answer);
+          }
+          const screen = redScreen(store.getSnapshot());
+          expect(screen).toMatchObject({ kind: "act", goToAcil: true, callStaff: true });
+          expect(screen.kind === "act" ? redOnSiteControls(screen) : null).toEqual([
+            { kind: "goToAcil", weight: "primary" },
+            { kind: "notifyStaff", weight: "secondary" },
+          ]);
+        });
+      }
+    }
+  }
+
+  it("near miss: staff is primary only where the pack's ON_SITE action is not GO_TO_IN_HOUSE_ACIL", () => {
+    const other: PrePositionedRed = {
+      ...CATALOG,
+      scripts: {
+        ...CATALOG.scripts,
+        [`${RULE}.on_site`]: {
+          primary: "SAME_DAY_ACIL_TODAY",
+          show112: false,
+          actionTr: "Bugün Acil Servis'e başvurun.",
+          doNotsTr: [],
+          whyTr: null,
+        },
+      },
+    };
+    const store = createRedStore();
+    store.present(trigger("ALERT", "ON_SITE"), other, ORIGIN);
+    const screen = redScreen(store.getSnapshot());
+    expect(screen).toMatchObject({ goToAcil: false, callStaff: true, call112: false });
+    expect(screen.kind === "act" ? redOnSiteControls(screen) : null).toEqual([
+      { kind: "notifyStaff", weight: "primary" },
+    ]);
+    // …and the round-1 order (staff primary beside the acil control) is never produced.
+    const acil = createRedStore();
+    acil.present(trigger("ALERT", "ON_SITE"), CATALOG, ORIGIN);
+    const shown = redScreen(acil.getSnapshot());
+    expect(shown.kind === "act" ? redOnSiteControls(shown) : []).not.toContainEqual({
+      kind: "notifyStaff",
+      weight: "primary",
+    });
+  });
+
+  it.each(SHOWN)(
+    "near miss (%s): REMOTE has no acil control and no ON_SITE controls",
+    (register) => {
+      const store = createRedStore();
+      store.present(trigger(register, "REMOTE"), CATALOG, ORIGIN);
+      const screen = redScreen(store.getSnapshot());
+      expect(screen).toMatchObject({ goToAcil: false, callStaff: false, call112: true });
+      expect(screen.kind === "act" ? redOnSiteControls(screen) : null).toEqual([]);
+    },
+  );
+
+  it.each(SHOWN)(
+    "%s: the secondary staff control is weaker than the primary, still a 44 pt target with a 3:1 edge",
+    (register) => {
+      for (const scheme of SCHEMES) {
+        const colors = palette[scheme];
+        const primary = redPrimaryControl(register, colors);
+        const secondary = redSecondaryControl(colors);
+        expect(secondary.minHeight).toBeLessThan(primary.minHeight);
+        expect(secondary.minHeight).toBeGreaterThanOrEqual(MIN_TAP);
+        expect(typeScale[secondary.labelRole]).toBeLessThan(typeScale[primary.labelRole]);
+        expect(secondary.borderWidth).toBeGreaterThan(0);
+        expect(
+          contrast(redControlBoundary(secondary), redWash(register, colors)),
+          `${register} ${scheme}`,
+        ).toBeGreaterThanOrEqual(3);
+        // Near miss: it never takes the emergency colour.
+        expect(secondary.backgroundColor).not.toBe(colors.emergency);
+      }
+    },
+  );
+
+  it("the acil control's words are the pack's and the approved failure line's own", () => {
+    expect(tr["red.goToAcil"]).toBe("Acil Servis'e gidin");
+    expect(en["red.goToAcil"]).toBe("Go to the emergency department");
+    expect(tr["red.callStaff.failed"]).toContain(tr["red.goToAcil"]);
+    const generic = readFileSync(
+      join(ROOT, "packages", "protocols", "generic", "generic_red.yaml"),
+      "utf8",
+    );
+    expect(generic).toContain("**Acil Servis'e gidin");
+    // Near miss (invariant 21): no 112 or ambulance on the ON_SITE control.
+    expect(tr["red.goToAcil"]).not.toMatch(/112|ambulans/iu);
+  });
+
+  it("owner: a repeat press never notifies staff again — either ON_SITE control, after a confirmed send", async () => {
+    const { sent, caller } = staffRig([202], { staffNotified: true });
+    const store = onSiteStore();
+    caller.call(store.getSnapshot()); // "Acil Servis'e gidin" (same RED, same caller)
+    await settle();
+    caller.call(store.getSnapshot()); // "Görevlilere haber verin"
+    caller.call(store.getSnapshot());
+    await settle();
+    expect(sent).toHaveLength(1);
+    expect(staffCallPhase(caller.getSnapshot(), store.getSnapshot())).toBe("sent");
   });
 });

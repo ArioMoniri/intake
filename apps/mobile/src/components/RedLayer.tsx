@@ -59,7 +59,9 @@ import {
   RED_SECONDARY_CONTROL,
   redLayerFrame,
   redPressedOpacity,
+  redOnSiteControls,
   redPrimaryControl,
+  redSecondaryControl,
   redWash,
   staffCallLine,
   type RedRegister,
@@ -230,12 +232,25 @@ function RedBody({ screen }: { screen: Extract<RedScreen, { kind: "ask" | "act" 
       {screen.callStaff ? (
         // INT-602 (invariant 21): under ON_SITE there is no 112; this takes its place.
         <View style={styles.list}>
-          <RedPrimaryControl
-            register={screen.register}
-            label={t("red.callStaff")}
-            hint={t("red.callStaff.hint")}
-            onPress={() => staffCaller.call(redStore.getSnapshot())}
-          />
+          {/* Owner decision 1: "Acil Servis'e gidin" leads where the pack says so, and
+              notifies staff in the same action (files/02 §5.3 ON_SITE row); the
+              staff control follows, quieter. One notification per RED either way. */}
+          {redOnSiteControls(screen).map((control) => {
+            const label = control.kind === "goToAcil" ? t("red.goToAcil") : t("red.callStaff");
+            const hint = control.kind === "goToAcil" ? undefined : t("red.callStaff.hint");
+            const onPress = () => staffCaller.call(redStore.getSnapshot());
+            return control.weight === "primary" ? (
+              <RedPrimaryControl
+                key={control.kind}
+                register={screen.register}
+                label={label}
+                hint={hint}
+                onPress={onPress}
+              />
+            ) : (
+              <RedSecondaryControl key={control.kind} label={label} hint={hint} onPress={onPress} />
+            );
+          })}
           {staffLine !== null ? (
             <AnnouncedText
               tone={staffLine.tone === "error" ? "error" : "status"}
@@ -291,6 +306,48 @@ function RedButton({ label, onPress }: { label: string; onPress: () => void }) {
       ]}
     >
       <AppText role={RED_SECONDARY_CONTROL.labelRole} style={{ color: theme.ink }}>
+        {label}
+      </AppText>
+    </Pressable>
+  );
+}
+
+/**
+ * The quieter ON_SITE control (INT-602 owner decision 1): the staff control
+ * below "Acil Servis'e gidin". Its look is lib/red/controls.ts `redSecondaryControl`.
+ */
+function RedSecondaryControl({
+  label,
+  hint,
+  onPress,
+}: {
+  label: string;
+  hint?: string;
+  onPress: () => void;
+}) {
+  const theme = useTheme();
+  const look = redSecondaryControl(theme);
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityHint={hint}
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.button,
+        styles.secondary,
+        {
+          backgroundColor: look.backgroundColor,
+          borderColor: look.borderColor,
+          borderWidth: look.borderWidth,
+          opacity: redPressedOpacity(pressed),
+        },
+      ]}
+    >
+      <AppText
+        role={look.labelRole}
+        style={{ color: look.labelColor, fontWeight: look.labelWeight, textAlign: "center" }}
+      >
         {label}
       </AppText>
     </Pressable>
@@ -441,6 +498,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  secondary: { alignSelf: "stretch" },
   primary: {
     // The primary CTA's floor (lib/red/controls.ts `redPrimaryControl` says the same).
     minHeight: CTA_MIN_HEIGHT,

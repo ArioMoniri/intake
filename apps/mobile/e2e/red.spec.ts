@@ -808,3 +808,19 @@ describe("INT-602 — RedLayer renders the controls the screen model asks for", 
     expect(source).not.toMatch(/SafeAreaView/);
   });
 });
+
+describe("INT-602 owner decisions — the ON_SITE controls' order in RedLayer", () => {
+  it("Acil Servis'e gidin renders first as the primary control; the staff control follows as the secondary", () => {
+    const source = code(readFileSync(join(SRC, "components/RedLayer.tsx"), "utf8"));
+    const start = source.indexOf("{screen.callStaff ? (");
+    const block = source.slice(start, source.indexOf("{screen.lateAskTr !== null ?", start));
+    expect(block).toMatch(/redOnSiteControls\(screen\)\.map\(/);
+    const primary = block.indexOf('control.weight === "primary"');
+    expect(primary).toBeGreaterThan(-1);
+    expect(block).toMatch(/<RedPrimaryControl\b/);
+    expect(block).toMatch(/<RedSecondaryControl\b/);
+    expect(block).toMatch(/t\("red\.goToAcil"\)/);
+    // Near miss (invariant 21): neither ON_SITE control can dial or show 112.
+    expect(block).not.toMatch(/EMERGENCY_NUMBER|tel:|call112/);
+  });
+});

@@ -147,3 +147,51 @@ export function staffCallLine(phase: "idle" | "sending" | "sent" | "failed"): St
       return { key: "red.callStaff.failed", tone: "error" };
   }
 }
+
+/**
+ * The quieter control on the layer (INT-602 owner decision 1): the staff notify
+ * control when "Acil Servis'e gidin" leads. A 44 pt target with a body-weight
+ * label, below the primary control's 56 pt and 17 pt semibold, and a 1.5 pt
+ * outline so its edge still clears 3:1 on every RED ground. Never the
+ * emergency colour.
+ */
+export function redSecondaryControl(colors: ThemeColors): RedControlLook {
+  return {
+    minHeight: MIN_TAP,
+    labelRole: "label",
+    labelWeight: "600",
+    backgroundColor: colors.surface,
+    borderColor: colors.inkSoft,
+    borderWidth: 1.5,
+    labelColor: colors.ink,
+  };
+}
+
+/** One ON_SITE control, in the order it is drawn. */
+export interface OnSiteControl {
+  readonly kind: "goToAcil" | "notifyStaff";
+  readonly weight: "primary" | "secondary";
+}
+
+/**
+ * The ON_SITE controls, top first (owner decision 1, 17 Nov 2026: "give the
+ * button of acil servise gidin"). Where the pack's ON_SITE action is
+ * GO_TO_IN_HOUSE_ACIL, "Acil Servis'e gidin" is the primary control and the
+ * staff control follows as the secondary one. Any other ON_SITE action fails
+ * closed to the staff control alone, as the primary. Nothing under REMOTE.
+ */
+export function redOnSiteControls(screen: {
+  readonly callStaff: boolean;
+  readonly goToAcil: boolean;
+}): readonly OnSiteControl[] {
+  if (!screen.callStaff) {
+    return [];
+  }
+  if (screen.goToAcil) {
+    return [
+      { kind: "goToAcil", weight: "primary" },
+      { kind: "notifyStaff", weight: "secondary" },
+    ];
+  }
+  return [{ kind: "notifyStaff", weight: "primary" }];
+}

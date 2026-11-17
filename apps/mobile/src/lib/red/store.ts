@@ -129,6 +129,12 @@ export type RedScreen =
        */
       readonly callStaff: boolean;
       /**
+       * Owner decision 1 (INT-602, 17 Nov 2026): under ON_SITE, where the pack's
+       * action is GO_TO_IN_HOUSE_ACIL, "Acil Servis'e gidin" is the primary
+       * control and the staff control the secondary one (`redGoesToAcil`).
+       */
+      readonly goToAcil: boolean;
+      /**
        * The location question, still open after the unsigned wait took the
        * no-answer branch, or null (INT-465; LD-05, INT-471 #800). The patient's own
        * answer, given late, still moves the RED to the answered location, which is
@@ -197,6 +203,7 @@ export function redScreen(state: RedState | null): RedScreen {
     whyTr: presentation.script.whyTr,
     call112: redAffordances(presentation, answer).call112,
     callStaff: redCallsStaff(located),
+    goToAcil: redGoesToAcil(located, presentation.script.primary),
     lateAskTr,
     motion: RED_MOTION,
   };
@@ -281,6 +288,7 @@ function genericScreen(
     whyTr: presentation.script.whyTr,
     call112: redAffordances(presentation, answer).call112,
     callStaff: redCallsStaff(location),
+    goToAcil: redGoesToAcil(location, presentation.script.primary),
     lateAskTr,
     motion: RED_MOTION,
   };
@@ -301,6 +309,18 @@ function genericScreen(
  */
 export function redCallsStaff(location: Exclude<RedLocation, "UNKNOWN">): boolean {
   return location === "ON_SITE";
+}
+
+/** The pack's in-house acil action code (files/protocols/base.life_threat.yaml). */
+export const GO_TO_IN_HOUSE_ACIL = "GO_TO_IN_HOUSE_ACIL";
+
+/**
+ * Whether the ON_SITE action leads with "Acil Servis'e gidin" (INT-602 owner
+ * decision 1). Only where the pack's own action code says so: any other ON_SITE
+ * action keeps the staff control as its primary, and REMOTE never has it.
+ */
+export function redGoesToAcil(location: Exclude<RedLocation, "UNKNOWN">, primary: string): boolean {
+  return location === "ON_SITE" && primary === GO_TO_IN_HOUSE_ACIL;
 }
 
 /**

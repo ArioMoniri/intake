@@ -167,7 +167,7 @@ Two further classes fail the same way:
 | `register` | Presentation | Audio | When |
 |---|---|---|---|
 | **`ALERT`** | Red header, full screen takeover, **prominent primary action — 112 under `REMOTE`, the named Acil Servis under `ON_SITE` (Axis 3)** | **Spoken with urgent prosody**, alert sound | **Default for adults where alarm aids action.** Adult chest pain, stroke FAST positives, anaphylaxis, severe bleeding |
-| **`CALM`** | **No red, no alarm colour** — amber-neutral. **Action first, explanation after.** Explicit **"lütfen yapmayın"** list | **Spoken softly, no alert sound** | Any rule tagged **`distress_sensitive: true`**, and **any RED where the subject is a child and the user is a proxy** |
+| **`CALM`** | **No red, no alarm colour** — amber-neutral. **Action first, explanation after.** Explicit **"Yapmayın"** list (bare imperative inside RED; owner decision 4, INT-602, 17 Nov 2026) | **Spoken softly, no alert sound** | Any rule tagged **`distress_sensitive: true`**, and **any RED where the subject is a child and the user is a proxy** |
 | **`SILENT`** | **Screen only.** No headline, no colour change, no takeover — the guidance appears in the flow of the session | **No audio, ever** | Any RED arising inside a `text_only` block; **safeguarding**; C-SSRS positives; or **any session where third-party presence is detected** |
 | **`DEFERRED_CLINICIAN`** | **Patient screen unchanged.** Finding routes to the clinician only | None | Findings where patient-facing alarm has **no useful patient action**. This is also **exactly what `device_functions=off` requires** (`06 §0.3`) — so building this register serves the pre-CE commercial tenant and the clinical case with the same code |
 
@@ -203,7 +203,7 @@ Location is derived from the visit lifecycle state in **§2b** plus the mode. It
 > **Şimdi yapın**
 > Çocuğunuzu kucağınızda, **dik ve rahat** bir şekilde tutun. Hemen **112**'yi arayın.
 >
-> **Lütfen yapmayın**
+> **Yapmayın**
 > • Ağzını veya boğazını açıp bakmayın.
 > • Su, yiyecek ya da ilaç vermeyin.
 > • Çocuğunuzu sırtüstü yatırmayın.
@@ -218,7 +218,7 @@ Location is derived from the visit lifecycle state in **§2b** plus the mode. It
 > **Acil Servis'e gidin — [zemin kat].** Randevunuzu beklemeyin.
 > Görevlilere haber verildi. Girişte **"göğüs ağrım var"** deyin.
 >
-> **Lütfen yapmayın**
+> **Yapmayın**
 > • Poliklinik sırasında beklemeyin.
 > • Tek başınıza gitmeyin — yanınızdaki kişiden ya da bir görevliden yardım isteyin.
 > • Bir şey yiyip içmeyin.

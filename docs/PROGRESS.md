@@ -4726,3 +4726,10 @@
   - **Blocked: the reviewer's REMOTE sentence.** Editing either pack file voids the synthetic red-rule-set signature: the host would serve no RED, and `make safety` goes red (measured). Re-signing needs the host's Transit key (owner; runbook; blockers.md INT-602, HB-C1). The patch is ready in the evidence.
   - **Not fixable in the render path:** the pack line "Görevlilere haber verildi." shows before confirmation. It is noted for Dr Efe Onganer, with the other five decisions, in docs/evidence/INT-602.md "Clinical review round 1".
 - LOOP_STATUS: WAITING_HUMAN
+- Update (owner decisions, 17 Nov 2026; D18, synthetic host and simulated patients only; Dr Efe Onganer still signs before any real patient; HB-C1 open):
+  - Under ON_SITE with the pack's GO_TO_IN_HOUSE_ACIL, "Acil Servis'e gidin" is now the primary control. It notifies staff in the same action, and "Görevlilere haber verin" follows as the weaker secondary control.
+  - Staff wording approved; a repeat press pages nobody; "Yapmayın" holds, CALM included (files/02 §5.3 updated).
+  - The REMOTE sentence is approved but still waits on re-signing.
+  - "Görevlilere haber verildi." stays.
+  - Tests first (red: 21 failed). Evidence: "Owner decisions, 17 Nov 2026".
+- LOOP_STATUS: WAITING_HUMAN

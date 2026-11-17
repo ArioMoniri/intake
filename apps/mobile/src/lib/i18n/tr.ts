@@ -1495,6 +1495,11 @@ export const tr = {
   // inbox entry per RED). "sent" shows only after the server confirms; "failed"
   // uses the ON_SITE guidance's own words (bir görevliden yardım isteyin; Acil
   // Servis'e gidin).
+  // INT-602 owner decision 1 (17 Nov 2026): under ON_SITE the pack's own action
+  // line leads as the primary control; the words are the pack's (CD-24 ON_SITE
+  // action_tr) and the approved failure line's. Pressing it notifies staff in the
+  // same action (files/02 §5.3 ON_SITE row), once per RED.
+  "red.goToAcil": "Acil Servis'e gidin",
   "red.callStaff": "Görevlilere haber verin",
   "red.callStaff.hint": "Görevlilere bir bildirim gönderir.",
   "red.callStaff.sending": "Görevlilere haber gönderiliyor.",
