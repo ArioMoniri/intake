@@ -1,0 +1,172 @@
+# INT-613 — the App Store Connect metadata for Önvizit, machine-readable.
+#
+# The localized fields below use fastlane deliver's own keys, one mapping per
+# field from locale to text: name, subtitle, keywords, description,
+# promotional_text, release_notes, privacy_url, support_url and marketing_url.
+# scripts/release/asc_submit.py reads this file. It maps each key to the App
+# Store Connect API attribute (appInfoLocalizations: name, subtitle,
+# privacyPolicyUrl; appStoreVersionLocalizations: description, keywords,
+# promotionalText, supportUrl, marketingUrl, whatsNew).
+#
+# THIS FILE AUTHORS NO COPY. Every string is a byte-for-byte copy of the served
+# listing under docs/legal/store/listing/. The legal lane approved that listing
+# (#828), and INT-495 promoted it on PR #860, which is not merged yet.
+# `legal_source` pins the sha256 of each listing file as it stands on that PR.
+# tests/release/test_app_store_metadata.py checks each string against the
+# listing whenever the listing file is on the tree. Until then it checks that
+# the binding still names #860 and that no approval is recorded. Invariant 18:
+# legal text renders only from docs/legal/. This file is a submission-shaped
+# projection of that text, bound to it by hash, never a second source.
+#
+# Every listing string carries `approval:human-legal`. The legal lane (an agent
+# and a verifier, under the owner's rule of 3 Oct 2026) approved it in
+# synthetic scope. The App Store listing is public, so a named human records
+# the approval in `approvals` before asc_submit.py --live writes any string.
+# Until then --live refuses to write metadata.
+#
+# null means no owner has given a value yet. Nobody may fill one in on their
+# behalf:
+#   privacy_url    HB-L27 (the privacy policy, only through the signed docs/legal document)
+#   support_url    HB-L21 (e)
+#   marketing_url  optional; no owner has asked for one
+#   copyright      HB-L21 (a): the seller's legal entity
+#   release_notes  App Store Connect does not offer What's New for the first
+#                  version (INT-495 evidence §1, PR #860, read 2026-10-16)
+schema: intake/app-store-metadata@1
+app_identifier: com.ariomoniri.intakemobile
+# apps/mobile/eas.json submit.production.ios.ascAppId; asc_submit.py checks it
+asc_app_id: "6814005465"
+platform: IOS
+primary_locale: tr
+locales: [tr, en-US]
+# docs/legal/store/submission/app-store.yaml on PR #860 (categories)
+primary_category: MEDICAL
+copyright: null
+# The version string is not repeated here. asc_submit.py reads expo.version from
+# apps/mobile/app.json. The build number is EAS's: eas.json sets
+# appVersionSource "remote" and production autoIncrement.
+version_source: apps/mobile/app.json#expo.version
+
+approvals:
+  # One entry per localized listing string. `granted_by` and `granted_on` are
+  # the named human's. No agent fills them in.
+  name:
+    tr: {approval: human-legal, legal_lane: "approved #828, promoted INT-495 (#860)", granted_by: null, granted_on: null}
+    en-US: {approval: human-legal, legal_lane: "approved #828, promoted INT-495 (#860)", granted_by: null, granted_on: null}
+  subtitle:
+    tr: {approval: human-legal, legal_lane: "approved #828, promoted INT-495 (#860)", granted_by: null, granted_on: null}
+    en-US: {approval: human-legal, legal_lane: "approved #828, promoted INT-495 (#860)", granted_by: null, granted_on: null}
+  keywords:
+    tr: {approval: human-legal, legal_lane: "approved #828, re-sourced INT-502 B1/B2 (#1009)", granted_by: null, granted_on: null}
+    en-US: {approval: human-legal, legal_lane: "approved #828, re-sourced INT-502 B1/B2 (#1009)", granted_by: null, granted_on: null}
+  description:
+    tr: {approval: human-legal, legal_lane: "approved #828, re-checked INT-502 B3 (#1009)", granted_by: null, granted_on: null}
+    en-US: {approval: human-legal, legal_lane: "approved #828, Turkish-only line INT-495 (#860)", granted_by: null, granted_on: null}
+  promotional_text:
+    tr: {approval: human-legal, legal_lane: "approved #828, re-checked INT-502 B4 (#1009)", granted_by: null, granted_on: null}
+    en-US: {approval: human-legal, legal_lane: "approved #828, re-checked INT-502 B4 (#1009)", granted_by: null, granted_on: null}
+
+screenshots:
+  # The slots asc_submit.py fills, with the sizes INT-495 read from Apple's
+  # screenshot specifications (2026-10-16, re-read 2026-10-29 by INT-502).
+  # Apple uses the 6.5-inch group only when the 6.9-inch set is missing. It
+  # requires one medium Dynamic Island set (INT-495 evidence §1). The files are
+  # INT-502's framed exports (PR #1009, scripts/store/render_frames.py). They
+  # are not committed yet: the caption draft waits for the legal lane's
+  # promotion. The raw captures carry an alpha mask, so they cannot be
+  # uploaded as they are. A required slot with no files blocks the upload and
+  # names #1009. All three are required: Apple requires the medium group, and the
+  # owner asked for 6.9 inch and 6.5 inch (INT-502, docs/store/asc/assets.yaml).
+  - id: iphone-6.9
+    placement_type: APP_SCREENSHOT
+    # the only group Apple's API documentation names (INT-495 §1)
+    placement_group: IPHONE_DYNAMIC_ISLAND_LARGE_PROFILE
+    size: [1320, 2868]
+    required: true
+    dir: docs/release/screenshots/iphone-6.9
+    files: {tr: []}
+  - id: iphone-6.5
+    placement_type: APP_SCREENSHOT
+    # null: read from GET /v1/appAssetLibraryRefData at run time, never guessed
+    placement_group: null
+    size: [1284, 2778]
+    required: true
+    dir: docs/release/screenshots/iphone-6.5
+    files: {tr: []}
+  - id: iphone-medium
+    placement_type: APP_SCREENSHOT
+    placement_group: null
+    size: [1206, 2622]
+    required: true
+    dir: docs/release/screenshots/iphone-medium
+    files: {tr: []}
+
+legal_source:
+  pr: 860
+  branch_commit: 540e167c232c7f97ecdc8ee64e48be46858d2167
+  listings:
+    tr:
+      path: docs/legal/store/listing/app-store.tr.yaml
+      sha256: e9bbf26b77a5a6ab7781164430b6404d6bfe2a8f14f1fdc0bb5c5716db901259
+    en-US:
+      path: docs/legal/store/listing/app-store.en-US.yaml
+      sha256: 1d3db1897648302f287f46e93886e7ccf39d67f88db9f901e61da5eedf5d0a8f
+
+name:
+  tr: Önvizit
+  en-US: Önvizit
+subtitle:
+  tr: Muayeneden önce ön notunuz
+  en-US: Your note before the visit
+keywords:
+  tr: muayene,hekim,doktor,hastane,poliklinik,şikâyet,sağlık,ön not,ön görüşme,vizit,hazırlık
+  en-US: doctor,visit,clinic,hospital,complaints,health,pre-visit,note,intake,preparation
+description:
+  tr: |-
+    Önvizit, muayeneden önce şikâyetlerinizi anlatmanız için hazırlandı.
+    Anlattıklarınızdan hekiminiz için düzenli bir ön not hazırlanır.
+    Not, gönderilmeden önce size gösterilir.
+
+    • Soruları yazarak ya da size uyan seçeneği işaretleyerek yanıtlayabilirsiniz.
+    • Her seferinde yalnızca bir soru sorulur.
+    • Notunuzu göndermeden önce okuyabilir ve düzenleyebilirsiniz.
+    • Neyin paylaşılacağına siz karar verirsiniz.
+    • Bir paylaşımı dilediğiniz an durdurabilirsiniz.
+    • İsterseniz telefonunuzdaki adım, uyku ve dinlenme nabzı özetlerini de ekleyebilirsiniz.
+
+    Önvizit tanı koymaz ve tedavi önermez.
+    Anlattıklarınız hekim değerlendirmesinin yerine geçmez.
+    Önvizit bir acil durum hizmeti değildir.
+    Acil bir durum yaşıyorsanız 112'yi arayın veya en yakın acil servise başvurun.
+  en-US: |-
+    Önvizit is available in Turkish only: the app's screens and questions are all in Turkish.
+    Önvizit is made for describing your complaints before a medical visit.
+    From your answers, a structured pre-visit note is prepared for your doctor.
+    The note is shown to you before it is sent.
+
+    • You can answer by typing or by choosing the option that fits you.
+    • Only one question is asked at a time.
+    • You can read and edit your note before you send it.
+    • What gets shared is your decision.
+    • You can stop a share at any time.
+    • If you wish, you can also add step, sleep and resting heart rate summaries from your phone.
+
+    Önvizit does not diagnose and does not recommend treatment.
+    What you tell it does not replace a doctor's assessment.
+    Önvizit is not an emergency service.
+    In an emergency, call 112 or go to the nearest emergency department.
+promotional_text:
+  tr: Muayeneden önce şikâyetlerinizi kendi sözlerinizle yazabilir, notunuzu kendiniz gözden geçirebilirsiniz.
+  en-US: Before your visit, you can describe your complaints in your own words and check your note yourself.
+release_notes:
+  tr: null
+  en-US: null
+privacy_url:
+  tr: null
+  en-US: null
+support_url:
+  tr: null
+  en-US: null
+marketing_url:
+  tr: null
+  en-US: null
