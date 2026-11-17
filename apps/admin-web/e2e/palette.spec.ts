@@ -75,6 +75,7 @@ const SHARED: Record<string, AppKey> = {
   "--line": "border",
   "--track": "border",
   "--field-border": "inkFaint",
+  "--ok": "success",
   "--warn": "amber",
   "--accent-fill": "primary",
   "--data": "primary",
@@ -84,7 +85,7 @@ const SHARED: Record<string, AppKey> = {
 };
 
 /** Shared in dark; one shade deeper in light (see DEEPENED). */
-const SHARED_DARK_ONLY: Record<string, AppKey> = { "--ok": "success", "--accent": "primary" };
+const SHARED_DARK_ONLY: Record<string, AppKey> = { "--accent": "primary" };
 
 /** States the app has no token for: the console's own, never the RED hex. */
 const CONSOLE_ONLY = ["--bad", "--unknown"];
@@ -169,7 +170,7 @@ function reusesEmergency(t: Theme, scheme: Scheme): string[] {
 }
 
 /** Light text tokens one shade deeper than the app, and why. */
-const DEEPENED: Record<string, AppKey> = { "--ok": "success", "--accent": "primary" };
+const DEEPENED: Record<string, AppKey> = { "--accent": "primary" };
 
 describe("Palette B: a shade changes only where AA requires it, and keeps the hue", () => {
   const raised = appHex("light", "surfaceRaised");
