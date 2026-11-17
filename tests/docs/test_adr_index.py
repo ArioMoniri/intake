@@ -101,3 +101,110 @@ def test_index_links_everything() -> None:
         assert name in index, f"docs/index.md does not link {name}"
     for gov in ("CLAUDE.md", "LOOP.md", "GOALS.md", "DoD.md", "TDD.md", "PROGRESS.md"):
         assert gov in index, f"docs/index.md does not link {gov}"
+
+
+# INT-332 — ADR-033 ratifies the motion system as revised in
+# docs/design/motion/motion-verification.md, with its 00_STATE row and the
+# mobile-ui.md §Motion pointer, and records the five open questions
+# awaiting-human with their named owners, each failing closed meanwhile.
+MOTION_ANCHORS = [
+    "motion-verification.md",
+    "opacity",
+    "120 ms",
+    '["red", "yellowPill", "workChip", "railCommit", "content", "ambient"]',
+    "snap, never queue",
+    "hold, never rest",
+    "exits are instant",
+    "root layer",
+    "150 ms",
+    "invariant 21",
+    "the one permitted co-occurrence",
+]
+
+# question -> (HUMAN_BLOCKERS id, named owner, words of its fail-closed default)
+MOTION_QUESTIONS = {
+    "Q1": ("HB-O10", "owner", "no RED is ever drawn as a push or a modal"),
+    "Q2": ("HB-C26", "Dr Efe Onganer", "never"),
+    "Q3": ("HB-C27", "Dr Efe Onganer", "no announcement"),
+    "Q4": ("HB-C28", "Dr Efe Onganer", "withheld"),
+    "Q5": ("HB-O11", "owner", "opacity-only"),
+}
+
+
+def _motion_adr() -> str:
+    return _adr_file(33).read_text(encoding="utf-8")
+
+
+def _section(text: str, heading: str) -> str:
+    start = text.index(heading)
+    nxt = text.find("\n## ", start + len(heading))
+    return text[start:] if nxt == -1 else text[start:nxt]
+
+
+def _hb_row(hb_id: str) -> str:
+    text = (REPO / "files" / "HUMAN_BLOCKERS.md").read_text(encoding="utf-8")
+    rows = [line for line in text.splitlines() if line.startswith(f"| **{hb_id}** |")]
+    assert len(rows) == 1, f"{hb_id} must appear exactly once in HUMAN_BLOCKERS.md"
+    return rows[0]
+
+
+def test_motion_adr_is_accepted_with_three_sections_and_its_anchors() -> None:
+    text = _motion_adr()
+    assert re.search(r"^Status:\s+Accepted", text, re.M), "ADR-033 not Accepted"
+    for section in ("## Context", "## Decision", "## Consequences"):
+        assert section in text, f"ADR-033 missing {section}"
+    for needle in MOTION_ANCHORS:
+        assert needle in text, f"ADR-033 missing anchor {needle!r}"
+
+
+def test_motion_adr_never_lets_motion_delay_red() -> None:
+    red = _section(_motion_adr(), "### 5. RED")
+    for needle in ("0 ms", "never a native-stack push", "never an RN `Modal`", "ON_SITE"):
+        assert needle in red, f"ADR-033 §5 missing {needle!r}"
+
+
+def _question_gaps(line: str, hb_id: str, owner: str, default: str) -> list[str]:
+    # The default must sit in the last cell (the "Meanwhile" column), not merely
+    # somewhere in the row: Q4's question itself contains "withheld".
+    gaps = [n for n in ("awaiting-human", hb_id, owner) if n not in line]
+    meanwhile = line.rstrip().rstrip("|").rsplit("|", 1)[-1]
+    if default not in meanwhile:
+        gaps.append(default)
+    return gaps
+
+
+def test_motion_open_questions_are_awaiting_human_with_owner_and_fail_closed_default() -> None:
+    questions = _section(_motion_adr(), "## Open questions")
+    for q, (hb_id, owner, default) in MOTION_QUESTIONS.items():
+        lines = [line for line in questions.splitlines() if line.startswith(f"| **{q}** |")]
+        assert len(lines) == 1, f"ADR-033 must record {q} exactly once"
+        gaps = _question_gaps(lines[0], hb_id, owner, default)
+        assert not gaps, f"ADR-033 {q} missing {gaps}"
+        row = _hb_row(hb_id)
+        for needle in ("awaiting-human", "ADR-033", owner, default, "One sentence closes it"):
+            assert needle in row, f"{hb_id} missing {needle!r}"
+
+
+def test_near_miss_a_question_recorded_as_answered_or_without_its_default_is_refused() -> None:
+    answered = "| **Q2** | ALERT haptic | Dr Efe Onganer | answered | HB-C26 | never |"
+    assert _question_gaps(answered, "HB-C26", "Dr Efe Onganer", "never") == ["awaiting-human"]
+    no_default = "| **Q5** | orb scale | owner | awaiting-human | HB-O11 | scale 1.06 |"
+    assert _question_gaps(no_default, "HB-O11", "owner", "opacity-only") == ["opacity-only"]
+
+
+def test_motion_state_row_and_mobile_ui_pointer() -> None:
+    state = (REPO / "files" / "00_STATE.md").read_text(encoding="utf-8")
+    rows = [line for line in state.splitlines() if line.startswith("| **D40** |")]
+    assert len(rows) == 1, "files/00_STATE.md §3 must carry D40 exactly once"
+    for needle in (
+        "ADR-033",
+        "INT-332",
+        "awaiting-human",
+        *(v[0] for v in MOTION_QUESTIONS.values()),
+    ):
+        assert needle in rows[0], f"D40 missing {needle!r}"
+    mobile = (REPO / "docs" / "design" / "mobile-ui.md").read_text(encoding="utf-8")
+    motion = _section(mobile, "## Motion")
+    assert "adr/ADR-033-motion-system-v1.md" in motion, "mobile-ui.md §Motion must point to ADR-033"
+    index = (REPO / "docs" / "index.md").read_text(encoding="utf-8")
+    assert "adr/ADR-033-motion-system-v1.md" in index, "docs/index.md must link ADR-033"

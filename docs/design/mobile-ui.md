@@ -64,9 +64,17 @@ clinical white. Choices (tokens in `apps/mobile/src/lib/theme.ts`):
 
 ## Motion
 
-02 §5.2a budget, carried as a token (`motion.fadeMs = 120`): fades only, one
-animated element at a time, no springs/slides/parallax. Stack and tab
-transitions are set to `animation: "fade"`.
+**The authority is [ADR-033 Motion system v1](../adr/ADR-033-motion-system-v1.md)**
+(`00_STATE.md` D40, INT-332), which ratifies
+[motion-verification.md](motion/motion-verification.md) and supersedes the two
+motion proposals beside it where the verification revises them. In short:
+opacity-only fades of at most 120 ms (`motion.duration.fade`, alias
+`motion.fadeMs`), one animated element at a time in the arbiter order, instant
+exits, no motion on RED, legal, gate or privacy surfaces, ALERT/CALM RED as a
+root layer above the navigators, and the haptics gate. Every native stack fades
+at the 120 ms token; Android's 150 ms is a platform fact. The five open
+questions (HB-O10, HB-C26, HB-C27, HB-C28, HB-O11) are awaiting-human and fail
+closed. Where this file and ADR-033 disagree, ADR-033 wins.
 
 ## Navigation shell
 
