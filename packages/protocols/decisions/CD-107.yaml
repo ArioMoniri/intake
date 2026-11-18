@@ -20,8 +20,8 @@ decision: >-
   compiler's count. `protocols compile --pack base.intake --life-threat
   files/protocols/base.life_threat.yaml` refuses fifteen draft rules: these two, and
   the thirteen red_flags families of packages/protocols/base/intake.yaml. Those
-  thirteen are skeletons, not unsourced values. Each has a pending trigger and a
-  floor level, and no register or action scripts. Each names its own blockers
+  thirteen are skeletons, not unsourced values. Each has a pending trigger and an
+  unset level, and no register or action scripts. Each names its own blockers
   (HB-C2 and HB-C7; HB-C4 for pregnancy; HB-L2 and HB-C8 for the two suicide
   families). Sourcing them means authoring them, which is new red-flag semantics and
   outside the life-threat brief, so INT-615 does not author them.
