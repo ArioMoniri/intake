@@ -10,12 +10,17 @@
  * While docs/legal/consents has no texts (INT-210), every explicit purpose
  * here shows "Metin hazırlanıyor" and cannot be granted; the screen's job
  * today is honest disclosure of the structure, not collection.
+ *
+ * INT-603 (design audit K3): "Devam edin" is pinned on the glass bar, so the
+ * way on is on the first screen at 320 × 568 instead of two and a half
+ * screens down — the promise that nothing blocks is kept where it is seen.
  */
 import { Redirect, useRouter } from "expo-router";
-import { useEffect } from "react";
-import { ScrollView, StyleSheet } from "react-native";
+import { useEffect, useState } from "react";
+import { ScrollView, StyleSheet, View } from "react-native";
 
 import { ConsentList } from "@/components/ConsentList";
+import { GlassBar, useGlassBarClearance } from "@/components/GlassBar";
 import { AppText, PrimaryButton, Screen } from "@/components/Themed";
 import { viewOf } from "@/lib/consent/ledger";
 import { purposeDef, purposeParam, type PurposeId } from "@/lib/consent/purposes";
@@ -28,6 +33,9 @@ export default function FirstRunConsent() {
   const router = useRouter();
   const { account, consents, setConsent } = useSession();
   const ledger = useConsentLedger();
+  // The bar reports its own height (INT-284); declared above the early return.
+  const [barHeight, setBarHeight] = useState<number | null>(null);
+  const barClearance = useGlassBarClearance(barHeight);
 
   useEffect(() => {
     if (account !== null) {
@@ -46,49 +54,48 @@ export default function FirstRunConsent() {
     router.push(`/(tabs)/me/consents/${purposeParam(id)}`);
   };
 
-  const onToggle = (id: PurposeId) => {
-    const view = views.find((v) => v.id === id);
-    if (view === undefined) {
-      return;
-    }
-    if (view.withdrawable) {
-      const flipped = withdrawLocal(id);
-      for (const scope of flipped) {
-        const key = purposeDef(scope)?.sessionKey;
-        if (key !== null && key !== undefined) {
-          setConsent(key, false);
-        }
+  // Called by the list only after the patient confirmed (INT-603). The ledger
+  // and the session gate flip in this same handler; withdrawLocal queues the
+  // one op the server records and audits (invariant 4).
+  const onWithdraw = (id: PurposeId) => {
+    const flipped = withdrawLocal(id);
+    for (const scope of flipped) {
+      const key = purposeDef(scope)?.sessionKey;
+      if (key !== null && key !== undefined) {
+        setConsent(key, false);
       }
-      return;
     }
-    openDetail(id);
   };
 
   return (
-    <Screen edges={["top", "left", "right", "bottom"]}>
-      {/* INT-284: the bottom safe edge is DROPPED only where something else
-          owns that zone — the floating tab rail, or a glass bar. This flow has
-          neither, and at the largest text step it is long enough to reach the
-          physical bottom, so the last control was left under the home
-          indicator. */}
-      <ScrollView contentContainerStyle={styles.content}>
-        <AppText role="hero" heading style={styles.heroLine}>
-          {t("me.consents")}
-        </AppText>
-        <AppText role="body" color="inkSoft">
-          {t("consent.firstRun.body")}
-        </AppText>
-        <ConsentList views={views} onOpenDetail={openDetail} onToggle={onToggle} />
-        <PrimaryButton
-          label={t("consent.firstRun.continue")}
-          onPress={() => router.replace("/(tabs)/today")}
-        />
-      </ScrollView>
+    <Screen style={styles.screenFlush} edges={["top", "left", "right"]}>
+      {/* INT-603: the bottom safe edge is owned by the glass bar, which holds
+          the home-indicator zone inside it (INT-284's rule: drop the edge
+          only where something else owns that zone). */}
+      <View style={styles.body}>
+        <ScrollView contentContainerStyle={[styles.content, { paddingBottom: barClearance }]}>
+          <AppText role="hero" heading style={styles.heroLine}>
+            {t("me.consents")}
+          </AppText>
+          <AppText role="body" color="inkSoft">
+            {t("consent.firstRun.body")}
+          </AppText>
+          <ConsentList views={views} onOpenDetail={openDetail} onWithdraw={onWithdraw} />
+        </ScrollView>
+        <GlassBar onHeight={setBarHeight}>
+          <PrimaryButton
+            label={t("consent.firstRun.continue")}
+            onPress={() => router.replace("/(tabs)/today")}
+          />
+        </GlassBar>
+      </View>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  content: { gap: spacing.md, paddingBottom: spacing.xl },
+  screenFlush: { padding: 0 },
+  body: { flex: 1 },
+  content: { gap: spacing.md, padding: spacing.screen },
   heroLine: { marginTop: spacing.xl },
 });

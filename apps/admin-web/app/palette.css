@@ -3,9 +3,11 @@
    with teal, so the admin panel and the app share one brand".
 
    Every shared value is the app's own (apps/mobile/src/lib/theme.ts), pinned
-   in e2e/palette.spec.ts. Two light text tokens, --ok and --accent, take a
-   deeper shade of the app's hue because the app's value falls under 4.5:1 on
-   the raised surface (--surface-2) the console sets text on. --bad and
+   in e2e/palette.spec.ts. One light text token, --accent, takes a deeper
+   shade of the app's hue because the app's value falls under 4.5:1 on the
+   raised surface (--surface-2) the console sets text on. --ok was the second
+   until INT-601 raised the app's own success to AA (#157346), so it is now
+   shared in both themes. --bad and
    --unknown are the console's own states; --bad never reuses the app's
    RED-only emergency colour (02 §5.3). WCAG AA is asserted from these values
    in e2e/native.spec.ts and e2e/accessibility.spec.ts; the measured ratios
@@ -20,14 +22,14 @@
   --row-hover: #f6f3ec;
   --field: #ffffff;
   /* app: inkFaint, a field's edge at 3:1 */
-  --field-border: #8a867a;
+  --field-border: #6e6a5f;
   /* app: ink, inkSoft, border */
   --ink: #1c1b18;
   --muted: #5c594f;
   --line: #eae6dd;
   --hairline: #f1ede4;
   /* app success, one shade deeper; app amber */
-  --ok: #18734a;
+  --ok: #157346;
   --warn: #9a5b00;
   /* the console's own: a failure and an unread source */
   --bad: #a33a2c;
@@ -62,7 +64,7 @@
     --surface-2: #2b2823;
     --row-hover: #29261f;
     --field: #211f1b;
-    --field-border: #8a867a;
+    --field-border: #969286;
     --ink: #f2f0ea;
     --muted: #b7b3a7;
     --line: #353128;

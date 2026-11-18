@@ -32,6 +32,7 @@ import {
   type TextEntry,
 } from "../src/lib/consent/ledger";
 import { PURPOSES, purposeDef } from "../src/lib/consent/purposes";
+import { LARGE_TEXT_SCALE, glassBarFloor } from "../src/lib/prefs/appearance";
 
 const APP = join(__dirname, "..", "src", "app");
 const SRC = join(__dirname, "..", "src");
@@ -126,11 +127,9 @@ describe("06 §2 purpose structure — closed list, registry order", () => {
     expect(granted.state.records.core.boundHash).toBe("c".repeat(64));
     // withdrawn in one tap, closing the default-on learning purposes with it
     // (legal review B1: the core text says every other permission closes)
-    expect(withdraw(granted.state, "core", "2026-10-16T00:01:00Z").flipped).toEqual([
-      "core",
-      "learning:personal",
-      "learning:service_improvement",
-    ]);
+    // (INT-603 round 2: the learning purposes no longer default on, so an
+    // ungranted one has nothing to close)
+    expect(withdraw(granted.state, "core", "2026-10-16T00:01:00Z").flipped).toEqual(["core"]);
   });
 
   it("core withdrawal cascades to every other purpose — the server's dependents_of(core)", () => {
@@ -142,9 +141,7 @@ describe("06 §2 purpose structure — closed list, registry order", () => {
   });
 
   it("no purpose is information-only any more, and its chrome is gone", () => {
-    expect(PURPOSES.map((p) => p.ui).filter((ui) => ui !== "toggle" && ui !== "optout")).toEqual(
-      [],
-    );
+    expect(PURPOSES.map((p) => p.ui).filter((ui) => ui !== "toggle")).toEqual([]);
     expect(Object.keys(tr)).not.toContain("consent.basis.service");
     expect(Object.keys(tr)).not.toContain("consent.state.service");
     for (const file of [
@@ -192,15 +189,15 @@ describe("06 §2 purpose structure — closed list, registry order", () => {
     expect(purposeDef("voice")!.cascadeChildren).not.toContain("lane:linguistic");
   });
 
-  it("learning purposes are default-on OPT-OUT with their honest non-consent bases", () => {
-    const personal = purposeDef("learning:personal")!;
-    const service = purposeDef("learning:service_improvement")!;
-    expect(personal.ui).toBe("optout");
-    expect(personal.basis).toBe("service_performance");
-    expect(personal.defaultGranted).toBe(true);
-    expect(service.ui).toBe("optout");
-    expect(service.basis).toBe("deidentified_optout");
-    expect(service.defaultGranted).toBe(true);
+  it("learning purposes are açık rıza toggles, default OFF (INT-603 legal review round 2)", () => {
+    for (const id of ["learning:personal", "learning:service_improvement"]) {
+      const def = purposeDef(id)!;
+      expect(def.ui, id).toBe("toggle");
+      expect(def.basis, id).toBe("explicit_consent");
+      expect(def.basisKey, id).toBe("consent.basis.explicit");
+      expect(def.defaultGranted, id).toBe(false);
+    }
+    expect(new Set(PURPOSES.map((p) => p.basis))).toEqual(new Set(["explicit_consent"]));
   });
 });
 
@@ -213,9 +210,9 @@ describe("no pre-ticking anywhere (KVKK m.6 unbundling)", () => {
     }
   });
 
-  it("exactly the two learning purposes are default-on", () => {
+  it("no purpose is default-on (INT-603 round 2)", () => {
     const defaultOn = PURPOSES.filter((p) => p.defaultGranted).map((p) => p.id);
-    expect(defaultOn).toEqual(["learning:personal", "learning:service_improvement"]);
+    expect(defaultOn).toEqual([]);
   });
 
   it("a fresh account starts with every explicit purpose off and an empty queue", () => {
@@ -386,5 +383,180 @@ describe("Turkish primary; en mirror; NO legal copy in the catalogs", () => {
       expect(tr[purpose.whoKey], purpose.id).toBeTruthy();
       expect(tr[purpose.basisKey], purpose.id).toBeTruthy();
     }
+  });
+});
+
+/* ------------------------------------------------------------------ */
+/* INT-603 — design audit 2026-11 K1-K3                                */
+/* ------------------------------------------------------------------ */
+
+describe("INT-603 acceptance 1 — the first-run copy and its rows agree", () => {
+  it("no consent-scope row defaults on (the pure rule lives in switchIntent.test.ts)", () => {
+    for (const view of viewOf(
+      seedFromSession({
+        core: false,
+        voice: false,
+        wellbeing: false,
+        documents: false,
+        health: false,
+      }),
+    )) {
+      if (view.basis === "explicit_consent") {
+        expect(view.display, view.id).not.toBe("on");
+      }
+    }
+  });
+
+  it("the learning group says nothing about a default (INT-603 round 2)", () => {
+    const list = read(SRC, "components", "ConsentList.tsx");
+    expect(list).not.toContain("consent.group.learning.hint");
+    expect(list).toContain('t("consent.group.learning")');
+  });
+
+  it("every switch is announced as the consent it is; no opt-out wording remains", () => {
+    const list = read(SRC, "components", "ConsentList.tsx");
+    expect(list).toContain('t("a11y.consent.switchHint")');
+    expect(list).not.toContain("optoutHint");
+    expect(list).not.toContain("consent.basis.learning");
+  });
+});
+
+describe("INT-603 acceptance 2 — a real switch; withdrawal confirms once, grant does not", () => {
+  const list = () => read(SRC, "components", "ConsentList.tsx");
+
+  it("the state control is a switch with its checked state, not a badge-like pill", () => {
+    const source = list();
+    expect(source).not.toContain("StatePill");
+    expect(source).not.toContain("styles.pill");
+    expect(source).toContain("<ConsentSwitch");
+    const sw = read(SRC, "components", "SwitchRow.tsx");
+    expect(sw).toContain("export function SwitchTrack");
+    const control = source.slice(source.indexOf("function ConsentSwitch"));
+    expect(control).toContain('accessibilityRole="switch"');
+    expect(control).toContain("checked: switchChecked(view)");
+    expect(control).toContain("<SwitchTrack");
+  });
+
+  it("the switch routes through the pure intent; it never withdraws by itself", () => {
+    const source = list();
+    expect(source).toContain("switchIntent(view)");
+    expect(source).toContain("withdrawConfirmation(views, ");
+    expect(source).not.toContain("withdrawLocal");
+    expect(source).toContain("<WithdrawConfirm");
+  });
+
+  it("the confirmation shows what stops, that it is immediate, and one confirm and one cancel", () => {
+    const confirm = read(SRC, "components", "WithdrawConfirm.tsx");
+    expect(confirm).toContain("t(confirmation.titleKey)");
+    expect(confirm).toContain('t("consent.confirm.stops")');
+    expect(confirm).toContain("confirmation.stopKeys.map(");
+    expect(confirm).toContain("t(confirmation.noteKey)");
+    expect(confirm).toContain("t(confirmation.actionKey)");
+    expect(confirm).toContain("t(confirmation.cancelKey)");
+    // it is announced where it appears (SC 4.1.3)
+    expect(confirm).toContain("<AnnouncedRegion");
+  });
+
+  it("both list screens withdraw only on confirm, through the audited store path", () => {
+    for (const file of [
+      join(APP, "(auth)", "consent.tsx"),
+      join(APP, "(tabs)", "me", "consents", "index.tsx"),
+    ]) {
+      const source = read(file);
+      expect(source, file).toContain("onWithdraw={");
+      expect(source, file).not.toContain("onToggle");
+      // withdrawLocal queues the op the server records and audits (invariant 4)
+      expect(source, file).toContain("withdrawLocal(id)");
+      expect(source, file).toContain("setConsent(key, false)");
+    }
+  });
+});
+
+describe("INT-603 acceptance 3 — 'Devam edin' is reachable without scrolling at 320 × 568", () => {
+  const firstRun = () => read(APP, "(auth)", "consent.tsx");
+
+  it("the continue CTA sits in a bottom-pinned bar, outside the scrolling list", () => {
+    const source = firstRun();
+    const scrollEnd = source.indexOf("</ScrollView>");
+    const bar = source.indexOf("<GlassBar");
+    const cta = source.indexOf('t("consent.firstRun.continue")');
+    expect(scrollEnd).toBeGreaterThan(-1);
+    expect(bar).toBeGreaterThan(scrollEnd);
+    expect(cta).toBeGreaterThan(bar);
+    expect(cta).toBeLessThan(source.indexOf("</GlassBar>"));
+    // the list scrolls clear of the bar, by the bar's measured height
+    expect(source).toContain("useGlassBarClearance(barHeight)");
+    expect(source).toContain("onHeight={setBarHeight}");
+  });
+
+  it("the bar is pinned to the bottom edge, so its place does not depend on the list", () => {
+    const bar = read(SRC, "components", "GlassBar.tsx");
+    expect(bar).toContain("floating = true");
+    expect(bar).toMatch(/floating: \{\s*position: "absolute",\s*left: 0,\s*right: 0,\s*bottom: 0,/);
+  });
+
+  it("on a 320 × 568 screen the whole bar fits on the first screen at every text step", () => {
+    const VIEWPORT = { width: 320, height: 568 };
+    // the 320 × 568 iPhones have a 20 pt status bar and no home indicator
+    const TOP_INSET = 20;
+    for (const scale of [1.0, LARGE_TEXT_SCALE, 2.0]) {
+      const bar = glassBarFloor(scale, 0);
+      const barTop = VIEWPORT.height - bar;
+      expect(barTop, `scale ${scale}`).toBeGreaterThan(TOP_INSET);
+      // and leaves most of the screen to the list it sits under
+      expect(bar, `scale ${scale}`).toBeLessThan(VIEWPORT.height / 3);
+    }
+  });
+
+  it("the first run owns its bottom edge through the bar", () => {
+    const source = firstRun();
+    const edges = source.match(/edges=\{\[([^\]]*)\]\}/);
+    expect(edges).not.toBeNull();
+    expect(edges![1]).not.toContain('"bottom"');
+  });
+});
+
+describe("INT-603 legal review round 1, item 3 — withdrawal is no harder than grant", () => {
+  const list = () => read(SRC, "components", "ConsentList.tsx");
+  const confirm = () => read(SRC, "components", "WithdrawConfirm.tsx");
+  const detail = () => read(APP, "(tabs)/me/consents/[purpose].tsx");
+
+  // One step = one tap on one control, counted from the İzinleriniz list.
+  function stepsToGrant(): number {
+    // the switch (or the row) opens the text; one primary button grants,
+    // with no confirmation after it
+    expect(list()).toContain("onOpenDetail(id)");
+    expect(detail()).toMatch(
+      /<PrimaryButton label=\{t\("consent\.detail\.grant"\)\} onPress=\{onGrant\} \/>/,
+    );
+    expect(detail()).toMatch(/const onGrant = \(\) => \{\s*mirror\(grantLocal\(id\), true\);/);
+    return 2;
+  }
+
+  function stepsToWithdraw(): number {
+    // the switch opens the confirmation in place; its primary button withdraws
+    expect(list()).toContain("setConfirming(id)");
+    expect(confirm()).toMatch(
+      /<PrimaryButton label=\{t\(confirmation\.actionKey\)\} onPress=\{onConfirm\} \/>/,
+    );
+    expect(list()).toMatch(
+      /onConfirm=\{\(\) => \{\s*setConfirming\(null\);\s*onWithdraw\(confirmation\.id\);/,
+    );
+    return 2;
+  }
+
+  it("withdrawing from the list takes no more taps than granting", () => {
+    expect(stepsToWithdraw()).toBeLessThanOrEqual(stepsToGrant());
+  });
+
+  it("the confirm action is the primary button and cancel the secondary", () => {
+    expect(confirm()).toContain("<PrimaryButton label={t(confirmation.actionKey)}");
+    expect(confirm()).toContain("<SecondaryButton label={t(confirmation.cancelKey)}");
+    expect(confirm()).not.toContain("<PrimaryButton label={t(confirmation.cancelKey)}");
+  });
+
+  it("near miss: a second confirmation step would break the count", () => {
+    // the confirmation renders exactly one primary control
+    expect(confirm().match(/<PrimaryButton/g)?.length).toBe(1);
   });
 });

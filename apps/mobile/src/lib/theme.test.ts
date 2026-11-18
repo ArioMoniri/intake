@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { APP_STEPS } from "./prefs/appearance";
-import { lineHeight, motion, palette, scaledControl, scaledSize, typeScale } from "./theme";
+import { lineHeight, motion, palette, radius, scaledControl, scaledSize, typeScale } from "./theme";
 
 // WCAG 2.x relative luminance + contrast ratio, computed here so the
 // accessibility floor (02 §8.2: body text AA) is a test, not a hope.
@@ -51,26 +51,58 @@ describe("palette", () => {
     expect(contrast(c.cta, c.background)).toBeGreaterThanOrEqual(4.5);
   });
 
-  // INT-144 measured the whole palette, not only the pinned pairs, and found
-  // two that do NOT reach 4.5:1. They are recorded here at the floor they DO
-  // reach so a future hex change cannot quietly make them worse — and so the
-  // gap is a fact in the suite rather than a note in a document. Both are
-  // listed as non-conformant in docs/compliance/accessibility-conformance.md
-  // (SC 1.4.3); closing them needs a palette change this issue is not
-  // permitted to make.
+  // INT-144 measured the whole palette and found two pairs below 4.5:1; they
+  // sat here at their measured floor (3.0 and 4.3) until INT-601 (design audit
+  // A3) changed the hexes. They are now pinned at AA in both schemes, so the
+  // floor can only go up. `inkFaint` carries 13 pt captions (the medical
+  // disclaimer, the provenance line, the resend countdown), which is not
+  // "large text", so 3:1 was never a pass.
   it.each(["light", "dark"] as const)(
-    "%s: the known sub-AA pairs hold their measured floor",
+    "%s: inkFaint captions meet WCAG AA (4.5:1) on every ground",
     (scheme) => {
       const c = palette[scheme];
-      // inkFaint carries captions (13 pt — NOT "large text"), so 3:1 is a
-      // floor, not a pass. Light measures 3.43 / 3.64 / 3.11.
-      expect(contrast(c.inkFaint, c.background)).toBeGreaterThanOrEqual(3);
-      expect(contrast(c.inkFaint, c.surface)).toBeGreaterThanOrEqual(3);
-      expect(contrast(c.inkFaint, c.surfaceRaised)).toBeGreaterThanOrEqual(3);
-      // The filed chip: light measures 4.35 (found by design pass 5, unfixed).
-      expect(contrast(c.success, c.successSoft)).toBeGreaterThanOrEqual(4.3);
+      expect(contrast(c.inkFaint, c.background)).toBeGreaterThanOrEqual(4.5);
+      expect(contrast(c.inkFaint, c.surface)).toBeGreaterThanOrEqual(4.5);
+      expect(contrast(c.inkFaint, c.surfaceRaised)).toBeGreaterThanOrEqual(4.5);
     },
   );
+
+  it.each(["light", "dark"] as const)(
+    "%s: the success pill text meets WCAG AA (4.5:1) on its wash",
+    (scheme) => {
+      const c = palette[scheme];
+      // "Dosyaya eklendi" and the "Açık" consent pill (light was 4.35).
+      expect(contrast(c.success, c.successSoft)).toBeGreaterThanOrEqual(4.5);
+    },
+  );
+
+  // Near miss: the fix must not erase the step between the two quiet inks.
+  // A faint tone that reaches inkSoft is no longer a hierarchy, it is a
+  // second inkSoft (audit A3: "still visibly lighter than inkSoft").
+  it.each(["light", "dark"] as const)(
+    "%s: inkFaint stays a distinct, quieter step than inkSoft",
+    (scheme) => {
+      const c = palette[scheme];
+      expect(c.inkFaint).not.toBe(c.inkSoft);
+      expect(contrast(c.inkFaint, c.inkSoft)).toBeGreaterThanOrEqual(1.2);
+      expect(contrast(c.inkSoft, c.background)).toBeGreaterThan(contrast(c.inkFaint, c.background));
+    },
+  );
+});
+
+// INT-601 (design audit A5): a multi-line field is a rounded rectangle, not a
+// stadium. 999 on a 120 pt box starts the first line inside the curve and
+// clips glyphs at the larger steps.
+describe("radius roles", () => {
+  it("multi-line fields take the table register, not the pill", () => {
+    expect(radius.field).toBe(radius.group);
+    expect(radius.field).toBeLessThan(radius.card);
+  });
+
+  it("near miss: single-line controls stay pills", () => {
+    expect(radius.control).toBe(999);
+    expect(radius.field).not.toBe(radius.control);
+  });
 });
 
 // INT-330 (MOTION-1): the navigators read `motion.duration`; the older

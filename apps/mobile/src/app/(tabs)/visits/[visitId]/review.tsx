@@ -58,6 +58,7 @@ import { GlassBar, useGlassBarClearance } from "@/components/GlassBar";
 import { Kicker } from "@/components/Kicker";
 import { NoteDelivery } from "@/components/NoteDelivery";
 import { StatusLadder } from "@/components/StatusLadder";
+import { SwitchTrack } from "@/components/SwitchRow";
 import {
   AppText,
   Card,
@@ -65,10 +66,9 @@ import {
   PrimaryButton,
   Screen,
   useStackHeader,
-  useTheme,
 } from "@/components/Themed";
 import { joinParts, withContext } from "@/lib/a11y/labels";
-import { verticalSlop } from "@/lib/a11y/target";
+import { MIN_TAP, verticalSlop } from "@/lib/a11y/target";
 import { useClinicalScreenPrivacy } from "@/lib/auth/screenPrivacy";
 import { asDeliveryKey } from "@/lib/dialogue/deliveryDeck";
 import { closingDelivery } from "@/lib/dialogue/deliveryPlan";
@@ -80,7 +80,7 @@ import { missingQuestions, packForVisit } from "@/lib/intake/questions";
 import { shareSummary } from "@/lib/intake/share";
 import { useCompanionOutcome } from "@/lib/profile/store";
 import { useSession } from "@/lib/session";
-import { radius, spacing } from "@/lib/theme";
+import { motion, spacing } from "@/lib/theme";
 
 export default function ReviewAndSendGated() {
   // Note/share screen: capture blocking + biometric re-gate (10 §2, INT-131).
@@ -107,7 +107,6 @@ const CARRIED_IN_SECTION: Record<string, CarriedFactKind | undefined> = {
 
 function ReviewAndSend() {
   const router = useRouter();
-  const theme = useTheme();
   const headerOptions = useStackHeader();
   // The bar reports its own height (INT-284); until it has, the clearance
   // falls back to the one-CTA floor. Declared above every early return —
@@ -276,67 +275,33 @@ function ReviewAndSend() {
                   : null;
             return (
               <Card key={section.id}>
+                {/* INT-601 (design audit A7): "Düzenleyin" is a text button
+                    at the header's trailing edge, a 44 pt box at least 8 pt
+                    from anything. The share switch is no longer beside it: a
+                    near miss between the two unshared a section, and the
+                    switch moved from card to card with the edit button. */}
                 <View style={styles.sectionHeader}>
                   <Kicker label={t(section.titleKey)} />
-                  <View style={styles.actionRow}>
-                    {!frozen && editTarget ? (
-                      <Pressable
-                        accessibilityRole="button"
-                        // Visible word first (SC 2.5.3): a voice-control
-                        // user says "Düzenleyin", and the section name is
-                        // the context the eye gets from the card header.
-                        accessibilityLabel={withContext(t("review.edit"), t(section.titleKey))}
-                        hitSlop={verticalSlop(26)}
-                        onPress={() =>
-                          visitId && router.push(`/(tabs)/visits/${visitId}/intake?q=${editTarget}`)
-                        }
-                        // Oura tag register (design pass 6): chips are
-                        // filled and borderless, never outlined.
-                        style={[styles.scopeChip, { backgroundColor: theme.surfaceRaised }]}
-                      >
-                        <AppText role="caption" color="inkSoft">
-                          {t("review.edit")}
-                        </AppText>
-                      </Pressable>
-                    ) : null}
+                  {!frozen && editTarget ? (
                     <Pressable
-                      accessibilityRole="switch"
-                      // Before INT-144 this control's whole name was
-                      // "Paylaşılıyor" — the same three controls, one per
-                      // section, indistinguishable in the rotor. The
-                      // section it governs is now part of the name.
-                      accessibilityLabel={withContext(
-                        shared ? t("review.shared") : t("review.notShared"),
-                        t(section.titleKey),
-                      )}
-                      accessibilityHint={t("a11y.shareHint")}
-                      accessibilityState={{ checked: shared, disabled: frozen }}
-                      hitSlop={verticalSlop(26)}
-                      disabled={frozen}
+                      accessibilityRole="button"
+                      // Visible word first (SC 2.5.3): a voice-control
+                      // user says "Düzenleyin", and the section name is
+                      // the context the eye gets from the card header.
+                      accessibilityLabel={withContext(t("review.edit"), t(section.titleKey))}
                       onPress={() =>
-                        visitId &&
-                        updateNote(visitId, {
-                          type: "scope",
-                          sectionId: section.id,
-                          shared: !shared,
-                        })
+                        visitId && router.push(`/(tabs)/visits/${visitId}/intake?q=${editTarget}`)
                       }
-                      style={[
-                        styles.scopeChip,
-                        // Filled tonal state chip (design pass 6): shared
-                        // keeps the accent wash, off sits on the raised
-                        // tone — the label carries the state (02 §8.2),
-                        // the outline is gone (Oura tags are borderless).
-                        {
-                          backgroundColor: shared ? theme.primarySoft : theme.surfaceRaised,
-                        },
+                      style={({ pressed }) => [
+                        styles.editButton,
+                        { opacity: pressed ? motion.press.opacity : 1 },
                       ]}
                     >
-                      <AppText role="caption" color={shared ? "primary" : "inkSoft"}>
-                        {shared ? t("review.shared") : t("review.notShared")}
+                      <AppText role="label" color="primary">
+                        {t("review.edit")}
                       </AppText>
                     </Pressable>
-                  </View>
+                  ) : null}
                 </View>
                 <Hairline />
                 {section.lines.map((line) => (
@@ -386,6 +351,48 @@ function ReviewAndSend() {
                     {t("review.healthProvenance")}
                   </AppText>
                 ) : null}
+                {/* Share scope (INT-601, audit A7): one place on every card,
+                    its foot, as a full-width row with a 44 pt box. The words
+                    carry the state, the knob's side carries it again without
+                    colour (apple-native/spec.md §2.7). */}
+                <Hairline />
+                <Pressable
+                  accessibilityRole="switch"
+                  // Before INT-144 this control's whole name was
+                  // "Paylaşılıyor" — the same three controls, one per
+                  // section, indistinguishable in the rotor. The
+                  // section it governs is now part of the name.
+                  accessibilityLabel={withContext(
+                    shared ? t("review.shared") : t("review.notShared"),
+                    t(section.titleKey),
+                  )}
+                  accessibilityHint={t("a11y.shareHint")}
+                  accessibilityState={{ checked: shared, disabled: frozen }}
+                  disabled={frozen}
+                  onPress={() =>
+                    visitId &&
+                    updateNote(visitId, {
+                      type: "scope",
+                      sectionId: section.id,
+                      shared: !shared,
+                    })
+                  }
+                  style={({ pressed }) => [
+                    styles.shareRow,
+                    {
+                      opacity: pressed ? motion.press.rowOpacity : 1,
+                    },
+                  ]}
+                >
+                  <AppText
+                    role="label"
+                    color={shared ? "primary" : "inkSoft"}
+                    style={styles.shareLabel}
+                  >
+                    {shared ? t("review.shared") : t("review.notShared")}
+                  </AppText>
+                  <SwitchTrack checked={shared} />
+                </Pressable>
               </Card>
             );
           })}
@@ -495,17 +502,32 @@ const styles = StyleSheet.create({
   // "Düzenleyin" could not be tapped at all. Wrapping drops the chips onto
   // their own line instead; at every smaller step the row is unchanged,
   // because there is nothing to wrap.
+  //
+  // INT-601: the gap is 8 pt, the SC 2.5.8 spacing between targets the audit
+  // asked for, and the header now holds the edit button only.
   sectionHeader: {
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "space-between",
     alignItems: "center",
-    gap: spacing.xs,
+    gap: spacing.sm,
   },
-  actionRow: { flexDirection: "row", flexWrap: "wrap", gap: spacing.xs, alignItems: "center" },
-  scopeChip: {
-    borderRadius: radius.chip,
-    paddingHorizontal: spacing.sm + 2,
-    paddingVertical: spacing.xs,
+  // A text button by box (not slop), so its whole target is visible.
+  editButton: {
+    minHeight: MIN_TAP,
+    justifyContent: "center",
+    paddingHorizontal: spacing.sm,
   },
+  // The card's foot: as wide as the card on every card, so the switch can
+  // never sit somewhere else because a sibling is or is not there.
+  shareRow: {
+    alignSelf: "stretch",
+    flexDirection: "row",
+    flexWrap: "wrap",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: spacing.sm,
+    minHeight: MIN_TAP,
+  },
+  shareLabel: { flexShrink: 1 },
 });

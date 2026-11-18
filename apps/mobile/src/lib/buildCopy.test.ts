@@ -311,6 +311,10 @@ const CLAIM_SURFACES: Record<string, readonly string[]> = {
   ],
   "csat.optional": ["src/components/CsatPrompt.tsx"],
   "status.sent": ["src/components/StatusLadder.tsx", "src/components/StatusChip.tsx"],
+  // INT-602 round 1: the RED staff control's confirmation. Its one reference is
+  // `staffCallLine("sent")`, reached only once the server answered
+  // staffNotified: true (lib/red/locationReport.ts; red/controls.test.ts).
+  "red.callStaff.sent": ["src/lib/red/controls.ts"],
 };
 
 describe("a delivery claim renders only behind a confirmed delivery", () => {

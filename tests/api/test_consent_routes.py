@@ -49,7 +49,6 @@ from sqlalchemy.ext.asyncio import AsyncSession  # noqa: E402
 # The client seam's closed purpose list (apps/mobile consent/purposes.ts):
 # every non-parameterised registry purpose, in files/06 §2 order.
 SNAPSHOT_PURPOSES = tuple(p.id for p in PURPOSES if not p.parameterised)
-DEFAULT_ON = ("learning:personal", "learning:service_improvement")
 
 CLIENT_AT = "2026-08-28T09:00:00.000Z"
 
@@ -153,17 +152,16 @@ def _grant(harness: ApiHarness, scope: str) -> None:
 
 
 def test_zero_consent_snapshot_is_all_absent_with_no_texts(harness: ApiHarness) -> None:
-    """A zero-consent account against the pre-INT-210 world: every açık-rıza
-    purpose absent, only the two non-consent-basis purposes default_on, and
-    the texts list EMPTY because docs/legal holds nothing (fail closed —
-    the route never invents a text)."""
+    """A zero-consent account against the pre-INT-210 world: EVERY purpose
+    absent — the two learning purposes too since INT-603 legal review round 2,
+    so no snapshot row can say default_on — and the texts list EMPTY because
+    docs/legal holds nothing (fail closed — the route never invents a text)."""
     _delete_all_consents(harness)
     snapshot = _snapshot(harness)
     assert [row["scope"] for row in snapshot["scopes"]] == list(SNAPSHOT_PURPOSES)
     for row in snapshot["scopes"]:
         assert set(row.keys()) == {"scope", "reason", "version", "text_hash"}
-        expected = "default_on" if row["scope"] in DEFAULT_ON else "absent"
-        assert row["reason"] == expected, row
+        assert row["reason"] == "absent", row
         assert row["version"] is None
         assert row["text_hash"] is None
     assert snapshot["texts"] == []
@@ -349,18 +347,21 @@ def test_core_withdrawal_revokes_live_shares_through_the_service(
     assert snapshot_refused.status_code == 403  # the guard sees it immediately
 
 
-def test_withdrawing_a_default_on_purpose_materialises_the_opt_out(
+def test_withdrawing_a_never_granted_learning_purpose_writes_nothing(
     harness: ApiHarness,
 ) -> None:
+    """INT-603 round 2: the learning purposes no longer default on, so a
+    withdrawal of one nobody granted has nothing to revoke. It answers 200,
+    records nothing, and the purpose stays absent — not granted."""
     response = harness.client.post(
         "/v1/consents/withdraw",
         json={"scope": "learning:personal", "at": CLIENT_AT},
         headers=harness.patient(),
     )
     assert response.status_code == 200
-    assert response.json()["withdrawn_scopes"] == ["learning:personal"]
+    assert response.json()["withdrawn_scopes"] == []
     row = _scope_row(_snapshot(harness), "learning:personal")
-    assert row["reason"] == "withdrawn"
+    assert row["reason"] == "absent"
 
 
 # --- patient-only (403 for the clinic admin) ----------------------------------------------

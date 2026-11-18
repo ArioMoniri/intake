@@ -193,7 +193,9 @@ class TestThePolicyIsTheMetadatas:
         cfg = Config(str(REPO / "alembic.ini"))
         cfg.set_main_option("script_location", str(REPO / "migrations"))
         script = ScriptDirectory.from_config(cfg)
-        assert script.get_heads() == ["0014_int123"]
+        # INT-603 (Loop 2 counts only a live grant) now sits on top of it
+        assert script.get_heads() == ["0015_int603"]
+        assert script.get_revision("0015_int603").down_revision == "0014_int123"  # type: ignore[union-attr]
         revision = script.get_revision("0014_int123")
         assert revision is not None and revision.down_revision == "0013_previsit_output"
 
