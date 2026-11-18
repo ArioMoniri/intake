@@ -29,6 +29,7 @@ import { tr } from "@/lib/i18n/tr";
 
 const MOBILE = join(__dirname, "..");
 const INTAKE = readFileSync(join(MOBILE, "src/app/(tabs)/visits/[visitId]/intake.tsx"), "utf8");
+const LOCATION = readFileSync(join(MOBILE, "src/lib/red/location.ts"), "utf8");
 
 describe("INT-321: the mode is asked up front, not on every question", () => {
   it("the per-question ModeBar is gone from the intake screen and the tree", () => {
@@ -47,10 +48,13 @@ describe("INT-321: the mode is asked up front, not on every question", () => {
   it("the mode chooser is wired before the questions and records the choice", () => {
     // The chooser is gated on the note's `modeChosen`, so it shows once.
     expect(INTAKE).toContain("modeChosen");
-    // Its two doors carry the new catalogue keys.
+    // Its two doors carry the catalogue keys. INT-604 moved the doors into
+    // lib/red/location.ts (MODE_CHOICES), beside the derivation they feed, and
+    // replaced the "Kısa tutalım" preference with a location answer.
     expect(INTAKE).toContain("intake.mode.q");
-    expect(INTAKE).toContain("intake.mode.hospital");
-    expect(INTAKE).toContain("intake.mode.brief");
+    expect(INTAKE).toContain("MODE_CHOICES");
+    expect(LOCATION).toContain("intake.mode.hospital");
+    expect(LOCATION).toContain("intake.mode.away");
   });
 
   it("the checkpoint is a single 'Bitirdim', and 'Sıranız geldi' is gone", () => {
@@ -65,14 +69,17 @@ describe("INT-321 copy: tr source of truth + en mirror (invariant 5)", () => {
     "intake.mode.q",
     "intake.mode.hospital",
     "intake.mode.hospitalSub",
-    "intake.mode.brief",
-    "intake.mode.briefSub",
+    "intake.mode.away",
+    "intake.mode.awaySub",
     "intake.finishNow",
   ] as const;
 
   const removed = [
     "intake.mode.hastanedeyim",
     "intake.mode.detayliOn",
+    // INT-604: the preference door is gone; the question asks a place only.
+    "intake.mode.brief",
+    "intake.mode.briefSub",
     "intake.queue.called",
   ] as const;
 

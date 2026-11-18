@@ -35,7 +35,7 @@ sections:
         ask_tr:
           tr: Bugünkü görüşmede sizi en çok rahatsız eden konu nedir?
         follow_up_tr:
-          tr: Bugünkü randevunuzun sebebini kısaca anlatır mısınız?
+          tr: Bu randevunuzun sebebini kısaca anlatır mısınız?
         openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.reason_for_encounter.v1 recorded in docs/evidence/proposals/aile_hekimligi.md'
       sikayet_suresi:
         type: duration

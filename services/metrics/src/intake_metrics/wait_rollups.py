@@ -62,9 +62,11 @@ __all__ = [
     "wait_rollup",
 ]
 
-#: files/06 §2: the de-identified-aggregate purpose (k >= 10, files/06 §8),
-#: "an opt-out purpose whose refusal costs no feature". A wait-time rollup is
-#: exactly that aggregate, so a patient who refused it is not in it.
+#: files/06 §2: the de-identified-aggregate purpose (k >= 10, files/06 §8).
+#: A wait-time rollup is exactly that aggregate. Since INT-603 (legal review
+#: round 2) the purpose is off until the patient turns it on, so only a
+#: patient whose grant stands is in it; an all-out cohort is suppressed, never
+#: reported as a zero.
 AGGREGATION_SCOPE = "learning:service_improvement"
 
 

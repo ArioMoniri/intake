@@ -267,7 +267,25 @@ def test_ids_unique_and_well_formed() -> None:
     # key material, no pseudonym changes; owner decision D38, GitHub #983).
     # + INT-597 (node-forge, glob and minimatch 10 past the 30 Oct advisories; the
     # minimatch 3.1.5 row is owner-applied, GitHub #1017).
-    assert len(ids) == 388
+    # + INT-609, INT-610, INT-611 (the three widenings of the owner's ADR-033
+    # answers of 17 Nov 2026, D44: the ALERT haptic with a cold microphone, the
+    # SILENT screen-reader announcement, the orb's breathing scale <= 1.06).
+    # + INT-601 (the November 2026 design-audit fixes: visit detail back and
+    # CTA, AA contrast, chip shape, field radius, SMS code, review targets; GitHub #1026).
+    # + INT-614 (the resolved iOS Info.plist: a Turkish Face ID string, no
+    # photo-library key, no background audio; found by INT-613).
+    # + INT-613 (App Store readiness: checklist, metadata, reviewer sign-in
+    # harness and the App Store Connect submit script; orchestrator brief).
+    # + INT-602 (the RED layer's 112 control, CALM edge, ON_SITE staff control
+    # and safe areas; design audit Part B R1-R6, GitHub #1027).
+    # + INT-603 (consent first run: copy agrees with the default-on rows, a
+    # real switch, withdrawal confirms once, continue always visible; design
+    # audit 2026-11 K1-K3, GitHub #1028).
+    # + INT-604 (an exclusive "Yok", answers anchored to the answering day, a
+    # visit-mode question that asks one thing; design audit M1-M3, GitHub #1029).
+    # + INT-605 (the synthetic host's clip set cached in the real voice, owner
+    # decision D42, GitHub #1035).
+    assert len(ids) == 398
     import re
 
     for i in ids:

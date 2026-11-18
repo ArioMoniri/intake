@@ -66,5 +66,6 @@ for the task in hand. For the model stack, `files/03 §4.9.1` is canonical.
 - [ADR-026 Connector destinations: a second list, one engine](adr/ADR-026-connector-destinations-second-list-one-engine.md)
 - [ADR-027 SMART backend services: a second auth mode, a second host](adr/ADR-027-smart-second-auth-mode-second-host.md)
 - [ADR-029 Embeddable white-label handshake](adr/ADR-029-embeddable-white-label-handshake.md)
+- [ADR-033 Motion system v1: opacity only, one element at a time, RED paints first](adr/ADR-033-motion-system-v1.md) *(accepted by the owner, 27 Sep 2026; D40, INT-332)*
 - [ADR-035 Hosted model lanes for the synthetic deployment until the GPU lanes are healthy](adr/ADR-035-hosted-model-lanes-for-the-synthetic-deployment.md)
 - [ADR-036 The council is a verifier, and the deterministic engine decides](adr/ADR-036-the-council-is-a-verifier-the-engine-decides.md) *(accepted by the owner, 3 Oct 2026)*

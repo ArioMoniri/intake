@@ -70,3 +70,34 @@ def test_near_miss_a_decision_row_without_its_issue_is_refused() -> None:
         assert "INT-577" in str(refused)
     else:
         raise AssertionError("a row that names no issue must be refused")
+
+
+OWNER_17_NOV = {
+    "D42": ("real caching for the real voices", "INT-605"),
+}
+
+
+def test_the_owner_clip_caching_decision_is_recorded_with_its_scope() -> None:
+    """INT-605: the owner's 17 Nov 2026 clip-caching line, scoped like D18/D23."""
+    rows = _rows()
+    for decision, (fact, issue) in OWNER_17_NOV.items():
+        assert decision in rows, f"{decision} is missing from files/00_STATE.md §3"
+        row = rows[decision]
+        assert "owner 17 Nov 2026" in row, f"{decision} must say who decided and when"
+        assert fact in row and issue in row
+        for limit in ("synthetic", "simulated patients", "clinical_signoff", "HB-C1"):
+            assert limit in row, f"{decision} must keep the limit {limit!r}"
+
+
+def test_near_miss_a_clip_caching_row_without_its_scope_is_refused() -> None:
+    row = (
+        "| **D42** | **complete real caching for the real voices** | "
+        "✅ **owner 17 Nov 2026** | INT-605 |"
+    )
+    assert ROW.match(row)
+    missing = [
+        limit
+        for limit in ("synthetic", "simulated patients", "clinical_signoff", "HB-C1")
+        if limit not in row
+    ]
+    assert missing, "a row that drops its scope must be refused"

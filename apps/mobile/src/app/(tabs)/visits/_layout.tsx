@@ -7,11 +7,19 @@
  * (INT-144, SC 2.2.2). The intake cannot be swiped away — its header back
  * control is the exit (INT-330); the policy decides that by route, in
  * lib/motion/transitions.
+ *
+ * INT-601 (design audit A2): the list is the stack's anchor. A screen pushed
+ * here from another tab (Bugün's CTA, Kayıtlar' "Vizit ekleyin") used to
+ * become the stack's ROOT, so its header drew a title and no way back. Those
+ * pushes pass `withAnchor: true`, which loads this route under them, and a
+ * deep link lands on top of it too (e2e/designAudit.spec.ts).
  */
 import { Stack } from "expo-router";
 
 import { useReducedMotion } from "@/lib/a11y/prefs";
 import { routeClassOf, transitionFor } from "@/lib/motion/transitions";
+
+export const unstable_settings = { initialRouteName: "index" };
 
 export default function VisitsLayout() {
   const reduceMotion = useReducedMotion();

@@ -88,9 +88,20 @@ describe("the patient can photograph a report as well as pick a file", () => {
     const plugin = read("plugins/withVoiceAudio.js");
     expect(plugin).toContain("android.permission.READ_EXTERNAL_STORAGE");
     expect(plugin).toContain("android.permission.WRITE_EXTERNAL_STORAGE");
-    // The picker's config plugin is deliberately NOT registered: its
-    // `microphonePermission: false` would block RECORD_AUDIO app-wide.
-    expect(JSON.stringify(app.expo.plugins)).not.toContain("expo-image-picker");
+    // CHANGED AT INT-614. This pin used to require that the picker's config
+    // plugin was not registered, but Expo applies it anyway when it is absent
+    // (INT-613 saw its English photo-library string in the introspected
+    // plist). So it is registered with `photosPermission: false` only. What
+    // the old pin protected still holds: `microphonePermission: false` would
+    // block RECORD_AUDIO app-wide, and `cameraPermission: false` would remove
+    // the capture this screen needs.
+    const picker = app.expo.plugins.find(
+      (entry): entry is [string, Record<string, unknown>] =>
+        Array.isArray(entry) && entry[0] === "expo-image-picker",
+    );
+    expect(picker?.[1]).toEqual({ photosPermission: false });
+    expect(picker?.[1]).not.toHaveProperty("microphonePermission");
+    expect(picker?.[1]).not.toHaveProperty("cameraPermission");
   });
 
   it("localises the camera usage string the way the microphone one is", () => {

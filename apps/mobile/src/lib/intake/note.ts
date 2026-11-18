@@ -68,6 +68,13 @@ export interface Answer {
    * Absent for every answer given by tapping alone, which is most of them.
    */
   words?: string;
+  /**
+   * The calendar day the answer was given, ISO `YYYY-MM-DD` (INT-604). A
+   * `dayAnchored` step's answer means "today" relative to THIS day, not to the
+   * visit, so the note prints it beside the line. Absent on an answer recorded
+   * before the anchor existed, which then renders as it always did.
+   */
+  answeredOn?: string;
 }
 
 /**
@@ -183,7 +190,14 @@ export interface NoteState {
 }
 
 export type NoteAction =
-  | { type: "answer"; questionId: string; values: string[]; words?: string }
+  | {
+      type: "answer";
+      questionId: string;
+      values: string[];
+      words?: string;
+      /** INT-604: the answering day, passed by the lane from the device clock. */
+      answeredOn?: string;
+    }
   | { type: "scope"; sectionId: string; shared: boolean }
   | { type: "attachHealth"; lines: string[] }
   | { type: "send" }
@@ -199,6 +213,16 @@ export type NoteAction =
   | { type: "reopen" }
   /** Decide a carried fact for this visit; `null` takes the answer back. */
   | { type: "fact"; factId: string; decision: FactDecision | null };
+
+/**
+ * Whether the up-front location question must show (INT-321, INT-604): until
+ * the patient answers it, whatever else is on the note. The default `mode` is a
+ * fallback for the reducer and never stands in for the answer, so an edit
+ * route opened on an unanswered note asks it first, too.
+ */
+export function modeChoiceNeeded(note: NoteState | undefined): boolean {
+  return !(note?.modeChosen ?? false);
+}
 
 export function emptyNoteState(): NoteState {
   return {
@@ -225,6 +249,9 @@ export function noteReducer(state: NoteState, action: NoteAction): NoteState {
       const answer: Answer = { questionId: action.questionId, values: action.values };
       if (action.words !== undefined && action.words.trim().length > 0) {
         answer.words = action.words.trim();
+      }
+      if (action.answeredOn !== undefined) {
+        answer.answeredOn = action.answeredOn;
       }
       return { ...state, answers: [...rest, answer] };
     }
@@ -461,7 +488,12 @@ export function buildNote(
       // words are never silently discarded — and marks the line so the
       // review reads honestly (INT-236 "koşul değişti").
       const stale = question.askIf !== undefined && !askIfMet(question.askIf, answers);
-      const line = `${t(question.hpiLabelKey)}: ${answerLines(answer).join(", ")}`;
+      // INT-604: a day-relative answer carries the day it was given.
+      const anchor =
+        question.dayAnchored === true && answer.answeredOn !== undefined
+          ? ` (${t("note.answeredOn")}: ${formatFactDate(answer.answeredOn)})`
+          : "";
+      const line = `${t(question.hpiLabelKey)}: ${answerLines(answer).join(", ")}${anchor}`;
       hpiLines.push(stale ? `${line} (${t("review.hpi.staleCondition")})` : line);
     }
   }

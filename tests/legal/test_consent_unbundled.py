@@ -20,6 +20,8 @@ What this file pins:
 
 from __future__ import annotations
 
+import dataclasses
+
 from api_harness import ApiHarness, run
 from intake_api.consent_guard import route_policies
 from intake_api.db import tenant_session
@@ -27,6 +29,7 @@ from intake_api.dev_fixture import DEV_PATIENT_ID, DEV_TENANT_ID
 from intake_platform.consent import (
     PURPOSES,
     LegalBasis,
+    PurposeDef,
     consent_state,
     withdraw_consent,
 )
@@ -57,16 +60,44 @@ def test_every_explicit_consent_purpose_defaults_off() -> None:
             assert purpose.default_granted is False, purpose.id
 
 
-def test_only_the_non_consent_bases_default_on_exactly_as_06_writes_them() -> None:
-    defaults_on = tuple(p.id for p in PURPOSES if p.default_granted)
-    # files/06 §2: learning:personal "(on by default, inspectable — legal
-    # basis: performance of the very service the patient configured)";
-    # learning:service_improvement "(de-identified aggregates; opt-out costs
-    # no feature)". Everything else is açık rıza and starts off.
-    assert defaults_on == ("learning:personal", "learning:service_improvement")
+def _defaults_on(purposes: tuple[PurposeDef, ...]) -> tuple[str, ...]:
+    """Read by purpose ID, never by basis label: a relabelled basis cannot
+    hide a pre-tick."""
+    return tuple(p.id for p in purposes if p.default_granted)
+
+
+def test_no_purpose_defaults_on_not_even_the_learning_ones() -> None:
+    # INT-603 legal review round 2 (the owner's KVKK approval, D43): files/06
+    # §2 now says both learning purposes are off until the patient turns them
+    # on. KVKK m.6 as amended by Law 7499 leaves no
+    # non-consent ground that plainly carries health data for them, and until
+    # counsel records one (HB-L27) the answer fails closed.
+    assert _defaults_on(PURPOSES) == ()
     by_id = {p.id: p for p in PURPOSES}
-    assert by_id["learning:personal"].legal_basis is LegalBasis.SERVICE_PERFORMANCE
-    assert by_id["learning:service_improvement"].legal_basis is LegalBasis.DEIDENTIFIED_OPTOUT
+    assert by_id["learning:personal"].legal_basis is LegalBasis.EXPLICIT_CONSENT
+    assert by_id["learning:service_improvement"].legal_basis is LegalBasis.EXPLICIT_CONSENT
+
+
+def test_every_purpose_basis_is_explicit_consent() -> None:
+    """INT-603 legal review round 2 (legal lane, synthetic scope, D25):
+    SERVICE_PERFORMANCE and DEIDENTIFIED_OPTOUT were deleted — neither is a
+    KVKK m.6/3 ground — so every purpose, the learning ones included, is
+    açık rıza, and the enum offers no other basis to pick."""
+    assert {p.legal_basis for p in PURPOSES} == {LegalBasis.EXPLICIT_CONSENT}
+    assert [basis.value for basis in LegalBasis] == ["explicit_consent"]
+
+
+def test_near_miss_a_learning_default_flipped_on_fails_the_check() -> None:
+    for scope in ("learning:personal", "learning:service_improvement"):
+        flipped = tuple(
+            dataclasses.replace(p, default_granted=True) if p.id == scope else p for p in PURPOSES
+        )
+        assert _defaults_on(flipped) == (scope,)
+    # and the check reads ids, so any other id flipped on fails the same way
+    research = tuple(
+        dataclasses.replace(p, default_granted=True) if p.id == "research" else p for p in PURPOSES
+    )
+    assert _defaults_on(research) == ("research",)
 
 
 def test_server_side_state_matches_the_defaults_for_a_fresh_patient(
@@ -95,12 +126,12 @@ def test_server_side_state_matches_the_defaults_for_a_fresh_patient(
         "lane:linguistic",
         "satisfaction",
         "research",
+        # INT-603 round 2: a missing grant is not granted, learning included
+        "learning:personal",
+        "learning:service_improvement",
     ):
         allowed, reason = run(_decide(scope))
         assert (allowed, reason) == (False, "absent"), scope
-    for scope in ("learning:personal", "learning:service_improvement"):
-        allowed, reason = run(_decide(scope))
-        assert (allowed, reason) == (True, "default_on"), scope
 
 
 # --- granting is specific: one purpose, one grant ------------------------------------------
@@ -236,10 +267,12 @@ def test_opt_out_of_learning_purposes_costs_no_feature(bound_harness: ApiHarness
             )
             return decision.allowed, decision.reason
 
+    # INT-603 round 2: neither was ever granted, so turning them off writes
+    # nothing and they stay "absent" — not granted either way
     for scope in ("learning:personal", "learning:service_improvement"):
-        assert run(_decide(scope)) == (False, "withdrawn"), scope
+        assert run(_decide(scope)) == (False, "absent"), scope
 
-    # the opt-out is recorded, and the service still works end to end
+    # with both off, the service still works end to end
     client, headers = bound_harness.client, bound_harness.patient()
     created = client.post("/v1/visits", json=VISIT_BODY, headers=headers)
     assert created.status_code == 201

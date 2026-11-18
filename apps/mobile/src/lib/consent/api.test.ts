@@ -58,3 +58,20 @@ describe("the share text", () => {
     expect(Object.keys(snapshot?.texts ?? {})).toEqual([]);
   });
 });
+
+/* INT-603 legal review round 2 — no purpose defaults on, on either side. */
+describe("a server answer of default_on", () => {
+  it("is not a reason the phone accepts: the row is dropped and the local OFF stands", async () => {
+    served({
+      scopes: [
+        { scope: "learning:personal", reason: "default_on", version: null, text_hash: null },
+        { scope: "learning:service_improvement", reason: "absent", version: null, text_hash: null },
+      ],
+      texts: [],
+    });
+    const snapshot = await fetchConsentSnapshot();
+    expect(snapshot?.scopes.map((s) => [s.scope, s.reason])).toEqual([
+      ["learning:service_improvement", "absent"],
+    ]);
+  });
+});

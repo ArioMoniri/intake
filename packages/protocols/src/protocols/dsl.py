@@ -57,6 +57,7 @@ from protocols.types import (
 
 __all__ = [
     "AudioDelivery",
+    "ChoiceOption",
     "ClipManifestEntry",
     "Instrument",
     "InstrumentItem",
@@ -136,6 +137,24 @@ class VoiceSettings(FrozenModel):
     pace: Pace | None = Field(default=None, description="normal|slow (files/04 §1).")
 
 
+class ChoiceOption(FrozenModel):
+    """Per-option attributes of a code slot's choice (INT-604, ADR-043).
+
+    Keyed on the slot by the value-set member it qualifies. One attribute
+    exists: ``exclusive``. An exclusive option of a multi-select slot is the
+    answer that means "none of these" ("yok", "hiçbiri"): selecting it clears
+    every other selection, and selecting any other option clears it. The lanes
+    do that on screen, before submit; nothing downstream ever trims a submitted
+    set (:mod:`protocols.choices`), so a symptom the patient submitted can never
+    be removed by an exclusive option after a triage evaluation."""
+
+    exclusive: bool = Field(
+        default=False,
+        description="Selecting this option clears the others and any other "
+        "option clears it (ADR-043). Multi-select slots only; at most one per slot.",
+    )
+
+
 class Slot(FrozenModel):
     """One typed answer slot (files/03 §6 slot examples; files/04 §1 voice
     fields; files/13 §13 delivery)."""
@@ -199,6 +218,18 @@ class Slot(FrozenModel):
     delivery: Delivery | None = Field(
         default=None, description="voice|text_first|text_only (files/13 §13)."
     )
+    multiple: bool = Field(
+        default=False,
+        description="The answer may carry several members of the slot's value set "
+        "(a chips question). Code slots only (INT-604, ADR-043). Triage reads a "
+        "multi-member answer as the files/12 §7.3 union: any member that fires, fires.",
+    )
+    options: dict[TrText, ChoiceOption] = Field(
+        default_factory=dict,
+        description="Per-option attributes keyed by value-set member (INT-604, "
+        "ADR-043). The compiler refuses a key that is not a member of the slot's "
+        "committed value set.",
+    )
     data_category: DataCategory = Field(
         default=DataCategory.GENERAL_HEALTH,
         description="What kind of personal data the answer is, from the closed "
@@ -225,7 +256,28 @@ class Slot(FrozenModel):
             raise ValueError("a quantity slot requires a unit (files/03 §6)")
         if self.type is SlotType.CODE and self.valueset is None:
             raise ValueError("a code slot requires a valueset (files/03 §6; files/13 §9.5)")
+        if self.type is not SlotType.CODE and (self.multiple or self.options):
+            raise ValueError(
+                "multiple and options belong to a code slot: only a value-set member "
+                "can be one of several choices (INT-604, ADR-043)"
+            )
+        exclusive = self.exclusive_choices()
+        if exclusive and not self.multiple:
+            raise ValueError(
+                "exclusive is refused on a single-select slot: a single answer already "
+                "excludes every other one, so the flag would assert nothing (ADR-043)"
+            )
+        if len(exclusive) > 1:
+            raise ValueError(
+                "a slot declares at most one exclusive option: two options that each "
+                "clear the other leave the patient no way to say both, and ADR-043 "
+                "allows none (INT-604)"
+            )
         return self
+
+    def exclusive_choices(self) -> tuple[str, ...]:
+        """The members declared ``exclusive``, in declaration order (ADR-043)."""
+        return tuple(member for member, option in self.options.items() if option.exclusive)
 
 
 class Section(FrozenModel):

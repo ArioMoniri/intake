@@ -20,8 +20,10 @@
  *   No optional purpose is needed to grant it or to use the service it
  *   covers. Withdrawing it closes every other purpose with it (the server
  *   cascade, which the core text states); re-granting it re-opens none.
- * - `optout` — the two learning purposes: on by default under their stated
- *   non-consent bases, with an opt-out switch and honest basis copy.
+ * The two learning purposes are `toggle` açık rıza purposes too (INT-603
+ *   legal review round 2, legal lane, synthetic scope D25; D43): they start
+ *   OFF, and the registry's former service-performance and de-identified
+ *   opt-out bases are deleted — neither is a KVKK m.6/3 ground.
  */
 import type { MessageKey } from "@/lib/i18n";
 import type { ConsentState } from "@/lib/types/account";
@@ -38,15 +40,15 @@ export type PurposeId =
   | "satisfaction"
   | "research";
 
-export type LegalBasis = "explicit_consent" | "service_performance" | "deidentified_optout";
-export type PurposeUi = "toggle" | "optout";
+export type LegalBasis = "explicit_consent";
+export type PurposeUi = "toggle";
 
 export interface PurposeDef {
   id: PurposeId;
   basis: LegalBasis;
   ui: PurposeUi;
-  /** Mirrors the server registry's default_granted — true ONLY for the two
-   * non-consent-basis learning purposes. */
+  /** Mirrors the server registry's default_granted — false for every
+   * purpose since INT-603 round 2. */
   defaultGranted: boolean;
   /** UI nesting only: both lanes render under voice. Cascade is separate. */
   parent: PurposeId | null;
@@ -153,26 +155,26 @@ export const PURPOSES: readonly PurposeDef[] = [
   },
   {
     id: "learning:personal",
-    basis: "service_performance",
-    ui: "optout",
-    defaultGranted: true,
+    basis: "explicit_consent",
+    ui: "toggle",
+    defaultGranted: false,
     parent: null,
     cascadeChildren: [],
     labelKey: "consent.learning.personal",
     whoKey: "consent.who.learningPersonal",
-    basisKey: "consent.basis.learningPersonal",
+    basisKey: "consent.basis.explicit",
     sessionKey: null,
   },
   {
     id: "learning:service_improvement",
-    basis: "deidentified_optout",
-    ui: "optout",
-    defaultGranted: true,
+    basis: "explicit_consent",
+    ui: "toggle",
+    defaultGranted: false,
     parent: null,
     cascadeChildren: [],
     labelKey: "consent.learning.service",
     whoKey: "consent.who.learningService",
-    basisKey: "consent.basis.learningService",
+    basisKey: "consent.basis.explicit",
     sessionKey: null,
   },
   {

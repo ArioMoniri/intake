@@ -351,21 +351,23 @@ def test_a_fixed_criterion_left_below_supports_is_refused(
 def test_a_done_issue_needs_a_recorded_reason_the_near_miss_control(
     source: dict[str, Any], backlog: dict[str, dict[str, Any]]
 ) -> None:
-    row = _row(source, "1.4.3")
+    # INT-601 closed 1.4.3 (the palette fix), so the control runs on 1.4.11,
+    # the other contrast row that leans on INT-144.
+    row = _row(source, "1.4.11")
     assert row["status"] in R.BELOW and "INT-144" in R.issues_of(row, backlog)
     assert backlog["INT-144"]["status"] != "done"
     # The row as committed: its issue is open, so nothing is asked of it.
-    assert not any("1.4.3" in p for p in R.validate(source, backlog=backlog))
+    assert not any("1.4.11" in p for p in R.validate(source, backlog=backlog))
     # The same row once its issue is done: refused without a reason ...
     closed = _with_status(backlog, "INT-144", "done")
-    assert any("1.4.3" in p and "INT-144" in p for p in R.validate(source, backlog=closed))
+    assert any("1.4.11" in p and "INT-144" in p for p in R.validate(source, backlog=closed))
     blank = copy.deepcopy(source)
-    _row(blank, "1.4.3")["still_open_because"] = "  "
-    assert any("1.4.3" in p and "INT-144" in p for p in R.validate(blank, backlog=closed))
+    _row(blank, "1.4.11")["still_open_because"] = "  "
+    assert any("1.4.11" in p and "INT-144" in p for p in R.validate(blank, backlog=closed))
     # ... and accepted with one.
     reasoned = copy.deepcopy(source)
-    _row(reasoned, "1.4.3")["still_open_because"] = "The palette decision is still open."
-    assert not any("1.4.3" in p for p in R.validate(reasoned, backlog=closed))
+    _row(reasoned, "1.4.11")["still_open_because"] = "The palette decision is still open."
+    assert not any("1.4.11" in p for p in R.validate(reasoned, backlog=closed))
 
 
 def test_a_reason_is_refused_where_nothing_is_still_open(
@@ -398,7 +400,7 @@ def test_the_report_says_why_a_row_is_still_open(source: dict[str, Any]) -> None
     # rendering is proven on a copy that records one. Any reason the committed
     # source carries is held to the same rule.
     reasoned = copy.deepcopy(source)
-    _row(reasoned, "1.4.3")["still_open_because"] = "The palette decision is still open."
+    _row(reasoned, "1.4.11")["still_open_because"] = "The palette decision is still open."
     for candidate in (source, reasoned):
         reasons = {
             str(r.get("sc", r.get("clause"))): str(r["still_open_because"]).strip()
@@ -462,7 +464,7 @@ def test_a_palette_fix_forces_the_report_to_be_reassessed(source: dict[str, Any]
         scheme.update(background="#FFFFFF", surface="#FFFFFF", surfaceRaised="#FFFFFF")
         scheme.update(successSoft="#FFFFFF")
     problems = R.validate(source, palette=fixed)
-    assert any("1.4.3" in p and "every listed pair" in p for p in problems)
+    assert any("1.4.11" in p and "every listed pair" in p for p in problems)
 
 
 def test_the_contrast_arithmetic_is_wcag_relative_luminance() -> None:

@@ -968,9 +968,16 @@ it or whose tests exercise it.
   indeterminate band; inv. 45 — a pack referencing a non-`GO` instrument fails the build and
   refuses to serve; CLAUDE.md clinical-content rules (verbatim item semantics).
 - **Signals:** `instrument.licence_status` and `instrument.administrations_total` (named in
-  §9) land with INT-116.
-- **Tests:** `instrument_licence_gate` (inv. 45) lands with INT-116 and the protocol
-  compiler (INT-040). The [Dd] clause — a screening output reaching a surface that did
+  §9) are not emitted yet: INT-116 shipped the engine with no instrument administrable
+  (HB-C29), and a metric enters `metrics_catalog.yaml` with the first served instrument.
+- **Tests:** `instrument_licence_gate` (inv. 45) is the protocol compiler's (INT-040).
+  INT-116 adds the engine's own: `tests/protocols/test_wellbeing_engine.py` (the loader
+  refuses any item, option or timeframe not verbatim in a committed snapshot, and any
+  content or cut-off for a non-`GO` instrument; draft cut-offs carry no number and are
+  never applied; a crisis item opens only with a sourced trigger and a served
+  consent-independent crisis rule) and `tests/clinical/test_wellbeing_paths.py` (the
+  shipped refusals, and the SENTETİK path screen → cascade → crisis script → clinician
+  note, with the patient view carrying no score). The [Dd] clause — a screening output reaching a surface that did
   not ask for it — is held on the patient summary by INT-085:
   `tests/engine/test_patient_summary.py::TestWellbeingSignalsCannotReachTheSummary`,
   which asserts the note's fields are *partitioned* rather than filtered, so a scored
@@ -1093,7 +1100,9 @@ it or whose tests exercise it.
   rows follow the answer, and a failed route or append is counted
   (`clinic_red_inbox_route_failures_total`, which pages; `clinic_red_notification_unaudited_total`).
   Every share is audited by id (`api.triage.red_notified`, `api.triage.red_on_site_notified`,
-  `api.triage.red_unrouted`, `api.triage.red_location.{on_site,remote}`). Tests:
+  `api.triage.red_unrouted`, `api.triage.red_location.{on_site,remote}`, and since INT-602
+  `api.triage.red_staff_called` for an ON_SITE staff-control press, which is never recorded as a
+  location answer). Tests:
   `tests/api/test_red_notify.py`, `tests/platform/test_safety_inbox.py`,
   `tests/voice/test_safety_inbox_notifier.py`, `apps/mobile/src/lib/red/locationReport.test.ts`.
 

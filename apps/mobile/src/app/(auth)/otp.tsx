@@ -1,5 +1,5 @@
 /**
- * OTP entry (INT-131; 02 §4 auth flow): one masked field per register, six
+ * OTP entry (INT-131; 02 §4 auth flow): one field per register, six
  * registers, auto-advance, resend behind the visible cooldown (02 §8.2:
  * resend limits shown). A pasted or OS-autofilled code fills all six boxes
  * from whichever box receives it (INT-361, SC 3.3.8), so the patient never
@@ -7,6 +7,11 @@
  * custody) and signs the patient in; no consent is granted here — the shell
  * keeps every gate closed until INT-132 asks in context. In __DEV__ a peek
  * link fetches the code from the server's flag-gated dev endpoint.
+ *
+ * INT-601 (design audit A6): the digits are shown, not masked, so a patient
+ * can check six digits typed from an SMS against the message; the boxes take
+ * their size and form from `otpLayout`, so they fit a 320 pt window and grow
+ * with the text; and the countdown names its unit.
  */
 import { Stack, useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
@@ -26,11 +31,17 @@ import {
 import { AuthApiError, devPeekOtp, requestOtp, syncVisits, verifyOtp } from "@/lib/auth/api";
 import { attestationMessageKey } from "@/lib/auth/attestationPlan";
 import { getPendingPhone, setPendingPhone } from "@/lib/auth/flow";
+import {
+  OTP_NARROWEST_WINDOW,
+  otpAvailableWidth,
+  otpLayout,
+  resendWaitLine,
+} from "@/lib/auth/otpForm";
 import { OTP_LENGTH, enterOtp, isCompleteOtp, maskPhone, type OtpUpdate } from "@/lib/auth/phone";
 import { labelled } from "@/lib/a11y/labels";
 import { t, type MessageKey } from "@/lib/i18n";
 import { useSession } from "@/lib/session";
-import { radius, scaledSize, spacing } from "@/lib/theme";
+import { radius, spacing } from "@/lib/theme";
 
 const EMPTY: readonly string[] = Array.from({ length: OTP_LENGTH }, () => "");
 
@@ -58,6 +69,13 @@ export default function OtpEntry() {
   const router = useRouter();
   const theme = useTheme();
   const fontScale = useFontScale();
+  // The card's inner width, measured. Until the first layout the narrowest
+  // window the app supports stands in, so the first frame cannot overflow.
+  const [measured, setMeasured] = useState<number | null>(null);
+  const layout = otpLayout(
+    measured ?? otpAvailableWidth(OTP_NARROWEST_WINDOW, fontScale),
+    fontScale,
+  );
   const headerOptions = useStackHeader();
   const { signInOtp, setApiVisits, setDisplayName } = useSession();
   const phone = getPendingPhone();
@@ -181,44 +199,60 @@ export default function OtpEntry() {
           {maskPhone(phone)}
         </AppText>
         <Card>
-          <View style={styles.registers}>
-            {digits.map((digit, index) => (
-              <TextInput
-                key={index}
-                ref={(node) => {
-                  inputs.current[index] = node;
-                }}
-                // "Doğrulama kodu hanesi: 3". The old form glued the
-                // position on with a slash, which screen readers speak as
-                // "bölü"; how many boxes there are is already in the body
-                // line ("altı haneli kodu girin").
-                accessibilityLabel={labelled(t("a11y.otp.digit"), `${index + 1}`)}
-                allowFontScaling={false}
-                value={digit}
-                // No maxLength: the platform applies it before onChangeText
-                // sees the text, so a cap of one kept only the first digit of
-                // a paste or of the OS autofill. enterOtp keeps one digit per
-                // register instead.
-                onChangeText={(value) => apply(index, enterOtp(digits, index, value))}
-                keyboardType="number-pad"
-                secureTextEntry
-                // iOS offers the code from Messages; Android's SMS-code
-                // autofill and the web build's autocomplete need their own
-                // hint (SC 3.3.8, and 1.3.5 input purpose).
-                textContentType="oneTimeCode"
-                autoComplete={Platform.OS === "web" ? "one-time-code" : "sms-otp"}
-                autoFocus={index === 0}
-                style={[
-                  styles.register,
-                  {
-                    backgroundColor: theme.surface,
-                    borderColor: theme.border,
-                    color: theme.ink,
-                    fontSize: scaledSize("title", fontScale),
-                  },
-                ]}
-              />
-            ))}
+          <View
+            style={styles.registerFrame}
+            onLayout={(event) => setMeasured(event.nativeEvent.layout.width)}
+          >
+            <View
+              style={[
+                styles.registers,
+                // The row is exactly as wide as the form otpLayout chose, so a
+                // wrap falls after the third box and never after a lone sixth.
+                {
+                  gap: layout.gap,
+                  width: layout.perRow * layout.box + (layout.perRow - 1) * layout.gap,
+                },
+              ]}
+            >
+              {digits.map((digit, index) => (
+                <TextInput
+                  key={index}
+                  ref={(node) => {
+                    inputs.current[index] = node;
+                  }}
+                  // "Doğrulama kodu hanesi: 3". The old form glued the
+                  // position on with a slash, which screen readers speak as
+                  // "bölü"; how many boxes there are is already in the body
+                  // line ("altı haneli kodu girin").
+                  accessibilityLabel={labelled(t("a11y.otp.digit"), `${index + 1}`)}
+                  allowFontScaling={false}
+                  value={digit}
+                  // No maxLength: the platform applies it before onChangeText
+                  // sees the text, so a cap of one kept only the first digit of
+                  // a paste or of the OS autofill. enterOtp keeps one digit per
+                  // register instead.
+                  onChangeText={(value) => apply(index, enterOtp(digits, index, value))}
+                  keyboardType="number-pad"
+                  // iOS offers the code from Messages; Android's SMS-code
+                  // autofill and the web build's autocomplete need their own
+                  // hint (SC 3.3.8, and 1.3.5 input purpose).
+                  textContentType="oneTimeCode"
+                  autoComplete={Platform.OS === "web" ? "one-time-code" : "sms-otp"}
+                  autoFocus={index === 0}
+                  style={[
+                    styles.register,
+                    {
+                      backgroundColor: theme.surface,
+                      borderColor: theme.border,
+                      color: theme.ink,
+                      fontSize: layout.fontSize,
+                      width: layout.box,
+                      minHeight: layout.height,
+                    },
+                  ]}
+                />
+              ))}
+            </View>
           </View>
         </Card>
         {problem !== null ? (
@@ -240,7 +274,7 @@ export default function OtpEntry() {
           // deliberately NOT a live region: announcing a new number every
           // second would itself be the interruption SC 2.2.2 warns about.
           <AppText role="caption" color="inkFaint" style={styles.resendWait}>
-            {t("auth.otp.resendWait")} {resendWait}
+            {resendWaitLine(resendWait)}
           </AppText>
         ) : (
           <SecondaryButton
@@ -263,12 +297,17 @@ export default function OtpEntry() {
 
 const styles = StyleSheet.create({
   content: { gap: spacing.lg, paddingTop: spacing.md },
-  registers: { flexDirection: "row", gap: spacing.sm, justifyContent: "center" },
+  registerFrame: { alignSelf: "stretch" },
+  registers: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "center",
+    alignSelf: "center",
+  },
+  // Width, height and digit size come from otpLayout at render.
   register: {
     borderWidth: 1,
     borderRadius: radius.control,
-    width: 48,
-    minHeight: 56,
     textAlign: "center",
   },
   resendWait: { textAlign: "center" },

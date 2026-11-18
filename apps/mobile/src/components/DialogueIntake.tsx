@@ -70,6 +70,7 @@ import {
   useFontScale,
   useTheme,
 } from "@/components/Themed";
+import { chipGlyphSize, chipLook } from "@/lib/a11y/chip";
 import { joinParts, spoken } from "@/lib/a11y/labels";
 import { loopingDecorationEnabled, scrollAnimated } from "@/lib/a11y/motion";
 import { useLiveAnnouncement, useReducedMotion } from "@/lib/a11y/prefs";
@@ -80,8 +81,14 @@ import { sectionPanelModel } from "@/lib/dialogue/sectionPanel";
 import { questionAsideTr } from "@/lib/dialogue/speech";
 import { answerWords, type StreamEntry } from "@/lib/dialogue/stream";
 import { useDialogueSession } from "@/lib/dialogue/useDialogueSession";
+import { deviceClock, todayIso } from "@/lib/clock";
 import { t } from "@/lib/i18n";
-import { optionLabelKey, type IntakeQuestion } from "@/lib/intake/questions";
+import {
+  optionLabelKey,
+  reconcileExclusive,
+  toggleOption,
+  type IntakeQuestion,
+} from "@/lib/intake/questions";
 import { dialogueFrozenAt, dialogueShown, redStopsDialogue, redStore } from "@/lib/red/store";
 import type { PrefillMap } from "@/lib/intake/voiceFirst";
 import { useSession } from "@/lib/session";
@@ -183,6 +190,7 @@ export function DialogueIntake({
   const router = useRouter();
   const theme = useTheme();
   const dark = useColorScheme() === "dark";
+  const scheme = dark ? "dark" : "light";
   const fontScale = useFontScale();
   const { account, updateNote } = useSession();
 
@@ -253,9 +261,16 @@ export function DialogueIntake({
     }
     seedKeyRef.current = key;
     if (turn.phase === "confirming" || (turn.phase === "speaking" && turn.intent === "confirm")) {
-      setSelected([...turn.candidate.values]);
+      // INT-604: the candidate is already consistent (stream.ts), and the seed
+      // reconciles again so a symptom is never hidden behind an exclusive "Yok".
+      const seeded = questions[step];
+      setSelected(
+        seeded === undefined
+          ? [...turn.candidate.values]
+          : reconcileExclusive(seeded, turn.candidate.values),
+      );
     }
-  }, [turn]);
+  }, [turn, questions]);
 
   // The conversation reads bottom-up: keep the newest turn in view.
   const streamLength = state.stream.length;
@@ -323,6 +338,7 @@ export function DialogueIntake({
         questionId: question.id,
         values,
         words: answerWords(question, turn.candidate.quote),
+        answeredOn: todayIso(deviceClock),
       });
     }
     session.confirm(values);
@@ -351,6 +367,7 @@ export function DialogueIntake({
         questionId,
         values: [...candidate.values],
         words: answerWords(rowQuestion, candidate.quote),
+        answeredOn: todayIso(deviceClock),
       });
     }
     session.confirmPending(questionId);
@@ -681,6 +698,8 @@ export function DialogueIntake({
             <View style={styles.chipWrap}>
               {question.options!.map((option) => {
                 const on = selected.includes(option.id);
+                // INT-601 (audit A4): the same look as the typed lane's chips.
+                const look = chipLook(on, scheme);
                 return (
                   <Pressable
                     key={option.id}
@@ -690,25 +709,28 @@ export function DialogueIntake({
                     accessibilityRole={question.kind === "single" ? "radio" : "checkbox"}
                     accessibilityLabel={t(option.labelKey)}
                     accessibilityHint={t("a11y.selectHint")}
-                    accessibilityState={{ checked: on }}
-                    onPress={() =>
-                      setSelected((prev) =>
-                        question.kind === "single"
-                          ? [option.id]
-                          : prev.includes(option.id)
-                            ? prev.filter((x) => x !== option.id)
-                            : [...prev, option.id],
-                      )
-                    }
+                    accessibilityState={look.accessibilityState}
+                    // INT-604 (ADR-043): the same rule as the typed lane —
+                    // "Yok" clears the others, any other clears "Yok".
+                    onPress={() => setSelected((prev) => toggleOption(question, prev, option.id))}
                     style={[
                       styles.chip,
                       {
-                        backgroundColor: on ? theme.primarySoft : theme.surface,
-                        borderColor: on ? theme.primary : dark ? "transparent" : theme.border,
+                        backgroundColor: theme[look.fill],
+                        borderColor:
+                          look.border === "transparent" ? "transparent" : theme[look.border],
+                        borderWidth: look.borderWidth,
                       },
                     ]}
                   >
-                    <AppText role="label" color={on ? "primary" : "ink"}>
+                    {look.glyph !== null ? (
+                      <Icon
+                        name={look.glyph}
+                        size={chipGlyphSize(fontScale)}
+                        tintColor={theme.primary}
+                      />
+                    ) : null}
+                    <AppText role="label" color={look.labelColor} style={styles.chipLabel}>
                       {t(option.labelKey)}
                     </AppText>
                   </Pressable>
@@ -890,10 +912,13 @@ const styles = StyleSheet.create({
   chipWrap: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
   chip: {
     borderRadius: radius.chip,
-    borderWidth: 1,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
     minHeight: MIN_TAP,
+    // The selected check glyph leads the label (INT-601).
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.xs,
     justifyContent: "center",
     // INT-136: the same bound the typed lane's chips carry. A wrap item gets
     // no shrink in React Native, so an option label wider than the row would
@@ -901,6 +926,8 @@ const styles = StyleSheet.create({
     // truncating it is banned (files/00 §2).
     maxWidth: "100%",
   },
+  // The label gives width back so a long one wraps beside the glyph.
+  chipLabel: { flexShrink: 1 },
   bottomStack: { position: "absolute", left: 0, right: 0, bottom: 0 },
   // Its natural height while the stack has room, and it gives height back —
   // then scrolls — once the stack is capped (INT-360).

@@ -15,9 +15,44 @@
  * - UNKNOWN — everything else: Detaylı without a check-in, the visit day
  *   itself ("a fast-mode session started in the car park"), a kiosk.
  *
+ * INT-604 (owner decision M3, 17 Nov 2026, D18 scope): the up-front intake
+ * question asks ONE thing — "Şu anda hastanede misiniz?" — and the mode follows
+ * from the answer, as 02 §2 defines the modes by place (Hızlı pre-hospital,
+ * Detaylı in-hospital). It used to offer "Hastanedeyim" beside "Kısa tutalım",
+ * a place beside a preference, so a patient in the corridor who wanted it
+ * short picked the REMOTE-eligible answer. Now:
+ *
+ * - "Hayır, hastanede değilim" (hızlı) on a later-day visit is REMOTE: an
+ *   explicit answer, and the visit cannot be under way;
+ * - "Evet, hastanedeyim" (detaylı) is UNKNOWN here. The answer may be hours old
+ *   by the time a RED fires, and ON_SITE removes the 112 affordance, so the RED
+ *   asks its own question at RED time; that fresh explicit "Evet" is the only
+ *   way the device reaches ON_SITE (store.ts, `RedLocationQuestion.onYes`).
+ * - no answer, the visit day, a kiosk: UNKNOWN. No answer is never read as one:
+ *   the chooser shows before anything else until it is answered
+ *   (note.ts `modeChoiceNeeded`).
+ *
  * Pure; dates are compared as calendar days in ISO form.
  */
+import type { MessageKey } from "../i18n";
 import type { RedLocation } from "../livekit/red";
+
+/** One answer to the up-front location question and the mode it selects. */
+export interface ModeChoiceOption {
+  readonly labelKey: MessageKey;
+  readonly subKey: MessageKey;
+  readonly mode: "hizli" | "detayli";
+}
+
+/**
+ * The up-front question's answers, in display order. Both are location
+ * answers; neither is a preference (INT-604). `location.test.ts` pins that no
+ * answer here can make `deriveRedLocation` return ON_SITE.
+ */
+export const MODE_CHOICES: readonly ModeChoiceOption[] = [
+  { labelKey: "intake.mode.hospital", subKey: "intake.mode.hospitalSub", mode: "detayli" },
+  { labelKey: "intake.mode.away", subKey: "intake.mode.awaySub", mode: "hizli" },
+];
 
 export interface RedLocationInput {
   readonly mode: "hizli" | "detayli";
