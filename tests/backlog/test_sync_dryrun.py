@@ -160,8 +160,9 @@ def test_dryrun_plans_creates_and_updates(tmp_path: Path) -> None:
     # + INT-591 (a release build offers no voice consent it cannot use, GitHub #993)
     # + INT-592 (a truthful NSHealthUpdateUsageDescription, ITMS-90683, GitHub #1000)
     # + INT-584 (the tokenization key moves into OpenBao, owner decision D38, GitHub #983)
+    # + INT-597 (node-forge, glob and minimatch 10 past the 30 Oct advisories, GitHub #1017)
     # + INT-614 (Face ID string, no photo-library key, no background audio; from INT-613)
-    assert len(actions) == 387
+    assert len(actions) == 388
     assert actions["INT-001"]["action"] == "update"
     assert actions["INT-001"]["number"] == 1
     assert actions["INT-004"]["action"] == "create"
