@@ -246,7 +246,8 @@ wcag:
       - "apps/mobile/e2e/appearance.spec.ts::the active item is still not carried by colour alone once the label is gone"
       - "apps/mobile/e2e/appearance.spec.ts::the knob moves as well as recolouring — state is never hue alone"
       - "apps/mobile/e2e/appearance.spec.ts::selection is marked by more than a fill once the rows stack"
-    remarks: Progress, status, selection, switch state and errors each carry a word, a shape or an announcement beside the colour.
+      - "apps/mobile/src/lib/a11y/chip.test.ts::%s: with every colour removed, the two states still differ"
+    remarks: Progress, status, selection, switch state and errors each carry a word, a shape or an announcement beside the colour. A selected intake chip carries a check glyph and a heavier outline in both lanes (INT-601).
 
   - sc: "1.4.2"
     name: Audio Control
@@ -654,19 +655,17 @@ wcag:
   - sc: "1.4.3"
     name: Contrast (Minimum)
     level: AA
-    status: Partially Supports
+    status: Supports
     tests:
       - "apps/mobile/src/lib/theme.test.ts::%s body text meets WCAG AA (4.5:1)"
-      - "apps/mobile/src/lib/theme.test.ts::%s: the known sub-AA pairs hold their measured floor"
-    finding: >-
-      The quietest text tone, `inkFaint`, carries 13 pt caption text below
-      4.5 : 1 on every light ground and on the dark raised ground. The light
-      "Dosyaya eklendi" chip (`success` on `successSoft`) also falls short. The
-      measurements are in §4.
+      - "apps/mobile/src/lib/theme.test.ts::%s: inkFaint captions meet WCAG AA (4.5:1) on every ground"
+      - "apps/mobile/src/lib/theme.test.ts::%s: the success pill text meets WCAG AA (4.5:1) on its wash"
     remarks: >-
-      Body text, soft ink, primary, status-pill and CTA pairs meet 4.5 : 1 in
-      both schemes. Closing the gap needs a palette decision from the design
-      owner (INT-144 report §5.1 and §5.2).
+      Every text pair listed in §4 meets 4.5 : 1 in both schemes. INT-601
+      (design audit A3) changed light `inkFaint` to #6E6A5F, dark `inkFaint`
+      to #969286 and light `success` to #157346; before that, `inkFaint`
+      captions measured 3.11 to 3.64 : 1 on the light grounds and 4.03 : 1 on
+      the dark raised ground, and the light "Dosyaya eklendi" chip 4.35 : 1.
 
   - sc: "1.4.4"
     name: Resize Text
@@ -872,7 +871,7 @@ wcag:
       - "apps/mobile/e2e/a11y.spec.ts::every box asks the OS for the one-time code on each platform"
       - "apps/mobile/e2e/a11y.spec.ts::no field cap cuts a pasted or autofilled code down to its first digit"
       - "apps/mobile/e2e/a11y.spec.ts::every box hands its whole new text to the shared distributor"
-      - "apps/mobile/e2e/auth.spec.ts::the OTP entry is one masked field per register, six registers"
+      - "apps/mobile/e2e/auth.spec.ts::the OTP entry is one visible field per register, six registers"
       - "apps/mobile/src/lib/auth/phone.test.ts::a whole code pasted into the first box fills all six"
       - "apps/mobile/src/lib/auth/phone.test.ts::a whole code pasted into box %i still fills all six from the first"
       - "apps/mobile/src/lib/auth/phone.test.ts::a code pasted beside the digit a box already shows fills all six"

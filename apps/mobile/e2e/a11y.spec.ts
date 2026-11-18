@@ -1228,8 +1228,10 @@ describe("SC 3.3.8 — a delivered code fills the boxes without transcription", 
     );
   });
 
-  it("the code stays masked while it is on screen", () => {
-    expect(hasProp(registers[0].props, "secureTextEntry")).toBe(true);
+  it("the code is shown while it is on screen, so it can be checked against the SMS", () => {
+    // INT-601 (audit A6). A masked box hid six digits typed from a message the
+    // patient was reading; the HIG and Material one-time-code fields show them.
+    expect(hasProp(registers[0].props, "secureTextEntry")).toBe(false);
   });
 });
 

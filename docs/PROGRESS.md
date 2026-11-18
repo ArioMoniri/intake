@@ -1,5 +1,19 @@
 # PROGRESS — one entry per LOOP iteration (template in LOOP.md)
 
+### 2026-11-17T12:00:00+03:00 · INT-332 · awaiting-human (committed locally; approval:owner)
+- Goal: GitHub #531, Sec-Row `mobile`. Acceptance (verbatim):
+  - *"an ADR in docs/adr ratifies the motion system as revised in docs/design/motion/motion-verification.md, with the matching 00_STATE row and a mobile-ui.md §Motion pointer in the same commit"*
+  - *"the five open questions are recorded awaiting-human with their named owners, each failing closed meanwhile"*
+- Plan: ADR-033, the number PR #571 reserved and five merged docs already cite. It covers opacity-only ≤ 120 ms, the arbiter tuple, the one co-occurrence, the no-motion surfaces, RED as a root layer that motion never delays (invariant 21), the haptics gate and Android's 150 ms. In the same commit: 00_STATE D40, the mobile-ui.md §Motion pointer, the docs/index.md link, and five HUMAN_BLOCKERS rows (HB-O10, HB-C26, HB-C27, HB-C28, HB-O11).
+- Tests added (with the near-miss negative for any safety rule): `tests/docs/test_adr_index.py` gains 5 tests. They check the ADR is Accepted and carries its anchors, that RED §5 has 0 ms with no push and no Modal, and that each question is awaiting-human with its owner, HB row and meanwhile default. They also check the D40 row, the pointer and the index. Near miss: an answered question, or one without its default, is refused. Red: 4 failed. Green: 11 passed. 3 mutants caught.
+- Result (`make check` / `make safety` / `make security` summary): `tests/backlog` 56 passed. `tests/backlog tests/docs` and the no_placeholders and evidence_check tests: 100 passed. `no_placeholders` after staging: OK. `make check` was not run whole (docs only), and `make safety` is not affected.
+- Invariants touched and still passing: 21 (RED first paint, no 112 under ON_SITE), 17 (no invented value: every open question is on its fail-closed default), 10.
+- Decisions / ADRs / `00_STATE.md` rows: ADR-033 Accepted. Its status cites the owner's 27 Sep 2026 sentence as PR #571 relays it, and the owner's approval of this PR confirms it. 00_STATE §3 D40.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id):
+  - The owner must approve ADR-033 and answer Q1 (root layer) and Q5 (orb scale): HB-O10, HB-O11.
+  - Dr Efe Onganer must answer Q2 (ALERT haptic), Q3 (SILENT announcement, with the a11y reviewer) and Q4 (112 under UNKNOWN): HB-C26, HB-C27, HB-C28.
+- Next: supersede PR #571, which delivers the same issue on the same branch name and conflicts with `main`, with this commit. INT-336 and INT-340 consume the defaults.
+- LOOP_STATUS: WAITING_HUMAN
 ### 2026-10-28T16:30:00+03:00 · INT-585 · done (PR open)
 - Goal: GitHub #984, Sec-Row `onboarding`. Record the owner's 28 Oct SMS decisions ("1Y 2Y 3Y 4Y 5Y") as D34-D38 in files/00_STATE.md §3, and the live Netgsm OTP confirmation in docs/evidence/INT-576.md.
 - Plan:
@@ -4704,3 +4718,61 @@
 - Blocked on: the owner's ASC key and EXPO_TOKEN (HB-A3); approval:human-legal for the listing strings; HB-L21, HB-L27, HB-A12; INT-488 review (D39); the device sign-in (INT-348).
 - Next: Face ID and photo-library purpose strings, and the UIBackgroundModes audio regression (checklist rows 21–23) as their own issues.
 - LOOP_STATUS: WAITING_HUMAN
+### 2026-11-17T18:45:00+03:00 · INT-601 · done (committed locally; PR to be opened by the owner's session)
+- Goal: fix findings 1-7 of the November 2026 design audit (`docs/design/audit-2026-11/README.md` Part A), GitHub #1026. Acceptance, verbatim:
+  1. Bugün shows the next upcoming visit, never a past one. After the intake is finished it reflects the delivered state, not "Muayeneye hazırlanın" at %70 (`today.tsx`).
+  2. A visit detail opened from Bugün always has a working back control. Its primary action is never hidden under the tab bar (`visits/_layout.tsx`, `[visitId]/index.tsx`).
+  3. Light-theme `inkFaint` and the `success` pill text meet WCAG AA, at least 4.5:1, asserted by a test in both themes (`theme.ts`).
+  4. A selected chip is distinguishable without colour (check mark or shape change) in both intake lanes, with an accessibilityState.selected test.
+  5. The multi-line answer field uses a rounded-rectangle radius, not a pill.
+  6. The OTP code boxes fit at 320pt width, scale with Dynamic Type, do not mask the digits, and the countdown carries its unit.
+  7. On review, "Düzenleyin" and the share toggle each meet the minimum tap target, with spacing between them, and the share toggle sits in the same position on every card.
+- Plan:
+  - Item 1 is INT-594's (PR #1013), fully, so it is not duplicated here (evidence §2).
+  - Item 2: the anchor plus `withAnchor` on cross-tab pushes, and the CTA under the visit card.
+  - Items 3 and 5: palette hexes and `radius.field`.
+  - Item 4: one pure chip rule (`lib/a11y/chip.ts`) used by both lanes.
+  - Item 6: a pure OTP layout (`lib/auth/otpForm.ts`), visible digits and a unit key.
+  - Item 7: an edit text button with a 44 pt box, and a full-width share row at every card's foot.
+- Tests added (with the near-miss negative for any safety rule):
+  - New tests: `theme.test.ts` (AA in both schemes; near miss: the inkFaint step stays distinct), `lib/a11y/chip.test.ts`, `lib/auth/otpForm.test.ts`, and `e2e/designAudit.spec.ts`, each with near misses.
+  - Inverted pins: the OTP masking tests in `auth.spec.ts` and `a11y.spec.ts`.
+  - Re-pointed controls: `typed_intake.spec.ts` (chip chrome) and `tests/legal/test_a11y_report.py` (1.4.3 → 1.4.11).
+  - Runs: red 25 failed / 162 passed across 7 files. Green: mobile vitest 3202, `pnpm -r typecheck` clean, lint 0 errors, no_placeholders OK, `tests/release tests/legal tests/backlog` 1020. 7 of 7 mutations killed.
+- Result (`make check` / `make safety` / `make security` summary): the gates above ran locally. `make check` fan-out, `make safety` and `make security` run on the PR's runner. No protocol, triage or voice-runtime file changed.
+- Invariants touched and still passing:
+  - 2 and 5: one new key, `auth.otp.resendUnit`, tr first with an en mirror, PolicyGuard-clean.
+  - 4: share scope is moved, not changed.
+  - 16: Sec-Row `mobile`.
+  - 17: no placeholders.
+  - 20: no duration figure added.
+  - 22: number and unit form one NBSP atom, with no grouping.
+- Decisions / ADRs / `00_STATE.md` rows: none.
+  - Dark `inkFaint` also changes (`#969286`), so the both-themes AA test holds on the raised ground.
+  - The chip state stays `checked` on its checkbox and radio roles; `selected` would double-announce. Both are flagged in evidence §4 for the owner.
+  - WCAG 1.4.3 is now Supports, and the report is re-rendered.
+- Blocked on: nothing. The legal-reviewer should see the review-card layout, because share scope sits next to invariant 4.
+- Next:
+  - Whichever of #1013 and this PR lands second resolves one line in `today.tsx`: keep `focus.visit.id` and add `{ withAnchor: true }`.
+  - Capture the three code-level-only changes on the next TestFlight build.
+### 2026-11-17T20:30:00+03:00 · INT-614 · done (committed locally; not pushed; the Face ID string needs approval:human-legal)
+- Goal: close INT-613's App Store readiness rows 21–23 on the resolved iOS config (`expo config --type introspect`). Face ID carried Expo's English default, expo-image-picker wrote a photo-library string for a library the app never opens, and expo-audio re-added the `audio` UIBackgroundMode after withVoiceAudio stripped it.
+- Plan:
+  - Register expo-local-authentication with a Turkish `faceIDPermission`, equal to app-tr.json, with an en mirror. The string names the two real gates (app open, note review), not D36 passkeys, which are not built.
+  - Register expo-image-picker with `photosPermission: false` only.
+  - Pass expo-audio `enableBackgroundPlayback: false` and `enableBackgroundRecording: false`. Background audio is not intended (INT-103, INT-559).
+  - Add a `store/facts.py` row for Face ID with no flow.
+- Tests added (with the near-miss negative for any safety rule):
+  - New `e2e/iosInfoPlist.spec.ts` on the introspected plist. Every purpose key names a production call site; there is no photo-library key (near miss: the camera key stays); there is no audio or voip mode; Face ID is the tr catalogue.
+  - Extended `tests/legal/test_ios_purpose_strings.py` (plugin options, classification, PolicyGuard and B1 over the new string).
+  - `records.spec.ts`'s "picker not registered" pin is rewritten to "registered with photosPermission false only". Its premise was false: Expo applies the plugin when it is unlisted.
+  - Red: 5 vitest and 4 pytest failures. Green: mobile 155 files / 3156 tests.
+- Result (`make check` / `make safety` / `make security` summary):
+  - `make check-ts` exit 0, typecheck clean.
+  - `tests/legal tests/release tests/backlog` green, backlog pins at 387, no_placeholders green.
+  - check-py (full), check-integration, make safety and make security did not run here. Reasons are in evidence §4.
+- Invariants touched and still passing: 2, 3, 5, 13, 18.
+- Decisions / ADRs / `00_STATE.md` rows: none.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): the legal lane records `approval:human-legal` on the tr and en NSFaceIDUsageDescription.
+- Next: INT-613's readiness rows 21–23 move to done when this merges; push when the freeze lifts.
+- LOOP_STATUS: CONTINUE

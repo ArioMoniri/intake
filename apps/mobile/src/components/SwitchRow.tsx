@@ -41,13 +41,8 @@ interface SwitchRowProps {
 }
 
 export function SwitchRow({ label, sublabel, checked, onChange, hint }: SwitchRowProps) {
-  const theme = useTheme();
   const fontScale = useFontScale();
   const stacked = isLargeText(fontScale);
-  const trackWidth = scaledControl(46, fontScale);
-  const trackHeight = scaledControl(28, fontScale);
-  const inset = scaledControl(3, fontScale);
-  const knob = trackHeight - inset * 2;
   return (
     <Pressable
       accessibilityRole="switch"
@@ -69,31 +64,50 @@ export function SwitchRow({ label, sublabel, checked, onChange, hint }: SwitchRo
           </AppText>
         ) : null}
       </View>
-      <View
-        style={[
-          styles.track,
-          {
-            width: trackWidth,
-            height: trackHeight,
-            borderRadius: trackHeight / 2,
-            padding: inset,
-            backgroundColor: checked ? theme.primary : theme.surfaceRaised,
-            // Position, not only fill — the knob sitting left or right is the
-            // half of the signal that survives a colour deficiency.
-            alignItems: checked ? "flex-end" : "flex-start",
-          },
-        ]}
-      >
-        <View
-          style={{
-            width: knob,
-            height: knob,
-            borderRadius: knob / 2,
-            backgroundColor: checked ? theme.onPrimary : theme.inkFaint,
-          }}
-        />
-      </View>
+      <SwitchTrack checked={checked} />
     </Pressable>
+  );
+}
+
+/**
+ * The track and knob alone, for a row that lays out its own words (the review
+ * card's share row, INT-601). Decoration: the row around it carries the role,
+ * the name and the state.
+ */
+export function SwitchTrack({ checked }: { checked: boolean }) {
+  const theme = useTheme();
+  const fontScale = useFontScale();
+  const trackWidth = scaledControl(46, fontScale);
+  const trackHeight = scaledControl(28, fontScale);
+  const inset = scaledControl(3, fontScale);
+  const knob = trackHeight - inset * 2;
+  return (
+    <View
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+      style={[
+        styles.track,
+        {
+          width: trackWidth,
+          height: trackHeight,
+          borderRadius: trackHeight / 2,
+          padding: inset,
+          backgroundColor: checked ? theme.primary : theme.surfaceRaised,
+          // Position, not only fill — the knob sitting left or right is the
+          // half of the signal that survives a colour deficiency.
+          alignItems: checked ? "flex-end" : "flex-start",
+        },
+      ]}
+    >
+      <View
+        style={{
+          width: knob,
+          height: knob,
+          borderRadius: knob / 2,
+          backgroundColor: checked ? theme.onPrimary : theme.inkFaint,
+        }}
+      />
+    </View>
   );
 }
 

@@ -38,12 +38,14 @@ describe("onboarding flow (02 §4: welcome → phone → otp)", () => {
     expect(welcome).toContain("__DEV__ ?");
   });
 
-  it("the OTP entry is one masked field per register, six registers", () => {
+  it("the OTP entry is one visible field per register, six registers", () => {
     const otp = read(APP, "(auth)/otp.tsx");
     expect(otp).toContain("OTP_LENGTH");
     const lib = read(SRC, "lib", "auth", "phone.ts");
     expect(lib).toContain("OTP_LENGTH = 6");
-    expect(otp).toContain("secureTextEntry");
+    // INT-601 (audit A6): the digits are shown, so the patient can check six
+    // digits typed from an SMS against the message.
+    expect(otp).not.toContain("secureTextEntry");
     // INT-361 (SC 3.3.8): one digit per register is kept by the entry state,
     // not by a field cap. The platform applies maxLength before onChangeText
     // sees the text, so a cap of one cut every paste and the OS code autofill

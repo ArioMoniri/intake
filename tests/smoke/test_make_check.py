@@ -433,9 +433,11 @@ def test_backlog_parses_and_is_complete() -> None:
     # material, owner decision D38, GitHub #983); grows only with a stated reason.
     # + INT-597 (node-forge, glob and minimatch 10 past the 30 Oct advisories; the
     # minimatch 3.1.5 row is owner-applied, GitHub #1017); grows only with a stated reason.
+    # + INT-601 (the November 2026 design-audit fixes, GitHub #1026); grows only
+    # with a stated reason.
     # + INT-613 (App Store readiness: checklist, metadata, reviewer sign-in
     # harness, submit script); grows only with a stated reason.
-    assert len(ids) == 388, f"expected 175 blueprint + 213 added issues, got {len(ids)}"
+    assert len(ids) == 393, f"expected 175 blueprint + 218 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 

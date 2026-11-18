@@ -312,7 +312,7 @@ function OtpRecords() {
         />
         <SecondaryButton
           label={t("today.addVisit")}
-          onPress={() => router.push("/(tabs)/visits/new")}
+          onPress={() => router.push("/(tabs)/visits/new", { withAnchor: true })}
         />
       </>
     );
