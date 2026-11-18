@@ -435,7 +435,7 @@ def test_backlog_parses_and_is_complete() -> None:
     # minimatch 3.1.5 row is owner-applied, GitHub #1017); grows only with a stated reason.
     # + INT-601 (the November 2026 design-audit fixes, GitHub #1026); grows only
     # with a stated reason.
-    assert len(ids) == 388, f"expected 175 blueprint + 213 added issues, got {len(ids)}"
+    assert len(ids) == 391, f"expected 175 blueprint + 216 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 
