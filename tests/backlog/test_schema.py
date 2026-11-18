@@ -276,7 +276,9 @@ def test_ids_unique_and_well_formed() -> None:
     # photo-library key, no background audio; found by INT-613).
     # + INT-613 (App Store readiness: checklist, metadata, reviewer sign-in
     # harness and the App Store Connect submit script; orchestrator brief).
-    assert len(ids) == 393
+    # + INT-602 (the RED layer's 112 control, CALM edge, ON_SITE staff control
+    # and safe areas; design audit Part B R1-R6, GitHub #1027).
+    assert len(ids) == 394
     import re
 
     for i in ids:

@@ -4717,6 +4717,52 @@
 - Decisions / ADRs / `00_STATE.md` rows: none. Screenshots are left to INT-502, because its iOS-simulator captures outrank an Expo-web render.
 - Blocked on: the owner's ASC key and EXPO_TOKEN (HB-A3); approval:human-legal for the listing strings; HB-L21, HB-L27, HB-A12; INT-488 review (D39); the device sign-in (INT-348).
 - Next: Face ID and photo-library purpose strings, and the UIBackgroundModes audio regression (checklist rows 21–23) as their own issues.
+### 2026-11-17T19:00:00+03:00 · INT-602 · awaiting-human (approval:human-clinical)
+- Goal: the RED layer, from the design audit's Part B R1–R6 (GitHub #1027). Acceptance, verbatim from the row: "The 112 control is the strongest control on the RED layer. It is at least as large as the primary CTA, with a label size no smaller than the CTA's. It gives immediate pressed feedback and opens the phone's dialer with 112 (`tel:112`); a failure to open falls back to showing the number. Haptics stay as ADR-033 / HB-C26 say (none for RED)." "Under CALM, the 112 control has a visible boundary of at least 3:1 against its background (WCAG 1.4.11), in both themes." "Under ON_SITE, the 112 affordance stays absent (invariant 21). The patient instead gets a non-112 control, such as alerting staff or reaching the clinic desk, taken from the pack's ON_SITE action. If the pack defines none, the layer fails closed to the guidance text and a visible control to call for nearby staff. The layer is never control-less." "The RED layer respects safe-area insets on every edge." "RED copy uses the bare imperative plural (CLAUDE.md: "Tutun · Arayın · Bakmayın"), not "Lütfen yapmayın". The factual claim the audit flags is checked against its committed source snapshot; if it isn't supported there, it goes through the clinical route instead of being rewritten here." "There are tests for each item with near-miss controls. `make safety` stays green, and invariants 9, 10 and 21 still pass."
+- Plan: put the control looks, the frame and the dial fallback in a pure module, `lib/red/controls.ts`. Add `callStaff` to the RED screen model (ON_SITE only). The staff control posts this RED's ids and ON_SITE on the INT-475 route. Change `red.doNots` to "Yapmayın". Check the audit's service claim against TR-EK4-2022.txt.
+- Tests added (each with its near miss):
+  - `src/lib/red/controls.test.ts`, one block per item:
+    - CTA floor; old look below it;
+    - 3:1 CALM edge in both themes; old fill 1.04:1;
+    - every ON_SITE path × register × script has a staff control and no 112; REMOTE has 112 and no staff control;
+    - every inset edge; zero insets keep the old geometry;
+    - "Yapmayın"; no lütfen/please in RED chrome;
+    - the claim's supported and unsupported halves pinned.
+  - `e2e/red.spec.ts` INT-602, the source half.
+  - `e2e/motion.spec.ts`: `controls.ts` added to the pinned RED surface list.
+- Result:
+  - Red run: 4 failures plus the missing module.
+  - Green: mobile vitest 3202 passed; `tsc` clean; lint 0 errors; `no_placeholders` OK.
+  - `make safety`: exit 0 (triage 626 at 100 % branch; mutations 18/18; voice 2366 at 98.39 %; red-team 121).
+  - `uv run pytest tests/release tests/legal tests/backlog tests/smoke`: 1038 passed.
+  - Backlog pins 386 → 387; backlog re-rendered.
+- Invariants touched and still passing:
+  - 9: no runtime change.
+  - 10: no pack text changed.
+  - 21: ON_SITE never renders 112; the RED path reaches no media module.
+  - 6: ids only.
+  - 17: no placeholders.
+- Decisions / ADRs / `00_STATE.md` rows: none. The DSL has no ON_SITE patient-control field (`notify_staff_immediate` is the server's automatic notification), so every ON_SITE RED takes the fail-closed staff control. This is recorded in the evidence.
+- Blocked on: the physician of record (**Dr Efe Onganer**), two questions, nearest row HB-C12b (blockers.md "INT-602"):
+  - Are "Yapmayın", "Görevli çağırın" and the dial fallback the right words inside RED, and does files/02 §5.3 change with them?
+  - May the generic REMOTE why_tr keep "… ayrıca öncelik sırası için bekletilmez", which MADDE 8(5)'s snapshot does not state?
+- Next: the PR needs `approval:human-clinical`. Out-of-scope findings for new issues: a REMOTE RED without 112 has no control; a second staff page needs a server change.
+- LOOP_STATUS: WAITING_HUMAN
+- Update (clinical review round 1, changes requested on a5afb3d4):
+  - **Staff call is never silent.** It has a phase per RED: sending, sent (only on 2xx with `staffNotified: true`) or failed (4xx, spent retries, unconfirmed 2xx), each shown as an announced line under the control.
+  - **The press is audited as a press.** It now goes to its own route, `POST /v1/triage/red-staff-call`, audited `api.triage.red_staff_called`, never as a location answer (invariant 4).
+  - **Label changed.** "Görevli çağırın" → "Görevlilere haber verin"; a repeat press after a confirmed send re-shows sent.
+  - **Near misses added:** 4xx and spent retries → failed; DEFERRED_CLINICIAN × every location → nothing; no sent before confirmation.
+  - **files/02 §5.3 gloss** now matches MADDE 8(5).
+  - **Blocked: the reviewer's REMOTE sentence.** Editing either pack file voids the synthetic red-rule-set signature: the host would serve no RED, and `make safety` goes red (measured). Re-signing needs the host's Transit key (owner; runbook; blockers.md INT-602, HB-C1). The patch is ready in the evidence.
+  - **Not fixable in the render path:** the pack line "Görevlilere haber verildi." shows before confirmation. It is noted for Dr Efe Onganer, with the other five decisions, in docs/evidence/INT-602.md "Clinical review round 1".
+- LOOP_STATUS: WAITING_HUMAN
+- Update (owner decisions, 17 Nov 2026; D18, synthetic host and simulated patients only; Dr Efe Onganer still signs before any real patient; HB-C1 open):
+  - Under ON_SITE with the pack's GO_TO_IN_HOUSE_ACIL, "Acil Servis'e gidin" is now the primary control. It notifies staff in the same action, and "Görevlilere haber verin" follows as the weaker secondary control.
+  - Staff wording approved; a repeat press pages nobody; "Yapmayın" holds, CALM included (files/02 §5.3 updated).
+  - The REMOTE sentence is approved but still waits on re-signing.
+  - "Görevlilere haber verildi." stays.
+  - Tests first (red: 21 failed). Evidence: "Owner decisions, 17 Nov 2026".
 - LOOP_STATUS: WAITING_HUMAN
 ### 2026-11-17T18:45:00+03:00 · INT-601 · done (committed locally; PR to be opened by the owner's session)
 - Goal: fix findings 1-7 of the November 2026 design audit (`docs/design/audit-2026-11/README.md` Part A), GitHub #1026. Acceptance, verbatim:

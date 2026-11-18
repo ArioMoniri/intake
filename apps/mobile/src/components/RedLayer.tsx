@@ -23,21 +23,58 @@
  * the rule's REMOTE branch (CD-24; HB-C25). After that wait the question stays
  * open below the 112 control, and a late answer still moves the RED (LD-05).
  * When the RED changes under the patient, the screen reader's focus moves to its
- * words (`useRedFocus`), never on first paint. The patient's answer, on time or
+ * words (`useRedFocus`), never on first paint.
+ *
+ * INT-602 (lib/red/controls.ts): the patient's control — 112, or under ON_SITE
+ * the staff control in its place — is the strongest control on the layer, at
+ * least the primary CTA's height and label, with the instant opacity step when
+ * pressed and a visible edge in every register. A dialer that cannot open adds a
+ * line saying to dial the number shown. Under ON_SITE the layer is never
+ * control-less: the staff control posts this RED's staff notification, and a
+ * line below it says what became of the press (sending, sent only once the
+ * server confirms, or failed with what to do instead). The root
+ * layer pads every edge by its safe-area inset, with no SafeAreaView animation. The patient's answer, on time or
  * late, is posted to the server (`useLocationReports`, INT-475), so an ON_SITE
  * answer notifies staff; the screen never waits for that request.
  */
-import { useEffect, useRef, useSyncExternalStore, type ReactNode, type RefObject } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  type ReactNode,
+  type RefObject,
+} from "react";
 import { AccessibilityInfo, Linking, Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { AnnouncedText } from "@/components/Announced";
 import { AppText, useTheme, type AppTextHandle } from "@/components/Themed";
 import { MIN_TAP } from "@/lib/a11y/target";
 import { authedFetch } from "@/lib/auth/api";
 import { deviceClock, todayIso } from "@/lib/clock";
 import { t } from "@/lib/i18n";
+import {
+  callOrShowNumber,
+  RED_SECONDARY_CONTROL,
+  redLayerFrame,
+  redPressedOpacity,
+  redOnSiteControls,
+  redPrimaryControl,
+  redSecondaryControl,
+  redWash,
+  staffCallLine,
+  type RedRegister,
+} from "@/lib/red/controls";
 import type { HopTransport } from "@/lib/red/hop";
+import { CTA_MIN_HEIGHT } from "@/lib/prefs/appearance";
 import { deriveRedLocation } from "@/lib/red/location";
-import { createLocationReporter, subscribeLocationReports } from "@/lib/red/locationReport";
+import {
+  createLocationReporter,
+  createStaffCaller,
+  staffCallPhase,
+  subscribeLocationReports,
+} from "@/lib/red/locationReport";
 import { startNoAnswerClock } from "@/lib/red/noAnswerClock";
 import {
   createRedHop,
@@ -62,6 +99,12 @@ const transport: HopTransport = async (path, body) => {
   );
   return { status: response.status, bytes: new Uint8Array(await response.arrayBuffer()) };
 };
+
+/**
+ * The ON_SITE staff control's sender (INT-602): the answer reporter's retry, one
+ * request in flight. The screen reads its phase, never the response itself.
+ */
+const staffCaller = createStaffCaller({ transport });
 
 /** The current RED's screen, re-rendered on every store change. */
 export function useRedScreen(): RedScreen {
@@ -132,6 +175,16 @@ function RedBody({ screen }: { screen: Extract<RedScreen, { kind: "ask" | "act" 
   // SILENT has no headline (files/02 §5.3): the words read as the flow's own.
   const headline = screen.mode === "rootLayer";
   const lead = useRedFocus(screen);
+  // INT-602: the dialer did not open; the number above is the way to call.
+  const [dialFailed, setDialFailed] = useState(false);
+  // INT-602 round 1: the press is never silent. "sent" only once the server
+  // confirmed staffNotified; a refusal or spent retries say what to do instead.
+  const staffLine = staffCallLine(
+    staffCallPhase(
+      useSyncExternalStore(staffCaller.subscribe, staffCaller.getSnapshot),
+      redStore.getSnapshot(),
+    ),
+  );
   if (screen.kind === "ask") {
     return (
       <View style={styles.body}>
@@ -163,11 +216,47 @@ function RedBody({ screen }: { screen: Extract<RedScreen, { kind: "ask" | "act" 
           <AppText role="title" selectable>
             {EMERGENCY_NUMBER}
           </AppText>
-          <RedButton
+          <RedPrimaryControl
+            register={screen.register}
             label={t("red.call112")}
-            primary={screen.register === "ALERT"}
-            onPress={() => void Linking.openURL(`tel:${EMERGENCY_NUMBER}`)}
+            onPress={() =>
+              callOrShowNumber(
+                () => Linking.openURL(`tel:${EMERGENCY_NUMBER}`),
+                () => setDialFailed(true),
+              )
+            }
           />
+          {dialFailed ? <AnnouncedText tone="error" message={t("red.call112Failed")} /> : null}
+        </View>
+      ) : null}
+      {screen.callStaff ? (
+        // INT-602 (invariant 21): under ON_SITE there is no 112; this takes its place.
+        <View style={styles.list}>
+          {/* Owner decision 1: "Acil Servis'e gidin" leads where the pack says so, and
+              notifies staff in the same action (files/02 §5.3 ON_SITE row); the
+              staff control follows, quieter. One notification per RED either way. */}
+          {redOnSiteControls(screen).map((control) => {
+            const label = control.kind === "goToAcil" ? t("red.goToAcil") : t("red.callStaff");
+            const hint = control.kind === "goToAcil" ? undefined : t("red.callStaff.hint");
+            const onPress = () => staffCaller.call(redStore.getSnapshot());
+            return control.weight === "primary" ? (
+              <RedPrimaryControl
+                key={control.kind}
+                register={screen.register}
+                label={label}
+                hint={hint}
+                onPress={onPress}
+              />
+            ) : (
+              <RedSecondaryControl key={control.kind} label={label} hint={hint} onPress={onPress} />
+            );
+          })}
+          {staffLine !== null ? (
+            <AnnouncedText
+              tone={staffLine.tone === "error" ? "error" : "status"}
+              message={t(staffLine.key)}
+            />
+          ) : null}
         </View>
       ) : null}
       {screen.lateAskTr !== null ? (
@@ -203,15 +292,8 @@ function RedBody({ screen }: { screen: Extract<RedScreen, { kind: "ask" | "act" 
   );
 }
 
-function RedButton({
-  label,
-  onPress,
-  primary = false,
-}: {
-  label: string;
-  onPress: () => void;
-  primary?: boolean;
-}) {
+/** The location answers (Evet / Hayır): a 44 pt target, below the primary control. */
+function RedButton({ label, onPress }: { label: string; onPress: () => void }) {
   const theme = useTheme();
   return (
     <Pressable
@@ -220,12 +302,98 @@ function RedButton({
       onPress={onPress}
       style={({ pressed }) => [
         styles.button,
+        { backgroundColor: pressed ? theme.border : theme.surfaceRaised },
+      ]}
+    >
+      <AppText role={RED_SECONDARY_CONTROL.labelRole} style={{ color: theme.ink }}>
+        {label}
+      </AppText>
+    </Pressable>
+  );
+}
+
+/**
+ * The quieter ON_SITE control (INT-602 owner decision 1): the staff control
+ * below "Acil Servis'e gidin". Its look is lib/red/controls.ts `redSecondaryControl`.
+ */
+function RedSecondaryControl({
+  label,
+  hint,
+  onPress,
+}: {
+  label: string;
+  hint?: string;
+  onPress: () => void;
+}) {
+  const theme = useTheme();
+  const look = redSecondaryControl(theme);
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityHint={hint}
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.button,
+        styles.secondary,
         {
-          backgroundColor: primary ? theme.emergency : pressed ? theme.border : theme.surfaceRaised,
+          backgroundColor: look.backgroundColor,
+          borderColor: look.borderColor,
+          borderWidth: look.borderWidth,
+          opacity: redPressedOpacity(pressed),
         },
       ]}
     >
-      <AppText role="label" style={{ color: primary ? theme.onPrimary : theme.ink }}>
+      <AppText
+        role={look.labelRole}
+        style={{ color: look.labelColor, fontWeight: look.labelWeight, textAlign: "center" }}
+      >
+        {label}
+      </AppText>
+    </Pressable>
+  );
+}
+
+/**
+ * The patient's control on a RED — 112, or the staff control under ON_SITE
+ * (INT-602). Its look is lib/red/controls.ts `redPrimaryControl`: never weaker
+ * than the primary CTA, a visible edge in every register, and the instant
+ * opacity step when pressed. No haptic (ADR-033 Q2).
+ */
+function RedPrimaryControl({
+  register,
+  label,
+  hint,
+  onPress,
+}: {
+  register: RedRegister;
+  label: string;
+  hint?: string;
+  onPress: () => void;
+}) {
+  const theme = useTheme();
+  const look = redPrimaryControl(register, theme);
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityHint={hint}
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.primary,
+        {
+          minHeight: look.minHeight,
+          backgroundColor: look.backgroundColor,
+          borderColor: look.borderColor,
+          borderWidth: look.borderWidth,
+          opacity: redPressedOpacity(pressed),
+        },
+      ]}
+    >
+      <AppText
+        role={look.labelRole}
+        style={{ color: look.labelColor, fontWeight: look.labelWeight, textAlign: "center" }}
+      >
         {label}
       </AppText>
     </Pressable>
@@ -241,6 +409,8 @@ export function RedLayer() {
   useLocationReports();
   const theme = useTheme();
   const screen = useRedScreen();
+  // INT-602 (R4): every edge clears its safe-area inset, portrait and landscape.
+  const frame = redLayerFrame(useSafeAreaInsets());
   // CD-24 generic_red_unknown_no_answer_goes_remote: an unanswered location
   // question takes the rule's no-answer branch (REMOTE, 112) after the unsigned
   // wait — never silence. Mounted once, at the root, for every register.
@@ -251,7 +421,7 @@ export function RedLayer() {
   }
   // ALERT: the reserved emergency colour, full takeover. CALM: amber-neutral,
   // no red and no alarm colour, action first (files/02 §5.3).
-  const wash = screen.register === "ALERT" ? theme.emergencySoft : theme.amberSoft;
+  const wash = redWash(screen.register === "ALERT" ? "ALERT" : "CALM", theme);
   const rule = screen.register === "ALERT" ? theme.emergency : theme.amber;
   return (
     <View
@@ -260,10 +430,18 @@ export function RedLayer() {
       importantForAccessibility="yes"
       testID="red-layer"
     >
-      <View style={{ height: spacing.xl * 2, backgroundColor: rule }} />
+      <View style={{ height: frame.bandHeight, backgroundColor: rule }} />
       <ScrollView
         style={{ backgroundColor: wash }}
-        contentContainerStyle={styles.scroll}
+        contentContainerStyle={[
+          styles.scroll,
+          {
+            paddingTop: frame.padding.top,
+            paddingRight: frame.padding.right,
+            paddingBottom: frame.padding.bottom,
+            paddingLeft: frame.padding.left,
+          },
+        ]}
         alwaysBounceVertical={false}
       >
         <RedBody screen={screen} />
@@ -307,7 +485,7 @@ export function RedInFlow() {
 
 const styles = StyleSheet.create({
   navigator: { flex: 1 },
-  scroll: { padding: spacing.screen, paddingTop: spacing.xl, flexGrow: 1 },
+  scroll: { flexGrow: 1 },
   body: { gap: spacing.lg },
   row: { flexDirection: "row", gap: spacing.md },
   list: { gap: spacing.sm },
@@ -315,6 +493,17 @@ const styles = StyleSheet.create({
   button: {
     minHeight: MIN_TAP,
     minWidth: MIN_TAP * 2,
+    paddingHorizontal: spacing.lg,
+    borderRadius: radius.control,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  secondary: { alignSelf: "stretch" },
+  primary: {
+    // The primary CTA's floor (lib/red/controls.ts `redPrimaryControl` says the same).
+    minHeight: CTA_MIN_HEIGHT,
+    alignSelf: "stretch",
+    paddingVertical: spacing.md,
     paddingHorizontal: spacing.lg,
     borderRadius: radius.control,
     alignItems: "center",

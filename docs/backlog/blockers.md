@@ -538,3 +538,37 @@ question about the seven built texts. `docs/evidence/INT-529.md` §4 has the tab
 | INT-529 | awaiting-human (`acik_riza.research`) | owner (the ethics protocol); the D25 legal lane (KSVY limb), counsel before any real patient | What retention and which recipients does the study's ethics protocol fix — and which KSVY m.16 limb does a consented export ride? | HB-L26, HB-I8 (site: HB-L1) |
 | INT-529 | open question on the seven built texts (withdrawal) | counsel, through the D25 legal lane for synthetic scope | When a patient withdraws an açık rıza, does KVKK m.7(1) require the data processed under it to be deleted ex officio? If so, sentences like "Geri çekmek belgelerinizi silmez" must change. | HB-L27 |
 | INT-332 | awaiting-human (owner approval of the ADR-033 PR; `approval:owner`) | owner | Do you approve ADR-033 as written, with your five answers of 17 Nov 2026 recorded as D44 and its three widenings left to INT-609, INT-610 and INT-611? | — (HB-O10, HB-O11, HB-C26, HB-C27 and HB-C28 closed 17 Nov 2026) |
+
+## INT-602 — RED chrome wording, a generic REMOTE service claim, and a pack edit that needs re-signing
+
+**Raised:** 17 Nov 2026, updated after clinical review round 1 and the owner's decisions the same day · **Named humans:** the physician of record (**Dr Efe Onganer**) for the wording; the owner for re-signing the red rule set on the synthetic host. Under D18 the INT-432 medical-agent lane may answer for simulated patients only; a licensed physician is needed before any real patient.
+
+The app-side RED changes are built and tested (`docs/evidence/INT-602.md`). What stays open:
+
+1. **The RED chrome strings** (`apps/mobile/src/lib/i18n/tr.ts`; not pack text):
+   - the do-not heading "Lütfen yapmayın" → "Yapmayın";
+   - the ON_SITE staff control "Görevlilere haber verin", hint "Görevlilere bir bildirim gönderir.";
+   - its states "Görevlilere haber gönderiliyor." / "Görevlilere haber gönderildi." (only after the server confirms) / "Haber gönderilemedi. Bir görevliden yardım isteyin ya da Acil Servis'e gidin.";
+   - the dial fallback "Arama açılamadı. 112'yi telefonunuzdan arayın.".
+
+   The PR carries `approval:human-clinical`. files/02 §5.3 still says "Lütfen yapmayın" in its register table and worked texts.
+2. **The generic REMOTE `why_tr` second sentence**, "112 ambulansıyla getirilen hastalar, acil serviste ayrıca öncelik sırası için bekletilmez." (CD-24 `packages/protocols/generic/generic_red.yaml`; CD-25 `files/protocols/base.life_threat.yaml` `rf.chest_pain_cardiac_features` REMOTE). Its snapshot, `packages/protocols/sources/TR-EK4-2022.txt` MADDE 8(5), supports *no separate triage* and does not say the patient *is not kept waiting*.
+
+   The reviewer's snapshot-only replacement is "112 ambulansıyla getirilen hastalara acil serviste ayrıca öncelik belirleme (triyaj) yapılmaz." **It is not applied yet.** Both files are covered by the synthetic test-key signature `packages/protocols/signing/red_rule_set.synthetic.json`:
+   - Editing either file voids that signature. Measured on this branch: the served set loads as `triage_unconfigured`, so the synthetic host would serve no RED, and `tests/safety/test_generic_red_goldens.py` and `tests/api/test_triage_hop.py` fail (4 failed, 8 errors).
+   - Re-signing needs the non-exportable OpenBao Transit key on the host (`docs/runbooks/red-rule-set-signing.md`). An agent cannot reach it, and must not sign around it.
+   - The patch, its goldens and its near miss are ready to apply in the same PR as the new envelope (`docs/evidence/INT-602.md` "Clinical review round 1", item 5).
+3. **The pack line "Görevlilere haber verildi."** (generic ON_SITE `action_tr`) is shown, verbatim (invariant 10), before any server confirmation. It is pack text, so the render path cannot change it; it waits for the same review.
+
+**Owner decisions, 17 Nov 2026** (D18: the synthetic host and simulated patients only; a licensed physician, Dr Efe Onganer, still signs before any real patient, and HB-C1 stays open; `docs/evidence/INT-602.md` "Owner decisions, 17 Nov 2026"):
+- "Acil Servis'e gidin" leads under ON_SITE ("give the button of acil servise gidin").
+- The staff wording is approved ("approve").
+- A repeat press pages nobody again ("no").
+- "Yapmayın" holds, CALM included ("ok"). This closes the RED-chrome wording question raised here under HB-C12b; HB-C12b's own why_tr question about the patient's condition is unaffected.
+- The snapshot-only REMOTE sentence is approved ("ok").
+- The pack line "Görevlilere haber verildi." stays ("ok").
+
+| issue | status | who | the one sentence they must answer | HB id |
+|---|---|---|---|---|
+| INT-602 | **closed 17 Nov 2026 (owner, D18 scope)**: RED chrome wording, the ON_SITE control order, the repeat-press rule and the pack's "Görevlilere haber verildi." | owner (synthetic); physician of record (**Dr Efe Onganer**) before any real patient | — (answered: see the owner decisions above) | HB-C12b (the wording question only), HB-C1 open |
+| INT-602 | blocked on re-signing (the approved REMOTE sentence in CD-24 and CD-25) | owner, on the synthetic host | Will you re-sign the red rule set with the synthetic test key (runbook steps 1–4) once "112 ambulansıyla getirilen hastalara acil serviste ayrıca öncelik belirleme (triyaj) yapılmaz." is in both files? | HB-C1 (the sign-off interlock the test key stands in for) |
