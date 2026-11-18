@@ -101,3 +101,8 @@ via expo 57.0.17), which merges the repository's own app config at build time, \
 never patient input. It is not in either production `expo export` bundle, and no \
 server runtime image installs npm packages: infra/staging/Dockerfile.api is Python \
 only, and no admin-web or clinician-web importer reaches it (docs/evidence/INT-573.md)."""
+
+[[IgnoredVulns]]
+id = "GHSA-fc5q-39xc-vjpf"
+ignoreUntil = 2026-12-17T00:00:00Z
+reason = """OWNER-APPROVED, TIME-BOXED EXCEPTION for picomatch 2.3.2 and 4.0.7 only (INT-608, GitHub #1018). No release fixes it. Build and test tooling only, never patient input, not in any production bundle."""
