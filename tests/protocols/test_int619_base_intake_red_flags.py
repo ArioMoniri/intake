@@ -400,8 +400,8 @@ def test_the_anaphylaxis_probe_asks_for_an_airway_or_breathing_problem_not_swell
 ) -> None:
     """Verifier finding (CD-111): RCUK 3.1 defines anaphylaxis by Airway,
     Breathing or Circulation problems and lists angioedema only as a usual
-    accompaniment (an inference from 3.1, not a sentence it prints). Near miss: a probe that fired on
-    tongue swelling alone, as the first draft did."""
+    accompaniment (an inference from 3.1, not a sentence it prints). Near miss:
+    a probe that fired on tongue swelling alone, as the first draft did."""
     probe = pack.sections["red_flags"].slots["rf_anaphylaxis"].ask_tr
     assert probe is not None
     text = probe["tr"]
