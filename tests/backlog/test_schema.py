@@ -281,7 +281,9 @@ def test_ids_unique_and_well_formed() -> None:
     # + INT-603 (consent first run: copy agrees with the default-on rows, a
     # real switch, withdrawal confirms once, continue always visible; design
     # audit 2026-11 K1-K3, GitHub #1028).
-    assert len(ids) == 395
+    # + INT-604 (an exclusive "Yok", answers anchored to the answering day, a
+    # visit-mode question that asks one thing; design audit M1-M3, GitHub #1029).
+    assert len(ids) == 396
     import re
 
     for i in ids:

@@ -44,7 +44,7 @@ sections:
         type: string
         required: true
         ask_tr:
-          tr: Bugünkü randevunuzun sebebini kısaca anlatır mısınız?
+          tr: Bu randevunuzun sebebini kısaca anlatır mısınız?
         follow_up_tr:
           tr: Sizi hekime getiren en önemli şikâyetiniz nedir?
         openehr_deferred_reason: "INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.reason_for_encounter.v1 recorded in docs/evidence/proposals/kardiyoloji.md"

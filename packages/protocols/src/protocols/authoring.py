@@ -187,7 +187,7 @@ def _payload(branch: Branch, cluster: Cluster) -> dict[str, object]:
                         "type": "string",
                         "required": True,
                         "ask_tr": {
-                            DEFAULT_LOCALE: "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+                            DEFAULT_LOCALE: "Bu randevunuzun sebebini kısaca anlatır mısınız?"
                         },
                         "follow_up_tr": {
                             DEFAULT_LOCALE: "Sizi hekime getiren en önemli şikâyetiniz nedir?"

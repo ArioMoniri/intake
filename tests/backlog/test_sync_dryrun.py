@@ -167,7 +167,8 @@ def test_dryrun_plans_creates_and_updates(tmp_path: Path) -> None:
     # + INT-613 (App Store readiness checklist, metadata, sign-in harness, submit script)
     # + INT-602 (the RED layer's controls and safe areas, design audit R1-R6, GitHub #1027)
     # + INT-603 (consent first run agrees with its rows; switch; sticky continue, GitHub #1028)
-    assert len(actions) == 395
+    # + INT-604 (exclusive "Yok", day-anchored wording, one-question visit mode, GitHub #1029)
+    assert len(actions) == 396
     assert actions["INT-001"]["action"] == "update"
     assert actions["INT-001"]["number"] == 1
     assert actions["INT-004"]["action"] == "create"

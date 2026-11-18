@@ -63,6 +63,7 @@ from datetime import datetime
 from clinical_schemas.common import JsonValue
 from clinical_schemas.session import AnswerState
 from clinical_schemas.triage import RedLocation, RulesTriageResult
+from protocols.choices import submitted_set_answer
 from protocols.compile.resolve import ResolvedProtocol
 from protocols.compile.rule_reads import rule_reads
 from protocols.dsl import RedFlagRule
@@ -189,6 +190,13 @@ class SessionTriage:
         for spelling, step_id in self.spellings.items():
             if step_id in answered:
                 state, value = answered[step_id]
+                if isinstance(value, list):
+                    # INT-604 (ADR-043): a multi-select answer is read whole —
+                    # any named member that fires, fires (files/12 §7.3).
+                    whole = submitted_set_answer([str(member) for member in value])
+                    if whole is not None:
+                        answers[spelling] = whole
+                    continue
                 answers[spelling] = SlotAnswer(state=state, values=(value,))
         return TriageContext(reference_time=engine.reference_time, answers=answers)
 

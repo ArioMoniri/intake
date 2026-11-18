@@ -4866,3 +4866,21 @@
   - All opt-out copy and keys are removed. `consent.basis.explicit` and `consent.queue.note` are set to the reviewer's wording.
   - The 0015 downgrade raises.
   - The stale-hash gap is a blockers.md row (HB-L27).
+### 2026-11-17T19:30:00+03:00 · INT-604 · done (approval:human-clinical kept for the physician's signature)
+- Goal: design audit Part B M1–M3, GitHub #1029. Acceptance (verbatim):
+  1. A multi-select option can be declared `exclusive: true` in the DSL. Selecting it clears the others, and selecting another option clears it. An ADR records the DSL change. Every "Yok"/"Hiçbiri" option in served-candidate packs is marked exclusive. Golden tests include a near-miss negative control.
+  2. Questions that say "bugün" or other day-relative words are anchored to the time of answering, not the visit date: either the wording is made explicit (e.g. "şu sıralar") or the anchor is stated. The `text_tr` changes follow invariant 10 and are listed for `approval:human-clinical`.
+  3. The visit-mode question asks one thing. Location (REMOTE / ON_SITE / UNKNOWN) feeds the RED location axis only from an unambiguous answer, and an ambiguous answer resolves to UNKNOWN. A golden test proves a preference answer can never set ON_SITE.
+  4. `make safety` is green, and red-flag rules stay monotonic (invariant 7).
+- Plan: the owner decisions of 17 Nov (D18 scope: M1 "yes", M2 "su siralar", M3 "on site"), recorded in docs/evidence/INT-604.md.
+  - M1: `Slot.multiple` and `options.<member>.exclusive`. The schema and two compiler refusals enforce them. The binder refuses a mixed set and never trims it. The hop reads a submitted set whole. Both lanes share one `toggleOption`. base.intake `chest_pain.radiation` is multi-select with `yok` exclusive, and 13 app "Yok" options are exclusive.
+  - M2: "şu sıralar" for "these days"; "bu randevu" / "bu görüşme" for the visit. "bugün" is kept for onset-today, with the answering day printed in the note.
+  - M3: the up-front question asks only "Şu anda hastanede misiniz?". ON_SITE on the device comes only from the RED's own question.
+- Tests added (each with a near miss): `tests/protocols/test_exclusive_options.py`, `tests/protocols/test_day_relative_wording.py`, `tests/safety/test_exclusive_choice_triage.py`, the hop cases in `tests/api/test_triage_hop.py`, `apps/mobile/src/lib/intake/exclusive.test.ts`, `dayAnchor.test.ts`, `apps/mobile/src/lib/red/location.test.ts`, and the stream reconcile cases.
+- Red runs: the protocols tests had no `protocols.choices` module. The hop test had 3 failed (a list read Unknown). The wording gate on main had 93 failed. Mobile had 15 failed, then 3 failed.
+- Result: `make safety` exit 0 (18/18 mutations; triage at 100 % branch). Protocols at 97.61 %. Mobile vitest: 3180 passed. tsc clean. backlog, release and legal: 1020 passed. no_placeholders OK. The protocols-compile refusal set is unchanged from main. The `make check` fan-out and `make security` run on the PR's AWS runner.
+- Invariants touched and still passing: 1 and 7 (no rule touched; triage reads more, never less); 10 (every changed text_tr listed; no instrument item); 21 (ON_SITE only from an explicit answer at RED time); 5 (tr first, en mirror); 17.
+- Decisions / ADRs / `00_STATE.md` rows: ADR-043. No 00_STATE row is added; whether the owner decisions need one is for the coordinator.
+- Blocked on: nothing for the synthetic host. A physician signs the listed text_tr before any real patient (HB-C1).
+- Next: `RedLayer.tsx` passing `modeChosen` to the location derivation (out of bounds for this branch; see the evidence, §3).
+- LOOP_STATUS: CONTINUE

@@ -95,6 +95,15 @@ export interface IntakeOption {
    * `talker/preemption.py` makes for the spoken side.
    */
   inline?: string;
+  /**
+   * INT-604 (ADR-043; owner decision M1, 17 Nov 2026, D18 scope): this option
+   * means "none of these" — "Yok", "Hiçbiri". On a chips step, choosing it
+   * clears every other selection and choosing any other option clears it
+   * (`toggleOption`). It is declared, never inferred from a label, and it
+   * mirrors `dsl.py ChoiceOption.exclusive`: chips steps only, at most one per
+   * step (exclusive.test.ts pins both).
+   */
+  exclusive?: true;
 }
 
 /**
@@ -287,6 +296,14 @@ export interface QuestionCommon {
    * rules (invariant 1).
    */
   redAdjacent?: true;
+  /**
+   * INT-604 (owner decision M2, 17 Nov 2026, D18 scope): this step's answers
+   * are relative to the DAY THEY ARE GIVEN — "Bugün başladı", "Bugün ne zaman
+   * başladı?" — and that is their clinical meaning, so the wording keeps
+   * "bugün" and the anchor is stated instead: the note prints the answering
+   * day on the line (note.ts). Declared, never inferred from wording.
+   */
+  dayAnchored?: true;
 }
 
 /**
@@ -350,6 +367,57 @@ export type IntakeQuestion = QuestionCommon &
       }
   );
 
+/** The option ids a step declares exclusive (ADR-043); empty for every other kind. */
+export function exclusiveOptionIds(question: IntakeQuestion): ReadonlySet<string> {
+  if (question.kind !== "chips" && question.kind !== "single") {
+    return new Set();
+  }
+  return new Set(question.options.filter((o) => o.exclusive === true).map((o) => o.id));
+}
+
+/**
+ * The one selection rule both intake lanes call on a tap (INT-604, ADR-043).
+ *
+ * - single: the tapped option, alone;
+ * - chips: a tap on a selected option removes it; the exclusive option
+ *   replaces the whole selection; any other option is added and clears the
+ *   exclusive one.
+ *
+ * It runs on the ON-SCREEN selection, before submit, so every clearing is
+ * something the patient sees. Nothing after submit applies it: the note stores
+ * the submitted set and the triage request carries exactly that.
+ */
+export function toggleOption(
+  question: IntakeQuestion,
+  selected: readonly string[],
+  optionId: string,
+): string[] {
+  if (question.kind !== "chips") {
+    return [optionId];
+  }
+  if (selected.includes(optionId)) {
+    return selected.filter((id) => id !== optionId);
+  }
+  const exclusive = exclusiveOptionIds(question);
+  if (exclusive.has(optionId)) {
+    return [optionId];
+  }
+  return [...selected.filter((id) => !exclusive.has(id)), optionId];
+}
+
+/**
+ * A SUGGESTED set (a voice candidate, a prefill) made consistent before it is
+ * shown: when it holds the exclusive option beside any other, the exclusive one
+ * is dropped and the symptoms stay. It never drops a symptom, so a suggestion
+ * can only ever show the patient more than "Yok" — and it is on screen, before
+ * submit, where the patient can still choose "Yok" themselves.
+ */
+export function reconcileExclusive(question: IntakeQuestion, values: readonly string[]): string[] {
+  const exclusive = exclusiveOptionIds(question);
+  const others = values.filter((id) => !exclusive.has(id));
+  return others.length > 0 && others.length < values.length ? others : [...values];
+}
+
 /** A step asked in the patient's own words, with its value space intact. */
 export function isOpenAsk(
   question: IntakeQuestion,
@@ -397,6 +465,7 @@ const duration: IntakeQuestion = {
   id: "duration",
   kind: "single",
   ask: "open",
+  dayAnchored: true,
   titleKey: "intake.q.duration",
   hpiLabelKey: "review.hpi.duration",
   options: [
@@ -420,6 +489,7 @@ const duration: IntakeQuestion = {
  */
 const onsetTodayWhen: IntakeQuestion = {
   id: "onset_today_when",
+  dayAnchored: true,
   kind: "single",
   ask: "open",
   titleKey: "intake.q.onsetTodayWhen",
@@ -655,7 +725,7 @@ const cardioAssoc: IntakeQuestion = {
     { id: "dyspnoea", labelKey: "intake.opt.dyspnoea" },
     { id: "dizziness", labelKey: "intake.opt.dizziness" },
     { id: "ankle_swelling", labelKey: "intake.opt.ankleSwelling" },
-    { id: "none", labelKey: "intake.opt.none" },
+    { id: "none", labelKey: "intake.opt.none", exclusive: true },
   ],
 };
 
@@ -787,7 +857,7 @@ const neuroAssoc: IntakeQuestion = {
     { id: "vision", labelKey: "intake.opt.visionChange" },
     { id: "numbness", labelKey: "intake.opt.numbness" },
     { id: "balance", labelKey: "intake.opt.balance" },
-    { id: "none", labelKey: "intake.opt.none" },
+    { id: "none", labelKey: "intake.opt.none", exclusive: true },
   ],
 };
 
@@ -891,7 +961,7 @@ const entAssoc: IntakeQuestion = {
     { id: "dizziness", labelKey: "intake.opt.dizziness" },
     { id: "hoarseness", labelKey: "intake.opt.hoarseness" },
     { id: "fever", labelKey: "intake.opt.fever" },
-    { id: "none", labelKey: "intake.opt.none" },
+    { id: "none", labelKey: "intake.opt.none", exclusive: true },
   ],
 };
 
@@ -1035,7 +1105,7 @@ const orthoAssoc: IntakeQuestion = {
     { id: "redness", labelKey: "intake.opt.redness" },
     { id: "limited_motion", labelKey: "intake.opt.limitedMotion" },
     { id: "numbness", labelKey: "intake.opt.numbness" },
-    { id: "none", labelKey: "intake.opt.none" },
+    { id: "none", labelKey: "intake.opt.none", exclusive: true },
   ],
 };
 
@@ -1164,7 +1234,7 @@ const dermAssoc: IntakeQuestion = {
     { id: "fever", labelKey: "intake.opt.fever" },
     { id: "joint_pain", labelKey: "intake.opt.jointPain" },
     { id: "nail_change", labelKey: "intake.opt.nailChange" },
-    { id: "none", labelKey: "intake.opt.none" },
+    { id: "none", labelKey: "intake.opt.none", exclusive: true },
   ],
 };
 
@@ -1245,7 +1315,7 @@ const pulmoAssoc: IntakeQuestion = {
     { id: "night_sweats", labelKey: "intake.opt.nightSweats" },
     { id: "phlegm_color", labelKey: "intake.opt.phlegmColor" },
     { id: "weight_loss", labelKey: "intake.opt.weightLoss" },
-    { id: "none", labelKey: "intake.opt.none" },
+    { id: "none", labelKey: "intake.opt.none", exclusive: true },
   ],
 };
 
@@ -1310,7 +1380,7 @@ const gynAssoc: IntakeQuestion = {
     { id: "bleeding_change", labelKey: "intake.opt.bleedingChange" },
     { id: "discharge_change", labelKey: "intake.opt.dischargeChange" },
     { id: "urine_burning", labelKey: "intake.opt.urineBurning" },
-    { id: "none", labelKey: "intake.opt.none" },
+    { id: "none", labelKey: "intake.opt.none", exclusive: true },
   ],
 };
 
@@ -1343,7 +1413,7 @@ const uroUrination: IntakeQuestion = {
     { id: "night", labelKey: "intake.opt.nightUrination" },
     { id: "weak_stream", labelKey: "intake.opt.weakStream" },
     { id: "leakage", labelKey: "intake.opt.leakage" },
-    { id: "none", labelKey: "intake.opt.none" },
+    { id: "none", labelKey: "intake.opt.none", exclusive: true },
   ],
 };
 
@@ -1359,7 +1429,7 @@ const uroAssoc: IntakeQuestion = {
     { id: "urine_color", labelKey: "intake.opt.urineColor" },
     { id: "fever", labelKey: "intake.opt.fever" },
     { id: "nausea", labelKey: "intake.opt.nausea" },
-    { id: "none", labelKey: "intake.opt.none" },
+    { id: "none", labelKey: "intake.opt.none", exclusive: true },
   ],
 };
 
@@ -1438,7 +1508,7 @@ const eyeVision: IntakeQuestion = {
     { id: "double", labelKey: "intake.opt.doubleVision" },
     { id: "floaters", labelKey: "intake.opt.floaters" },
     { id: "halos", labelKey: "intake.opt.halos" },
-    { id: "none", labelKey: "intake.opt.none" },
+    { id: "none", labelKey: "intake.opt.none", exclusive: true },
   ],
 };
 
@@ -1454,7 +1524,7 @@ const eyeAssoc: IntakeQuestion = {
     { id: "discharge", labelKey: "intake.opt.eyeDischarge" },
     { id: "light", labelKey: "intake.opt.lightSensitivity" },
     { id: "headache", labelKey: "intake.opt.headache" },
-    { id: "none", labelKey: "intake.opt.none" },
+    { id: "none", labelKey: "intake.opt.none", exclusive: true },
   ],
 };
 
@@ -1553,7 +1623,7 @@ const gastroBowel: IntakeQuestion = {
     { id: "constipation", labelKey: "intake.opt.constipation" },
     { id: "diarrhea", labelKey: "intake.opt.diarrhea" },
     { id: "alternating", labelKey: "intake.opt.alternatingBowel" },
-    { id: "none", labelKey: "intake.opt.none" },
+    { id: "none", labelKey: "intake.opt.none", exclusive: true },
   ],
 };
 
@@ -1590,7 +1660,7 @@ const gastroAssoc: IntakeQuestion = {
     { id: "vomiting", labelKey: "intake.opt.vomiting" },
     { id: "heartburn", labelKey: "intake.opt.heartburn" },
     { id: "appetite_loss", labelKey: "intake.opt.appetiteLoss" },
-    { id: "none", labelKey: "intake.opt.none" },
+    { id: "none", labelKey: "intake.opt.none", exclusive: true },
   ],
 };
 

@@ -323,7 +323,7 @@ export const tr = {
   "me.signOut": "Çıkış yapın",
   "me.syntheticBadge": "Sentetik deneme hesabı",
 
-  "intake.q.complaint": "Sizi bugün hekime getiren nedir?",
+  "intake.q.complaint": "Şu sıralar sizi hekime getiren nedir?",
   "intake.q.complaint.hint": "Birden fazla seçebilirsiniz.",
   "intake.opt.pain": "Ağrı",
   "intake.opt.fever": "Ateş",
@@ -702,11 +702,11 @@ export const tr = {
   // every question. Two calm doors; warmth is in the verb mood (-elim/-alım),
   // never in the pronoun. The old per-question row ("Hastanedeyim" switch +
   // "Sıranız geldi" chip) is gone; the checkpoint survives as "Bitirdim".
-  "intake.mode.q": "Nasıl ilerleyelim?",
-  "intake.mode.hospital": "Hastanedeyim",
+  "intake.mode.q": "Şu anda hastanede misiniz?",
+  "intake.mode.hospital": "Evet, hastanedeyim",
   "intake.mode.hospitalSub": "Ayrıntılı soralım. Sıra size gelirse dilediğinizde bitirebilirsiniz.",
-  "intake.mode.brief": "Kısa tutalım",
-  "intake.mode.briefSub": "Yalnızca en gerekli birkaç soru.",
+  "intake.mode.away": "Hayır, hastanede değilim",
+  "intake.mode.awaySub": "Yalnızca en gerekli birkaç soru.",
   // The clinic-interruptible checkpoint (02 §34): first-person, plain.
   "intake.finishNow": "Bitirdim",
   // Environment self-check (02 §33) — asked only in the ayrıntılı flow.
@@ -740,6 +740,7 @@ export const tr = {
   "note.deferred.wellbeing": "İyilik hâli taraması",
   "note.deferred.marker": "eksik: ortam uygun değildi",
   "review.hpi.staleCondition": "koşul değişti",
+  "note.answeredOn": "yanıt günü",
   "review.eksik.title": "Eksik kalanlar",
   "review.eksik.intro": "Bu sorular henüz yanıtlanmadı:",
   "review.resume": "Kaldığınız yerden devam edin",
@@ -1027,7 +1028,7 @@ export const tr = {
   "carried.source.confirmed_imported_record": "Onayladığınız bir belgeden geldi",
   "carried.empty": "Önceki ziyaretlerden taşınan bir bilgi yok.",
   "carried.ledger.body":
-    "Burada, önceki ziyaretlerinizden taşınan bilgileri ve her birinin nereden geldiğini görürsünüz. Hangisinin bugün de geçerli olduğunu her ziyaretin gözden geçirme adımında sorarız.",
+    "Burada, önceki ziyaretlerinizden taşınan bilgileri ve her birinin nereden geldiğini görürsünüz. Hangisinin hâlâ geçerli olduğunu her ziyaretin gözden geçirme adımında sorarız.",
   "note.fact.previousRecord": "önceki kayıt",
   "note.fact.unconfirmed": "bu ziyarette onaylanmadı",
   "note.fact.confirmed.patient": "hasta bu ziyarette devam ettiğini söyledi",
@@ -1036,7 +1037,7 @@ export const tr = {
   "note.fact.changed.clinician": "hekim değiştiğini kaydetti; yeni bilgi alınmadı",
   "note.fact.stopped.patient": "hasta bıraktığını söyledi",
   "note.fact.stopped.clinician": "hekim bırakıldığını kaydetti",
-  "a11y.carried.hint": "Bu bilginin bugün de geçerli olup olmadığını seçmek için iki kez dokunun.",
+  "a11y.carried.hint": "Bu bilginin hâlâ geçerli olup olmadığını seçmek için iki kez dokunun.",
   // ---- INT-256: her ön görüşmede sorulan geçmiş bilgileri ------------------
   // 04 §1 satır 5–6 (`meds_allergies`, `pmh_fh_sh`). Soru metinleri
   // packages/protocols/base/intake.yaml içindeki `ask_tr`/`follow_up_tr`
