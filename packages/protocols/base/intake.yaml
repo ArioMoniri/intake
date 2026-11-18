@@ -402,7 +402,8 @@ sections:
         # INT-619 (CD-111): RCUK 2021 §3 and §3.1, sudden airway or breathing problems after
         # exposure to a trigger, and §3.2's airway swelling 'causing difficulty in
         # breathing/swallowing'; EK-4 Kırmızı Kategori 2. Swelling alone is not asked
-        # for: RCUK does not count angioedema without an airway or breathing problem.
+        # for: RCUK §3.1 defines anaphylaxis by A/B/C problems and lists angioedema only as a
+        # usual accompaniment (an inference from §3.1, not a sentence it prints).
         type: boolean
         required: false
         must_ask: false
@@ -1116,17 +1117,18 @@ sections:
 #                   before the acuity is the default invariant 21 forbids.
 #    action:        absent, for the same reason. All three locations become mandatory
 #                   at KIRMIZI and the compiler enforces it.
-#    source:        absent. packages/protocols/sources/ does not exist, so there is no
-#                   committed snapshot any quote could be checked against — for EK-4
-#                   or for anything else. 04 §8.1 rule 3: never an invented citation.
+#    source:        absent. No committed snapshot under packages/protocols/sources/
+#                   carries a passage for these five (each family's CD says why).
+#                   04 §8.1 rule 3: never an invented citation.
 #    tense:         ever — the widest tense, under which acuity is lowest (04 §8.1
 #                   rule 4 makes acuity non-increasing as the tense recedes).
 #    tense_anchor:  the dated slot the family would key off. Structural, not clinical;
 #                   the physician may replace it with a family-specific dated slot.
 #
 #  The goldens are in tests/protocols/goldens/base/red_flag_families.yaml — a true
-#  positive and a NEAR-MISS negative for each family, carried and not executed while
-#  the trigger is unsigned. The negative is the more important of the two: a positive
+#  positive and a NEAR-MISS negative for each family. The eight active families' goldens
+#  execute (tests/safety/test_base_intake_red_flag_goldens.py); the five drafts' are
+#  carried and not executed while their trigger is unsigned. The negative is the more important of the two: a positive
 #  can only detect under-triggering and keeps passing under every loosening of a gate,
 #  while over-triggering is invisible to it and surfaces months later as clinicians
 #  who have learned to ignore the alert.

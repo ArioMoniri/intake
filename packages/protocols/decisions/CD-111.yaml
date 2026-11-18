@@ -12,7 +12,8 @@ question: Which current source states a layperson-answerable anaphylaxis trigger
 decision: 'Write rf.anaphylaxis as KIRMIZI_K2 / EMERGENCY_NOW / ALERT on one probe: present now, after
   something such as a food, a drug or an insect sting, a sudden difficulty breathing or a throat swelling
   that makes swallowing hard (RCUK 2021 §3, §3.1, §3.2 Airway problems). Swelling alone is not asked for,
-  because RCUK does not count angioedema without an airway or breathing problem as anaphylaxis. Level:
+  because RCUK §3.1 defines anaphylaxis by sudden Airway, Breathing or Circulation problems and lists
+  angioedema only among the usual skin and mucosal changes (an inference from §3.1, not a sentence it prints). Level:
   EK-4 Kırmızı Kategori 2''s ''yutkunma güçlüğü ile beraber olan havayolu tıkanıklığı riski''. EK-4''s
   Kategori 1 ''Havayolu tıkanıklığı riski'' is the reading a physician may prefer; raising K2 to K1 is
   a tightening they can make. Do-not: ''Ayağa kalkmayın ve yürümeyin'' (RCUK §4.4). ON_SITE does not send
@@ -131,7 +132,8 @@ verifier:
     follow)
   verified_on: 2026-11-18
   notes: 'Each quote re-read against its committed snapshot. One mismatch found and fixed: the first probe
-    fired on a tongue or throat swelling alone, and RCUK 3.1 says angioedema without an airway, breathing
-    or circulation problem is not anaphylaxis. The probe now asks for breathing difficulty or a throat
+    fired on a tongue or throat swelling alone, and RCUK 3.1 defines anaphylaxis by Airway, Breathing or
+    Circulation problems and lists angioedema only as a usual accompaniment (an inference; no RCUK sentence
+    says this in so many words). The probe now asks for breathing difficulty or a throat
     swelling that makes swallowing hard, as RCUK 3.2 prints it. Not D18''s independent verdict: the separate
     clinical reviewer gives that.'

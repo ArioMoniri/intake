@@ -398,8 +398,9 @@ def test_no_family_sits_below_the_floor_it_had(pack: ProtocolPack) -> None:
 def test_the_anaphylaxis_probe_asks_for_an_airway_or_breathing_problem_not_swelling_alone(
     pack: ProtocolPack,
 ) -> None:
-    """Verifier finding (CD-111): RCUK 3.1 does not count angioedema without an
-    airway, breathing or circulation problem. Near miss: a probe that fired on
+    """Verifier finding (CD-111): RCUK 3.1 defines anaphylaxis by Airway,
+    Breathing or Circulation problems and lists angioedema only as a usual
+    accompaniment (an inference from 3.1, not a sentence it prints). Near miss: a probe that fired on
     tongue swelling alone, as the first draft did."""
     probe = pack.sections["red_flags"].slots["rf_anaphylaxis"].ask_tr
     assert probe is not None
