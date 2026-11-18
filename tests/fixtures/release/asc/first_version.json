@@ -1,0 +1,41 @@
+{
+  "_about": "INT-613 recorded exchange for scripts/release/asc_submit.py apply(). SYNTHETIC: written to Apple's JSON:API response shape for each resource; no request was sent to App Store Connect to make it, and every id is invented. The scenario: no 0.1.0 version exists yet, tr already has localizations and en-US does not, and one 1284x2778 screenshot uploads through the App Asset Library with its group read from appAssetLibraryRefData.",
+  "exchanges": [
+    {"method": "GET", "path": "/v1/apps?filter[bundleId]=com.ariomoniri.intakemobile", "status": 200,
+     "body": {"data": [{"type": "apps", "id": "6814005465", "attributes": {"bundleId": "com.ariomoniri.intakemobile"}}]}},
+    {"method": "GET", "path": "/v1/apps/6814005465/appStoreVersions?filter[platform]=IOS&filter[versionString]=0.1.0", "status": 200,
+     "body": {"data": []}},
+    {"method": "POST", "path": "/v1/appStoreVersions", "status": 201,
+     "body": {"data": {"type": "appStoreVersions", "id": "ver-0001", "attributes": {"versionString": "0.1.0", "appStoreState": "PREPARE_FOR_SUBMISSION"}}}},
+    {"method": "GET", "path": "/v1/appStoreVersions/ver-0001/appStoreVersionLocalizations", "status": 200,
+     "body": {"data": [{"type": "appStoreVersionLocalizations", "id": "vloc-tr", "attributes": {"locale": "tr"}}]}},
+    {"method": "PATCH", "path": "/v1/appStoreVersionLocalizations/vloc-tr", "status": 200, "body": {"data": {"type": "appStoreVersionLocalizations", "id": "vloc-tr"}}},
+    {"method": "POST", "path": "/v1/appStoreVersionLocalizations", "status": 201, "body": {"data": {"type": "appStoreVersionLocalizations", "id": "vloc-en"}}},
+    {"method": "GET", "path": "/v1/apps/6814005465/appInfos", "status": 200,
+     "body": {"data": [
+       {"type": "appInfos", "id": "info-live", "attributes": {"state": "READY_FOR_DISTRIBUTION"}},
+       {"type": "appInfos", "id": "info-next", "attributes": {"state": "PREPARE_FOR_SUBMISSION"}}]}},
+    {"method": "GET", "path": "/v1/appInfos/info-next/appInfoLocalizations", "status": 200,
+     "body": {"data": [{"type": "appInfoLocalizations", "id": "iloc-tr", "attributes": {"locale": "tr"}}]}},
+    {"method": "PATCH", "path": "/v1/appInfoLocalizations/iloc-tr", "status": 200, "body": {"data": {"type": "appInfoLocalizations", "id": "iloc-tr"}}},
+    {"method": "POST", "path": "/v1/appInfoLocalizations", "status": 201, "body": {"data": {"type": "appInfoLocalizations", "id": "iloc-en"}}},
+    {"method": "GET", "path": "/v1/apps/6814005465/assetLibrary", "status": 200,
+     "body": {"data": {"type": "appAssetLibraries", "id": "lib-0001"}}},
+    {"method": "GET", "path": "/v1/appStoreVersions/ver-0001/appStoreVersionLocalizations", "status": 200,
+     "body": {"data": [
+       {"type": "appStoreVersionLocalizations", "id": "vloc-tr", "attributes": {"locale": "tr"}},
+       {"type": "appStoreVersionLocalizations", "id": "vloc-en", "attributes": {"locale": "en-US"}}]}},
+    {"method": "GET", "path": "/v1/appAssetLibraryRefData", "status": 200,
+     "body": {"data": [
+       {"type": "appAssetLibraryRefData", "id": "ref-1", "attributes": {"placementType": "APP_SCREENSHOT", "placementGroup": "IPHONE_DYNAMIC_ISLAND_LARGE_PROFILE", "imageSizes": [[1320, 2868], [1290, 2796], [1260, 2736]]}},
+       {"type": "appAssetLibraryRefData", "id": "ref-2", "attributes": {"placementType": "APP_SCREENSHOT", "placementGroup": "SYNTHETIC_FACE_ID_LARGE_GROUP", "imageSizes": [[1284, 2778], [1242, 2688]]}}]}},
+    {"method": "POST", "path": "/v1/appAssetLibraryImages", "status": 201,
+     "body": {"data": {"type": "appAssetLibraryImages", "id": "img-0001", "attributes": {"uploadOperations": [
+       {"method": "PUT", "url": "https://upload.synthetic.invalid/part/1", "offset": 0, "length": 64, "requestHeaders": [{"name": "Content-Type", "value": "image/png"}]},
+       {"method": "PUT", "url": "https://upload.synthetic.invalid/part/2", "offset": 64, "length": 100000, "requestHeaders": [{"name": "Content-Type", "value": "image/png"}]}]}}}},
+    {"method": "PUT", "url": "https://upload.synthetic.invalid/part/1", "status": 200, "body": null},
+    {"method": "PUT", "url": "https://upload.synthetic.invalid/part/2", "status": 200, "body": null},
+    {"method": "PATCH", "path": "/v1/appAssetLibraryImages/img-0001", "status": 200, "body": {"data": {"type": "appAssetLibraryImages", "id": "img-0001"}}},
+    {"method": "POST", "path": "/v1/appAssetLibraryPlacements", "status": 201, "body": {"data": {"type": "appAssetLibraryPlacements", "id": "pl-0001"}}}
+  ]
+}

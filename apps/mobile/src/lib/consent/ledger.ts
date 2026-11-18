@@ -227,7 +227,9 @@ export function applyTexts(
 
 export interface ServerScope {
   scope: PurposeId;
-  reason: "granted" | "default_on" | "unbound" | "absent" | "withdrawn" | "stale";
+  // INT-603 round 2: no "default_on" — no purpose defaults on, and a server
+  // that still said so is dropped at parse time (api.ts), so it grants nothing.
+  reason: "granted" | "unbound" | "absent" | "withdrawn" | "stale";
   version: string | null;
   textHash: string | null;
 }
@@ -260,9 +262,6 @@ export function applyServerScopes(state: LedgerState, scopes: readonly ServerSco
           boundHash: item.textHash,
           serverStale: true,
         };
-        break;
-      case "default_on":
-        records[def.id] = baseRecord(true);
         break;
       case "absent":
         records[def.id] = baseRecord(false);

@@ -837,3 +837,107 @@ def test_the_api_pumps_its_outbox_into_the_shared_store(
     inbox = SafetyInbox(store=store)
     (row,) = inbox.queue(TENANT, T0)
     assert row.entry == entry
+
+
+# --- 3. INT-602: a press of the ON_SITE staff control -------------------------------------
+
+STAFF_CALL_PATH = "/v1/triage/red-staff-call"
+
+
+def _press(harness: ApiHarness, *, rule_id: str = RULE, **extra: Any) -> Any:
+    return harness.client.post(
+        STAFF_CALL_PATH,
+        headers=harness.patient(),
+        json={"session_id": VISIT, "visit_id": VISIT, "rule_id": rule_id, **extra},
+    )
+
+
+def test_a_staff_call_press_is_audited_as_a_press_not_a_location_answer(
+    harness: ApiHarness, store: RedisSafetyInboxStore
+) -> None:
+    """Invariant 4: a press on a RED known to be ON_SITE is its own act. Near miss:
+    no ``red_location`` row is written, because the patient answered no question."""
+    _evaluate(harness, FIRING, "ON_SITE")
+    response = _press(harness)
+    assert response.status_code == 202
+    assert response.json() == {"kind": "red_staff_call", "staffNotified": True}
+    red, on_site = _written(harness, store)
+    assert _audit(harness, "api.triage.red_location") == []
+    assert _audit(harness, "api.triage.red_staff_called") == [
+        (
+            "dev-patient",
+            "api.triage.red_staff_called",
+            f"safety_inbox:{TENANT}:{on_site.entry_id}",
+            "scope:core",
+        )
+    ]
+    # One staff notification per RED: the press lands on the automatic one.
+    assert (red.kind, on_site.kind) == (EntryKind.RED, EntryKind.RED_ON_SITE)
+
+
+def test_near_miss_an_evet_answer_is_still_audited_as_a_location_answer(
+    harness: ApiHarness, store: RedisSafetyInboxStore
+) -> None:
+    assert _answer(harness, "ON_SITE").status_code == 202
+    assert [row[1] for row in _audit(harness, "api.triage.red_")] == [
+        "api.triage.red_location.on_site"
+    ]
+
+
+def test_a_press_with_no_automatic_notification_puts_it(
+    harness: ApiHarness, store: RedisSafetyInboxStore
+) -> None:
+    """A RED whose hop could not notify staff: the press is then what pages them,
+    and a repeat press pages nobody twice (first write wins)."""
+    for _ in range(3):
+        assert _press(harness).status_code == 202
+    assert _kinds(_written(harness, store)) == [EntryKind.RED_ON_SITE]
+    assert len(_audit(harness, "api.triage.red_staff_called")) == 3
+
+
+def test_a_staff_call_is_authenticated_consented_patient_only_and_served_rules_only(
+    harness: ApiHarness,
+) -> None:
+    bare = harness.client.post(
+        STAFF_CALL_PATH, json={"session_id": VISIT, "visit_id": VISIT, "rule_id": RULE}
+    )
+    assert bare.status_code == 401
+    admin = harness.client.post(
+        STAFF_CALL_PATH,
+        headers=harness.admin(),
+        json={"session_id": VISIT, "visit_id": VISIT, "rule_id": RULE},
+    )
+    assert admin.status_code == 403
+    refused = _press(harness, rule_id="rf.uydurma_kural")
+    assert refused.status_code == 422
+    assert refused.json() == {"error": "rule_not_served"}
+    # Ids only: a location, or any free text, is not a field of a press.
+    for extra in ({"location": "ON_SITE"}, {"note": "hastanın notu"}):
+        assert _press(harness, **extra).status_code == 422
+    harness.revoke_consent("core")
+    assert _press(harness).status_code == 403
+    assert _audit(harness, "api.triage.red_staff_called") == []
+
+
+def test_a_staff_call_with_no_inbox_is_refused_and_counted(tmp_path: Path) -> None:
+    for harness in _rig(tmp_path, None):
+        before = _sample("clinic_red_inbox_route_failures_total")
+        refused = _press(harness)
+        assert refused.status_code == 503
+        assert refused.json() == {"error": "safety_inbox_unconfigured"}
+        assert _sample("clinic_red_inbox_route_failures_total") == before + 1
+
+
+def test_an_unaudited_staff_call_is_retried_and_notified_once(
+    harness: ApiHarness, store: RedisSafetyInboxStore
+) -> None:
+    state = harness.client.app.state.api  # type: ignore[attr-defined]
+    real = state.audit
+    state.audit = _BrokenAudit(real)
+    refused = _press(harness)
+    assert refused.status_code == 503
+    assert refused.json() == {"error": "red_staff_call_unaudited"}
+    state.audit = real
+    assert _press(harness).status_code == 202
+    assert _kinds(_written(harness, store)) == [EntryKind.RED_ON_SITE]
+    assert len(_audit(harness, "api.triage.red_staff_called")) == 1

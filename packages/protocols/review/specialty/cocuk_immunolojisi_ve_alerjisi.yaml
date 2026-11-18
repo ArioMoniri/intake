@@ -35,7 +35,7 @@ sections:
         ask_tr:
           tr: Bugün çocuğunuzla ilgili sizi en çok düşündüren konu nedir?
         follow_up_tr:
-          tr: Bugünkü randevunuzun sebebini kısaca anlatır mısınız?
+          tr: Bu randevunuzun sebebini kısaca anlatır mısınız?
         openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.reason_for_encounter.v1 recorded in docs/evidence/proposals/cocuk_immunolojisi_ve_alerjisi.md'
       sikayet_suresi:
         type: duration

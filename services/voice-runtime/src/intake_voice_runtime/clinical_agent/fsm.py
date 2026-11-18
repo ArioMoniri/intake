@@ -234,6 +234,15 @@ class IntakeEngine:
             if state in {AnswerState.ASKED_PRESENT, AnswerState.ASKED_ABSENT}
         }
 
+    def can_clarify(self, step_id: str) -> bool:
+        """Whether a clarification of ``step_id`` would queue a follow-up rather
+        than record the gap: it has follow-up text and its bound is not spent."""
+        origin = self._origin_of(step_id)
+        attempts = self._clarify_attempts.get(origin, 0)
+        return self._by_id[origin].follow_up_tr is not None and attempts < self.clarification_bound(
+            origin
+        )
+
     def clarification_bound(self, step_id: str) -> int:
         """How many clarifications ``step_id`` gets before it is ``UNCLEAR``."""
         self.state_of(step_id)

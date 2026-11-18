@@ -1100,7 +1100,9 @@ it or whose tests exercise it.
   rows follow the answer, and a failed route or append is counted
   (`clinic_red_inbox_route_failures_total`, which pages; `clinic_red_notification_unaudited_total`).
   Every share is audited by id (`api.triage.red_notified`, `api.triage.red_on_site_notified`,
-  `api.triage.red_unrouted`, `api.triage.red_location.{on_site,remote}`). Tests:
+  `api.triage.red_unrouted`, `api.triage.red_location.{on_site,remote}`, and since INT-602
+  `api.triage.red_staff_called` for an ON_SITE staff-control press, which is never recorded as a
+  location answer). Tests:
   `tests/api/test_red_notify.py`, `tests/platform/test_safety_inbox.py`,
   `tests/voice/test_safety_inbox_notifier.py`, `apps/mobile/src/lib/red/locationReport.test.ts`.
 

@@ -19,7 +19,6 @@ from intake_platform.consent.registry import (
     resolve_scope,
 )
 from intake_platform.consent.service import (
-    OPT_OUT_VERSION,
     ConsentAudit,
     ConsentDecision,
     Reason,
@@ -48,7 +47,6 @@ from intake_platform.consent.texts import (
 __all__ = [
     "CHANNELS",
     "CORE",
-    "OPT_OUT_VERSION",
     "PURPOSES",
     "REMOVED_PURPOSES",
     "SWEEP_INTERVAL",

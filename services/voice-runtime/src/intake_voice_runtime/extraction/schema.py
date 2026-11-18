@@ -119,7 +119,13 @@ def _value_shape(ref: str, slot: Slot, valuesets: Mapping[str, tuple[str, ...]])
                 "members were not supplied — an unconstrained code slot is an "
                 "unconstrained answer, so the schema is refused rather than widened"
             )
-        return {"type": "string", "enum": list(members)}
+        member = {"type": "string", "enum": list(members)}
+        if slot.multiple:
+            # INT-604 (ADR-043): a multi-select slot is answered with the SET of
+            # members the patient named — "omzuma ve koluma" is two sites, and
+            # a schema with room for one makes the model drop one.
+            return {"type": "array", "items": member, "minItems": 1, "uniqueItems": True}
+        return member
     choices = date_choices(slot)
     if choices:
         return {"type": "string", "enum": list(choices)}

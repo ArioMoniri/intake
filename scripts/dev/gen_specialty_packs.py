@@ -77,7 +77,7 @@ GATE_NAME = re.compile(r"\b([a-z][a-z0-9_]*)\s*(?:==|!=|>=|<=|>|<)")
 FIXED_SLOTS = frozenset({"basvuru_nedeni", "sikayet_suresi"})
 DURATION_ASK = "Bu şikâyetiniz ne zamandır var?"
 DURATION_FOLLOW_UP = "Gün ya da hafta olarak yaklaşık söyleyebilir misiniz?"
-REASON_FOLLOW_UP_WHEN_NEDIR = "Bugünkü randevunuzun sebebini kısaca anlatır mısınız?"
+REASON_FOLLOW_UP_WHEN_NEDIR = "Bu randevunuzun sebebini kısaca anlatır mısınız?"
 REASON_FOLLOW_UP_OTHERWISE = "Sizi hekime getiren en önemli şikâyetiniz nedir?"
 SLOT_ID = re.compile(r"^[a-z][a-z0-9_]*$")
 

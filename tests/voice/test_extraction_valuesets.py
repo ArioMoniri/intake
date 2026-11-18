@@ -35,6 +35,7 @@ import json
 from collections.abc import Mapping, Sequence
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 
 import pytest
 from clinical_schemas.common import JsonValue
@@ -312,6 +313,17 @@ def test_the_code_slots_red_flag_rules_read_are_character_and_radiation() -> Non
     assert set(_red_flag_code_slots()) == {CHARACTER, RADIATION}
 
 
+def _enum(value: dict[str, Any]) -> list[str] | None:
+    """The members a value schema offers: a single choice, or (INT-604,
+    ``multiple: true``) each item of the set."""
+    if "enum" in value:
+        return list(value["enum"])
+    items = value.get("items")
+    if isinstance(items, dict) and "enum" in items:
+        return list(items["enum"])
+    return None
+
+
 @pytest.mark.parametrize(
     ("ref", "choice"),
     [(ref, choice) for ref, slot in _red_flag_code_slots().items() for choice in _choices(slot)],
@@ -320,9 +332,8 @@ def test_every_red_flag_code_slot_binds_from_each_authored_choice(ref: str, choi
     slot = _red_flag_code_slots()[ref]
     members = _members(load_committed_valuesets())
     schema = slot_output_schema({ref: slot}, members)
-    assert schema["properties"]["slots"]["properties"][ref]["properties"]["value"]["enum"] == list(
-        _choices(slot)
-    )
+    value = schema["properties"]["slots"]["properties"][ref]["properties"]["value"]
+    assert _enum(value) == list(_choices(slot))
     raw = _completion({ref: choice})
     result = parse_extraction(raw=raw, slots={ref: slot}, valuesets=members, step_id=ref)
     assert result.flags == ()
@@ -490,8 +501,8 @@ def test_the_schema_the_model_answers_is_the_committed_set_for_both_code_slots()
     for call in gateway.calls:
         for ref, entry in call.json_schema["properties"]["slots"]["properties"].items():
             value = entry["properties"]["value"]
-            if "enum" in value:
-                enums[ref] = value["enum"]
+            if _enum(value) is not None:
+                enums[ref] = _enum(value)
     slots = _red_flag_code_slots()
     assert enums[CHARACTER] == list(_choices(slots[CHARACTER]))
     assert enums[RADIATION] == list(_choices(slots[RADIATION]))
