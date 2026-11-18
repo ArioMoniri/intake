@@ -1,0 +1,20 @@
+# guideline_id: SYN-ANKET
+# title: Sentetik anket kaynağı
+# publisher: SENTETİK TEST VERİSİ — no publisher; invented for tests
+# version_or_date: sürüm bir
+# url: https://example.invalid/syn-anket
+# retrieved_on: 2026-11-17
+# scope: SENTETİK. The snapshot the INT-116 wellbeing-engine fixtures cite. Every string below is invented nonsense for tests; none of it is, resembles or stands in for an item of any real instrument, and nothing served may cite it.
+---
+Sentetik anket yönergesi: mor kaplan döneminde neler oldu.
+Sentetik madde bir: sarı tebeşir sorusu.
+Sentetik madde iki: yeşil fener sorusu.
+Sentetik madde üç: mavi çaydanlık sorusu.
+Sentetik kriz maddesi: turuncu bulut sorusu.
+Sentetik seçenek sıfır.
+Sentetik seçenek bir.
+Sentetik seçenek iki.
+Sentetik seçenek üç.
+Sentetik eşik alıntısı: kısa anket puanı en az üç ise uzun ankete geçilir.
+Sentetik kriz eşiği alıntısı: kriz maddesinde sıfırdan büyük her yanıt kriz yoluna gider.
+Sentetik bant alıntısı: uzun anket puanı en az beş ise sentetik bant yüksek.

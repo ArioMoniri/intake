@@ -1,0 +1,62 @@
+# SENTETİK — the INT-116 wellbeing-engine fixture registry. Every string is
+# invented nonsense quoted from tests/fixtures/protocols/sources/SYN-ANKET.txt.
+# None of it is, resembles or stands in for an item of PHQ-2, PHQ-9, GAD-2,
+# GAD-7 or any other instrument: the mechanism is provable without the
+# content, and a fixture that carried real items would have smuggled
+# uncommitted clinical content in through the tests.
+kind: instrument_registry
+locale: tr
+instruments:
+  - id: SYN-K
+    source: &src
+      snapshot: tests/fixtures/protocols/sources/SYN-ANKET.txt
+      guideline_id: SYN-ANKET
+      url: https://example.invalid/syn-anket
+      retrieved_on: 2026-11-17
+      version_or_date: sürüm bir
+    timeframe_tr: "Sentetik anket yönergesi: mor kaplan döneminde neler oldu."
+    options: &opts
+      - {id: o0, score: 0, text_tr: "Sentetik seçenek sıfır."}
+      - {id: o1, score: 1, text_tr: "Sentetik seçenek bir."}
+      - {id: o2, score: 2, text_tr: "Sentetik seçenek iki."}
+      - {id: o3, score: 3, text_tr: "Sentetik seçenek üç."}
+    items:
+      - {id: m1, text_tr: "Sentetik madde bir: sarı tebeşir sorusu."}
+      - {id: m2, text_tr: "Sentetik madde iki: yeşil fener sorusu."}
+  - id: SYN-U
+    source: *src
+    timeframe_tr: "Sentetik anket yönergesi: mor kaplan döneminde neler oldu."
+    options: *opts
+    items:
+      - {id: m1, text_tr: "Sentetik madde bir: sarı tebeşir sorusu."}
+      - {id: m2, text_tr: "Sentetik madde iki: yeşil fener sorusu."}
+      - {id: m3, text_tr: "Sentetik madde üç: mavi çaydanlık sorusu."}
+      - {id: k9, text_tr: "Sentetik kriz maddesi: turuncu bulut sorusu.", crisis_item: true}
+cutoffs:
+  - id: cut.syn_k_cascade
+    instrument: SYN-K
+    kind: cascade
+    target: SYN-U
+    status: active
+    threshold: 3
+    source:
+      <<: *src
+      quote: "Sentetik eşik alıntısı: kısa anket puanı en az üç ise uzun ankete geçilir."
+  - id: cut.syn_u_crisis
+    instrument: SYN-U
+    kind: crisis_trigger
+    item: k9
+    status: active
+    threshold: 1
+    source:
+      <<: *src
+      quote: "Sentetik kriz eşiği alıntısı: kriz maddesinde sıfırdan büyük her yanıt kriz yoluna gider."
+  - id: cut.syn_u_band_high
+    instrument: SYN-U
+    kind: severity
+    band: sentetik_yuksek
+    status: active
+    threshold: 5
+    source:
+      <<: *src
+      quote: "Sentetik bant alıntısı: uzun anket puanı en az beş ise sentetik bant yüksek."

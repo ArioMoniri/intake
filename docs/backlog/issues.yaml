@@ -1368,7 +1368,17 @@
   title: "Wellbeing engine: PHQ-2/GAD-2 -> PHQ-9/GAD-7 -> C-SSRS, crisis script, verbatim items, clinician-only outputs"
   depends_on: [INT-081, INT-112]
   labels: [area:clinical, risk:clinical, approval:human-clinical]
-  status: todo
+  status: awaiting-human
+  evidence: docs/evidence/INT-116.md
+  # ENGINE SHIPPED, CONTENT AWAITING A HUMAN (17 Nov 2026).
+  # protocols.wellbeing: licence gate, verbatim-from-snapshot loader, deterministic
+  # scoring of explicit option ids, sourced-or-refused cut-offs, the crisis path through
+  # protocols.triage, clinician-only records. Proven end to end on SENTETİK fixtures.
+  # "validated Turkish items verbatim" is NOT satisfiable: no snapshot of the PHQ/GAD
+  # Turkish text is committed, so the registry is empty and each instrument refuses
+  # items_not_committed (HB-C29); every cut-off is draft_needs_source (HB-C29). PHQ-9
+  # also needs a served crisis script (HB-C8, HB-C17). C-SSRS stays refused on licence
+  # and cannot be committed (HB-L2); WHO-5 likewise (HB-L3).
   acceptance:
     - "validated Turkish items verbatim; scoring deterministic; crisis path completion tested end-to-end; outputs never in patient summary"
   tests: [tests/clinical/test_wellbeing_paths.py]
