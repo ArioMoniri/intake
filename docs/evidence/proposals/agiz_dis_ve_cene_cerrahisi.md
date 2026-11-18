@@ -186,7 +186,7 @@ CANDIDATE — clinician to approve wording.
 **Q2 — Facial/jaw/under-tongue swelling (airway pair, part one)** · archetype:
 `OBSERVATION.symptom_sign.v1` · source: S2 (Ludwig symptom labels — "Neck swelling"; "Tongue swelling or protrusion …")
 > "Yüzünüzde, çenenizde ya da dilinizin altında şişlik var mı?"
-gen: slot=yuz_cene_dil_alti_sislik; type=boolean
+gen: slot=yuz_cene_sisligi; type=boolean
 CANDIDATE — clinician to approve wording. Airway pair in the wave 4–5 endodonti soru_7 form; the
 jargon "ağız tabanı" is gone. Gate for Q4.
 
@@ -194,7 +194,7 @@ jargon "ağız tabanı" is gone. Gate for Q4.
 `OBSERVATION.symptom_sign.v1` · source: S2 (Ludwig — "Breathing difficulty is an emergency situation";
 "Difficulty swallowing")
 > "Nefes almakta ya da yutkunmakta zorlanıyor musunuz?"
-gen: slot=nefes_yutma_zorlugu; type=boolean
+gen: slot=nefes_yutkunma_guclugu; type=boolean
 CANDIDATE — clinician to approve wording. Deliberately **not** gated on Q2. Candidate_flag:
 **candidate acute-airway concern, pending clinician + rules-engine confirmation — NOT
 authoritative**; source is patient-education (S2, LOW–MEDIUM); RED script/axes NOT supplied (§4).
@@ -203,14 +203,14 @@ This is the key spreading-infection/airway screen.
 **Q4 — Fever with the swelling** · archetype: `OBSERVATION.symptom_sign.v1` · source: S2 (Ludwig —
 "dental pain, fever, trismus … swelling")
 > "Bu şişlikle birlikte ateşiniz de var mı?"
-gen: slot=sislikle_ates; type=boolean; ask_if=yuz_cene_dil_alti_sislik == true
+gen: slot=sislik_ile_ates; type=boolean; ask_if=yuz_cene_sisligi == true
 CANDIDATE — clinician to approve wording. Candidate_flag: **candidate — NOT authoritative** (systemic
 sign of spreading infection); source S2 (LOW–MEDIUM).
 
 **Q5 — Limited mouth opening / trismus** · archetype: `OBSERVATION.symptom_sign.v1` · source: S2 (Ludwig —
 "trismus")
 > "Son zamanlarda ağzınızı açmakta zorlanıyor musunuz?"
-gen: slot=agiz_acma_zorlugu; type=boolean
+gen: slot=agiz_acma_guclugu; type=boolean
 CANDIDATE — clinician to approve wording. Candidate_flag: **candidate — NOT authoritative**; source S2.
 
 **Q6 — Non-healing mouth/lip sore** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1
@@ -243,16 +243,24 @@ authoritative)** per S1.
 **Q10 — History of prolonged bleeding** · archetype: `OBSERVATION.symptom_sign.v1` · source: S5 (SDCEP —
 bleeding-risk assessment; "Expect prolonged bleeding")
 > "Daha önce bir diş çekimi ya da yaralanma sonrasında olağandan uzun süre kanamanız oldu mu?"
-gen: slot=uzamis_kanama_oykusu; type=boolean
+gen: slot=islem_sonrasi_uzun_kanama; type=boolean
 CANDIDATE — clinician to approve wording. Anticoagulant use itself is asked by base
 `anticoagulant_use`; patients must **not** be told to stop such medication here (S5).
 
-**Q11 — Antiresorptive / bone medication** · archetype: `ACTION.medication.v1` · source: S6 (AAOMS MRONJ —
+**Q11a — Antiresorptive / bone medication** · archetype: `ACTION.medication.v1` · source: S6 (AAOMS MRONJ —
 "tooth extraction is a common predisposing event"; antiresorptive medication)
 > "Kemik erimesi ya da başka bir kemik sorunu için hiç ilaç kullandınız mı?"
-gen: slot=kemik_ilaci
+gen: slot=kemik_ilaci; type=boolean
 CANDIDATE — clinician to approve wording. Past use counts (was twenty-four words with two particles).
-Medication history only; free-text slot so the drug name is captured.
+Medication history only. Yes/no gate for Q11b, the same `kemik_ilaci` boolean the dental cluster and
+periodontoloji and protetik declare (verification wave 8 §A, cluster-wave-b §F).
+
+**Q11b — Name of that medicine** · archetype: `ACTION.medication.v1` · source: S6 (AAOMS MRONJ)
+> "Hatırlıyorsanız bu ilacın adını söyleyebilir misiniz?"
+gen: slot=kemik_ilaci_adi; type=string; ask_if=kemik_ilaci == true
+CANDIDATE — clinician to approve wording. Split from Q11: a boolean slot cannot store the medicine's
+name, so it has its own string slot. Text and pair as periodontoloji and protetik Q11a/Q11b
+(verification wave 8 §C).
 
 **Q12 — Drug / local-anaesthetic / latex allergy** · archetype: `EVALUATION.adverse_reaction_risk.v1` ·
 source: general intake
@@ -261,8 +269,8 @@ gen: slot=ilac_lokal_anestezik_lateks_alerjisi
 CANDIDATE — clinician to approve wording. "uyuşturucu iğnesi" read as "narcotic" and is replaced
 (finding 13). Specialty-specific allergy, so kept alongside base `allergies`.
 
-*(12 candidate questions after revision: Q2–Q9 source-derived red-flag context; Q10–Q11 sourced
-bleeding/medication history; Q1/Q12 general intake.)*
+*(13 candidate questions after revision, Q11 split into Q11a and Q11b: Q2–Q9 source-derived red-flag
+context; Q10–Q11 sourced bleeding/medication history; Q1/Q12 general intake.)*
 
 ---
 

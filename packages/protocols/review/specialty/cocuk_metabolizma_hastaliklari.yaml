@@ -71,7 +71,7 @@ sections:
         ask_tr:
           tr: Çocuğunuz son zamanlarda sık sık kusuyor ya da beslenmeyi reddediyor mu?
         openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/cocuk_metabolizma_hastaliklari.md'
-      uykulu_halsiz:
+      uykulu_tepkisiz:
         type: boolean
         required: false
         ask_tr:
@@ -82,7 +82,7 @@ sections:
         required: false
         ask_tr:
           tr: Bu belirtiler çocuğunuz hastalandığında ya da uzun süre aç kaldığında artıyor mu?
-        ask_if: kusma_beslenme_reddi == true || uykulu_halsiz == true
+        ask_if: kusma_beslenme_reddi == true || uykulu_tepkisiz == true
         openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; no candidate archetype recorded in docs/evidence/proposals/cocuk_metabolizma_hastaliklari.md'
       beceri_kaybi:
         type: boolean

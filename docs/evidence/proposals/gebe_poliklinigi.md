@@ -222,7 +222,7 @@ CANDIDATE — clinician to approve wording. No rule exists to feed (§2.2, §4 g
 
 **Q11 — Severe persistent headache** · archetype: `OBSERVATION.symptom_sign.v1` · source: GP-S1 PDF p. 21 ("Şiddetli Başağrısı"); GP-S3 rec 1.1.1 ("severe headache")
 > "Son günlerde geçmeyen şiddetli bir baş ağrınız oldu mu?"
-gen: slot=siddetli_bas_agrisi; type=boolean
+gen: slot=gebelikte_siddetli_bas_agrisi; type=boolean
 CANDIDATE — clinician to approve wording. **Feeds HB-C4 pre-eclampsia pattern (§2.2).**
 
 **Q12 — New swelling of face, hands or eyelids** · archetype: `OBSERVATION.symptom_sign.v1` · source: GP-S1 PDF p. 21 ("Yüz, el ve bacaklarda şişme") and p. 28; GP-S3 rec 1.1.1

@@ -179,7 +179,7 @@ CANDIDATE — clinician to approve wording. Candidate_flag: **YELLOW_REVIEW (can
 **Q5 — Unexplained weight loss** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1
 ("Açıklanamayan ağırlık kaybı")
 > "Beslenmenizde bir değişiklik olmadığı hâlde son zamanlarda kilo verdiniz mi?"
-gen: slot=aciklanamayan_kilo_kaybi; type=boolean
+gen: slot=istemsiz_kilo_kaybi; type=boolean
 CANDIDATE — clinician to approve wording. Candidate_flag: **YELLOW_REVIEW (candidate, …)**, per S1.
 
 **Q6 — Fatigue** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 ("Halsizlik, çabuk yorulma")

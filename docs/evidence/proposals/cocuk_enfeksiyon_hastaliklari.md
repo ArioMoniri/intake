@@ -194,12 +194,12 @@ CANDIDATE — clinician to approve wording.
 
 **Q2 — Ateş** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 (NICE NG143 rec 1.2.14 "fever lasting 5 days or longer"; rec 1.2.12/1.2.13 age thresholds); S3 (HSGM ateş eşikleri)
 > "Çocuğunuzun ateşi oldu mu?"
-gen: slot=ates_oldu; type=boolean
+gen: slot=ates_var_mi; type=boolean
 CANDIDATE — clinician to approve wording. Gate for Q3.
 
 **Q3 — Ateşin süresi** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 (NICE NG143 rec 1.2.14)
 > "Çocuğunuzun ateşi ne zamandır sürüyor?"
-gen: slot=ates_suresi; type=duration; ask_if=ates_oldu == true
+gen: slot=ates_suresi; type=duration; ask_if=ates_var_mi == true
 CANDIDATE — clinician to approve wording. The boundary moves to the rule as NG143's "5 days or
 longer" (finding 8: the old patient text said "longer than five days", which contradicted the
 source). Candidate_flag: **YELLOW_REVIEW (candidate, pending clinician + rules-engine confirmation —
@@ -224,7 +224,7 @@ base.intake; this question only surfaces the sign.
 
 **Q7 — Aşırı uyku hali** · archetype: `OBSERVATION.symptom_sign.v1` · source: S2 (WHO IMCI "lethargic or unconscious") · **→ base.life_threat (inv. 7); not leveled here**
 > "Çocuğunuz her zamankinden çok uykulu ya da halsiz mi?"
-gen: slot=asiri_uykulu_halsiz; type=boolean
+gen: slot=uykulu_tepkisiz; type=boolean
 CANDIDATE — clinician to approve wording.
 
 **Q8 — Uyandıramama** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 red "does not wake or if roused does not stay awake" · **→ base.life_threat (inv. 7); not leveled here**
@@ -245,7 +245,7 @@ CANDIDATE — clinician to approve wording.
 
 **Q11 — Bilinen süregen tanı** · archetype: `EVALUATION.problem_diagnosis.v1` · source: S3 (HSGM "Kronik hastalık varlığı")
 > "Çocuğunuza daha önce konulmuş süregen bir hastalık tanısı var mı?"
-gen: slot=suregen_hastalik_tanisi; type=boolean
+gen: slot=suregen_tani; type=boolean
 CANDIDATE — clinician to approve wording.
 
 **Q12 — Erken doğum** · archetype: `EVALUATION.problem_diagnosis.v1` · source: S3 (HSGM "Prematürite")

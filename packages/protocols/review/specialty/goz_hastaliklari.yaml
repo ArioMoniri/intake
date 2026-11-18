@@ -77,8 +77,8 @@ sections:
         ask_tr:
           tr: Görüşünüzün bir kısmını perde ya da gölge kapatıyormuş gibi bir his oldu mu?
         openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/goz_hastaliklari.md'
-      soru_6:
-        type: string
+      goz_agrisi:
+        type: boolean
         required: false
         ask_tr:
           tr: Gözünüzde ya da göz çevresinde ağrı var mı?
@@ -89,8 +89,8 @@ sections:
         ask_tr:
           tr: Gözünüzde ya da göz çevresindeki deride kızarıklık var mı?
         openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/goz_hastaliklari.md'
-      soru_8:
-        type: string
+      isik_cevresinde_halka:
+        type: boolean
         required: false
         ask_tr:
           tr: Işıkların çevresinde renkli halkalar görüyor musunuz?
@@ -101,8 +101,8 @@ sections:
         ask_tr:
           tr: Nesneleri çift görüyor musunuz?
         openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/goz_hastaliklari.md'
-      soru_10:
-        type: string
+      kontakt_lens:
+        type: boolean
         required: false
         ask_tr:
           tr: Kontakt lens kullanıyor musunuz?

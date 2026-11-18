@@ -108,7 +108,7 @@ sections:
         ask_tr:
           tr: Bilmemizi istediğiniz başka bir sağlık durumunuz var mı?
         openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.problem_diagnosis.v1 recorded in docs/evidence/proposals/amatem.md'
-      destek_cevresi:
+      sosyal_destek:
         type: boolean
         required: false
         ask_tr:

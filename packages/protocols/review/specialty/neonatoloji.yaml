@@ -105,13 +105,13 @@ sections:
           tr: Bebeğinizin kakası çok açık renkli ya da tebeşir gibi beyaz mı?
         ask_if: sararma == true
         openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/neonatoloji.md'
-      ates:
+      ates_var_mi:
         type: boolean
         required: false
         ask_tr:
           tr: Bebeğinizde ateş olduğunu fark ettiniz mi?
         openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/neonatoloji.md'
-      asiri_uykululuk:
+      uykulu_tepkisiz:
         type: boolean
         required: false
         ask_tr:

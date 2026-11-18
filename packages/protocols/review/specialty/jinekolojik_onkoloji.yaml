@@ -100,7 +100,7 @@ sections:
         follow_up_tr:
           tr: Az yemekle bile tok hissettiğiniz oluyor mu?
         openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/jinekolojik_onkoloji.md'
-      kasik_alt_karin_agrisi:
+      alt_karin_agrisi:
         type: boolean
         required: false
         ask_tr:

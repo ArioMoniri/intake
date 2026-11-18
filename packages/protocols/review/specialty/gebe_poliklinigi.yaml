@@ -132,7 +132,7 @@ sections:
           tr: Bu gebelikte iç çamaşırınızı ıslatan su gibi bir akıntı oldu mu?
         delivery: text_first
         openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/gebe_poliklinigi.md'
-      siddetli_bas_agrisi:
+      gebelikte_siddetli_bas_agrisi:
         type: boolean
         required: false
         ask_tr:

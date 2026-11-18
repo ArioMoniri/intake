@@ -124,6 +124,34 @@ sections:
         ask_tr:
           tr: Şu anda düzenli olarak kullandığınız ilaçlar var mı?
         openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype ACTION.medication.v1 recorded in docs/evidence/proposals/kadin_hastaliklari_ve_dogum.md'
+ops:
+- op: reorder
+  pointer: /sections/sorular/slots
+  order:
+  - gebelik_dogrulandi
+  - tahmini_dogum_tarihi
+  - bebek_hareketi_hissediliyor
+  - yuz_el_sisligi
+  - yakin_zamanda_gebelik_sonlandi
+  - gebelik_sonrasi_kanama_artisi
+  - gebelik_sonrasi_ates
+  - yogun_adet_kanamasi
+  - adet_disi_kanama
+  - adet_kesildi
+  - menopoz_sonrasi_kanama
+  - alt_karin_agrisi
+  - anormal_akinti
+  - dogum_kontrol_yontemi
+  - onceki_gebelik
+  - son_adet_tarihi
+  - gebelik_durumu
+  - gebelikte_kanama
+  - bebek_hareketlerinde_azalma
+  - gebelikte_siddetli_bas_agrisi
+  - gebelikte_gorme_bozuklugu
+  - gebelikte_su_gelmesi
+  - ates_var_mi
+  - duzenli_ilac
 red_flags:
 - id: rf.kadin_hastaliklari_ve_dogum_l0_taslak
   label_tr: Kadın Hastalıkları ve Doğum ön görüşme protokolü — branşa özgü kırmızı bayrak taslağı (klinik onay bekliyor)

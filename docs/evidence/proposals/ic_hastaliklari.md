@@ -149,6 +149,7 @@ CANDIDATE — clinician to approve wording. (Onset/duration itself is the genera
 **Q3 — Unintended weight loss** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 Rec 1.13.2
 ("unexplained weight loss"); S2 ("Açıklanamayan ağırlık kaybı"); S3 ("İstemsiz kilo kaybı")
 > "Son aylarda diyet yapmadan kilo verdiğinizi fark ettiniz mi?"
+gen: slot=istemsiz_kilo_kaybi; type=boolean
 CANDIDATE — clinician to approve wording. The S1 magnitude/age threshold is a clinician criterion,
 not asked here and not pinned (§4 gap 3).
 

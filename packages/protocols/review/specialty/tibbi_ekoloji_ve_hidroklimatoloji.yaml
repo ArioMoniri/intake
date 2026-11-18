@@ -84,7 +84,7 @@ sections:
         ask_tr:
           tr: Size daha önce kalp ya da akciğer hastalığı olduğu söylendi mi?
         openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype EVALUATION.problem_diagnosis.v1 recorded in docs/evidence/proposals/tibbi_ekoloji_ve_hidroklimatoloji.md'
-      yuksek_tansiyon_oykusu:
+      yuksek_tansiyon_tanisi:
         type: boolean
         required: false
         ask_tr:

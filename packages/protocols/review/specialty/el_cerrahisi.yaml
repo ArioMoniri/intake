@@ -47,7 +47,7 @@ sections:
         openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; no candidate archetype recorded in docs/evidence/proposals/el_cerrahisi.md'
   sorular:
     slots:
-      yaralanma_sonrasi_basladi:
+      travma_sonrasi_basladi:
         type: boolean
         required: false
         ask_tr:

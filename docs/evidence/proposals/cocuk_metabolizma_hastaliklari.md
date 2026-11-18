@@ -198,7 +198,7 @@ owned by `base.life_threat`.
 **Q6 — Unusual drowsiness / lethargy** · archetype: `OBSERVATION.symptom_sign.v1` · source: S2
 ("episodes of encephalopathy")
 > "Çocuğunuz alışılmadık şekilde uykulu, halsiz ya da zor uyandırılır hâle geldi mi?"
-gen: slot=uykulu_halsiz; type=boolean
+gen: slot=uykulu_tepkisiz; type=boolean
 CANDIDATE — clinician to approve wording. Candidate_flag: **YELLOW_REVIEW (candidate, …)** per S2;
 altered consciousness / encephalopathy is owned by `base.life_threat`.
 
@@ -206,7 +206,7 @@ altered consciousness / encephalopathy is owned by `base.life_threat`.
 `OBSERVATION.symptom_sign.v1` · source: S2 (decompensation with intercurrent illness) + S3 ("enfeksiyon
 gibi stresli olaylarda hastalık belirtileri ortaya çıkabilir")
 > "Bu belirtiler çocuğunuz hastalandığında ya da uzun süre aç kaldığında artıyor mu?"
-gen: slot=hastalik_aclikla_artis; type=boolean; ask_if=kusma_beslenme_reddi == true || uykulu_halsiz == true
+gen: slot=hastalik_aclikla_artis; type=boolean; ask_if=kusma_beslenme_reddi == true || uykulu_tepkisiz == true
 CANDIDATE — clinician to approve wording. Candidate_flag: **YELLOW_REVIEW (candidate, …)** per S2/S3;
 metabolic stress can precipitate decompensation — the emergency is owned by `base.life_threat`.
 

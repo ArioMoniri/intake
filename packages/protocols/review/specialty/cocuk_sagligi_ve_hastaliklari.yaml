@@ -76,7 +76,7 @@ sections:
         type: boolean
         required: false
         ask_tr:
-          tr: Nefes alırken çocuğunuzun kaburgalarının arası içeri çekiliyor mu?
+          tr: Nefes alırken çocuğunuzun kaburgalarının altı ya da arası içeri çekiliyor mu?
         openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/cocuk_sagligi_ve_hastaliklari.md'
       inleme:
         type: boolean

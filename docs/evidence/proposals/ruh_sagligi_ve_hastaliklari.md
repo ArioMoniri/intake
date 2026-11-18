@@ -285,7 +285,7 @@ notes it resembles an item of a published mood-disorder screening questionnaire;
 
 **Q12 — Other substance use** · archetype: `OBSERVATION.story.v1` (narrative only) · source: R-S7 Guideline II, R-S1 ("madde kullanımı (örn. alkol, kannabis, opioidler)"), R-S5 1.2.7
 > "Alkol ve sigara dışında keyif verici bir madde kullanıyor musunuz?"
-gen: slot=diger_madde_kullanimi; type=boolean; delivery=text_first
+gen: slot=diger_madde_kullanimi; type=boolean; ask_if=subject_role == 'kendim'; delivery=text_first
 CANDIDATE — clinician to approve wording. Alcohol and smoking are already asked by `base/intake.yaml`; misuse of
 prescribed medicines is a clinician follow-up. "keyif verici" replaces "herhangi bir madde", which would also
 catch prescribed medicines. `text_first` per files/13 §13 (substance use). **HOLD:** non-alcohol substance use

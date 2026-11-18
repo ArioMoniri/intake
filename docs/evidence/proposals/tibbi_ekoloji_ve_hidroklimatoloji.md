@@ -171,7 +171,7 @@ CANDIDATE — clinician to approve wording.
 
 **Q8 — Known high blood pressure** · archetype: `EVALUATION.problem_diagnosis.v1` · source: TE-S2 ("labil hipertansiyon")
 > "Size daha önce yüksek tansiyon olduğu söylendi mi?"
-gen: slot=yuksek_tansiyon_oykusu; type=boolean
+gen: slot=yuksek_tansiyon_tanisi; type=boolean
 CANDIDATE — clinician to approve wording. "Yüksek tansiyon" replaces the jargon term.
 
 **Q9 — Past clot or varicose-vein problem** · archetype: `EVALUATION.problem_diagnosis.v1` · source: TE-S2 ("Trombotik hastalığı olan bireylerde"; "venöz bozukluklar")

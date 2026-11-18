@@ -47,7 +47,7 @@ sections:
         openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; no candidate archetype recorded in docs/evidence/proposals/enfeksiyon_hastaliklari.md'
   sorular:
     slots:
-      ates_var_mi:
+      son_gunlerde_ates:
         type: boolean
         required: false
         ask_tr:
@@ -58,7 +58,7 @@ sections:
         required: false
         ask_tr:
           tr: Ateşiniz ne zamandır sürüyor?
-        ask_if: ates_var_mi == true
+        ask_if: son_gunlerde_ates == true
         openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/enfeksiyon_hastaliklari.md'
       titreme_kotu_hissetme:
         type: boolean

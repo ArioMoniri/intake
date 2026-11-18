@@ -205,12 +205,12 @@ stool) · Q9 → Q11 · Q10 → Q12 (travel) + Q13 (contact) · Q11 → Q14 · Q
 **Q2 — Ateş** · archetype: `OBSERVATION.symptom_sign.v1` · source: S3 (HSGM "Ateş >39 °C"); S1/S2 (fever within the sepsis / meningitis red-flag combinations)
 > "Son günlerde ateşiniz oldu mu?"
 > _CANDIDATE — clinician to approve. Candidate_flag: **YELLOW_REVIEW (candidate, pending clinician + rules-engine confirmation — NOT authoritative)** for high or persistent fever, per S3. A high/persistent-fever emergency also lives in `base.life_threat` (`rf.fever_high_persistent`, inv. 7); the numeric temperature threshold is a clinician-set cut-off, surfaced qualitatively — the patient is not asked for a number._
-gen: slot=ates_var_mi; type=boolean
+gen: slot=son_gunlerde_ates; type=boolean
 
 **Q3 — Ateş süresi (Q2 evet ise)** · archetype: `OBSERVATION.symptom_sign.v1` · source: S3 (HSGM "Ateş >39 °C"); S1/S2
 > "Ateşiniz ne zamandır sürüyor?"
 > _CANDIDATE — clinician to approve. Captured as a duration slot, not a free number (inv. 22)._
-gen: slot=ates_suresi; type=duration; ask_if=ates_var_mi == true
+gen: slot=ates_suresi; type=duration; ask_if=son_gunlerde_ates == true
 
 **Q4 — Şiddetli halsizlik / titreme** · archetype: `OBSERVATION.symptom_sign.v1` · source: S1 (NICE sepsis clinical-concern picture) · **→ base.life_threat (inv. 7); not leveled here**
 > "Ateşle birlikte titreme, üşüme ya da kendinizi çok kötü, güçten düşmüş hissetme oldu mu?"

@@ -79,11 +79,11 @@ sections:
         ask_tr:
           tr: Çocuğunuz şu sıralarda her zamankinden hızlı nefes alıyor mu?
         openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/cocuk_gogus_hastaliklari.md'
-      gogus_ice_cekilmesi:
+      gogus_icine_cekilme:
         type: boolean
         required: false
         ask_tr:
-          tr: Nefes alırken çocuğunuzun kaburgalarının arası içeri çekiliyor mu?
+          tr: Nefes alırken çocuğunuzun kaburgalarının altı ya da arası içeri çekiliyor mu?
         openehr_deferred_reason: 'INT-032: openEHR binding deferred to the P3 export; candidate archetype OBSERVATION.symptom_sign.v1 recorded in docs/evidence/proposals/cocuk_gogus_hastaliklari.md'
       inleme:
         type: boolean
