@@ -8,7 +8,8 @@ lives in ``$FAKE_STATE``:
   argv carried a secret, and which secrets travelled on stdin instead;
 - ``params.json``: the SSM parameter store, name -> ``{"Type", "Value"}``;
 - ``keycloak.json``: the realm (users with id, username, email, attributes, roles, credential),
-  the bootstrap admin password, and ``fail``, the kcadm verb that should fail;
+  the bootstrap admin password, and ``fail``, the kcadm verb that should fail (or
+  ``reset-password``, to fail only that update);
 - ``container/``: the Keycloak container's file system, where kcadm's ``--config`` files live;
 - ``invocations.json``: every send-command, with its parameters, status, stdout and stderr.
 
@@ -227,18 +228,22 @@ def kcadm(tokens: list[str], stdin: str) -> None:
         _fail("Logon is required: no session in the --config file", 1)
     if options.get("-r") != ["intake"]:
         _fail("fake kcadm: every call names -r intake")
-    if realm.get("fail") == verb:
-        _fail(f"fake kcadm: {verb} failed (HTTP 500)")
     resource = positional[0] if positional else ""
+    # `fail` names a verb (every call of it fails) or reset-password alone
+    if realm.get("fail") in (verb, resource.rsplit("/", 1)[-1]):
+        _fail(f"fake kcadm: {verb} {resource} failed (HTTP 500)")
     csv = options.get("--format") == ["csv"] and "--noquotes" in options
     if verb == "get" and resource == "users":
         query = dict(q.split("=", 1) for q in options.get("-q", []))
         if query.pop("exact", None) != "true" or len(query) != 1 or not csv:
             _fail("fake kcadm: users are looked up by one exact field, as csv")
         ((field, value),) = query.items()
+        (shown,) = options.get("--fields", ["username"])
+        if shown not in ("username", "id"):
+            _fail("fake kcadm: a user lookup shows the username or the id")
         for user in users:
             if user.get(field) == value:
-                print(user["username"])
+                print(user[shown])
     elif verb == "get" and resource == "roles/platform_owner/users":
         if options.get("--fields") != ["id"] or not csv:
             _fail("fake kcadm: role members are listed by id, as csv")
@@ -271,6 +276,14 @@ def kcadm(tokens: list[str], stdin: str) -> None:
             _fail("fake kcadm: reset-password is a PUT without GET, body on stdin")
         user = next(u for u in users if u["id"] == resource.split("/")[1])
         user["credential"] = json.loads(stdin)
+        _save("keycloak.json", realm)
+    elif verb == "update" and resource.startswith("users/") and resource.count("/") == 1:
+        # a merge (GET, then PUT): only the fields given with -s change
+        user = next((u for u in users if u["id"] == resource.split("/")[1]), None)
+        if user is None:
+            _fail("Resource not found for url", 1)
+        for assignment in options.get("-s", []):
+            _set_field(user, assignment)
         _save("keycloak.json", realm)
     elif verb == "delete" and resource.startswith("users/"):
         realm["users"] = [u for u in users if u["id"] != resource.split("/")[1]]

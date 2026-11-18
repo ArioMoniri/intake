@@ -6,10 +6,13 @@
 # stay there as the fallback.
 #
 # Usage, from a shell where the AWS CLI is signed in:
-#   scripts/ops/staff_user.sh
-# It prompts for the username, the email and the role, and takes no argument.
+#   scripts/ops/staff_user.sh                     create: prompts for the username, email and role
+#   scripts/ops/staff_user.sh --reset <username>  a new temporary password for an existing user
+# Staff sign in with the USERNAME: the realm does not accept the email
+# (loginWithEmailAllowed is false), and an unknown name reads "Invalid
+# username or password", exactly like a wrong password.
 #
-# What happens:
+# What happens on create:
 #   1. Each answer is checked before anything is sent. The role is
 #      platform_owner or qms_owner, nothing else.
 #   2. A read-only probe asks the host whether a platform_owner exists. If
@@ -38,9 +41,15 @@
 #      password locally, reads the temporary password from SSM with the
 #      instance role, and creates the user (see that file).
 #   5. It prints "created" and the one command that reveals the temporary
-#      password once and deletes the parameter. Hand the password over
-#      privately (Signal or in person). On a refusal it prints the reason and
-#      deletes the unused parameter.
+#      password once and deletes the parameter. That command prints the value
+#      alone on its line, then "paste exactly; <n> characters". Hand the
+#      password over privately (Signal or in person). On a refusal it prints
+#      the reason and deletes the unused parameter.
+#
+# --reset takes the same steps 3 to 5 for an existing user, without the
+# prompts or the probe. On the host it sets the new password (temporary) and
+# the required actions webauthn-register and UPDATE_PASSWORD again, and
+# refuses an unknown user. It prints "reset" and the reveal command.
 #
 # This is an operator action outside the console's four-eyes ceremony. Its
 # record is CloudTrail (PutParameter, SendCommand) and the realm's own events.
@@ -53,6 +62,7 @@ USERNAME_SHAPE='^[a-z][a-z0-9._-]{2,63}$'
 EMAIL_SHAPE='^[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}$'
 ROLE_SHAPE='^(platform_owner|qms_owner)$'
 ORG_SLUG='^[a-z0-9][a-z0-9-]{0,38}[a-z0-9]$'
+USERNAME_RULE="the username must be 3-64 of a-z 0-9 . _ - and start with a letter"
 
 die() {
   printf 'staff_user: %s\n' "$*" >&2
@@ -69,7 +79,18 @@ refused() {
   exit 3
 }
 
-[[ $# -eq 0 ]] || die "takes no argument: it prompts for the username, email and role"
+mode=create
+username=""
+email=""
+role=""
+org=""
+if [[ $# -gt 0 ]]; then
+  [[ $# -eq 2 && $1 == --reset ]] ||
+    die "usage: staff_user.sh (it prompts), or staff_user.sh --reset <username>"
+  mode=reset
+  username=$2
+  [[ $username =~ $USERNAME_SHAPE ]] || die "$USERNAME_RULE"
+fi
 
 region=${AWS_REGION:-us-east-1}
 instance=${INTAKE_HOST_INSTANCE_ID:-i-0e489e48739f5de98}
@@ -78,27 +99,30 @@ instance=${INTAKE_HOST_INSTANCE_ID:-i-0e489e48739f5de98}
 host_script="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)/infra/staging/staff_user_host.sh"
 [[ -f $host_script ]] || fail "missing $host_script"
 
-username=""
-email=""
-role=""
-org=""
-printf 'username: ' >&2
-read -r username || true
-[[ -n $username ]] || die "the username is empty"
-[[ $username =~ $USERNAME_SHAPE ]] || die "the username must be 3-64 of a-z 0-9 . _ - and start with a letter"
-printf 'email: ' >&2
-read -r email || true
-[[ -n $email ]] || die "the email is empty"
-email=$(printf '%s' "$email" | tr '[:upper:]' '[:lower:]')
-[[ ${#email} -le 254 && $email =~ $EMAIL_SHAPE && $email != *..* && $email != .* && $email != *.@* ]] ||
-  die "the email is not an address"
-printf 'role (platform_owner|qms_owner): ' >&2
-read -r role || true
-[[ -n $role ]] || die "the role is empty"
-[[ $role =~ $ROLE_SHAPE ]] || die "the role must be platform_owner or qms_owner"
+if [[ $mode == create ]]; then
+  printf 'username: ' >&2
+  read -r username || true
+  [[ -n $username ]] || die "the username is empty"
+  [[ $username =~ $USERNAME_SHAPE ]] || die "$USERNAME_RULE"
+  printf 'email: ' >&2
+  read -r email || true
+  [[ -n $email ]] || die "the email is empty"
+  email=$(printf '%s' "$email" | tr '[:upper:]' '[:lower:]')
+  [[ ${#email} -le 254 && $email =~ $EMAIL_SHAPE && $email != *..* && $email != .* && $email != *.@* ]] ||
+    die "the email is not an address"
+  printf 'role (platform_owner|qms_owner): ' >&2
+  read -r role || true
+  [[ -n $role ]] || die "the role is empty"
+  [[ $role =~ $ROLE_SHAPE ]] || die "the role must be platform_owner or qms_owner"
+fi
 
 param="/intake/staging/staff_tmp/$username"
-reveal="aws ssm get-parameter --region $region --name $param --with-decryption --query Parameter.Value --output text && aws ssm delete-parameter --region $region --name $param"
+# The one command that shows the temporary password once, then deletes it. It
+# is printed for the owner's own shell (zsh, bash or sh) and expanded there:
+# the value alone on its line, then its length, so a short or long paste shows.
+# shellcheck disable=SC2016 # $v and ${#v} expand in the owner's shell
+reveal=$(printf 'v=$(aws ssm get-parameter --region %s --name %s --with-decryption --query Parameter.Value --output text) && printf %s "$v" "${#v}" && aws ssm delete-parameter --region %s --name %s; unset v' \
+  "$region" "$param" "'%s\\npaste exactly; %s characters\\n'" "$region" "$param")
 
 private=$(mktemp -d)
 trap 'rm -rf "$private"' EXIT
@@ -135,30 +159,32 @@ on_host() {
   host_line=$(printf '%s\n' "$out" | grep -m1 '^staff_user: ' || true)
 }
 
-# The probe: read-only, before anything is generated.
-on_host probe "$param" "$region" || fail "SSM did not accept the probe; nothing was created"
-case "$host_line" in
-"staff_user: owner-org "*)
-  # the host gives the new user the platform_owner's org; no org is sent
-  org=-
-  ;;
-"staff_user: no-owner")
-  [[ $role == platform_owner ]] ||
-    refused "no platform_owner exists yet: create the platform_owner first; the second approver joins their org"
-  printf 'organisation id: ' >&2
-  read -r org || true
-  [[ -n $org ]] || die "the organisation id is empty"
-  [[ $org =~ $ORG_SLUG ]] ||
-    die "the organisation id must be 2-40 of a-z 0-9 - and start and end with a letter or digit"
-  ;;
-"staff_user: refused: "*)
-  refused "${host_line#staff_user: refused: }"
-  ;;
-*)
-  printf 'unknown: probe command %s ended %s without a result line; nothing was created\n' "$host_id" "$host_status"
-  exit 1
-  ;;
-esac
+if [[ $mode == create ]]; then
+  # The probe: read-only, before anything is generated.
+  on_host probe "$param" "$region" || fail "SSM did not accept the probe; nothing was created"
+  case "$host_line" in
+  "staff_user: owner-org "*)
+    # the host gives the new user the platform_owner's org; no org is sent
+    org=-
+    ;;
+  "staff_user: no-owner")
+    [[ $role == platform_owner ]] ||
+      refused "no platform_owner exists yet: create the platform_owner first; the second approver joins their org"
+    printf 'organisation id: ' >&2
+    read -r org || true
+    [[ -n $org ]] || die "the organisation id is empty"
+    [[ $org =~ $ORG_SLUG ]] ||
+      die "the organisation id must be 2-40 of a-z 0-9 - and start and end with a letter or digit"
+    ;;
+  "staff_user: refused: "*)
+    refused "${host_line#staff_user: refused: }"
+    ;;
+  *)
+    printf 'unknown: probe command %s ended %s without a result line; nothing was created\n' "$host_id" "$host_status"
+    exit 1
+    ;;
+  esac
+fi
 
 # The temporary password exists only inside this subshell and the 0600 file.
 if ! (
@@ -183,14 +209,25 @@ delete_param() {
   aws ssm delete-parameter --region "$region" --name "$param" >/dev/null 2>&1 || true
 }
 
-if ! on_host create "$username" "$email" "$role" "$param" "$region" "$org"; then
+if [[ $mode == create ]]; then
+  done_line="staff_user: created"
+  done_word=created
+  sent=0
+  on_host create "$username" "$email" "$role" "$param" "$region" "$org" || sent=$?
+else
+  done_line="staff_user: reset"
+  done_word=reset
+  sent=0
+  on_host reset "$username" "$param" "$region" || sent=$?
+fi
+if [[ $sent -ne 0 ]]; then
   delete_param
   fail "SSM did not accept the host command; the temporary password was deleted"
 fi
 case "$host_line" in
-"staff_user: created")
+"$done_line")
   if [[ $host_status == Success ]]; then
-    printf 'created\n%s\n' "$reveal"
+    printf '%s\n%s\n' "$done_word" "$reveal"
     exit 0
   fi
   ;;

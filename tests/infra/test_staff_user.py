@@ -132,19 +132,49 @@ class TestCreated:
 
 
 class TestReveal:
-    def test_it_shows_the_password_once_and_deletes_the_parameter(self, tmp_path: Path) -> None:
+    # The owner pastes the reveal command into their own shell: zsh on macOS, bash or sh
+    # elsewhere. It uses only POSIX sh, so bash and sh stand in for all three here.
+    @pytest.mark.parametrize("shell", [BASH, "sh"])
+    def test_it_shows_the_password_once_with_its_length_and_deletes_it(
+        self, tmp_path: Path, shell: str
+    ) -> None:
         world = _world(tmp_path)
         reveal = _run(world, _answers()).stdout.splitlines()[1]
         assert reveal == REVEAL
         first = subprocess.run(
-            [BASH, "-c", reveal], env=world.env, capture_output=True, text=True, check=False
+            [shell, "-c", reveal], env=world.env, capture_output=True, text=True, check=False
         )
-        assert first.returncode == 0 and first.stdout == f"{TEMP_PASSWORD}\n"
+        assert first.returncode == 0, first.stderr
+        assert first.stdout == f"{TEMP_PASSWORD}\npaste exactly; 64 characters\n"
         assert world.params() == {}
         again = subprocess.run(
-            [BASH, "-c", reveal], env=world.env, capture_output=True, text=True, check=False
+            [shell, "-c", reveal], env=world.env, capture_output=True, text=True, check=False
         )
-        assert again.returncode != 0 and TEMP_PASSWORD not in again.stdout
+        assert again.stdout == "", "nothing to show twice"
+        assert "ParameterNotFound" in again.stderr
+
+    def test_the_revealed_line_is_exactly_what_keycloak_stored(self, tmp_path: Path) -> None:
+        # INT-538 round 3: the owner's first sign-in failed. The value typed at the console
+        # must be byte-for-byte the stored credential: no newline, no space, nothing else.
+        world = _world(tmp_path)
+        reveal = _run(world, _answers()).stdout.splitlines()[1]
+        shown = subprocess.run(
+            [BASH, "-c", reveal], env=world.env, capture_output=True, text=True, check=False
+        ).stdout
+        value, length_line, rest = shown.split("\n", 2)
+        user = world.user(USERNAME)
+        assert user is not None
+        assert value == user["credential"]["value"]
+        assert value == value.strip() and len(value) == 64
+        assert length_line == "paste exactly; 64 characters" and rest == ""
+        assert user["credential"]["temporary"] is True
+
+    def test_near_miss_a_value_of_another_length_says_its_real_length(self, tmp_path: Path) -> None:
+        world = _world(tmp_path, params={PARAM: {"Type": "SecureString", "Value": "abc"}})
+        shown = subprocess.run(
+            [BASH, "-c", REVEAL], env=world.env, capture_output=True, text=True, check=False
+        )
+        assert shown.stdout == "abc\npaste exactly; 3 characters\n"
 
 
 # --- prompts and validation near misses ----------------------------------------------------------
@@ -264,7 +294,10 @@ class TestRefusals:
         existing = _owner(username=USERNAME, uid="2222")
         world = _world(tmp_path, users=[existing])
         out = _refused(world, _answers(org=None))
-        assert out == f"refused: the username {USERNAME} already exists in realm intake\n"
+        assert out == (
+            f"refused: the username {USERNAME} already exists in realm intake;"
+            f" to issue a new temporary password, use --reset {USERNAME}\n"
+        )
         assert world.realm()["users"] == [existing], "nothing created or changed"
         assert world.params() == {}, "the unused temporary password is deleted"
         _assert_kcadm_config_deleted(world, sessions=2)

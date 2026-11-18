@@ -3,14 +3,17 @@
 # user in the Keycloak realm `intake` on the synthetic staging host.
 #
 # The laptop sends this file base64-wrapped in an AWS-RunShellScript command,
-# so it reaches the host without a deploy. SSM runs it as root, in one of two
-# modes:
+# so it reaches the host without a deploy. SSM runs it as root, in one of
+# three modes:
 #   bash -c "<this file>" staff_user_host probe <parameter> <region>
 #   bash -c "<this file>" staff_user_host create <username> <email> <role> <parameter> <region> <org|->
+#   bash -c "<this file>" staff_user_host reset <username> <parameter> <region>
 # `probe` only reads. It reports the platform_owners' org, or that none exists
-# yet, so the laptop knows whether to ask for an org. No argument is a
-# secret. The temporary password waits in the SSM SecureString <parameter>
-# until `create` reads it.
+# yet, so the laptop knows whether to ask for an org. `reset` gives an
+# existing user a new temporary password and the required actions
+# webauthn-register and UPDATE_PASSWORD again; it refuses an unknown user. No
+# argument is a secret. The temporary password waits in the SSM SecureString
+# <parameter> until `create` or `reset` reads it.
 #
 # Secrets, all three of them:
 #   - KEYCLOAK_ADMIN_PASSWORD is read from the host's root-only env file into
@@ -31,12 +34,13 @@
 # slug the owner typed for this very first user, who must be the
 # platform_owner. An org is never invented.
 #
-# Both modes first check that the instance role may read the staff_tmp
-# parameters, and name the exact IAM statement to add when it may not.
+# Every mode first checks that the instance role may read the staff_tmp
+# parameters, and names the exact IAM statement to add when it may not.
 #
-# Output is one line: "staff_user: created", "staff_user: owner-org <org>",
-# "staff_user: no-owner", or "staff_user: refused: <why>" with exit 3. No
-# credential value and no email is ever printed.
+# Output is one line: "staff_user: created", "staff_user: reset",
+# "staff_user: owner-org <org>", "staff_user: no-owner", or
+# "staff_user: refused: <why>" with exit 3. No credential value and no email
+# is ever printed.
 set -euo pipefail
 umask 077
 # byte-wise character classes: [a-z] is ASCII only, whatever SSM's locale
@@ -138,6 +142,21 @@ print(values[0] if len(values) == 1 and isinstance(values[0], str) else "")') ||
   [[ -z $owner_org || $owner_org =~ $ORG_SHAPE ]] || refuse "the platform_owner's org is not org-shaped (the realm's user-profile rule)"
 }
 
+# The temporary password, read with the instance role into one variable. Only
+# the shape check below and set_password ever see it.
+read_tmp_pw() {
+  tmp_pw=$(aws ssm get-parameter --region "$region" --name "$param" --with-decryption --query Parameter.Value --output text 2>/dev/null) || true
+  [[ $tmp_pw =~ $HEX64 ]] || {
+    unset tmp_pw
+    refuse "the temporary password is not in SSM, or is not a generated one"
+  }
+}
+
+# Sets $tmp_pw as user $1's password, temporary, from stdin; never an argv.
+set_password() {
+  printf '{"type":"password","temporary":true,"value":"%s"}' "$tmp_pw" | docker exec -i "$CONTAINER" "$KCADM" update "users/$1/reset-password" --config "$cfg" -r "$REALM" -n -f - >/dev/null 2>&1
+}
+
 mode=${1:-}
 case $mode in
 probe)
@@ -156,8 +175,35 @@ probe)
   fi
   exit 0
   ;;
+reset)
+  [[ $# -eq 4 ]] || refuse "reset expects the username, the parameter and the region"
+  username=$2
+  param=$3
+  region=$4
+  [[ $username =~ $USERNAME_SHAPE ]] || refuse "the username is not Keycloak-safe"
+  [[ $param == "$STAFF_TMP/$username" ]] || refuse "the parameter is not this user's"
+  [[ $region =~ $REGION_SHAPE ]] || refuse "the region is not an AWS region"
+  check_ssm_read
+  log_in
+  uid=$(kc get users -q "username=$username" -q exact=true --fields id --format csv --noquotes 2>/dev/null) ||
+    refuse "Keycloak did not answer the username lookup"
+  [[ -n $uid ]] || refuse "no user named $username in realm $REALM"
+  [[ $uid =~ $ID_SHAPE ]] || refuse "Keycloak returned a user id of an unexpected shape"
+  read_tmp_pw
+  kc update "users/$uid" -s 'requiredActions=["webauthn-register","UPDATE_PASSWORD"]' >/dev/null 2>&1 || {
+    unset tmp_pw
+    refuse "the required actions could not be set; the password was not changed"
+  }
+  set_password "$uid" || {
+    unset tmp_pw
+    refuse "the temporary password could not be set; the old password still stands"
+  }
+  unset tmp_pw
+  printf 'staff_user: reset\n'
+  exit 0
+  ;;
 create) ;;
-*) refuse "the mode is neither probe nor create" ;;
+*) refuse "the mode is neither probe, create nor reset" ;;
 esac
 
 [[ $# -eq 7 ]] || refuse "create expects username, email, role, parameter, region and org"
@@ -180,7 +226,7 @@ log_in
 
 existing=$(kc get users -q "username=$username" -q exact=true --fields username --format csv --noquotes 2>/dev/null) ||
   refuse "Keycloak did not answer the username lookup"
-[[ -z $existing ]] || refuse "the username $username already exists in realm $REALM"
+[[ -z $existing ]] || refuse "the username $username already exists in realm $REALM; to issue a new temporary password, use --reset $username"
 existing=$(kc get users -q "email=$email" -q exact=true --fields username --format csv --noquotes 2>/dev/null) ||
   refuse "Keycloak did not answer the email lookup"
 [[ -z $existing ]] || refuse "that email already belongs to a user in realm $REALM"
@@ -197,11 +243,7 @@ else
   org=$org_arg
 fi
 
-tmp_pw=$(aws ssm get-parameter --region "$region" --name "$param" --with-decryption --query Parameter.Value --output text 2>/dev/null) || true
-[[ $tmp_pw =~ $HEX64 ]] || {
-  unset tmp_pw
-  refuse "the temporary password is not in SSM, or is not a generated one"
-}
+read_tmp_pw
 
 uid=$(kc create users -s "username=$username" -s "email=$email" -s enabled=true -s emailVerified=true \
   -s "attributes.org=[\"$org\"]" -s 'requiredActions=["webauthn-register","UPDATE_PASSWORD"]' -i 2>/dev/null) || {
@@ -220,7 +262,6 @@ rollback() {
 }
 
 kc add-roles --uid "$uid" --rolename "$role" >/dev/null 2>&1 || rollback "the role could not be granted"
-printf '{"type":"password","temporary":true,"value":"%s"}' "$tmp_pw" | docker exec -i "$CONTAINER" "$KCADM" update "users/$uid/reset-password" --config "$cfg" -r "$REALM" -n -f - >/dev/null 2>&1 ||
-  rollback "the temporary password could not be set"
+set_password "$uid" || rollback "the temporary password could not be set"
 unset tmp_pw
 printf 'staff_user: created\n'
