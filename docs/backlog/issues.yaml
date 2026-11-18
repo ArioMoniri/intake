@@ -5345,7 +5345,8 @@
   title: "ADR: Motion system v1 (opacity-only ≤ 120 ms, arbiter order, no-motion surfaces, haptics policy, RED as root layer)"
   depends_on: []
   labels: [area:mobile, approval:owner]
-  status: todo
+  status: awaiting-human
+  evidence: docs/evidence/INT-332.md
   acceptance:
     - "an ADR in docs/adr ratifies the motion system as revised in docs/design/motion/motion-verification.md, with the matching 00_STATE row and a mobile-ui.md §Motion pointer in the same commit"
     - "the five open questions are recorded awaiting-human with their named owners, each failing closed meanwhile"
@@ -7708,3 +7709,55 @@
     - "osv-scanner 2.5.1 reports only minimatch 3.1.5 GHSA-g3hv-75wg-m249 on the branch; the minimatch 3.1.5 row is owner-applied (osv-scanner.toml entry expiring 2026-11-30, the MAX_OSV_SUPPRESSIONS paragraph and its scoped test, from owner-597-minimatch-exception.patch), after which osv-scanner reports no issue"
   tests: [tests/ci/test_security_gates.py]
   sec_row: "cicd"
+- id: INT-609
+  epic: E08-mobile
+  phase: P2
+  title: "Motion: one warning haptic for an ALERT RED, only while the microphone is cold (ADR-033 Q2, D44)"
+  # Owner answer of 17 Nov 2026 to ADR-033 Q2 ("ok yes"), recorded as D44 and
+  # closing HB-C26. A physician question answered under D18: synthetic host and
+  # simulated patients only; a licensed physician signs before any real
+  # patient. It widens INT-333's and INT-340's "no RED register fires a haptic"
+  # for ALERT alone.
+  depends_on: [INT-332, INT-333, INT-340]
+  labels: [area:mobile, risk:clinical]
+  status: todo
+  acceptance:
+    - "an ALERT RED fires at most one warning haptic, and only when the microphone is cold, read at fire time; a hot microphone fires none"
+    - "CALM, SILENT and DEFERRED_CLINICIAN never fire a haptic; the sticky SILENT-or-third-party suppression still refuses it; the warning member of HapticCall is reachable only from the ALERT RED path"
+    - "the RED first paint waits on no haptic: the haptic is off the first-paint path and the 300 ms preemption budget is unchanged"
+    - "tests first with near misses: CALM, SILENT and DEFERRED_CLINICIAN each fire none, a hot microphone fires none, a second ALERT trigger in the same RED fires none"
+  tests: [apps/mobile/src/lib/motion/red.test.ts, apps/mobile/src/lib/motion/haptics.test.ts, apps/mobile/e2e/motion.spec.ts]
+  sec_row: "triage"
+- id: INT-610
+  epic: E08-mobile
+  phase: P2
+  title: "SILENT RED guidance may be announced by VoiceOver or TalkBack (ADR-033 Q3, D44)"
+  # Owner answer of 17 Nov 2026 to ADR-033 Q3 ("yes"), recorded as D44 and
+  # closing HB-C27. A physician question answered under D18: synthetic host and
+  # simulated patients only; a licensed physician signs before any real
+  # patient.
+  depends_on: [INT-332, INT-333]
+  labels: [area:mobile, risk:clinical]
+  status: todo
+  acceptance:
+    - "under SILENT, the guidance is announced through the running screen reader (VoiceOver or TalkBack) and stays first in reading order; with no screen reader running nothing is spoken"
+    - "the app plays no audio of its own under SILENT, and SILENT keeps no takeover, colour change or motion; DEFERRED_CLINICIAN announces nothing"
+    - "the announced text is the verbatim SILENT guidance (invariant 10), tr first, siz, PolicyGuard-clean"
+    - "tests first with near misses: no announcement without a screen reader, none for DEFERRED_CLINICIAN, no app audio under SILENT"
+  tests: [apps/mobile/src/lib/motion/red.test.ts, apps/mobile/e2e/motion.spec.ts]
+  sec_row: "triage"
+- id: INT-611
+  epic: E08-mobile
+  phase: P2
+  title: "Motion: the presence orb breathes with a scale of at most 1.06 (ADR-033 Q5, D44)"
+  # Owner answer of 17 Nov 2026 to ADR-033 Q5 ("yes, grow and shrink"),
+  # recorded as D44 and closing HB-O11. The one exception to opacity-only.
+  depends_on: [INT-332, INT-336]
+  labels: [area:mobile]
+  status: todo
+  acceptance:
+    - "the faceless 40 pt orb breathes (grows and shrinks) with a scale of at most 1.06, as the one scale in the app; its scale token lands with this consumer"
+    - "reduce motion holds the orb at scale 1; the arbiter holds the breathing like any ambient loop; it never runs on a RED surface; every half-period exceeds 167 ms (BK15)"
+    - "tests first with near misses: a scale above 1.06 is refused, any other element with a scale is refused, reduce motion runs no scale"
+  tests: [apps/mobile/src/lib/motion/orb.test.ts, apps/mobile/e2e/motion.spec.ts]
+  sec_row: "intake-voice"
