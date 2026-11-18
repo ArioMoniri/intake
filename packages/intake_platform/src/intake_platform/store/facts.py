@@ -387,6 +387,14 @@ _CLASSIFICATIONS: Final[tuple[PermissionClassification, ...]] = (
         "the iOS side of the health-platform reads",
     ),
     PermissionClassification(
+        "NSFaceIDUsageDescription",
+        None,
+        "gates app open and the note review screen behind the device's own "
+        "biometric check (INT-131, src/lib/auth/biometrics.ts); the operating "
+        "system does the match and the app receives only success or failure, "
+        "so no biometric or other personal data reaches the app (INT-614)",
+    ),
+    PermissionClassification(
         "NSHealthUpdateUsageDescription",
         None,
         "declared only because App Store processing requires the key once the "

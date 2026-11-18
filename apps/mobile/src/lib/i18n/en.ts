@@ -42,6 +42,7 @@ export const en: Record<MessageKey, string> = {
   "auth.otp.verifyCta": "Sign in",
   "auth.otp.resend": "Request a new code",
   "auth.otp.resendWait": "Time left before you can request a new code:",
+  "auth.otp.resendUnit": "seconds",
   "auth.otp.devPeek": "Fetch the code (development)",
   "auth.error.generic": "Something went wrong. Please try again.",
   "auth.error.limited": "Too many attempts. Please wait a little and try again.",

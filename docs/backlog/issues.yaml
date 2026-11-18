@@ -5345,7 +5345,8 @@
   title: "ADR: Motion system v1 (opacity-only ≤ 120 ms, arbiter order, no-motion surfaces, haptics policy, RED as root layer)"
   depends_on: []
   labels: [area:mobile, approval:owner]
-  status: todo
+  status: awaiting-human
+  evidence: docs/evidence/INT-332.md
   acceptance:
     - "an ADR in docs/adr ratifies the motion system as revised in docs/design/motion/motion-verification.md, with the matching 00_STATE row and a mobile-ui.md §Motion pointer in the same commit"
     - "the five open questions are recorded awaiting-human with their named owners, each failing closed meanwhile"
@@ -7708,6 +7709,122 @@
     - "osv-scanner 2.5.1 reports only minimatch 3.1.5 GHSA-g3hv-75wg-m249 on the branch; the minimatch 3.1.5 row is owner-applied (osv-scanner.toml entry expiring 2026-11-30, the MAX_OSV_SUPPRESSIONS paragraph and its scoped test, from owner-597-minimatch-exception.patch), after which osv-scanner reports no issue"
   tests: [tests/ci/test_security_gates.py]
   sec_row: "cicd"
+- id: INT-609
+  epic: E08-mobile
+  phase: P2
+  title: "Motion: one warning haptic for an ALERT RED, only while the microphone is cold (ADR-033 Q2, D44)"
+  # Owner answer of 17 Nov 2026 to ADR-033 Q2 ("ok yes"), recorded as D44 and
+  # closing HB-C26. A physician question answered under D18: synthetic host and
+  # simulated patients only; a licensed physician signs before any real
+  # patient. It widens INT-333's and INT-340's "no RED register fires a haptic"
+  # for ALERT alone.
+  depends_on: [INT-332, INT-333, INT-340]
+  labels: [area:mobile, risk:clinical]
+  status: todo
+  acceptance:
+    - "an ALERT RED fires at most one warning haptic, and only when the microphone is cold, read at fire time; a hot microphone fires none"
+    - "CALM, SILENT and DEFERRED_CLINICIAN never fire a haptic; the sticky SILENT-or-third-party suppression still refuses it; the warning member of HapticCall is reachable only from the ALERT RED path"
+    - "the RED first paint waits on no haptic: the haptic is off the first-paint path and the 300 ms preemption budget is unchanged"
+    - "tests first with near misses: CALM, SILENT and DEFERRED_CLINICIAN each fire none, a hot microphone fires none, a second ALERT trigger in the same RED fires none"
+  tests: [apps/mobile/src/lib/motion/red.test.ts, apps/mobile/src/lib/motion/haptics.test.ts, apps/mobile/e2e/motion.spec.ts]
+  sec_row: "triage"
+- id: INT-610
+  epic: E08-mobile
+  phase: P2
+  title: "SILENT RED guidance may be announced by VoiceOver or TalkBack (ADR-033 Q3, D44)"
+  # Owner answer of 17 Nov 2026 to ADR-033 Q3 ("yes"), recorded as D44 and
+  # closing HB-C27. A physician question answered under D18: synthetic host and
+  # simulated patients only; a licensed physician signs before any real
+  # patient.
+  depends_on: [INT-332, INT-333]
+  labels: [area:mobile, risk:clinical]
+  status: todo
+  acceptance:
+    - "under SILENT, the guidance is announced through the running screen reader (VoiceOver or TalkBack) and stays first in reading order; with no screen reader running nothing is spoken"
+    - "the app plays no audio of its own under SILENT, and SILENT keeps no takeover, colour change or motion; DEFERRED_CLINICIAN announces nothing"
+    - "the announced text is the verbatim SILENT guidance (invariant 10), tr first, siz, PolicyGuard-clean"
+    - "tests first with near misses: no announcement without a screen reader, none for DEFERRED_CLINICIAN, no app audio under SILENT"
+  tests: [apps/mobile/src/lib/motion/red.test.ts, apps/mobile/e2e/motion.spec.ts]
+  sec_row: "triage"
+- id: INT-611
+  epic: E08-mobile
+  phase: P2
+  title: "Motion: the presence orb breathes with a scale of at most 1.06 (ADR-033 Q5, D44)"
+  # Owner answer of 17 Nov 2026 to ADR-033 Q5 ("yes, grow and shrink"),
+  # recorded as D44 and closing HB-O11. The one exception to opacity-only.
+  depends_on: [INT-332, INT-336]
+  labels: [area:mobile]
+  status: todo
+  acceptance:
+    - "the faceless 40 pt orb breathes (grows and shrinks) with a scale of at most 1.06, as the one scale in the app; its scale token lands with this consumer"
+    - "reduce motion holds the orb at scale 1; the arbiter holds the breathing like any ambient loop; it never runs on a RED surface; every half-period exceeds 167 ms (BK15)"
+    - "tests first with near misses: a scale above 1.06 is refused, any other element with a scale is refused, reduce motion runs no scale"
+  tests: [apps/mobile/src/lib/motion/orb.test.ts, apps/mobile/e2e/motion.spec.ts]
+  sec_row: "intake-voice"
+- id: INT-601
+  epic: E08-mobile
+  phase: P2
+  title: "Patient app design fixes from the November 2026 audit: Bugün, visit detail, contrast, chips, fields, SMS code, review"
+  # GitHub #1026, 17 Nov 2026, from docs/design/audit-2026-11/README.md Part A
+  # findings 1-7. Item 1 (Bugün's focal visit and state) is delivered in full
+  # by INT-594 (PR #1013), which this branch does not carry; the evidence says
+  # so and nothing here duplicates it. Items 2-7 are fixed here. The palette
+  # change also lifts dark inkFaint on surfaceRaised (4.03 to 4.72 : 1) so the
+  # AA test holds in both themes, and WCAG 1.4.3 moves to Supports.
+  depends_on: [INT-130, INT-144]
+  labels: [area:mobile]
+  status: done
+  evidence: docs/evidence/INT-601.md
+  acceptance:
+    - "Bugün shows the next upcoming visit, never a past one. After the intake is finished it reflects the delivered state, not \"Muayeneye hazırlanın\" at %70 (`today.tsx`)."
+    - "A visit detail opened from Bugün always has a working back control. Its primary action is never hidden under the tab bar (`visits/_layout.tsx`, `[visitId]/index.tsx`)."
+    - "Light-theme `inkFaint` and the `success` pill text meet WCAG AA, at least 4.5:1, asserted by a test in both themes (`theme.ts`)."
+    - "A selected chip is distinguishable without colour (check mark or shape change) in both intake lanes, with an accessibilityState.selected test."
+    - "The multi-line answer field uses a rounded-rectangle radius, not a pill."
+    - "The OTP code boxes fit at 320pt width, scale with Dynamic Type, do not mask the digits, and the countdown carries its unit."
+    - "On review, \"Düzenleyin\" and the share toggle each meet the minimum tap target, with spacing between them, and the share toggle sits in the same position on every card."
+  tests: [apps/mobile/e2e/designAudit.spec.ts, apps/mobile/src/lib/a11y/chip.test.ts, apps/mobile/src/lib/auth/otpForm.test.ts, apps/mobile/src/lib/theme.test.ts, tests/legal/test_a11y_report.py]
+- id: INT-614
+  epic: E08-mobile
+  phase: P1
+  title: "The resolved iOS Info.plist carries a Turkish Face ID string, no photo-library key and no background audio mode"
+  # Found by INT-613's App Store readiness checklist (rows 21-23), read from
+  # `expo config --type introspect` on main 5d6984a7: Face ID carried Expo's
+  # English default although the app gates app open and the note review on
+  # it; expo-image-picker's auto-applied plugin wrote a photo-library string
+  # for a library the app never opens; expo-audio re-added the `audio`
+  # UIBackgroundMode after withVoiceAudio stripped it. No GitHub issue yet:
+  # committed locally, not pushed. The new strings need approval:human-legal.
+  depends_on: [INT-103, INT-131, INT-138, INT-592]
+  labels: [area:mobile]
+  status: done
+  evidence: docs/evidence/INT-614.md
+  acceptance:
+    - "NSFaceIDUsageDescription in the resolved base Info.plist is a truthful, B1, siz-register Turkish string set through the expo-local-authentication plugin option, equal to app-tr.json, with an en mirror in app-en.json; PolicyGuard is clean and the store-label inventory classifies the key as carrying no personal data"
+    - "the resolved Info.plist carries no NSPhotoLibraryUsageDescription (expo-image-picker photosPermission false), and every purpose string in it names a production call site; near miss: the camera key stays"
+    - "the resolved Info.plist declares no audio or voip UIBackgroundMode (expo-audio enableBackgroundPlayback and enableBackgroundRecording false), asserted on `expo config --type introspect` output"
+  tests: [apps/mobile/e2e/iosInfoPlist.spec.ts, tests/legal/test_ios_purpose_strings.py]
+- id: INT-613
+  epic: E17-release
+  phase: P1
+  title: "App Store readiness: the submission checklist, deliver-shaped metadata, the reviewer sign-in harness and the App Store Connect submit script"
+  # Orchestrator brief, 17 Nov 2026: get Önvizit ready for App Store
+  # submission with everything that needs no Apple or Expo credential, building
+  # on #860 (INT-495), #1009 (INT-502) and #1010 (INT-595) without repeating
+  # them. Screenshots are INT-502's. The live submit and the device sign-in
+  # need the owner's credentials (HB-A3, INT-348).
+  depends_on: [INT-421, INT-224, INT-592]
+  labels: [area:release, area:mobile, approval:human-legal]
+  status: doing
+  evidence: docs/evidence/INT-613.md
+  acceptance:
+    - "docs/release/app-store-readiness.md lists every App Store Connect item, each marked done, open PR, missing, needs credentials or needs a human, with its evidence; a test recounts it"
+    - "docs/release/app-store-metadata.yaml holds the listing per locale in fastlane deliver's keys, copied byte for byte from the served listing and bound to it by sha256; a test enforces the field limits, the claims-scan patterns and the listing match, and every listing string is marked approval:human-legal"
+    - "a reviewer sign-in harness drives the OTP flow against the API with no Apple credential, carries no number, code or token in its report, and its D39 no-SMS check fails closed until INT-488 reserves the number; the device-only steps are recorded (INT-348)"
+    - "scripts/release/asc_submit.py validates offline with --dry-run, builds an ES256 JWT from ASC_KEY_ID, ASC_ISSUER_ID and ASC_PRIVATE_KEY, creates the version and uploads metadata and screenshots with --live, refuses while any blocker stands, never submits for review and never writes the demo account; its tests use recorded fixtures only"
+  tests: [tests/release/test_app_store_metadata.py, tests/release/test_asc_submit.py, tests/release/test_review_signin_harness.py, tests/release/test_app_store_readiness.py]
+  legal: "STORE"
+  sec_row: "mobile"
 - id: INT-602
   epic: E08-mobile
   phase: P1
