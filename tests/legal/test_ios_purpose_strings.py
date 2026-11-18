@@ -166,3 +166,58 @@ def test_near_miss_a_false_option_declares_no_key(tmp_path: Path) -> None:
     declared = facts_mod.declared_app_permissions(app_json, (empty,))
     assert "NSHealthUpdateUsageDescription" not in declared
     assert "NSHealthShareUsageDescription" in declared
+
+
+# --- INT-614: Face ID, and no key for a capability the app never uses ----------------
+
+LOCAL_AUTH_PLUGIN = "expo-local-authentication"
+IMAGE_PICKER_PLUGIN = "expo-image-picker"
+AUDIO_PLUGIN = "expo-audio"
+
+
+def _plugin_options(name: str) -> dict[str, object]:
+    plugins = json.loads(APP_JSON.read_text("utf-8"))["expo"]["plugins"]
+    for plugin in plugins:
+        if isinstance(plugin, list) and plugin[0] == name:
+            options: dict[str, object] = plugin[1]
+            return options
+    raise AssertionError(f"the {name} config plugin is not registered with options")
+
+
+def test_the_face_id_string_is_the_turkish_catalogue_in_the_base_plist() -> None:
+    """Without the option, expo-local-authentication's auto-applied plugin
+    writes "Allow $(PRODUCT_NAME) to use Face ID" into the base Info.plist."""
+    option = _plugin_options(LOCAL_AUTH_PLUGIN).get("faceIDPermission")
+    assert isinstance(option, str) and option.strip()
+    assert option == _plist("tr").get("NSFaceIDUsageDescription")
+    assert _plist("en").get("NSFaceIDUsageDescription"), "en mirror is missing"
+
+
+def test_the_face_id_string_is_classified_as_carrying_no_data() -> None:
+    declared = facts_mod.declared_app_permissions(APP_JSON, LOCALES)
+    assert "NSFaceIDUsageDescription" in declared
+    entry = facts_mod.PERMISSION_CLASSIFICATION["NSFaceIDUsageDescription"]
+    assert entry.flow_id is None, "the app receives a yes or no, never a biometric"
+
+
+def test_the_image_picker_writes_no_photo_library_key() -> None:
+    """The records screen photographs a report with the camera; nothing opens
+    the library. ``false`` is the plugin's own way to leave the key out, and
+    the camera and microphone options stay unset so the localised strings and
+    RECORD_AUDIO are untouched (withVoiceAudio.js)."""
+    options = _plugin_options(IMAGE_PICKER_PLUGIN)
+    assert options.get("photosPermission") is False
+    assert "microphonePermission" not in options
+    assert "cameraPermission" not in options
+    assert "NSPhotoLibraryUsageDescription" not in facts_mod.declared_app_permissions(
+        APP_JSON, LOCALES
+    )
+
+
+def test_expo_audio_adds_no_background_mode() -> None:
+    """INT-103: background pauses safely. expo-audio defaults
+    ``enableBackgroundPlayback`` to true and its mod runs after withVoiceAudio's
+    strip, so the option is the deterministic switch."""
+    options = _plugin_options(AUDIO_PLUGIN)
+    assert options.get("enableBackgroundPlayback") is False
+    assert options.get("enableBackgroundRecording") is False

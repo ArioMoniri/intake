@@ -23,6 +23,13 @@ app pumps into the shared store the console reads.
   ``ON_SITE`` puts the staff notification; ``REMOTE`` puts none. The device
   sends it fire-and-forget with retry; the RED on its screen never depends on
   this response.
+- ``POST /v1/triage/red-staff-call`` (INT-602) — the patient pressed the
+  ON_SITE staff control. Ids only. It puts the same ``red_on_site`` staff
+  notification (one per RED: a press after the automatic one lands on the same
+  entry and pages nobody twice) and is audited as its own act,
+  ``api.triage.red_staff_called``, so a press on a RED already known to be
+  ON_SITE is never recorded as a location answer the patient did not give
+  (invariant 4). The device shows "sent" only on this route's ``staffNotified``.
 
 **Ids kept, never identifiers** (invariant 14): :func:`stored_ref` keeps a
 server-minted UUID as it is and any other id only as its keyed pseudonym — a
@@ -38,7 +45,7 @@ same session, visit and rule, and is still one per RED.
 
 **Audited by id, under the core scope** (invariant 4): ``api.triage.red_notified``,
 ``api.triage.red_on_site_notified``, ``api.triage.red_unrouted`` and
-``api.triage.red_location.{on_site,remote}``.
+``api.triage.red_location.{on_site,remote}`` and ``api.triage.red_staff_called``.
 The notification goes first and the row after it — staff before paperwork. On the
 hop the row is written once the RED has been answered, and a failed append is
 counted (``clinic_red_notification_unaudited_total``); on the answer route a
@@ -297,6 +304,34 @@ async def red_location(
             logger.error("red location answer unaudited", extra={"error": type(fault).__name__})
             raise safety_inbox_refused(503, "red_location_unaudited") from None
         return RedLocationOut(staffNotified=False)
+    await _notify_staff(
+        state,
+        actor=patient.account_id,
+        tenant_id=tenant_id,
+        refs=(session_ref, visit_ref, work_id),
+        rule_id=payload.rule_id,
+        action="api.triage.red_location.on_site",
+        unaudited="red_location_unaudited",
+    )
+    return RedLocationOut(staffNotified=True)
+
+
+async def _notify_staff(
+    state: ApiState,
+    *,
+    actor: str,
+    tenant_id: str,
+    refs: tuple[str | None, str | None, str | None],
+    rule_id: str,
+    action: str,
+    unaudited: str,
+) -> None:
+    """Put the RED's one on-site staff notification, then its audit row as ``action``.
+
+    Raises a 503 the device retries when there is no inbox, nothing safe to name,
+    or the row cannot be written; the retry lands on the same entry.
+    """
+    session_ref, visit_ref, work_id = refs
     outbox = state.red_outbox
     if outbox is None:
         CLINIC_RED_INBOX_ROUTE_FAILURES_TOTAL.inc()
@@ -312,19 +347,71 @@ async def red_location(
         session_id=session_ref,
         visit_id=visit_ref,
         work_id=work_id,
-        rule_ids=(payload.rule_id,),
+        rule_ids=(rule_id,),
         at=state.clock(),
     )
     outbox.put(entry)
     try:
         await state.audit.record(
-            actor=patient.account_id,
-            action="api.triage.red_location.on_site",
+            actor=actor,
+            action=action,
             resource_ref=_inbox_ref(entry),
             consent_scope=_SCOPE_REF,
         )
     except Exception as fault:  # noqa: BLE001 - staff are told; the row is retried
         CLINIC_RED_NOTIFICATION_UNAUDITED_TOTAL.inc()
         logger.error("red notification unaudited", extra={"error": type(fault).__name__})
-        raise safety_inbox_refused(503, "red_location_unaudited") from None
-    return RedLocationOut(staffNotified=True)
+        raise safety_inbox_refused(503, unaudited) from None
+
+
+class RedStaffCallIn(BaseModel):
+    """The patient pressed the ON_SITE staff control (INT-602): ids only."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    session_id: InboxRef
+    visit_id: InboxRef
+    rule_id: RuleRef = Field(description="The RED trigger's ruleId, as the device holds it.")
+
+
+class RedStaffCallOut(BaseModel):
+    kind: Literal["red_staff_call"] = "red_staff_call"
+    staffNotified: bool  # noqa: N815 - the device's field name
+
+
+@router.post(
+    "/red-staff-call",
+    status_code=202,
+    response_model=RedStaffCallOut,
+    dependencies=[require_scopes(CORE_SCOPE)],
+)
+async def red_staff_call(
+    payload: RedStaffCallIn, state: State, principal: Principal
+) -> RedStaffCallOut:
+    """A staff-control press: the RED's on-site notification, audited as a press."""
+    patient, _ = require_patient(principal)
+    tenant_id = str(patient.tenant_id)
+    served = state.served_red_rules()
+    if served is None:
+        raise triage_unconfigured()
+    if payload.rule_id not in {rule.id for rule in served.rules if rule.level.is_red}:
+        raise safety_inbox_refused(422, "rule_not_served")
+    session_ref = stored_ref(state, payload.session_id)
+    visit_ref = stored_ref(state, payload.visit_id)
+    work_id = (
+        red_work_id(
+            tenant_id=tenant_id, session_id=session_ref, visit_id=visit_ref, rule_id=payload.rule_id
+        )
+        if session_ref is not None and visit_ref is not None
+        else None
+    )
+    await _notify_staff(
+        state,
+        actor=patient.account_id,
+        tenant_id=tenant_id,
+        refs=(session_ref, visit_ref, work_id),
+        rule_id=payload.rule_id,
+        action="api.triage.red_staff_called",
+        unaudited="red_staff_call_unaudited",
+    )
+    return RedStaffCallOut(staffNotified=True)

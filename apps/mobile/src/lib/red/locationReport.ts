@@ -26,7 +26,7 @@
  */
 import { backoffDelayMs } from "../livekit/reconnect";
 import type { HopTransport } from "./hop";
-import type { RedState, RedStore } from "./store";
+import { redScreen, type RedState, type RedStore } from "./store";
 
 export const LOCATION_PATH = "/v1/triage/red-location";
 
@@ -110,38 +110,58 @@ function realTimeout(ms: number): RequestDeadline {
   return { expired, cancel: () => clearTimeout(handle) };
 }
 
-export function createLocationReporter({
-  transport,
-  sleep = realSleep,
-  jitter = Math.random,
-  timeout = realTimeout,
-}: LocationReporterOptions): LocationReporter {
-  const sent = new Set<string>();
-  /** One request: its status, or null when it failed or hung past its deadline. */
-  const attempt = async (body: string): Promise<number | null> => {
+/** The last answer a delivery got: its status and body, or nothing at all. */
+interface Delivered {
+  readonly status: number | null;
+  readonly bytes: Uint8Array | null;
+}
+
+/**
+ * Offer one body to `path` until it is taken, refused for good, or out of tries.
+ * Resolves with the last answer, so a caller that must show the outcome can.
+ */
+function createDelivery(
+  {
+    transport,
+    sleep = realSleep,
+    jitter = Math.random,
+    timeout = realTimeout,
+  }: LocationReporterOptions,
+  path: string,
+): (body: string) => Promise<Delivered> {
+  /** One request: its answer, or null when it failed or hung past its deadline. */
+  const attempt = async (body: string): Promise<{ status: number; bytes: Uint8Array } | null> => {
     const deadline = timeout(LOCATION_REPORT_TIMEOUT_MS);
     try {
-      return await Promise.race([
-        transport(LOCATION_PATH, body).then(({ status }) => status),
-        deadline.expired.then(() => null),
-      ]);
+      return await Promise.race([transport(path, body), deadline.expired.then(() => null)]);
     } catch {
       return null; // unreachable: the next attempt, after the backoff
     } finally {
       deadline.cancel();
     }
   };
-  const deliver = async (body: string): Promise<void> => {
+  const deliver = async (body: string): Promise<Delivered> => {
+    let last: Delivered = { status: null, bytes: null };
     for (let tries = 1; tries <= LOCATION_REPORT_MAX_ATTEMPTS; tries += 1) {
-      const status = await attempt(body);
-      if (status !== null && !retriable(status)) {
-        return;
+      const answer = await attempt(body);
+      if (answer !== null) {
+        last = answer;
+        if (!retriable(answer.status)) {
+          return answer;
+        }
       }
       if (tries < LOCATION_REPORT_MAX_ATTEMPTS) {
         await sleep(backoffDelayMs(tries, jitter));
       }
     }
+    return last;
   };
+  return deliver;
+}
+
+export function createLocationReporter(options: LocationReporterOptions): LocationReporter {
+  const sent = new Set<string>();
+  const deliver = createDelivery(options, LOCATION_PATH);
   return {
     observe: (state) => {
       const report = locationReportFor(state);
@@ -164,4 +184,131 @@ export function subscribeLocationReports(
   reporter: LocationReporter,
 ): () => void {
   return store.subscribe(() => reporter.observe(store.getSnapshot()));
+}
+
+/** The route a staff-control press goes to (INT-602; intake_api.red_notify). */
+export const STAFF_CALL_PATH = "/v1/triage/red-staff-call";
+
+/** The body a press sends: this RED's ids, nothing else (invariant 6). */
+export interface StaffCall {
+  readonly session_id: string;
+  readonly visit_id: string;
+  readonly rule_id: string;
+}
+
+/**
+ * The staff control under ON_SITE (INT-602; files/02 §5.3 action table:
+ * "Hastanedeyim — personele bildir", which stays on screen "so the patient can
+ * see that it already happened").
+ *
+ * A press goes to its own route, which puts this RED's one on-site staff
+ * notification in the clinic Safety inbox and audits the press as a press
+ * (`api.triage.red_staff_called`), never as a location answer. The server keeps
+ * one notification per RED, so a repeat press pages nobody twice. Null unless
+ * the screen shows an ON_SITE action.
+ */
+export function staffCallFor(state: RedState | null): StaffCall | null {
+  if (state === null) {
+    return null;
+  }
+  const screen = redScreen(state);
+  if (screen.kind !== "act" || !screen.callStaff) {
+    return null;
+  }
+  return {
+    session_id: state.origin.sessionId,
+    visit_id: state.origin.visitId,
+    rule_id: state.trigger.ruleId,
+  };
+}
+
+/**
+ * What the patient is shown about their press. Never silent:
+ * - `idle`: nothing pressed yet for this RED;
+ * - `sending`: a request is out, or a retry waits;
+ * - `sent`: only after the server answered 2xx with `staffNotified: true`;
+ * - `failed`: refused for good (a 4xx: rule not served, no consent, signed out),
+ *   out of retries, or an answer that does not say staff were notified.
+ */
+export type StaffCallPhase = "idle" | "sending" | "sent" | "failed";
+
+/** The caller's state: which RED it is about, and where its press stands. */
+export interface StaffCallSnapshot {
+  readonly key: string | null;
+  readonly phase: StaffCallPhase;
+}
+
+export interface StaffCaller {
+  /** The patient pressed the staff control. Never waits. */
+  call: (state: RedState | null) => void;
+  getSnapshot: () => StaffCallSnapshot;
+  subscribe: (listener: () => void) => () => void;
+}
+
+/** The phase to show for this RED: another RED's press shows nothing. */
+export function staffCallPhase(
+  snapshot: StaffCallSnapshot,
+  state: RedState | null,
+): StaffCallPhase {
+  const call = staffCallFor(state);
+  return call !== null && snapshot.key === JSON.stringify(call) ? snapshot.phase : "idle";
+}
+
+/** Whether a final answer says staff were notified: 2xx and `staffNotified: true`. */
+function confirmed({ status, bytes }: Delivered): boolean {
+  if (status === null || status < 200 || status >= 300 || bytes === null) {
+    return false;
+  }
+  try {
+    const body: unknown = JSON.parse(new TextDecoder().decode(bytes));
+    return (
+      typeof body === "object" &&
+      body !== null &&
+      (body as Record<string, unknown>).staffNotified === true
+    );
+  } catch {
+    return false;
+  }
+}
+
+export function createStaffCaller(options: LocationReporterOptions): StaffCaller {
+  const deliver = createDelivery(options, STAFF_CALL_PATH);
+  let snapshot: StaffCallSnapshot = { key: null, phase: "idle" };
+  const listeners = new Set<() => void>();
+  const set = (next: StaffCallSnapshot) => {
+    snapshot = next;
+    for (const listener of listeners) {
+      listener();
+    }
+  };
+  return {
+    getSnapshot: () => snapshot,
+    subscribe: (listener) => {
+      listeners.add(listener);
+      return () => {
+        listeners.delete(listener);
+      };
+    },
+    call: (state) => {
+      const call = staffCallFor(state);
+      if (call === null) {
+        return;
+      }
+      const key = JSON.stringify(call);
+      if (snapshot.key === key && snapshot.phase === "sending") {
+        return; // one request in flight
+      }
+      if (snapshot.key === key && snapshot.phase === "sent") {
+        // A repeat press after a confirmed send pages nobody (one notification
+        // per RED): re-show what already happened, never imply a new page.
+        set({ key, phase: "sent" });
+        return;
+      }
+      set({ key, phase: "sending" });
+      void deliver(key).then(
+        (answer) => set({ key, phase: confirmed(answer) ? "sent" : "failed" }),
+        () => set({ key, phase: "failed" }),
+      );
+    },
+  };
 }

@@ -41,6 +41,9 @@ export const tr = {
   "auth.otp.verifyCta": "Giriş yapın",
   "auth.otp.resend": "Kodu yeniden isteyin",
   "auth.otp.resendWait": "Yeni kod isteyebilmek için kalan süre:",
+  // INT-601 (audit A6): the countdown's unit, spelled out as the catalogue
+  // spells its other units ("saat", "adım"); a screen reader reads "sn" as letters.
+  "auth.otp.resendUnit": "saniye",
   "auth.otp.devPeek": "Kodu getirin (geliştirme)",
   "auth.error.generic": "Bir sorun oldu. Lütfen yeniden deneyin.",
   "auth.error.limited": "Çok sık denediniz. Lütfen biraz bekleyip yeniden deneyin.",
@@ -1488,9 +1491,30 @@ export const tr = {
   // they come verbatim from the rule's `tr` (invariant 10). Inside RED the
   // bare imperative plural is the register, because ambiguity is the harm.
   "red.call112": "112'yi arayın",
+  // INT-602: when the dialer cannot open, the number is already on screen as
+  // selectable text; this line says to dial it.
+  "red.call112Failed": "Arama açılamadı. 112'yi telefonunuzdan arayın.",
+  // INT-602: under ON_SITE there is no 112 (invariant 21). This control takes its
+  // place and sends this RED's staff notification. A UI affordance, not clinical
+  // copy. It names the act, never that someone will come (the server writes one
+  // inbox entry per RED). "sent" shows only after the server confirms; "failed"
+  // uses the ON_SITE guidance's own words (bir görevliden yardım isteyin; Acil
+  // Servis'e gidin).
+  // INT-602 owner decision 1 (17 Nov 2026): under ON_SITE the pack's own action
+  // line leads as the primary control; the words are the pack's (CD-24 ON_SITE
+  // action_tr) and the approved failure line's. Pressing it notifies staff in the
+  // same action (files/02 §5.3 ON_SITE row), once per RED.
+  "red.goToAcil": "Acil Servis'e gidin",
+  "red.callStaff": "Görevlilere haber verin",
+  "red.callStaff.hint": "Görevlilere bir bildirim gönderir.",
+  "red.callStaff.sending": "Görevlilere haber gönderiliyor.",
+  "red.callStaff.sent": "Görevlilere haber gönderildi.",
+  "red.callStaff.failed":
+    "Haber gönderilemedi. Bir görevliden yardım isteyin ya da Acil Servis'e gidin.",
   "red.location.yes": "Evet",
   "red.location.no": "Hayır",
-  "red.doNots": "Lütfen yapmayın",
+  // INT-602: bare imperative inside RED (CLAUDE.md), as in the items themselves.
+  "red.doNots": "Yapmayın",
 } as const;
 
 export type MessageKey = keyof typeof tr;

@@ -52,7 +52,13 @@
           "imageWidth": 76
         }
       ],
-      "expo-audio",
+      [
+        "expo-audio",
+        {
+          "enableBackgroundPlayback": false,
+          "enableBackgroundRecording": false
+        }
+      ],
       [
         "@kingstinct/react-native-healthkit",
         {
@@ -63,6 +69,18 @@
       ],
       "react-native-health-connect",
       "expo-secure-store",
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Önvizit uygulamayı açtığınızda ve notunuzu görmeden önce kimliğinizi Face ID ile doğrular. Yüz verilerinizi görmez; yalnızca doğrulamanın başarılı olup olmadığını öğrenir."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": false
+        }
+      ],
       [
         "@livekit/react-native-expo-plugin",
         {
@@ -85,8 +103,14 @@
     "extra": {
       "asrHosts": ["127.0.0.1", "172.20.10.3"],
       "ttsLanes": [
-        { "id": "voxcpm2", "port": 8805 },
-        { "id": "freya", "port": 8803 }
+        {
+          "id": "voxcpm2",
+          "port": 8805
+        },
+        {
+          "id": "freya",
+          "port": 8803
+        }
       ],
       "certificatePins": [],
       "glitchtipDsn": "",

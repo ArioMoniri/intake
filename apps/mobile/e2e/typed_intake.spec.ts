@@ -24,6 +24,7 @@ import { join, relative, sep } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import { readFontMetrics } from "./fontMetrics";
+import { chipChrome } from "@/lib/a11y/chip";
 import { en } from "@/lib/i18n/en";
 import { tr } from "@/lib/i18n/tr";
 import { INSTRUMENT_ITEMS, INSTRUMENT_LICENCES } from "@/lib/intake/instruments";
@@ -273,8 +274,12 @@ const OPTION_CHIP_HOSTS = [INTAKE_SCREEN, "src/components/DialogueIntake.tsx"];
 /** The narrowest iPhone still in service, and the phone INT-295 captured on. */
 const PHONE_WIDTHS = [375, 402] as const;
 
-/** The chip's own horizontal chrome: `paddingHorizontal` and the hairline. */
-const CHIP_CHROME = 2 * spacing.md + 2;
+/**
+ * The chip's own horizontal chrome at a step: padding, both outlines at their
+ * selected weight, and the selected check glyph with its gap (INT-601, audit
+ * A4). Measured at the selected state, the wider of the two.
+ */
+const CHIP_CHROME = chipChrome;
 
 /** Every chip label the packs can put on screen, in both catalogues. */
 const OPTION_LABELS = [
@@ -287,7 +292,7 @@ const OPTION_LABELS = [
 
 function chipWidth(label: string, scale: number): number {
   // Chips are `role="label"` (AppText) in both hosts.
-  return CHIP_CHROME + metrics.advance(label, scaledSize("label", scale));
+  return CHIP_CHROME(scale) + metrics.advance(label, scaledSize("label", scale));
 }
 
 describe("a pack option label is reachable at every APP_STEPS size", () => {
@@ -318,7 +323,7 @@ describe("a pack option label is reachable at every APP_STEPS size", () => {
     // chrome alone exceeding the row — then no wrapping saves it.
     for (const phone of PHONE_WIDTHS) {
       const row = phone - 2 * spacing.screen;
-      expect(CHIP_CHROME, `${phone}pt`).toBeLessThan(row);
+      expect(CHIP_CHROME(2.0), `${phone}pt`).toBeLessThan(row);
       for (const scale of APP_STEPS) {
         // One glyph has to fit beside the chrome at every step, or the label
         // could never wrap into a legible column.
@@ -327,7 +332,7 @@ describe("a pack option label is reachable at every APP_STEPS size", () => {
             metrics.advance(glyph, scaledSize("label", scale)),
           ),
         );
-        expect(CHIP_CHROME + widestGlyph, `${phone}pt @${scale}`).toBeLessThanOrEqual(row);
+        expect(CHIP_CHROME(scale) + widestGlyph, `${phone}pt @${scale}`).toBeLessThanOrEqual(row);
       }
     }
   });

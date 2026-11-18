@@ -28,7 +28,9 @@ export const palette = {
     surfaceRaised: "#F1EDE4",
     ink: "#1C1B18",
     inkSoft: "#5C594F",
-    inkFaint: "#8A867A",
+    // INT-601 (audit A3): was #8A867A, 3.43 / 3.64 / 3.11 : 1 on the three
+    // grounds. Now 5.09 / 5.40 / 4.62, still a step under inkSoft (1.30 : 1).
+    inkFaint: "#6E6A5F",
     border: "#EAE6DD",
     primary: "#0F7B6C", // şifa teal — the single accent
     primarySoft: "#EAF5F2", // light enough that primary text on it clears AA (4.6:1)
@@ -42,7 +44,7 @@ export const palette = {
     onCta: "#FAF8F4",
     amber: "#9A5B00", // YELLOW status pill only
     amberSoft: "#FBF1DF",
-    success: "#1B7F4B",
+    success: "#157346", // INT-601: was #1B7F4B, 4.35 : 1 on successSoft; now 5.09
     successSoft: "#E4F2EA",
     emergency: "#B3261E", // RESERVED: RED route (ALERT register) only
     emergencySoft: "#F9E5E3",
@@ -54,7 +56,9 @@ export const palette = {
 
     ink: "#F2F0EA",
     inkSoft: "#B7B3A7",
-    inkFaint: "#8A867A",
+    // INT-601: was #8A867A, 4.03 : 1 on surfaceRaised; now 4.72 (5.29 on
+    // surface, 6.20 on background), 1.48 : 1 under inkSoft.
+    inkFaint: "#969286",
     border: "#353128",
     primary: "#4FA79A",
     primarySoft: "#22322F",
@@ -87,7 +91,20 @@ export const spacing = { xs: 4, sm: 8, md: 16, lg: 24, xl: 32, screen: 20 } as c
  * contributor groups sit visibly squarer (~16) than its content cards; one
  * radius for every ListGroup so rows read as a table, not a card stack.
  */
-export const radius = { card: 24, control: 999, hero: 32, chip: 999, group: 16 } as const;
+/**
+ * `field` (INT-601, audit A5): multi-line text fields. A 120 pt box at 999 is
+ * drawn as a stadium, the first line starts inside the curve and the corners
+ * clip glyphs at the larger steps, so a field takes the table register. Single
+ * line fields and the composer stay `control`.
+ */
+export const radius = {
+  card: 24,
+  control: 999,
+  hero: 32,
+  chip: 999,
+  group: 16,
+  field: 16,
+} as const;
 
 /**
  * Motion budget (02 §5.2a): fades only, and only this long.

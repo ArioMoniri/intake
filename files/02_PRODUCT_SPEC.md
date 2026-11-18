@@ -167,7 +167,7 @@ Two further classes fail the same way:
 | `register` | Presentation | Audio | When |
 |---|---|---|---|
 | **`ALERT`** | Red header, full screen takeover, **prominent primary action — 112 under `REMOTE`, the named Acil Servis under `ON_SITE` (Axis 3)** | **Spoken with urgent prosody**, alert sound | **Default for adults where alarm aids action.** Adult chest pain, stroke FAST positives, anaphylaxis, severe bleeding |
-| **`CALM`** | **No red, no alarm colour** — amber-neutral. **Action first, explanation after.** Explicit **"lütfen yapmayın"** list | **Spoken softly, no alert sound** | Any rule tagged **`distress_sensitive: true`**, and **any RED where the subject is a child and the user is a proxy** |
+| **`CALM`** | **No red, no alarm colour** — amber-neutral. **Action first, explanation after.** Explicit **"Yapmayın"** list (bare imperative inside RED; owner decision 4, INT-602, 17 Nov 2026) | **Spoken softly, no alert sound** | Any rule tagged **`distress_sensitive: true`**, and **any RED where the subject is a child and the user is a proxy** |
 | **`SILENT`** | **Screen only.** No headline, no colour change, no takeover — the guidance appears in the flow of the session | **No audio, ever** | Any RED arising inside a `text_only` block; **safeguarding**; C-SSRS positives; or **any session where third-party presence is detected** |
 | **`DEFERRED_CLINICIAN`** | **Patient screen unchanged.** Finding routes to the clinician only | None | Findings where patient-facing alarm has **no useful patient action**. This is also **exactly what `device_functions=off` requires** (`06 §0.3`) — so building this register serves the pre-CE commercial tenant and the clinical case with the same code |
 
@@ -203,7 +203,7 @@ Location is derived from the visit lifecycle state in **§2b** plus the mode. It
 > **Şimdi yapın**
 > Çocuğunuzu kucağınızda, **dik ve rahat** bir şekilde tutun. Hemen **112**'yi arayın.
 >
-> **Lütfen yapmayın**
+> **Yapmayın**
 > • Ağzını veya boğazını açıp bakmayın.
 > • Su, yiyecek ya da ilaç vermeyin.
 > • Çocuğunuzu sırtüstü yatırmayın.
@@ -218,7 +218,7 @@ Location is derived from the visit lifecycle state in **§2b** plus the mode. It
 > **Acil Servis'e gidin — [zemin kat].** Randevunuzu beklemeyin.
 > Görevlilere haber verildi. Girişte **"göğüs ağrım var"** deyin.
 >
-> **Lütfen yapmayın**
+> **Yapmayın**
 > • Poliklinik sırasında beklemeyin.
 > • Tek başınıza gitmeyin — yanınızdaki kişiden ya da bir görevliden yardım isteyin.
 > • Bir şey yiyip içmeyin.
@@ -248,7 +248,7 @@ Note what is **not** in it: no 112, no ambulance, no *"en yakın acil"* map, no 
 
 **112 presentation (`REMOTE` and answered-`UNKNOWN` only):** show **112 as large, selectable text** *as well as* a `tel:` action. Tapping `tel:` on the patient's only device **removes the app from the screen** mid-emergency; a carer or bystander dialling from a second phone needs to be able to read the number. Both affordances, always.
 
-**For `EMERGENCY_NOW` under `REMOTE`, include the line that actually changes behaviour:** **patients arriving by 112 are not triaged on arrival** (Tebliğ MADDE 8(5)) — they go straight through. This is the single most persuasive argument against "I'll just drive there myself", and it is a statement about the service, not about the patient's condition, so it is safe in every register. **Under `ON_SITE` this line must not be used** — the patient is not travelling, and the equivalent service fact is the door-triage one stated under Axis 3 above.
+**For `EMERGENCY_NOW` under `REMOTE`, include the line that actually changes behaviour:** **patients arriving by 112 are not triaged on arrival** (Tebliğ MADDE 8(5)) — no separate triage is applied, and the assessment then sends the patient to the red or yellow area as needed. The source does not say they are never kept waiting (INT-602 clinical review round 1). This is the single most persuasive argument against "I'll just drive there myself", and it is a statement about the service, not about the patient's condition, so it is safe in every register. **Under `ON_SITE` this line must not be used** — the patient is not travelling, and the equivalent service fact is the door-triage one stated under Axis 3 above.
 
 **Cross-reference note — files this axis touches that are not owned by this change.** `12` needs `location` in the DSL rule schema and in the `action` block, and needs a view on whether `gate:`/`when:` and `evidence:`/`source:` reconcile — both currently disagree with the drafted YAML · `13` needs the `UNKNOWN` one-question branch as a real turn with `ask_tr`/`follow_up_tr`, and it must not be charged against the fast-mode turn budget the way an intake question is · `08` needs `acil_location_tr` as a tenant configuration field with a change tier, because a wrong value here misdirects a kırmızı patient inside a building · `10` needs the three new location invariants alongside the existing RED ones · `03` needs the automatic staff notification under `ON_SITE` wired as an unconditional **server-side** effect, since this section already requires RED handling to fire from the server rather than from a client that may be gone.
 

@@ -433,10 +433,17 @@ def test_backlog_parses_and_is_complete() -> None:
     # material, owner decision D38, GitHub #983); grows only with a stated reason.
     # + INT-597 (node-forge, glob and minimatch 10 past the 30 Oct advisories; the
     # minimatch 3.1.5 row is owner-applied, GitHub #1017); grows only with a stated reason.
+    # + INT-601 (the November 2026 design-audit fixes, GitHub #1026); grows only
+    # with a stated reason.
+    # + INT-613 (App Store readiness: checklist, metadata, reviewer sign-in
+    # harness, submit script); grows only with a stated reason.
+    # + INT-602 (the RED layer's 112 control, CALM edge, ON_SITE staff control
+    # and safe areas, design audit R1-R6, GitHub #1027); grows only with a stated
+    # reason.
     # + INT-603 (consent first run: copy agrees with the default-on rows, a real
     # switch, withdrawal confirms once, continue always visible; design audit
     # 2026-11 K1-K3, GitHub #1028); grows only with a stated reason.
-    assert len(ids) == 388, f"expected 175 blueprint + 213 added issues, got {len(ids)}"
+    assert len(ids) == 395, f"expected 175 blueprint + 220 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 

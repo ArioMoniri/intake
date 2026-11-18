@@ -1016,7 +1016,8 @@ metrics:
     description: >-
       REDs whose clinician route into the Safety inbox raised before an entry
       existed — Layer B's, and since INT-475 the API triage hop's and the
-      on-site location answer's (an unwired inbox included). The RED is still
+      on-site location answer's (an unwired inbox included), and since INT-602
+      an ON_SITE staff-control press's. The RED is still
       delivered; no entry means no clock, so this pages instead.
   # INT-475: the API puts the hop's RED and the on-site staff notification
   # first and appends their audit rows (invariant 4) after; an append that
@@ -1031,8 +1032,8 @@ metrics:
       Audit appends that failed for a RED's clinic route on the API — a RED
       or on-site staff notification raised in the Safety inbox, or a RED that
       could not be routed (api.triage.red_unrouted). The notification went
-      ahead; on the location-answer route the device retries until the row
-      lands. Constructed by intake_platform.safety_inbox.metrics.
+      ahead; on the location-answer and staff-call routes the device retries
+      until the row lands (api.triage.red_staff_called since INT-602). Constructed by intake_platform.safety_inbox.metrics.
   # --- files/08 §4 F. Experience & satisfaction
   # INT-240 made these four live: intake_metrics.metrics constructs them and
   # intake_metrics.rollups feeds them. Every value is published for a named
