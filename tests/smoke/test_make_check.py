@@ -431,9 +431,11 @@ def test_backlog_parses_and_is_complete() -> None:
     # with a stated reason.
     # + INT-584 (the phone-tokenization key moves into OpenBao with the same key
     # material, owner decision D38, GitHub #983); grows only with a stated reason.
+    # + INT-597 (node-forge, glob and minimatch 10 past the 30 Oct advisories; the
+    # minimatch 3.1.5 row is owner-applied, GitHub #1017); grows only with a stated reason.
     # + INT-615 (the draft red-flag rules of base.life_threat sourced or kept
     # draft, owner 17 Nov 2026, CD-107); grows only with a stated reason.
-    assert len(ids) == 387, f"expected 175 blueprint + 212 added issues, got {len(ids)}"
+    assert len(ids) == 388, f"expected 175 blueprint + 213 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 
