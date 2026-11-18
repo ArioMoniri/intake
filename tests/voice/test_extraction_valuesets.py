@@ -91,6 +91,8 @@ VOICE_ID = "residency-tr-01"
 K2 = "rf.chest_pain_cardiac_features"
 CHARACTER = "chest_pain.character"
 RADIATION = "chest_pain.radiation"
+#: INT-619 (CD-117): rf.fever_high_persistent reads the immunosuppression code slot.
+IMMUNOSUPPRESSION = "pmh_fh_sh.immunosuppression"
 
 
 # --- the committed documents ---------------------------------------------------------
@@ -306,10 +308,11 @@ def test_near_miss_an_empty_table_cannot_be_composed_over_base_intake(
 # --- 2 · every code slot a red-flag rule reads binds from an authored choice ----------
 
 
-def test_the_code_slots_red_flag_rules_read_are_character_and_radiation() -> None:
+def test_the_code_slots_red_flag_rules_read_are_character_radiation_and_immunosuppression() -> None:
     """A pin on today's scope. A new rule reading a code slot joins the binding
-    test below on its own; this line only says which two exist now."""
-    assert set(_red_flag_code_slots()) == {CHARACTER, RADIATION}
+    test below on its own; this line only says which exist now. INT-619 added
+    the third: rf.fever_high_persistent reads pmh_fh_sh.immunosuppression."""
+    assert set(_red_flag_code_slots()) == {CHARACTER, RADIATION, IMMUNOSUPPRESSION}
 
 
 @pytest.mark.parametrize(
@@ -329,7 +332,7 @@ def test_every_red_flag_code_slot_binds_from_each_authored_choice(ref: str, choi
     assert [(update.ref, update.value) for update in result.slot_updates] == [(ref, choice)]
 
 
-@pytest.mark.parametrize("ref", [CHARACTER, RADIATION])
+@pytest.mark.parametrize("ref", [CHARACTER, RADIATION, IMMUNOSUPPRESSION])
 def test_near_miss_without_its_committed_set_a_red_flag_code_slot_cannot_bind(ref: str) -> None:
     slot = _red_flag_code_slots()[ref]
     members = _members(_without(load_committed_valuesets(), slot.valueset or ""))

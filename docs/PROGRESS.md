@@ -4695,4 +4695,66 @@
 - Decisions / ADRs / `00_STATE.md` rows: none.
 - Blocked on: the owner commits owner-597-minimatch-exception.patch onto the branch. It holds the minimatch 3.1.5 osv row, which expires 2026-11-30, and retires the node-forge 1.4.0 rows. Suppression files and their pins are owner-only.
 - Next: the owner applies the patch and pushes; then merge at the front of the queue.
+### 2026-11-17T23:30:00+03:00 · INT-615 · awaiting-human (approval:human-clinical; committed locally, not pushed)
+- Goal: owner, 17 Nov 2026, *"yes source the 15 red flag rules"*. Source each draft_needs_source rule of base.life_threat against a committed verbatim snapshot, or leave it draft with the reason. Fill no value a snapshot does not state, and relax nothing (invariant 7).
+- Plan: count the draft rules; find a current guideline per trigger, threshold and level (Turkish first); commit snapshots; record the decision in the register (CD-107); run a verifier pass against each snapshot; tests first.
+- Tests added (with the near-miss negative for any safety rule): tests/protocols/test_int615_life_threat_sourcing.py (15). Near misses:
+  - "Stridor at rest", which RCH does not print, is not found;
+  - CD-107 with the age band flipped active is refused;
+  - the airway rule keeps K1 and all four triggers.
+  Red: 10 failed / 5 passed (snapshot and CD-107 absent). Green: 15 passed.
+- Result:
+  - protocols 1454 passed; no_placeholders 6 passed; backlog + smoke 74 passed (count pins 386 → 387, files/11 re-rendered);
+  - `make safety` exit 0 (triage 100 % branch, 18/18 mutations, 2366 + 121 passed);
+  - check-i18n 236 passed; check-ts exit 0; check-py: see docs/evidence/INT-615.md §8;
+  - not run here: check-integration (docker stack) and `make security` (tools absent).
+- Invariants touched and still passing:
+  - 7: nothing relaxed; K1 kept where EK-4 prints the named features at K2.
+  - 17: every unsourced value is the sanctioned literal in CD-107.
+  - 1, 10, 21: no rule, script or register changed.
+- Decisions / ADRs / `00_STATE.md` rows: CD-107. Findings:
+  - Count: base.life_threat holds 2 drafts. The 15 is the compiler's DRAFT_RULE_NOT_SERVED count: these 2 plus 13 base.intake red_flags skeletons, which are authorship (HB-C2/C4/C7, HB-L2, HB-C8) and were not touched.
+  - Airway rule: the trigger set is now sourced (RCH Melbourne acute upper airway obstruction CPG, March 2021, snapshot RCH-CPG-AUAO-2021). It stays draft because three values are unstated: level K1 vs K2, upper age bound, stridor qualifier.
+  - Crisis rule: stays draft (HB-C17, HB-C8).
+  - files/protocols/base.life_threat.yaml is byte-identical, so the D23 signature still verifies. One re-sign is needed after the physician's sign-off.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id):
+  - Dr Efe Onganer + a paediatrician (HB-C1): "Is a parent-reported stridor / drooling / tripod / muffled voice in a child EK-4 Kırmızı Kategori 1 or 2, what is the rule's upper age bound, and is the stridor trigger qualified?"
+  - Crisis lexicon: HB-C17 / HB-C8, unchanged.
+- Next: the independent clinical reviewer's verdict on CD-107. After sign-off, narrow the airway source_gap and re-sign the D23 set once.
+- LOOP_STATUS: WAITING_HUMAN
+
+### 2026-11-18T12:00:00+03:00 · INT-619 · awaiting-human (approval:human-clinical; committed locally, not pushed)
+- Goal: owner, 18 Nov 2026, *"yes write the 13 red flag rules"*, under D18. Write each of the thirteen base.intake red_flags families as a real rule, sourced against a committed verbatim snapshot. Where no source settles a family, or its instrument licence is not GO, keep it draft with the reason. Never invent a threshold; relax nothing (invariant 7).
+- Plan: per family, find the current guideline (EK-4 first for level), commit a snapshot, record CD-108..CD-120, and write the trigger, level, register and three location actions with numbers spelled out. Add executable positive and near-miss goldens. Make the pack loader check chain-pack sources. Run a verifier pass. Tests first.
+- Tests added: tests/protocols/test_int619_base_intake_red_flags.py (31) and tests/safety/test_base_intake_red_flag_goldens.py (26, run by `make safety`). Near misses:
+  - one changed word in a quote is refused by the loader;
+  - each golden negative differs from its positive in one answer;
+  - an undated positive does not fire;
+  - the anaphylaxis probe does not fire on swelling alone.
+  Red: 21 failed / 11 passed / 3 skipped. Green: 57 passed.
+- Result: 8 active, 5 draft.
+  - active: chest_pain_acute, stroke_fast, anaphylaxis, severe_bleeding, sepsis_like and thunderclap_headache are KIRMIZI_K2 / ALERT; fever_high_persistent (immunosuppressed arm) is SARI_K1; weight_loss_unintentional is SARI_K2;
+  - draft: dyspnoea_rest, pregnancy_bleeding_pain and new_neuro_deficit_subacute; suicidal_intent and suicidal_ideation_passive stay blocked (HB-L2 C-SSRS, HB-C8).
+  - New snapshots: NICE-NG128, NICE-CG150, RCUK-ANAPHYLAXIS-2021.
+- Gates:
+  - protocols + safety 2136 passed; `make safety` exit 0; check-ts exit 0; no_placeholders OK;
+  - compile refusals 21 → 13, none from an active rule;
+  - check-py: see docs/evidence/INT-619.md §8.
+- Invariants touched and still passing:
+  - 1: levels come only from rules.
+  - 7: every family rose from the YESIL floor; base.life_threat is byte-identical, so D23 stands.
+  - 10: scripts are verbatim in the pack.
+  - 17: each unwritten arm is the sanctioned literal in its CD.
+  - 21: register plus three locations, no 112 on site.
+  - 22: no digit in any script; age is a yes/no, not free numeric entry.
+- Decisions: CD-108..CD-120 (D18 scope).
+- Findings:
+  - The HB-C6 slot time_last_known_well is a duration, which the engine cannot anchor on. stroke_fast anchors on a dated onset slot instead.
+  - RCUK's review date (May 2026) has passed, and its PDF restricts reproduction.
+  - CD-107 carried a word the no_placeholders gate forbids (fixed, one word).
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id):
+  - Dr Efe Onganer (HB-C1): "Do you sign the eight INT-619 rules as written (CD-108..CD-118), including K2 rather than K1 for anaphylaxis and the unwritten arms each CD lists?"
+  - Obstetric clinician (HB-C4): "What layperson-answerable trigger and EK-4 level does bleeding or severe pain in pregnancy carry?"
+  - HB-L2 / HB-C8: the two suicide families, unchanged.
+- Next: the independent clinical reviewer's verdict on CD-108..CD-120.
 - LOOP_STATUS: WAITING_HUMAN

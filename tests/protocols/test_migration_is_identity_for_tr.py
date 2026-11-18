@@ -284,7 +284,8 @@ def test_the_baseline_actually_covers_the_red_flag_action_scripts() -> None:
     pointers = [pointer for entries in baseline.values() for pointer in entries]
     for field in SPOKEN_FIELDS:
         assert any(pointer.endswith(field) for pointer in pointers), field
-    assert len(pointers) == 58
+    # INT-619: +30, the eight base.intake red-flag rules' action scripts (all additions).
+    assert len(pointers) == 88
 
 
 def test_the_served_bundle_is_unchanged_by_the_spoken_field_migration(

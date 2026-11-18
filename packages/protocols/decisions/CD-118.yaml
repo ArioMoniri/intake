@@ -1,0 +1,86 @@
+# INT-619 clinical decision CD-118: rf.weight_loss_unintentional
+# (owner, 18 Nov 2026: "yes write the 13 red flag rules").
+# Agent-authored under owner decision D18 for simulated-patient stress testing only; a licensed
+# physician's review is required before any real patient. Every source quote appears verbatim in the
+# named snapshot and every spec_basis quote in the named file.
+kind: clinical_decision
+id: CD-118
+title: 'rf.weight_loss_unintentional: more than five per cent in six months, aged sixty and over (NICE
+  NG12 1.13.2)'
+question: Which current source states the weight-loss threshold, window and urgency?
+decision: 'Write rf.weight_loss_unintentional as SARI_K2 / EXPEDITE, notify always, on two slots: weight
+  loss without trying of more than five per cent in six months, and, after a yes, aged sixty or over.
+  NICE NG12 1.13.2 (amended April 2026) states all three values and asks for urgent investigation or a
+  suspected cancer or non-specific symptoms pathway referral. Level: EK-4 Sarı Kategori 2''s moderate
+  and prolonged symptoms with potential seriousness, the pack''s mapping of an outpatient urgency onto
+  the five-level scale. The anchor is the complaint''s onset date, the dated slot every session asks;
+  the window is in the probe. Age is asked as a yes or no on NG12''s bound, not as free numeric entry
+  (invariant 22).'
+status: active
+scope: simulated_patient_stress_testing
+scope_note: 'Owner decision D18 (2 Oct 2026), and the owner''s instruction of 18 Nov 2026 (''yes write
+  the 13 red flag rules''): agent-sourced content for the synthetic host and simulated patients only.
+  A licensed physician''s review is required before any real patient. No clinical_signoff field is touched
+  (D17), the pack stays L0, and HB-C1 stays open.'
+question_origin: 'Owner, 18 Nov 2026, in chat: ''yes write the 13 red flag rules''. INT-619.'
+author_role: general practice and medical oncology physician (agent)
+inference_disclosure: NG12's 'unexplained' means not explained after a primary-care assessment, which
+  a patient cannot report; 'without trying' is the pack's proxy. The EK-4 Sarı Kategori 2 mapping is the
+  pack's.
+sources:
+- kind: guideline
+  guideline_id: NICE-NG12
+  title: 'Suspected cancer: recognition and referral'
+  version_or_date: NICE guideline NG12; published 23 June 2015; last updated 15 April 2026
+  url: https://www.nice.org.uk/guidance/ng12/chapter/Recommendations-organised-by-site-of-cancer
+  retrieved_on: 2026-10-03
+  snapshot: packages/protocols/sources/NICE-NG12.txt
+  section: 1.13.2
+  quote: For people aged 60 and over with unexplained weight loss (greater than 5% mean weight loss within
+    a 6-month period)
+  supports: trigger
+- kind: guideline
+  guideline_id: NICE-NG12
+  title: 'Suspected cancer: recognition and referral'
+  version_or_date: NICE guideline NG12; published 23 June 2015; last updated 15 April 2026
+  url: https://www.nice.org.uk/guidance/ng12/chapter/Recommendations-organised-by-site-of-cancer
+  retrieved_on: 2026-10-03
+  snapshot: packages/protocols/sources/NICE-NG12.txt
+  section: Terms used in this guideline, Unexplained
+  quote: Symptoms or signs that have not led to a diagnosis being made by the healthcare professional
+    in primary care after initial assessment
+  supports: trigger
+  caveat: Why 'without trying' is a proxy.
+- kind: guideline
+  guideline_id: TR-EK4-2022
+  title: Yataklı Sağlık Tesislerinde Acil Servis Hizmetlerinin Uygulama Usul ve Esasları Hakkında Tebliğ,
+    EK-4
+  version_or_date: RG 13/9/2022 sayı 31952
+  url: https://www.resmigazete.gov.tr/eskiler/2022/09/20220913-5-1.pdf
+  retrieved_on: 2026-10-02
+  snapshot: packages/protocols/sources/TR-EK4-2022.txt
+  section: EK-4 Sarı Kategori 2
+  quote: 'Kategori 2: Orta ve uzamış dönem belirtileri olan ve ciddiyet potansiyeli taşıyan durumlar.'
+  supports: level
+spec_basis:
+- file: CLAUDE.md
+  section: Non-negotiable invariants, 22
+  quote: No numeral reaches any TTS model
+  supports: action (every number in a script is a Turkish word)
+fail_closed_while_draft: A draft rule or arm stays out of every served pack and never evaluates; base.intake
+  is L0, so no rule here reaches a patient until the physician signs (HB-C1).
+value:
+  rule: rf.weight_loss_unintentional
+  when: red_flags.rf_weight_loss_unintentional == true && red_flags.age_sixty_or_over == true
+  tense: ever
+  tense_anchor: hpi.onset_date
+  level: SARI_K2
+  route: EXPEDITE
+verifier:
+  verdict: agree
+  role: verifier pass by the authoring agent (not independent; an independent clinical reviewer is to
+    follow)
+  verified_on: 2026-11-18
+  notes: 'Each quote re-read against its committed snapshot, and the rule''s trigger, level, route and
+    scripts re-read against the quotes; the register loader re-checks every quote verbatim. No mismatch
+    found. Not D18''s independent verdict: the separate clinical reviewer gives that.'

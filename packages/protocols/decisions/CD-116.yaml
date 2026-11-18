@@ -1,0 +1,53 @@
+# INT-619 clinical decision CD-116: rf.pregnancy_bleeding_pain
+# (owner, 18 Nov 2026: "yes write the 13 red flag rules").
+# Agent-authored under owner decision D18 for simulated-patient stress testing only; a licensed
+# physician's review is required before any real patient. Every source quote appears verbatim in the
+# named snapshot and every spec_basis quote in the named file.
+kind: clinical_decision
+id: CD-116
+title: 'rf.pregnancy_bleeding_pain stays draft: obstetric input (HB-C4) and no layperson-answerable source'
+question: Which current source states a layperson-answerable trigger for bleeding or severe pain in pregnancy
+  and its urgency?
+decision: Keep rf.pregnancy_bleeding_pain draft_needs_source. The one committed obstetric source, NICE
+  NG126, covers early pregnancy only, and its A&E criterion is a clinician's judgement ('significant concern
+  about the degree of pain or bleeding'). EK-4 has no pregnancy line. The pregnancy rule set needs obstetric
+  input (HB-C4).
+status: draft_needs_source
+scope: simulated_patient_stress_testing
+scope_note: 'Owner decision D18 (2 Oct 2026), and the owner''s instruction of 18 Nov 2026 (''yes write
+  the 13 red flag rules''): agent-sourced content for the synthetic host and simulated patients only.
+  A licensed physician''s review is required before any real patient. No clinical_signoff field is touched
+  (D17), the pack stays L0, and HB-C1 stays open.'
+question_origin: 'Owner, 18 Nov 2026, in chat: ''yes write the 13 red flag rules''. INT-619.'
+author_role: obstetrics and emergency medicine physician (agent)
+sources:
+- kind: guideline
+  guideline_id: NICE-NG126
+  title: 'Ectopic pregnancy and miscarriage: diagnosis and initial management'
+  version_or_date: NICE guideline NG126; published 17 April 2019; last updated 17 June 2026
+  url: https://www.nice.org.uk/guidance/ng126/chapter/Symptoms-and-signs-of-ectopic-pregnancy-and-initial-assessment
+  retrieved_on: 2026-10-03
+  snapshot: packages/protocols/sources/NICE-NG126.txt
+  section: 1.4 (initial assessment)
+  quote: Refer women who are haemodynamically unstable, or in whom there is significant concern about
+    the degree of pain or bleeding, directly to A&E.
+  supports: trigger_if_written
+  caveat: Clinician-assessed; early pregnancy only.
+source_gap: Obstetric input owed (HB-C4); no layperson-answerable committed source.
+fail_closed_while_draft: A draft rule or arm stays out of every served pack and never evaluates; base.intake
+  is L0, so no rule here reaches a patient until the physician signs (HB-C1).
+value:
+  rule: rf.pregnancy_bleeding_pain
+  trigger:
+    status: draft_needs_source
+    resolved: 'TODO: the rf.pregnancy_bleeding_pain trigger and level requires clinical sign-off'
+    source_gap: Obstetric input (HB-C4); NG126 is early-pregnancy and clinician-assessed; EK-4 has no
+      pregnancy line.
+verifier:
+  verdict: agree
+  role: verifier pass by the authoring agent (not independent; an independent clinical reviewer is to
+    follow)
+  verified_on: 2026-11-18
+  notes: 'Each quote re-read against its committed snapshot, and the rule''s trigger, level, route and
+    scripts re-read against the quotes; the register loader re-checks every quote verbatim. No mismatch
+    found. Not D18''s independent verdict: the separate clinical reviewer gives that.'

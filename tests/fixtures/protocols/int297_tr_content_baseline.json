@@ -26,6 +26,54 @@
     }
   },
   "packages/protocols/base/intake.yaml": {
+    "red_flags/0/action/ON_SITE/why_tr": {
+      "authored": "Verilen cevaplara göre beklemeden değerlendirme gerekiyor. Acil serviste hastaların önceliği girişte belirlenir ve en öncelikli hastalar bekletilmeden içeri alınır.",
+      "expanded": "Verilen cevaplara göre beklemeden değerlendirme gerekiyor. Acil serviste hastaların önceliği girişte belirlenir ve en öncelikli hastalar bekletilmeden içeri alınır."
+    },
+    "red_flags/0/action/REMOTE/why_tr": {
+      "authored": "Verilen cevaplara göre beklemeden değerlendirme gerekiyor. Yüz on iki ambulansıyla getirilen hastalar, acil serviste ayrıca öncelik sırası için bekletilmez.",
+      "expanded": "Verilen cevaplara göre beklemeden değerlendirme gerekiyor. Yüz on iki ambulansıyla getirilen hastalar, acil serviste ayrıca öncelik sırası için bekletilmez."
+    },
+    "red_flags/1/action/ON_SITE/why_tr": {
+      "authored": "Verilen cevaplara göre beklemeden değerlendirme gerekiyor. Acil serviste hastaların önceliği girişte belirlenir ve en öncelikli hastalar bekletilmeden içeri alınır.",
+      "expanded": "Verilen cevaplara göre beklemeden değerlendirme gerekiyor. Acil serviste hastaların önceliği girişte belirlenir ve en öncelikli hastalar bekletilmeden içeri alınır."
+    },
+    "red_flags/1/action/REMOTE/why_tr": {
+      "authored": "Verilen cevaplara göre beklemeden değerlendirme gerekiyor. Yüz on iki ambulansıyla getirilen hastalar, acil serviste ayrıca öncelik sırası için bekletilmez.",
+      "expanded": "Verilen cevaplara göre beklemeden değerlendirme gerekiyor. Yüz on iki ambulansıyla getirilen hastalar, acil serviste ayrıca öncelik sırası için bekletilmez."
+    },
+    "red_flags/3/action/ON_SITE/why_tr": {
+      "authored": "Verilen cevaplara göre beklemeden değerlendirme gerekiyor. Bu durumda ayağa kalkmak ya da yürümek tehlikeli olabilir.",
+      "expanded": "Verilen cevaplara göre beklemeden değerlendirme gerekiyor. Bu durumda ayağa kalkmak ya da yürümek tehlikeli olabilir."
+    },
+    "red_flags/3/action/REMOTE/why_tr": {
+      "authored": "Verilen cevaplara göre beklemeden değerlendirme gerekiyor. Yüz on iki ambulansıyla getirilen hastalar, acil serviste ayrıca öncelik sırası için bekletilmez.",
+      "expanded": "Verilen cevaplara göre beklemeden değerlendirme gerekiyor. Yüz on iki ambulansıyla getirilen hastalar, acil serviste ayrıca öncelik sırası için bekletilmez."
+    },
+    "red_flags/4/action/ON_SITE/why_tr": {
+      "authored": "Verilen cevaplara göre beklemeden değerlendirme gerekiyor. Acil serviste hastaların önceliği girişte belirlenir ve en öncelikli hastalar bekletilmeden içeri alınır.",
+      "expanded": "Verilen cevaplara göre beklemeden değerlendirme gerekiyor. Acil serviste hastaların önceliği girişte belirlenir ve en öncelikli hastalar bekletilmeden içeri alınır."
+    },
+    "red_flags/4/action/REMOTE/why_tr": {
+      "authored": "Verilen cevaplara göre beklemeden değerlendirme gerekiyor. Yüz on iki ambulansıyla getirilen hastalar, acil serviste ayrıca öncelik sırası için bekletilmez.",
+      "expanded": "Verilen cevaplara göre beklemeden değerlendirme gerekiyor. Yüz on iki ambulansıyla getirilen hastalar, acil serviste ayrıca öncelik sırası için bekletilmez."
+    },
+    "red_flags/6/action/ON_SITE/why_tr": {
+      "authored": "Verilen cevaplara göre beklemeden değerlendirme gerekiyor. Acil serviste hastaların önceliği girişte belirlenir ve en öncelikli hastalar bekletilmeden içeri alınır.",
+      "expanded": "Verilen cevaplara göre beklemeden değerlendirme gerekiyor. Acil serviste hastaların önceliği girişte belirlenir ve en öncelikli hastalar bekletilmeden içeri alınır."
+    },
+    "red_flags/6/action/REMOTE/why_tr": {
+      "authored": "Verilen cevaplara göre beklemeden değerlendirme gerekiyor. Yüz on iki ambulansıyla getirilen hastalar, acil serviste ayrıca öncelik sırası için bekletilmez.",
+      "expanded": "Verilen cevaplara göre beklemeden değerlendirme gerekiyor. Yüz on iki ambulansıyla getirilen hastalar, acil serviste ayrıca öncelik sırası için bekletilmez."
+    },
+    "red_flags/7/action/ON_SITE/why_tr": {
+      "authored": "Verilen cevaplara göre beklemeden değerlendirme gerekiyor. Acil serviste hastaların önceliği girişte belirlenir ve en öncelikli hastalar bekletilmeden içeri alınır.",
+      "expanded": "Verilen cevaplara göre beklemeden değerlendirme gerekiyor. Acil serviste hastaların önceliği girişte belirlenir ve en öncelikli hastalar bekletilmeden içeri alınır."
+    },
+    "red_flags/7/action/REMOTE/why_tr": {
+      "authored": "Verilen cevaplara göre beklemeden değerlendirme gerekiyor. Yüz on iki ambulansıyla getirilen hastalar, acil serviste ayrıca öncelik sırası için bekletilmez.",
+      "expanded": "Verilen cevaplara göre beklemeden değerlendirme gerekiyor. Yüz on iki ambulansıyla getirilen hastalar, acil serviste ayrıca öncelik sırası için bekletilmez."
+    },
     "sections/associated/slots/diaphoresis/ask_tr": {
       "authored": "Bu ağrı ya da rahatsızlık sırasında çok terlediniz mi?",
       "expanded": "Bu ağrı ya da rahatsızlık sırasında çok terlediniz mi?"
@@ -559,6 +607,110 @@
     "sections/reason_for_visit/slots/patient_goals/follow_up_tr": {
       "authored": "Bugün buradan ayrılırken en çok neyin çözülmüş olmasını istersiniz?",
       "expanded": "Bugün buradan ayrılırken en çok neyin çözülmüş olmasını istersiniz?"
+    },
+    "sections/red_flags/slots/age_sixty_or_over/ask_tr": {
+      "authored": "Altmış yaşında ya da daha büyük müsünüz?",
+      "expanded": "Altmış yaşında ya da daha büyük müsünüz?"
+    },
+    "sections/red_flags/slots/age_sixty_or_over/follow_up_tr": {
+      "authored": "Altmış yaşınızı doldurduysanız evet diyebilirsiniz.",
+      "expanded": "Altmış yaşınızı doldurduysanız evet diyebilirsiniz."
+    },
+    "sections/red_flags/slots/fever_now/ask_tr": {
+      "authored": "Şu anda ateşiniz var mı?",
+      "expanded": "Şu anda ateşiniz var mı?"
+    },
+    "sections/red_flags/slots/fever_now/follow_up_tr": {
+      "authored": "Ölçmediyseniz de ateşiniz olduğunu düşünüyorsanız evet diyebilirsiniz.",
+      "expanded": "Ölçmediyseniz de ateşiniz olduğunu düşünüyorsanız evet diyebilirsiniz."
+    },
+    "sections/red_flags/slots/fever_onset/ask_tr": {
+      "authored": "Ateşiniz ne zaman başladı?",
+      "expanded": "Ateşiniz ne zaman başladı?"
+    },
+    "sections/red_flags/slots/fever_onset/follow_up_tr": {
+      "authored": "Bugün başladıysa bugün diyebilirsiniz.",
+      "expanded": "Bugün başladıysa bugün diyebilirsiniz."
+    },
+    "sections/red_flags/slots/rf_anaphylaxis/ask_tr": {
+      "authored": "Şu anda, bir yiyecek, ilaç ya da böcek sokması gibi bir şeyden sonra birden başlayan nefes almada güçlük ya da boğazınızda yutkunmanızı zorlaştıran bir şişlik var mı?",
+      "expanded": "Şu anda, bir yiyecek, ilaç ya da böcek sokması gibi bir şeyden sonra birden başlayan nefes almada güçlük ya da boğazınızda yutkunmanızı zorlaştıran bir şişlik var mı?"
+    },
+    "sections/red_flags/slots/rf_anaphylaxis/follow_up_tr": {
+      "authored": "Boğazınız kapanıyor gibi geliyorsa, sesiniz kısıldıysa ya da nefesiniz daraldıysa evet diyebilirsiniz.",
+      "expanded": "Boğazınız kapanıyor gibi geliyorsa, sesiniz kısıldıysa ya da nefesiniz daraldıysa evet diyebilirsiniz."
+    },
+    "sections/red_flags/slots/rf_anaphylaxis_onset/ask_tr": {
+      "authored": "Bu belirtiler ne zaman başladı?",
+      "expanded": "Bu belirtiler ne zaman başladı?"
+    },
+    "sections/red_flags/slots/rf_anaphylaxis_onset/follow_up_tr": {
+      "authored": "Bugün başladıysa bugün diyebilirsiniz.",
+      "expanded": "Bugün başladıysa bugün diyebilirsiniz."
+    },
+    "sections/red_flags/slots/rf_sepsis_like/ask_tr": {
+      "authored": "Ateşinizle birlikte uyanık kalmakta zorlanacak kadar aşırı bir uyku hâli ve halsizlik var mı?",
+      "expanded": "Ateşinizle birlikte uyanık kalmakta zorlanacak kadar aşırı bir uyku hâli ve halsizlik var mı?"
+    },
+    "sections/red_flags/slots/rf_sepsis_like/follow_up_tr": {
+      "authored": "Gün içinde sürekli uyuyakalıyorsanız ya da sizi uyandırmak zorlaşıyorsa evet diyebilirsiniz.",
+      "expanded": "Gün içinde sürekli uyuyakalıyorsanız ya da sizi uyandırmak zorlaşıyorsa evet diyebilirsiniz."
+    },
+    "sections/red_flags/slots/rf_severe_bleeding/ask_tr": {
+      "authored": "Şu anda süren bir kanamanızla birlikte soğuk terleme, yani teninizde soğukluk ve ıslaklık var mı?",
+      "expanded": "Şu anda süren bir kanamanızla birlikte soğuk terleme, yani teninizde soğukluk ve ıslaklık var mı?"
+    },
+    "sections/red_flags/slots/rf_severe_bleeding/follow_up_tr": {
+      "authored": "Kanama varken teniniz soğuk ve nemliyse evet diyebilirsiniz.",
+      "expanded": "Kanama varken teniniz soğuk ve nemliyse evet diyebilirsiniz."
+    },
+    "sections/red_flags/slots/rf_severe_bleeding_onset/ask_tr": {
+      "authored": "Bu kanama ne zaman başladı?",
+      "expanded": "Bu kanama ne zaman başladı?"
+    },
+    "sections/red_flags/slots/rf_severe_bleeding_onset/follow_up_tr": {
+      "authored": "Bugün başladıysa bugün diyebilirsiniz.",
+      "expanded": "Bugün başladıysa bugün diyebilirsiniz."
+    },
+    "sections/red_flags/slots/rf_stroke_fast/ask_tr": {
+      "authored": "Yüzünüzün bir yanında kayma, bir kolunuzda güçsüzlük ya da konuşmada güçlük birden başladı ve şu anda sürüyor mu?",
+      "expanded": "Yüzünüzün bir yanında kayma, bir kolunuzda güçsüzlük ya da konuşmada güçlük birden başladı ve şu anda sürüyor mu?"
+    },
+    "sections/red_flags/slots/rf_stroke_fast/follow_up_tr": {
+      "authored": "Gülümserken ağzınızın bir yanı düşüyorsa, bir kolunuzu kaldıramıyorsanız ya da kelimeleri söyleyemiyorsanız evet diyebilirsiniz.",
+      "expanded": "Gülümserken ağzınızın bir yanı düşüyorsa, bir kolunuzu kaldıramıyorsanız ya da kelimeleri söyleyemiyorsanız evet diyebilirsiniz."
+    },
+    "sections/red_flags/slots/rf_stroke_fast_onset/ask_tr": {
+      "authored": "Bu belirtiler ne zaman başladı?",
+      "expanded": "Bu belirtiler ne zaman başladı?"
+    },
+    "sections/red_flags/slots/rf_stroke_fast_onset/follow_up_tr": {
+      "authored": "Bugün başladıysa bugün diyebilirsiniz.",
+      "expanded": "Bugün başladıysa bugün diyebilirsiniz."
+    },
+    "sections/red_flags/slots/rf_thunderclap_headache/ask_tr": {
+      "authored": "Şu anda, birden başlayıp en fazla beş dakika içinde en ağır hâline ulaşan çok şiddetli bir baş ağrınız var mı?",
+      "expanded": "Şu anda, birden başlayıp en fazla beş dakika içinde en ağır hâline ulaşan çok şiddetli bir baş ağrınız var mı?"
+    },
+    "sections/red_flags/slots/rf_thunderclap_headache/follow_up_tr": {
+      "authored": "Ağrı yavaş yavaş arttıysa hayır diyebilirsiniz.",
+      "expanded": "Ağrı yavaş yavaş arttıysa hayır diyebilirsiniz."
+    },
+    "sections/red_flags/slots/rf_thunderclap_headache_onset/ask_tr": {
+      "authored": "Bu baş ağrısı ne zaman başladı?",
+      "expanded": "Bu baş ağrısı ne zaman başladı?"
+    },
+    "sections/red_flags/slots/rf_thunderclap_headache_onset/follow_up_tr": {
+      "authored": "Bugün başladıysa bugün diyebilirsiniz.",
+      "expanded": "Bugün başladıysa bugün diyebilirsiniz."
+    },
+    "sections/red_flags/slots/rf_weight_loss_unintentional/ask_tr": {
+      "authored": "Son altı ayda, kilo vermeye çalışmadığınız hâlde kilonuzun yüzde beşinden fazlasını kaybettiniz mi?",
+      "expanded": "Son altı ayda, kilo vermeye çalışmadığınız hâlde kilonuzun yüzde beşinden fazlasını kaybettiniz mi?"
+    },
+    "sections/red_flags/slots/rf_weight_loss_unintentional/follow_up_tr": {
+      "authored": "Örneğin yetmiş kilo iken üç buçuk kilodan fazla verdiyseniz evet diyebilirsiniz.",
+      "expanded": "Örneğin yetmiş kilo iken üç buçuk kilodan fazla verdiyseniz evet diyebilirsiniz."
     },
     "sections/trauma/slots/recent/ask_tr": {
       "authored": "Bu ağrı ya da rahatsızlık başlamadan önce göğsünüz bir darbe ya da kaza sonucu yaralandı mı?",

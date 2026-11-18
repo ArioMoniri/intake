@@ -1,0 +1,84 @@
+# INT-619 clinical decision CD-112: rf.severe_bleeding
+# (owner, 18 Nov 2026: "yes write the 13 red flag rules").
+# Agent-authored under owner decision D18 for simulated-patient stress testing only; a licensed
+# physician's review is required before any real patient. Every source quote appears verbatim in the
+# named snapshot and every spec_basis quote in the named file.
+kind: clinical_decision
+id: CD-112
+title: 'rf.severe_bleeding: bleeding now with cold, clammy skin, at EK-4 Kırmızı Kategori 2'
+question: Which current source states a layperson-answerable trigger for severe bleeding and its urgency?
+decision: 'Write rf.severe_bleeding as KIRMIZI_K2 / EMERGENCY_NOW / ALERT on one probe: bleeding now with
+  cold sweating, cold and wet skin. EK-4 Kırmızı Kategori 2 ''Dolaşım bozukluğu'' prints ''Nemli, soğuk
+  deri, perfüzyon bozukluğu'', its one layperson-answerable sign. The conjunction with bleeding is the
+  pack''s. Not written: EK-4 Sarı Kategori 1 ''Herhangi bir nedenle orta derecede kan kaybı'' and 04 §3''s
+  ''large-volume bleeding'' and ''melena with dizziness'', because no committed source states a volume
+  a patient can report, and dizziness is not EK-4''s sign.'
+status: active
+scope: simulated_patient_stress_testing
+scope_note: 'Owner decision D18 (2 Oct 2026), and the owner''s instruction of 18 Nov 2026 (''yes write
+  the 13 red flag rules''): agent-sourced content for the synthetic host and simulated patients only.
+  A licensed physician''s review is required before any real patient. No clinical_signoff field is touched
+  (D17), the pack stays L0, and HB-C1 stays open.'
+question_origin: 'Owner, 18 Nov 2026, in chat: ''yes write the 13 red flag rules''. INT-619.'
+author_role: emergency medicine physician (agent)
+inference_disclosure: EK-4 states the circulation sign for any cause; requiring bleeding with it narrows
+  EK-4's line to this family. The family was at the YESIL floor, so this is not a relaxation.
+sources:
+- kind: guideline
+  guideline_id: TR-EK4-2022
+  title: Yataklı Sağlık Tesislerinde Acil Servis Hizmetlerinin Uygulama Usul ve Esasları Hakkında Tebliğ,
+    EK-4
+  version_or_date: RG 13/9/2022 sayı 31952
+  url: https://www.resmigazete.gov.tr/eskiler/2022/09/20220913-5-1.pdf
+  retrieved_on: 2026-10-02
+  snapshot: packages/protocols/sources/TR-EK4-2022.txt
+  section: EK-4 Kırmızı Kategori 2, Dolaşım bozukluğu
+  quote: Nemli, soğuk deri, perfüzyon bozukluğu
+  supports: trigger, level
+- kind: guideline
+  guideline_id: TR-EK4-2022
+  title: Yataklı Sağlık Tesislerinde Acil Servis Hizmetlerinin Uygulama Usul ve Esasları Hakkında Tebliğ,
+    EK-4
+  version_or_date: RG 13/9/2022 sayı 31952
+  url: https://www.resmigazete.gov.tr/eskiler/2022/09/20220913-5-1.pdf
+  retrieved_on: 2026-10-02
+  snapshot: packages/protocols/sources/TR-EK4-2022.txt
+  section: EK-4 Sarı Kategori 1
+  quote: Herhangi bir nedenle orta derecede kan kaybı
+  supports: volume_arm
+  caveat: Not layperson-quantifiable; not written.
+spec_basis:
+- file: packages/protocols/decisions/CD-24.yaml
+  section: decision (REMOTE, ON_SITE, UNKNOWN copy)
+  quote: Hemen 112 Acil Çağrı Merkezi'ni arayın.
+  supports: action (the generic RED script, with 112 spelled out as 'yüz on iki')
+- file: CLAUDE.md
+  section: Non-negotiable invariants, 22
+  quote: No numeral reaches any TTS model
+  supports: action (every number in a script is a Turkish word)
+source_gap: The volume arm and the melena-with-dizziness arm have no layperson-reportable source.
+fail_closed_while_draft: A draft rule or arm stays out of every served pack and never evaluates; base.intake
+  is L0, so no rule here reaches a patient until the physician signs (HB-C1).
+value:
+  rule: rf.severe_bleeding
+  when: red_flags.rf_severe_bleeding == true
+  tense: ever
+  tense_anchor: red_flags.rf_severe_bleeding_onset
+  level: KIRMIZI_K2
+  route: EMERGENCY_NOW
+  register: ALERT
+  volume_arm:
+    status: draft_needs_source
+    resolved: 'TODO: a layperson-reportable bleeding volume and the melena-with-dizziness arm of rf.severe_bleeding requires clinical sign-off'
+    source_gap: EK-4 says 'orta derecede' without a measure, and no committed source states melena with
+      dizziness for a patient report.
+value_status:
+  volume_arm: draft_needs_source
+verifier:
+  verdict: agree
+  role: verifier pass by the authoring agent (not independent; an independent clinical reviewer is to
+    follow)
+  verified_on: 2026-11-18
+  notes: 'Each quote re-read against its committed snapshot, and the rule''s trigger, level, route and
+    scripts re-read against the quotes; the register loader re-checks every quote verbatim. No mismatch
+    found. Not D18''s independent verdict: the separate clinical reviewer gives that.'

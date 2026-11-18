@@ -1,0 +1,25 @@
+# guideline_id: NICE-NG128
+# title: Stroke and transient ischaemic attack in over 16s: diagnosis and initial management
+# publisher: National Institute for Health and Care Excellence (NICE)
+# version_or_date: NICE guideline NG128; published 01 May 2019; last updated 13 April 2022
+# url: https://www.nice.org.uk/guidance/ng128/chapter/Recommendations
+# retrieved_on: 2026-11-18
+# retrieval: curl with a browser user-agent (HTTP 200, HTML 116,869 bytes, sha256 44563c1db017a93af7a5d92e9345c0fdfd085553dcbee78417d9c5bad4729c78); script and style removed, tags stripped, HTML entities decoded, one line per HTML block, whitespace runs collapsed to one space, non-breaking spaces (U+00A0) rendered as plain spaces, non-breaking hyphens (U+2011) kept as served
+# scope: verbatim excerpt of the page header, the heading of section 1.1 and recommendations 1.1.1, 1.1.2 and 1.1.5; nothing paraphrased or edited. '[...]' marks an omission between excerpts.
+---
+NICE guideline
+Reference number: NG128
+Published:
+01 May 2019
+Last updated:
+13 April 2022
+[...]
+1.1 Rapid recognition of symptoms and diagnosis
+Prompt recognition of symptoms of stroke and transient ischaemic attack
+1.1.1
+Use a validated tool, such as FAST (Face Arm Speech Test), outside hospital to screen people with sudden onset of neurological symptoms for a diagnosis of stroke or transient ischaemic attack (TIA). [2008]
+1.1.2
+Exclude hypoglycaemia in people with sudden onset of neurological symptoms as the cause of these symptoms. [2008]
+[...]
+1.1.5
+Refer immediately people who have had a suspected TIA for specialist assessment and investigation, to be seen within 24 hours of onset of symptoms. [2019]

@@ -1,0 +1,139 @@
+# INT-619 clinical decision CD-111: rf.anaphylaxis
+# (owner, 18 Nov 2026: "yes write the 13 red flag rules").
+# Agent-authored under owner decision D18 for simulated-patient stress testing only; a licensed
+# physician's review is required before any real patient. Every source quote appears verbatim in the
+# named snapshot and every spec_basis quote in the named file.
+kind: clinical_decision
+id: CD-111
+title: 'rf.anaphylaxis: sudden tongue or throat swelling, breathing or swallowing difficulty after a trigger,
+  at EK-4 Kırmızı Kategori 2'
+question: Which current source states a layperson-answerable anaphylaxis trigger, its urgency and its
+  do-nots?
+decision: 'Write rf.anaphylaxis as KIRMIZI_K2 / EMERGENCY_NOW / ALERT on one probe: present now, after
+  something such as a food, a drug or an insect sting, a sudden difficulty breathing or a throat swelling
+  that makes swallowing hard (RCUK 2021 §3, §3.1, §3.2 Airway problems). Swelling alone is not asked for,
+  because RCUK §3.1 defines anaphylaxis by sudden Airway, Breathing or Circulation problems and lists
+  angioedema only among the usual skin and mucosal changes (an inference from §3.1, not a sentence it prints). Level:
+  EK-4 Kırmızı Kategori 2''s ''yutkunma güçlüğü ile beraber olan havayolu tıkanıklığı riski''. EK-4''s
+  Kategori 1 ''Havayolu tıkanıklığı riski'' is the reading a physician may prefer; raising K2 to K1 is
+  a tightening they can make. Do-not: ''Ayağa kalkmayın ve yürümeyin'' (RCUK §4.4). ON_SITE does not send
+  the patient walking to the acil servis: it keeps them in place with staff notified (STAY_IN_PLACE_STAFF_NOTIFIED).
+  Self-injected adrenaline is not scripted: it is a treatment instruction and no committed passage states
+  it for a patient; the physician decides whether the REMOTE script names a prescribed auto-injector.'
+status: active
+scope: simulated_patient_stress_testing
+scope_note: 'Owner decision D18 (2 Oct 2026), and the owner''s instruction of 18 Nov 2026 (''yes write
+  the 13 red flag rules''): agent-sourced content for the synthetic host and simulated patients only.
+  A licensed physician''s review is required before any real patient. No clinical_signoff field is touched
+  (D17), the pack stays L0, and HB-C1 stays open.'
+question_origin: 'Owner, 18 Nov 2026, in chat: ''yes write the 13 red flag rules''. INT-619.'
+author_role: emergency medicine and allergy physician (agent)
+inference_disclosure: The probe joins RCUK's exposure, suddenness and airway or breathing problem into
+  one self-report; skin changes are left out because RCUK says they may be absent and are not a sign of
+  anaphylaxis alone. The probe's examples (food, medicine, insect sting) illustrate RCUK's 'trigger (allergen)';
+  the committed excerpt names food and insect sting, and medication as a trigger is RCUK Table 2, which
+  the excerpt omits.
+sources:
+- kind: guideline
+  guideline_id: RCUK-ANAPHYLAXIS-2021
+  title: 'Emergency treatment of anaphylaxis: Guidelines for healthcare providers'
+  version_or_date: May 2021
+  url: https://www.resus.org.uk/sites/default/files/2021-05/Emergency%20Treatment%20of%20Anaphylaxis%20May%202021_0.pdf
+  retrieved_on: 2026-11-18
+  snapshot: packages/protocols/sources/RCUK-ANAPHYLAXIS-2021.txt
+  section: 3. Recognition of anaphylaxis
+  quote: Anaphylaxis is likely if a patient who is exposed to a trigger (allergen) develops a sudden illness
+    (usually within minutes of exposure)
+  supports: trigger
+- kind: guideline
+  guideline_id: RCUK-ANAPHYLAXIS-2021
+  title: 'Emergency treatment of anaphylaxis: Guidelines for healthcare providers'
+  version_or_date: May 2021
+  url: https://www.resus.org.uk/sites/default/files/2021-05/Emergency%20Treatment%20of%20Anaphylaxis%20May%202021_0.pdf
+  retrieved_on: 2026-11-18
+  snapshot: packages/protocols/sources/RCUK-ANAPHYLAXIS-2021.txt
+  section: 3.2 Airway problems
+  quote: throat and tongue swelling causing difficulty in breathing/swallowing
+  supports: trigger
+- kind: guideline
+  guideline_id: RCUK-ANAPHYLAXIS-2021
+  title: 'Emergency treatment of anaphylaxis: Guidelines for healthcare providers'
+  version_or_date: May 2021
+  url: https://www.resus.org.uk/sites/default/files/2021-05/Emergency%20Treatment%20of%20Anaphylaxis%20May%202021_0.pdf
+  retrieved_on: 2026-11-18
+  snapshot: packages/protocols/sources/RCUK-ANAPHYLAXIS-2021.txt
+  section: '3.2'
+  quote: Consider anaphylaxis in a person with sudden onset breathing difficulties, especially if known
+    to be allergic to a food or insect sting.
+  supports: trigger
+- kind: guideline
+  guideline_id: RCUK-ANAPHYLAXIS-2021
+  title: 'Emergency treatment of anaphylaxis: Guidelines for healthcare providers'
+  version_or_date: May 2021
+  url: https://www.resus.org.uk/sites/default/files/2021-05/Emergency%20Treatment%20of%20Anaphylaxis%20May%202021_0.pdf
+  retrieved_on: 2026-11-18
+  snapshot: packages/protocols/sources/RCUK-ANAPHYLAXIS-2021.txt
+  section: 4.4 Patient positioning
+  quote: Patients must not walk or stand during acute reactions.
+  supports: action.do_nots, action.ON_SITE
+- kind: guideline
+  guideline_id: TR-EK4-2022
+  title: Yataklı Sağlık Tesislerinde Acil Servis Hizmetlerinin Uygulama Usul ve Esasları Hakkında Tebliğ,
+    EK-4
+  version_or_date: RG 13/9/2022 sayı 31952
+  url: https://www.resmigazete.gov.tr/eskiler/2022/09/20220913-5-1.pdf
+  retrieved_on: 2026-10-02
+  snapshot: packages/protocols/sources/TR-EK4-2022.txt
+  section: EK-4 Kırmızı Kategori 2
+  quote: Şiddetli stridor veya yutkunma güçlüğü ile beraber olan havayolu tıkanıklığı riski
+  supports: level
+- kind: guideline
+  guideline_id: TR-EK4-2022
+  title: Yataklı Sağlık Tesislerinde Acil Servis Hizmetlerinin Uygulama Usul ve Esasları Hakkında Tebliğ,
+    EK-4
+  version_or_date: RG 13/9/2022 sayı 31952
+  url: https://www.resmigazete.gov.tr/eskiler/2022/09/20220913-5-1.pdf
+  retrieved_on: 2026-10-02
+  snapshot: packages/protocols/sources/TR-EK4-2022.txt
+  section: EK-4 Kırmızı Kategori 1
+  quote: Havayolu tıkanıklığı riski
+  supports: level_alternative
+  caveat: The K1 reading; a physician may raise the rule to it.
+spec_basis:
+- file: packages/protocols/decisions/CD-24.yaml
+  section: decision (REMOTE, ON_SITE, UNKNOWN copy)
+  quote: Hemen 112 Acil Çağrı Merkezi'ni arayın.
+  supports: action (the generic RED script, with 112 spelled out as 'yüz on iki')
+- file: CLAUDE.md
+  section: Non-negotiable invariants, 22
+  quote: No numeral reaches any TTS model
+  supports: action (every number in a script is a Turkish word)
+source_gap: The patient-facing auto-injector instruction is not in a committed passage.
+fail_closed_while_draft: A draft rule or arm stays out of every served pack and never evaluates; base.intake
+  is L0, so no rule here reaches a patient until the physician signs (HB-C1).
+value:
+  rule: rf.anaphylaxis
+  when: red_flags.rf_anaphylaxis == true
+  tense: ever
+  tense_anchor: red_flags.rf_anaphylaxis_onset
+  level: KIRMIZI_K2
+  route: EMERGENCY_NOW
+  register: ALERT
+  on_site_primary: STAY_IN_PLACE_STAFF_NOTIFIED
+  auto_injector:
+    status: draft_needs_source
+    resolved: 'TODO: whether the anaphylaxis REMOTE script names a prescribed adrenaline auto-injector requires clinical sign-off'
+    source_gap: No committed passage states the patient-facing instruction; it is treatment language.
+value_status:
+  auto_injector: draft_needs_source
+verifier:
+  verdict: agree_with_changes
+  role: verifier pass by the authoring agent (not independent; an independent clinical reviewer is to
+    follow)
+  verified_on: 2026-11-18
+  notes: 'Each quote re-read against its committed snapshot. One mismatch found and fixed: the first probe
+    fired on a tongue or throat swelling alone, and RCUK 3.1 defines anaphylaxis by Airway, Breathing or
+    Circulation problems and lists angioedema only as a usual accompaniment (an inference; no RCUK sentence
+    says this in so many words). The probe now asks for breathing difficulty or a throat
+    swelling that makes swallowing hard, as RCUK 3.2 prints it. Not D18''s independent verdict: the separate
+    clinical reviewer gives that.'

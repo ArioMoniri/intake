@@ -1,0 +1,64 @@
+# INT-619 clinical decision CD-119: rf.new_neuro_deficit_subacute
+# (owner, 18 Nov 2026: "yes write the 13 red flag rules").
+# Agent-authored under owner decision D18 for simulated-patient stress testing only; a licensed
+# physician's review is required before any real patient. Every source quote appears verbatim in the
+# named snapshot and every spec_basis quote in the named file.
+kind: clinical_decision
+id: CD-119
+title: 'rf.new_neuro_deficit_subacute stays draft: no source states the urgency of weakness progressing
+  over days'
+question: Which current source states a layperson-answerable trigger for weakness or numbness progressing
+  over days and its urgency?
+decision: Keep rf.new_neuro_deficit_subacute draft_needs_source. CG150's 'new-onset neurological deficit'
+  is a feature of a headache presentation and states no urgency; EK-4's 'Akut hemiparazi/disfazi' is the
+  acute arm rf.stroke_fast carries. No committed source states the subacute arm or the tense boundary
+  between the two.
+status: draft_needs_source
+scope: simulated_patient_stress_testing
+scope_note: 'Owner decision D18 (2 Oct 2026), and the owner''s instruction of 18 Nov 2026 (''yes write
+  the 13 red flag rules''): agent-sourced content for the synthetic host and simulated patients only.
+  A licensed physician''s review is required before any real patient. No clinical_signoff field is touched
+  (D17), the pack stays L0, and HB-C1 stays open.'
+question_origin: 'Owner, 18 Nov 2026, in chat: ''yes write the 13 red flag rules''. INT-619.'
+author_role: neurology physician (agent)
+sources:
+- kind: guideline
+  guideline_id: NICE-CG150
+  title: 'Headaches in over 12s: diagnosis and management'
+  version_or_date: NICE clinical guideline CG150; published 19 September 2012; last updated 03 June 2025
+  url: https://www.nice.org.uk/guidance/cg150/chapter/Recommendations
+  retrieved_on: 2026-11-18
+  snapshot: packages/protocols/sources/NICE-CG150.txt
+  section: 1.1.1
+  quote: new‑onset neurological deficit
+  supports: trigger_if_written
+  caveat: A headache feature; no urgency stated.
+- kind: guideline
+  guideline_id: TR-EK4-2022
+  title: Yataklı Sağlık Tesislerinde Acil Servis Hizmetlerinin Uygulama Usul ve Esasları Hakkında Tebliğ,
+    EK-4
+  version_or_date: RG 13/9/2022 sayı 31952
+  url: https://www.resmigazete.gov.tr/eskiler/2022/09/20220913-5-1.pdf
+  retrieved_on: 2026-10-02
+  snapshot: packages/protocols/sources/TR-EK4-2022.txt
+  section: EK-4 Kırmızı Kategori 2
+  quote: Akut hemiparazi/disfazi
+  supports: boundary
+  caveat: The acute arm, already rf.stroke_fast.
+source_gap: No committed source for the subacute arm or its tense boundary with rf.stroke_fast.
+fail_closed_while_draft: A draft rule or arm stays out of every served pack and never evaluates; base.intake
+  is L0, so no rule here reaches a patient until the physician signs (HB-C1).
+value:
+  rule: rf.new_neuro_deficit_subacute
+  trigger:
+    status: draft_needs_source
+    resolved: 'TODO: the rf.new_neuro_deficit_subacute trigger, level and tense boundary requires clinical sign-off'
+    source_gap: No committed source states the urgency of a deficit progressing over days.
+verifier:
+  verdict: agree
+  role: verifier pass by the authoring agent (not independent; an independent clinical reviewer is to
+    follow)
+  verified_on: 2026-11-18
+  notes: 'Each quote re-read against its committed snapshot, and the rule''s trigger, level, route and
+    scripts re-read against the quotes; the register loader re-checks every quote verbatim. No mismatch
+    found. Not D18''s independent verdict: the separate clinical reviewer gives that.'

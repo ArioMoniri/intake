@@ -174,6 +174,14 @@ def test_base_intake_gates_name_one_slot_each() -> None:
     assert resolved == {
         "identity_check.proxy_reported": frozenset({"identity_check.subject_role"}),
         "pmh_fh_sh.lmp_date": frozenset({"pmh_fh_sh.pregnancy_status"}),
+        # INT-619 (CD-109..CD-118): each red-flag follow-up opens on its own probe.
+        "red_flags.rf_stroke_fast_onset": frozenset({"red_flags.rf_stroke_fast"}),
+        "red_flags.rf_anaphylaxis_onset": frozenset({"red_flags.rf_anaphylaxis"}),
+        "red_flags.rf_severe_bleeding_onset": frozenset({"red_flags.rf_severe_bleeding"}),
+        "red_flags.fever_onset": frozenset({"red_flags.fever_now"}),
+        "red_flags.rf_sepsis_like": frozenset({"red_flags.fever_now"}),
+        "red_flags.rf_thunderclap_headache_onset": frozenset({"red_flags.rf_thunderclap_headache"}),
+        "red_flags.age_sixty_or_over": frozenset({"red_flags.rf_weight_loss_unintentional"}),
         **{step: frozenset({"chest_pain.present"}) for step in chest_follow_ups},
     }
 

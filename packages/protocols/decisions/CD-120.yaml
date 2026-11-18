@@ -1,0 +1,52 @@
+# INT-619 clinical decision CD-120: rf.suicidal_ideation_passive
+# (owner, 18 Nov 2026: "yes write the 13 red flag rules").
+# Agent-authored under owner decision D18 for simulated-patient stress testing only; a licensed
+# physician's review is required before any real patient. Every source quote appears verbatim in the
+# named snapshot and every spec_basis quote in the named file.
+kind: clinical_decision
+id: CD-120
+title: 'rf.suicidal_ideation_passive stays blocked: C-SSRS licence (HB-L2) and the escalation policy (HB-C8)'
+question: Can rf.suicidal_ideation_passive be written from a current source?
+decision: Keep rf.suicidal_ideation_passive draft_needs_source and do not write it. 04 §3 states its trigger
+  as a PHQ-9 item-nine score with C-SSRS negative for plan, and C-SSRS is licence-BLOCKED (HB-L2); the
+  escalation policy of 04 §4.2 does not exist (HB-C8). 04 §4.2's finding that the cascade hides passive
+  ideation behind two thresholds is a design question for the clinician.
+status: draft_needs_source
+scope: simulated_patient_stress_testing
+scope_note: 'Owner decision D18 (2 Oct 2026), and the owner''s instruction of 18 Nov 2026 (''yes write
+  the 13 red flag rules''): agent-sourced content for the synthetic host and simulated patients only.
+  A licensed physician''s review is required before any real patient. No clinical_signoff field is touched
+  (D17), the pack stays L0, and HB-C1 stays open.'
+question_origin: 'Owner, 18 Nov 2026, in chat: ''yes write the 13 red flag rules''. INT-619.'
+author_role: psychiatry physician (agent)
+spec_basis:
+- file: CLAUDE.md
+  section: Clinical content rules
+  quote: An instrument whose licence is not `GO` does not compile into a pack (C-SSRS and WHO-5 are BLOCKED
+    — HUMAN_BLOCKERS.md HB-L2, HB-L3).
+  supports: status (the trigger cannot be written in C-SSRS terms)
+- file: files/04_CLINICAL_PROTOCOLS.md
+  section: §4.2
+  quote: Running C-SSRS in production before that policy exists is not defensible.
+  supports: status (HB-C8)
+- file: files/04_CLINICAL_PROTOCOLS.md
+  section: §3
+  quote: PHQ-9 item 9 > 0, C-SSRS negative for plan
+  supports: trigger (why it is blocked)
+source_gap: Licence-blocked (HB-L2) and no escalation policy (HB-C8).
+fail_closed_while_draft: A draft rule or arm stays out of every served pack and never evaluates; base.intake
+  is L0, so no rule here reaches a patient until the physician signs (HB-C1).
+value:
+  rule: rf.suicidal_ideation_passive
+  trigger:
+    status: draft_needs_source
+    resolved: 'TODO: the rf.suicidal_ideation_passive trigger requires clinical sign-off'
+    source_gap: C-SSRS is licence-BLOCKED (HB-L2) and the escalation policy does not exist (HB-C8).
+verifier:
+  verdict: agree
+  role: verifier pass by the authoring agent (not independent; an independent clinical reviewer is to
+    follow)
+  verified_on: 2026-11-18
+  notes: 'Each quote re-read against its committed snapshot, and the rule''s trigger, level, route and
+    scripts re-read against the quotes; the register loader re-checks every quote verbatim. No mismatch
+    found. Not D18''s independent verdict: the separate clinical reviewer gives that.'
