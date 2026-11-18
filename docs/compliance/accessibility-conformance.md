@@ -228,6 +228,12 @@ hexes are **out of scope for INT-144 by instruction**, so these are reported
 rather than repainted. The measured floors are pinned in
 `apps/mobile/src/lib/theme.test.ts` so they cannot silently get worse.
 
+> **Update, 17 Nov 2026 (INT-601):** §5.1 and §5.2 are fixed. Light
+> `inkFaint` is `#6E6A5F`, dark `inkFaint` `#969286` and light `success`
+> `#157346`; every pair below now meets 4.5 : 1, and the live measurements are
+> in `accessibility-conformance-report.md` §4. §5.3 (SC 1.4.11) is unchanged.
+> The tables below are INT-144's record as measured, kept as found.
+
 ### 5.1 · `inkFaint` on light grounds — SC 1.4.3, **NOT MET**
 
 | pair (light) | measured | needed |

@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**390 issues.** By phase: P0 184 · P1 149 · P2 50 · P3 7. By status: awaiting-human 41 · doing 7 · done 265 · todo 76 · withdrawn 1.
+**391 issues.** By phase: P0 184 · P1 149 · P2 51 · P3 7. By status: awaiting-human 41 · doing 7 · done 266 · todo 76 · withdrawn 1.
 
 ## P0
 
@@ -404,6 +404,7 @@
 | INT-609 | Motion: one warning haptic for an ALERT RED, only while the microphone is cold (ADR-033 Q2, D44) | E08-mobile | INT-332, INT-333, INT-340 | area:mobile, risk:clinical | todo |
 | INT-610 | SILENT RED guidance may be announced by VoiceOver or TalkBack (ADR-033 Q3, D44) | E08-mobile | INT-332, INT-333 | area:mobile, risk:clinical | todo |
 | INT-611 | Motion: the presence orb breathes with a scale of at most 1.06 (ADR-033 Q5, D44) | E08-mobile | INT-332, INT-336 | area:mobile | todo |
+| INT-601 | Patient app design fixes from the November 2026 audit: Bugün, visit detail, contrast, chips, fields, SMS code, review | E08-mobile | INT-130, INT-144 | area:mobile | done |
 
 ## P3
 

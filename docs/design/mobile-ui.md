@@ -18,7 +18,8 @@ clinical white. Choices (tokens in `apps/mobile/src/lib/theme.ts`):
 | ink / inkSoft | `#1C1B18` / `#5C594F` | `#F2F0EA` / `#B7B3A7` | text |
 | primary | `#0F7B6C` | `#4FA79A` | the single accent (şifa teal) |
 | amber | `#9A5B00` | `#E0A34E` | YELLOW status pill only |
-| success | `#1B7F4B` | `#5CB884` | "Dosyaya eklendi" |
+| inkFaint | `#6E6A5F` | `#969286` | captions, hints, provenance (INT-601) |
+| success | `#157346` | `#5CB884` | "Dosyaya eklendi" (light was `#1B7F4B` until INT-601) |
 | emergency | `#B3261E` | `#E5756D` | **RED route only** (02 §5.3) |
 
 - The warm-neutral ground follows the Pi (Inflection) reference pulled via
@@ -421,7 +422,7 @@ title is our frame), and `viewed = teal outline` on the status ladder.
 Found and left: light `success` on `successSoft` measures 4.35:1 (the
 filed chip has shipped it since INT-130) — fixing it needs a palette-hex
 change this pass is forbidden to make; flagged for the next palette
-iteration.
+iteration. (Closed by INT-601: light `success` is now `#157346`, 5.09:1.)
 
 Verified on the iOS 18.4 sim (Expo Go, dark AND light): welcome, Bugün
 (%0 and %17 gauge states), Vizitlerim, visit detail with header + back,
@@ -757,3 +758,35 @@ than a layout one.
   replaces the OS value.
 - **Accessibility hints state the RESULT, as INT-140 established.** "İki kez
   dokunmak bu satırı onaylar", never "… için iki kez dokunun".
+
+## Design-audit fixes (INT-601, 2026-11-17)
+
+From `docs/design/audit-2026-11/README.md` Part A, findings 2 to 7. Finding 1
+(Bugün's focal visit and state) is INT-594's.
+
+- **The visits list is its stack's anchor.** `visits/_layout.tsx` sets
+  `unstable_settings.initialRouteName: "index"`, and every push into the
+  visits stack from another tab passes `withAnchor: true`
+  (`e2e/designAudit.spec.ts` finds them all). Without both, the pushed screen
+  became the stack's root and its header had no back control.
+- **The visit detail's one action sits under the visit card**, above the
+  visit-type and "Not durumu" cards, so it is never behind the floating rail.
+- **Palette.** Light `inkFaint` `#6E6A5F` (5.09 / 5.40 / 4.62 : 1 on
+  background / surface / raised), dark `inkFaint` `#969286` (4.72 on the dark
+  raised ground, which measured 4.03), light `success` `#157346` (5.09 on
+  `successSoft`). Both inks keep a step under `inkSoft`. All pinned at AA in
+  both schemes in `theme.test.ts`; WCAG 1.4.3 is now Supports.
+- **A selected chip is a shape too** (`lib/a11y/chip.ts`, both lanes): a
+  leading `checkmark` at the label's size and a 1.5 pt `primary` outline, on
+  top of the wash. The state stays `checked` on the checkbox and radio roles.
+- **Multi-line fields take `radius.field` (16)**, the table register; 999 stays
+  for single-line fields and the composer.
+- **SMS code.** Box width comes from the card's measured width
+  (`lib/auth/otpForm.ts`) between 40 pt and a ceiling that scales with the
+  text; where six do not fit, and at `LARGE_TEXT_SCALE`, the code is two rows
+  of three. The digits are shown. The countdown reads "… 58 saniye", number and
+  unit one non-breaking atom.
+- **Review.** "Düzenleyin" is a text button with a 44 pt box at the header's
+  trailing edge, 8 pt from the kicker. Share scope is one full-width row at the
+  foot of every card (44 pt), with the state word and the switch track whose
+  knob side carries the state without colour. No string changed.
