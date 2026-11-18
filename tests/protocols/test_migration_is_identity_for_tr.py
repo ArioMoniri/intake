@@ -52,6 +52,7 @@ import yaml
 from protocols.bindings import OperationalTemplate
 from protocols.cli import load_registry
 from protocols.compile import CompiledBundle, LifeThreatSet, compile_bundle
+from protocols.compile.bundle import RESOLVED
 from protocols.loader import PackRegistry
 from protocols.locale_text import DEFAULT_LOCALE
 from protocols.migrate.locale_maps import (
@@ -116,10 +117,14 @@ def test_the_served_bundle_for_tr_is_byte_identical(
     """
     baseline = json.loads(BUNDLE_BASELINE.read_text(encoding="utf-8"))
     bundle = _bundle(registry, life_threat, template)
+    # resolved_protocol.json arrived with INT-058, after the migration: the
+    # pre-migration compiler never emitted it, so the baseline cannot hold it
+    # without rewriting history. Its Turkish is the document the questionnaire
+    # and the slot schemas below are projected from.
     content = {
         name: text.replace(bundle.resolved_protocol_hash, baseline["resolved_protocol_hash"])
         for name, text in bundle.artifacts.items()
-        if not name.startswith("clips.") and name != "manifest.json"
+        if not name.startswith("clips.") and name not in {"manifest.json", RESOLVED}
     }
     assert content == baseline["artifacts"]
     spoken = [
