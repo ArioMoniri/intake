@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**396 issues.** By phase: P0 184 · P1 154 · P2 51 · P3 7. By status: awaiting-human 43 · doing 8 · done 268 · todo 76 · withdrawn 1.
+**397 issues.** By phase: P0 184 · P1 155 · P2 51 · P3 7. By status: awaiting-human 43 · doing 8 · done 269 · todo 76 · withdrawn 1.
 
 ## P0
 
@@ -354,6 +354,7 @@
 | INT-602 | RED layer: the 112 control is the strongest control, CALM has a visible edge, ON_SITE is never control-less, safe areas respected | E08-mobile | INT-446, INT-465, INT-475, INT-333 | area:mobile, area:api, risk:clinical, approval:human-clinical | awaiting-human |
 | INT-603 | Consent first run: copy agrees with the default-on rows, a real switch, withdrawal confirms once, continue always visible | E08-mobile | INT-132, INT-537, INT-284 | area:mobile, risk:legal, approval:human-legal | awaiting-human |
 | INT-604 | Question wording: an exclusive "Yok", answers anchored to the answering day, and a visit-mode question that asks one thing | E03-protocols | INT-441, INT-446, INT-321 | area:protocols, area:mobile, risk:clinical, approval:human-clinical | done |
+| INT-605 | Cache the synthetic host's scripted clip set in the real voice (owner decision D42) | E05-voice | INT-443, INT-449 | area:voice | done |
 
 ## P2
 

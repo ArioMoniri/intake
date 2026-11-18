@@ -445,7 +445,9 @@ def test_backlog_parses_and_is_complete() -> None:
     # 2026-11 K1-K3, GitHub #1028); grows only with a stated reason.
     # + INT-604 (an exclusive "Yok", day-anchored wording and a one-question
     # visit mode; design audit M1-M3, GitHub #1029); grows only with a stated reason.
-    assert len(ids) == 396, f"expected 175 blueprint + 221 added issues, got {len(ids)}"
+    # + INT-605 (the synthetic host's clip set cached in the real voice, owner
+    # decision D42, GitHub #1035); grows only with a stated reason.
+    assert len(ids) == 397, f"expected 175 blueprint + 222 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 

@@ -283,7 +283,9 @@ def test_ids_unique_and_well_formed() -> None:
     # audit 2026-11 K1-K3, GitHub #1028).
     # + INT-604 (an exclusive "Yok", answers anchored to the answering day, a
     # visit-mode question that asks one thing; design audit M1-M3, GitHub #1029).
-    assert len(ids) == 396
+    # + INT-605 (the synthetic host's clip set cached in the real voice, owner
+    # decision D42, GitHub #1035).
+    assert len(ids) == 397
     import re
 
     for i in ids:

@@ -7896,3 +7896,24 @@
     - "`make safety` is green, and red-flag rules stay monotonic (invariant 7)."
   tests: [tests/protocols/test_exclusive_options.py, tests/protocols/test_day_relative_wording.py, tests/safety/test_exclusive_choice_triage.py, tests/api/test_triage_hop.py, apps/mobile/src/lib/intake/exclusive.test.ts, apps/mobile/src/lib/intake/dayAnchor.test.ts, apps/mobile/src/lib/red/location.test.ts, apps/mobile/src/lib/dialogue/stream.test.ts, apps/mobile/e2e/intakeMode.spec.ts]
   sec_row: "clinical-content"
+- id: INT-605
+  epic: E05-voice
+  phase: P1
+  title: "Cache the synthetic host's scripted clip set in the real voice (owner decision D42)"
+  # GitHub #1035, 17 Nov 2026. Owner in chat: "also for clip cahcing wiht this
+  # message i sign off the clicnlal round and u can do the copmetel real caching
+  # for the real voices", confirmed with a 100 USD ElevenLabs cap. Read at
+  # D18/D23 scope: synthetic host and simulated patients only. The route's
+  # catalogue (319 routine rows) was already cached under v4; nothing was spent.
+  depends_on: [INT-443, INT-449]
+  labels: [area:voice]
+  status: done
+  evidence: docs/evidence/INT-605.md
+  acceptance:
+    - "the fixed set the synthetic host serves is enumerated through the route's own path (george_prebake plan), with rows and wire characters per delivery context"
+    - "the remaining ElevenLabs character quota is read server-side without printing the key before anything is synthesised; generation runs only if the set fits the quota and the 100 USD cap"
+    - "clips are synthesised only through the repo's path in the D20 voice (E04 on eleven_v3, v4 profiles); invariants 10 and 22 hold; RED stays untagged and device-pre-positioned"
+    - "every catalogue row has a valid WAV in the cache the host reads, with an aggregate hash recorded; spot checks cover a question, an instrument item and a RED script, or record why the catalogue holds none"
+    - "D42 is pinned by tests/docs/test_state_decisions.py with a near miss; no clinical_signoff is filled and HB-C1 stays open"
+  tests: [tests/docs/test_state_decisions.py]
+  sec_row: "cloud-clipgen"
