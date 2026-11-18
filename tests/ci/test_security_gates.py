@@ -728,6 +728,7 @@ def test_the_osv_no_fix_exceptions_are_named_reasoned_and_expire() -> None:
         "GHSA-86w9-cpqp-85rv",
         "GHSA-mrhx-c7xc-m3w5",
         "GHSA-gcqx-w48m-w2h4",
+        "GHSA-fc5q-39xc-vjpf",
         *OSV_NO_FIX_ROWS,
     }
     assert set(entries) == expected, "nothing else is muted"
@@ -985,6 +986,11 @@ LOCKFILE = REPO / "pnpm-lock.yaml"
 # INT-590 raises the decode-uri-component floor: CVE-2026-118664 (published 30 Oct
 # 2026, quadratic replacement of percent-encoded runs) affects 0.5.0 and is fixed
 # in 0.5.1, so the root override floor moves up (docs/evidence/INT-590.md).
+#
+# INT-597 adds node-forge: eleven advisories published on 30 Oct 2026 (all from 0,
+# fixed in 1.4.1) hit node-forge 1.4.0 under @expo/cli and
+# @expo/code-signing-certificates, so a root override floor lifts it to 1.4.x
+# (docs/evidence/INT-597.md).
 FIXED_VERSIONS: dict[str, tuple[int, int, int]] = {
     "vitest": (4, 1, 11),  # GHSA-5xrq-8626-4rwp (3.2.6), GHSA-82fw-gwwq-j7x9 (4.1.11)
     "@vitest/mocker": (4, 1, 11),  # GHSA-82fw-gwwq-j7x9
@@ -995,18 +1001,29 @@ FIXED_VERSIONS: dict[str, tuple[int, int, int]] = {
     "shell-quote": (1, 11, 0),  # GHSA-pqg4-j6r4-53mv (CVE-2026-102422)
     "compression": (1, 8, 2),  # GHSA-vc2v-76pw-4v95 (CVE-2026-87776)
     "source-map-js": (1, 2, 2),  # GHSA-68fv-2mgg-jv7q (CVE-2026-93749)
-    "next": (16, 3, 8),  # CVE-2026-94483 and six more GHSA records, all fixed in 16.3.8
+    # INT-608: GHSA-mfr8-8qww-v76h and GHSA-vc7v-qv4w-wrv8, fixed in 16.4.5 (was 16.3.8)
+    "next": (16, 4, 5),
     "http-cache-semantics": (4, 3, 0),  # GHSA-ch52-4w7c-c8xp (CVE-2026-93748), through 4.2.0
+    # INT-597: eleven GHSA records fixed in 1.4.1; four more fixed in 1.4.3 (17 Nov 2026)
+    "node-forge": (1, 4, 3),
 }
 
 # INT-500: the one uv.lock advisory osv-scanner 2.5.1 reported beside the four
 # above. trivy 0.70.0 has no record of it, which is why only osv saw it.
 PYPI_FIXED_VERSIONS: dict[str, tuple[int, int, int]] = {
     "mako": (1, 4, 2),  # PYSEC-2026-4243 (GHSA-5639-2j2p-m4mx)
+    "opentelemetry-api": (1, 45, 2),  # GHSA-mf5v-w3w3-f6cg, fixed in 1.45.2
 }
 UV_LOCKFILE = REPO / "uv.lock"
 
 ADVISORY_IDS = (
+    "GHSA-mfr8-8qww-v76h",
+    "GHSA-vc7v-qv4w-wrv8",
+    "GHSA-6889-vf6x-f3g5",
+    "GHSA-6cv4-p8m7-4r25",
+    "GHSA-j8rw-jp99-435v",
+    "GHSA-w4xr-hqv8-ch44",
+    "GHSA-mf5v-w3w3-f6cg",
     "GHSA-5xrq-8626-4rwp",
     "GHSA-fx2h-pf6j-xcff",
     "GHSA-4w7w-66w2-5vf9",
@@ -1039,6 +1056,33 @@ ADVISORY_IDS = (
     # INT-501: cleared by http-cache-semantics 4.3.0, never to return as a mute
     "GHSA-ch52-4w7c-c8xp",
     "CVE-2026-93748",
+    # INT-597: as osv-scanner 2.5.1 named them on 31 Oct 2026, cleared by node-forge
+    # 1.4.2 and glob 14.0.3. The minimatch record is not here: minimatch 3.1.5 still
+    # matches it, and its one exception is owner-applied (docs/evidence/INT-597.md).
+    "GHSA-4487-j8r4-4g2f",
+    "CVE-2026-118780",
+    "GHSA-4642-5mcj-2rqw",
+    "CVE-2026-118775",
+    "GHSA-525v-9gp9-w22h",
+    "CVE-2026-118778",
+    "GHSA-5cwg-6vw7-rj6p",
+    "CVE-2026-119186",
+    "GHSA-5x38-2vff-x55p",
+    "CVE-2026-119190",
+    "GHSA-6wvx-3r32-xmcg",
+    "CVE-2026-118777",
+    "GHSA-7wch-p9px-956x",
+    "CVE-2026-118779",
+    "GHSA-8hrf-8g6f-7xwp",
+    "CVE-2026-119188",
+    "GHSA-h6cr-wjv9-3cpp",
+    "CVE-2026-118781",
+    "GHSA-hqq3-7jhf-c5jx",
+    "CVE-2026-119187",
+    "GHSA-jc66-7q78-782g",
+    "CVE-2026-118782",
+    "GHSA-3g3m-2fjr-6pw4",
+    "CVE-2026-118773",
 )
 
 # Every suppression mechanism the two lockfile/filesystem scanners in
@@ -1113,7 +1157,7 @@ OSV_SUPPRESSION_FILES = (
 # INT-573 raises it again from 4 to 5 for deepmerge 4.3.1 (GHSA-gcqx-w48m-w2h4) under
 # @expo/config, which has no fixed release; trivy does not report it (MEDIUM), so the
 # trivy pin stays. It expires on 2026-12-31 (test_the_deepmerge_row_is_scoped_and_expires).
-MAX_OSV_SUPPRESSIONS = 5
+MAX_OSV_SUPPRESSIONS = 6
 # The INT-426 follow-up raises the trivy pin from 2 to 3 for trivy's view of
 # the same braces 3.0.3 advisory (CVE-2026-93687 = GHSA-vfj7-8cjw-p6xm), on the
 # owner's approval in chat on 3 Oct 2026. It expires on 2026-11-02 with the osv
@@ -1126,7 +1170,7 @@ MAX_OSV_SUPPRESSIONS = 5
 # INT-573 raises the trivy pin from 3 to 4 for trivy's view of the same zod
 # advisory (CVE-2023-54404), by the same owner commit; it expires with the osv
 # entry on 2026-12-31.
-MAX_TRIVY_SUPPRESSIONS = 4
+MAX_TRIVY_SUPPRESSIONS = 5
 
 # Floor for the TypeScript suites, measured on this branch: 86 vitest files in
 # apps/mobile (1753 tests) and 2 in packages/clinical-schemas (6 tests).
@@ -1241,6 +1285,7 @@ OVERRIDE_FLOORS = {
     "compression@<1.8.2": "^1.8.2",
     "source-map-js@<1.2.2": "^1.2.2",
     "http-cache-semantics@<4.3.0": "^4.3.0",  # INT-501
+    "node-forge@<1.4.3": "^1.4.3",  # INT-597
 }
 
 
@@ -1298,6 +1343,58 @@ def test_near_miss_a_vulnerable_lockfile_entry_is_caught() -> None:
     assert _parse_version("16.3.6") < FIXED_VERSIONS["next"]
     assert _resolved_versions("compression", planted) == []
     assert _parse_version("1.11.0") >= FIXED_VERSIONS["shell-quote"], "the fix itself passes"
+
+
+# INT-597: floors that lift one release line, not every version below the fix.
+# Each value is (lowest lifted, fixed): the override rewrites [lowest, fixed) to
+# ^fixed and leaves older majors alone. glob's record (GHSA-3g3m-2fjr-6pw4) starts
+# at 9.0.0. minimatch's record starts at 0, but only the 10.x line has a fix in
+# range of its dependents; the 3.x line under eslint and its plugins has none, and
+# its one exception is owner-applied (docs/evidence/INT-597.md).
+VersionTriple = tuple[int, int, int]
+RANGED_FLOORS: dict[str, tuple[VersionTriple, VersionTriple]] = {
+    "glob": ((9, 0, 0), (14, 0, 2)),
+    "minimatch": ((10, 0, 0), (11, 0, 1)),
+}
+
+
+def _dotted(version: VersionTriple) -> str:
+    return ".".join(str(n) for n in version)
+
+
+def _inside_ranged_floor(package: str, raw: str) -> bool:
+    """True when `raw` lies in the release line the package's override lifts."""
+    lowest, fixed = RANGED_FLOORS[package]
+    return lowest <= _parse_version(raw) < fixed
+
+
+def test_no_resolved_version_lies_inside_a_ranged_floor() -> None:
+    """INT-597: red on main's lockfile (glob 13.0.6, minimatch 10.2.6), green after."""
+    for package, (lowest, fixed) in RANGED_FLOORS.items():
+        resolved = _resolved_versions(package)
+        assert resolved, f"{package} vanished from pnpm-lock.yaml"
+        for raw in resolved:
+            assert not _inside_ranged_floor(package, raw), (
+                f"{package}@{raw} lies in [{_dotted(lowest)}, {_dotted(fixed)}) — "
+                "the advisory is back"
+            )
+
+
+def test_every_ranged_floor_is_a_root_override_to_its_fix() -> None:
+    """INT-597: the selector names exactly the lifted line and the floor is the fix."""
+    overrides = json.loads((REPO / "package.json").read_text(encoding="utf-8"))["pnpm"]["overrides"]
+    for package, (lowest, fixed) in RANGED_FLOORS.items():
+        selector = f"{package}@>={_dotted(lowest)} <{_dotted(fixed)}"
+        assert overrides.get(selector) == f"^{_dotted(fixed)}", (
+            f"pnpm.overrides lost the {selector} floor"
+        )
+
+
+def test_near_miss_a_ranged_floor_catches_its_line_and_spares_the_rest() -> None:
+    assert _inside_ranged_floor("glob", "13.0.6"), "the vulnerable glob is caught"
+    assert _inside_ranged_floor("minimatch", "10.2.6"), "the vulnerable minimatch is caught"
+    assert not _inside_ranged_floor("minimatch", "3.1.5"), "the 3.x line is not this floor's"
+    assert not _inside_ranged_floor("glob", "14.0.2"), "the fix itself passes"
 
 
 def test_osv_suppressions_do_not_grow() -> None:
