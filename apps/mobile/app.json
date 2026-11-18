@@ -76,6 +76,7 @@
         }
       ],
       "./plugins/withVoiceAudio",
+      "./plugins/withSceneLifecycle",
       "./plugins/withCertificatePinning"
     ],
     "experiments": {
