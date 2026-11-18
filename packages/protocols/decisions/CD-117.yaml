@@ -66,8 +66,7 @@ value:
   route: SAME_DAY_ACIL
   persistence_arm:
     status: draft_needs_source
-    resolved: 'TODO: the adult fever temperature and duration thresholds of rf.fever_high_persistent requires
-      clinical sign-off'
+    resolved: 'TODO: the adult fever temperature and duration thresholds of rf.fever_high_persistent requires clinical sign-off'
     source_gap: No committed source states an adult threshold; NG143 is under fives; HB-C7.
 value_status:
   persistence_arm: draft_needs_source

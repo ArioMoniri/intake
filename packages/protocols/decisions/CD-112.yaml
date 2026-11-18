@@ -69,8 +69,7 @@ value:
   register: ALERT
   volume_arm:
     status: draft_needs_source
-    resolved: 'TODO: a layperson-reportable bleeding volume and the melena-with-dizziness arm of rf.severe_bleeding
-      requires clinical sign-off'
+    resolved: 'TODO: a layperson-reportable bleeding volume and the melena-with-dizziness arm of rf.severe_bleeding requires clinical sign-off'
     source_gap: EK-4 says 'orta derecede' without a measure, and no committed source states melena with
       dizziness for a patient report.
 value_status:

@@ -121,8 +121,7 @@ value:
   on_site_primary: STAY_IN_PLACE_STAFF_NOTIFIED
   auto_injector:
     status: draft_needs_source
-    resolved: 'TODO: whether the anaphylaxis REMOTE script names a prescribed adrenaline auto-injector
-      requires clinical sign-off'
+    resolved: 'TODO: whether the anaphylaxis REMOTE script names a prescribed adrenaline auto-injector requires clinical sign-off'
     source_gap: No committed passage states the patient-facing instruction; it is treatment language.
 value_status:
   auto_injector: draft_needs_source

@@ -55,8 +55,7 @@ value:
   register: ALERT
   other_features:
     status: draft_needs_source
-    resolved: 'TODO: confusion, low-blood-pressure symptoms and rigors as sepsis triggers requires clinical
-      sign-off'
+    resolved: 'TODO: confusion, low-blood-pressure symptoms and rigors as sepsis triggers requires clinical sign-off'
     source_gap: Not EK-4's line; NG253/NG254/NG255 are not snapshotted.
 value_status:
   other_features: draft_needs_source

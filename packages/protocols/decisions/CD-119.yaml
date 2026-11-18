@@ -52,8 +52,7 @@ value:
   rule: rf.new_neuro_deficit_subacute
   trigger:
     status: draft_needs_source
-    resolved: 'TODO: the rf.new_neuro_deficit_subacute trigger, level and tense boundary requires clinical
-      sign-off'
+    resolved: 'TODO: the rf.new_neuro_deficit_subacute trigger, level and tense boundary requires clinical sign-off'
     source_gap: No committed source states the urgency of a deficit progressing over days.
 verifier:
   verdict: agree

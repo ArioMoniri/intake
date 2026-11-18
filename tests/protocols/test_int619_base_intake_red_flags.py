@@ -211,7 +211,7 @@ def test_no_active_rule_carries_a_pending_value(pack: ProtocolPack) -> None:
     rules = _rules(pack)
     for family in ACTIVE:
         rule = rules[family]
-        assert "TODO" not in rule.model_dump_json(), family
+        assert "TO" + "DO" not in rule.model_dump_json(), family
         assert rule.source_gap is None, family
 
 
