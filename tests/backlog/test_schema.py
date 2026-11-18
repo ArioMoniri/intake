@@ -265,9 +265,11 @@ def test_ids_unique_and_well_formed() -> None:
     # processing accepts the iOS build, ITMS-90683; GitHub #1000).
     # + INT-584 (the phone-tokenization key moves into OpenBao with the same
     # key material, no pseudonym changes; owner decision D38, GitHub #983).
+    # + INT-597 (node-forge, glob and minimatch 10 past the 30 Oct advisories; the
+    # minimatch 3.1.5 row is owner-applied, GitHub #1017).
     # + INT-602 (the RED layer's 112 control, CALM edge, ON_SITE staff control
     # and safe areas; design audit Part B R1-R6, GitHub #1027).
-    assert len(ids) == 387
+    assert len(ids) == 388
     import re
 
     for i in ids:
