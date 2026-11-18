@@ -6,8 +6,8 @@
 - Tests added (with the near-miss negative for any safety rule): `tests/protocols/test_wellbeing_engine.py` (96) and `tests/clinical/test_wellbeing_paths.py` (14). Each has near misses: one below a cut-off, the lowest crisis answer, a high answer on a non-crisis item, and a one-character item rewording. Red: ImportError at collection. Green: 110 passed, `protocols.wellbeing` 100 % line and branch.
 - Result (`make check` / `make safety` / `make security` summary): see docs/evidence/INT-116.md. check-ts green, `make safety` green. check-py: ruff, format and mypy are clean, the touched suites gave 2515 passed, and the full suite was not completed on this shared host. `make security` was not run.
 - Invariants touched and still passing: 1, 2, 6, 10, 17, 20.
-- Decisions / ADRs / `00_STATE.md` rows: none. New HUMAN_BLOCKERS row HB-C26.
-- Blocked on (human + one sentence + HUMAN_BLOCKERS id): physician of record (Dr Efe Onganer) with the owner. "Which committed snapshot of the rights holder's Turkish PDF carries the PHQ-2, PHQ-9, GAD-2 and GAD-7 items and options verbatim, and which committed source states each cut-off — or that it is not used?" (HB-C26). PHQ-9 also needs the crisis script (HB-C8, HB-C17). C-SSRS and WHO-5 stay refused (HB-L2, HB-L3).
+- Decisions / ADRs / `00_STATE.md` rows: none. New HUMAN_BLOCKERS row HB-C29.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): physician of record (Dr Efe Onganer) with the owner. "Which committed snapshot of the rights holder's Turkish PDF carries the PHQ-2, PHQ-9, GAD-2 and GAD-7 items and options verbatim, and which committed source states each cut-off — or that it is not used?" (HB-C29). PHQ-9 also needs the crisis script (HB-C8, HB-C17). C-SSRS and WHO-5 stay refused (HB-L2, HB-L3).
 - Next: INT-117 (`device_functions` gate) depends on this.
 - LOOP_STATUS: WAITING_HUMAN
 

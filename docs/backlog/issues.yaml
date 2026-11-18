@@ -1376,7 +1376,7 @@
   # protocols.triage, clinician-only records. Proven end to end on SENTETİK fixtures.
   # "validated Turkish items verbatim" is NOT satisfiable: no snapshot of the PHQ/GAD
   # Turkish text is committed, so the registry is empty and each instrument refuses
-  # items_not_committed (HB-C26); every cut-off is draft_needs_source (HB-C26). PHQ-9
+  # items_not_committed (HB-C29); every cut-off is draft_needs_source (HB-C29). PHQ-9
   # also needs a served crisis script (HB-C8, HB-C17). C-SSRS stays refused on licence
   # and cannot be committed (HB-L2); WHO-5 likewise (HB-L3).
   acceptance:

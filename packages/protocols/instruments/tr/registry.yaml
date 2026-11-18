@@ -11,7 +11,7 @@
 # `instruments:` is EMPTY, and that is the fail-closed state, not a gap in it.
 #   - PHQ-2, PHQ-9, GAD-2 and GAD-7 are licence GO (files/04 header table), but
 #     no snapshot of the rights holder's Turkish text is committed, so there is
-#     nothing to quote verbatim (HUMAN_BLOCKERS HB-C26). Each refuses with
+#     nothing to quote verbatim (HUMAN_BLOCKERS HB-C29). Each refuses with
 #     `items_not_committed`. PHQ-2 and GAD-2 have NO Turkish validation at all;
 #     the PHQ-9 Turkish evidence is a reliability study only (files/04 header).
 #   - PHQ-9 additionally refuses until its item-nine crisis trigger is sourced
@@ -41,7 +41,7 @@ cutoffs:
       packages/protocols/sources/ states it, and PHQ-2 has no Turkish validation
       at all (files/04 header), so no Turkish cut-off exists to quote. files/04
       §4.2 also records that this cascade puts the suicide question behind two
-      thresholds. Owner: physician of record (HB-C26).
+      thresholds. Owner: physician of record (HB-C29).
   - id: cut.gad2_cascade_to_gad7
     instrument: GAD-2
     kind: cascade
@@ -51,7 +51,7 @@ cutoffs:
     source_gap: >-
       files/04 §4 states a cascade score, but no committed snapshot states it, and
       GAD-2 has no Turkish validation at all (files/04 header). Owner: physician of
-      record (HB-C26).
+      record (HB-C29).
   - id: cut.phq9_item9_crisis_trigger
     instrument: PHQ-9
     kind: crisis_trigger
@@ -62,7 +62,7 @@ cutoffs:
       screen, but no committed snapshot states the trigger and the item text itself
       is not committed. While this is draft, PHQ-9 is not administered at all,
       because files/04 §4 forbids ending on that item without the safety script.
-      Owner: physician of record plus counsel (HB-C26, HB-C8, HB-C17).
+      Owner: physician of record plus counsel (HB-C29, HB-C8, HB-C17).
   - id: cut.phq9_severity
     instrument: PHQ-9
     kind: severity
@@ -72,7 +72,7 @@ cutoffs:
       files/04 header: the PHQ-9 Turkish evidence is a reliability study only, with
       no validated Turkish cut-off, so there is no Turkish severity band to quote.
       Severity interpretation is also a device function (files/06 §0.3; INT-117).
-      Owner: physician of record (HB-C26).
+      Owner: physician of record (HB-C29).
   - id: cut.gad7_severity
     instrument: GAD-7
     kind: severity
@@ -82,4 +82,4 @@ cutoffs:
       files/04 header records the Turkish cut-off from Konkan 2013 as 8, not the
       original 10, but no verbatim snapshot of that study is committed, so the value
       cannot be cited and is not written here. Severity interpretation is also a
-      device function (files/06 §0.3; INT-117). Owner: physician of record (HB-C26).
+      device function (files/06 §0.3; INT-117). Owner: physician of record (HB-C29).

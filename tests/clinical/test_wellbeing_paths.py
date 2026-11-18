@@ -7,7 +7,7 @@ end-to-end; outputs never in patient summary"*.
 Two worlds are exercised, and both are the point:
 
 1. **What ships.** PHQ-2, GAD-2, PHQ-9 and GAD-7 are licence GO, but no
-   snapshot of their Turkish text is committed (HB-C26), so each refuses to
+   snapshot of their Turkish text is committed (HB-C29), so each refuses to
    open. C-SSRS (HB-L2) and WHO-5 (HB-L3) refuse on licence before anything
    else is looked at. The crisis script's rule, ``rf.crisis_disclosure_
    signposting``, is draft and is not in the set the synthetic host actually

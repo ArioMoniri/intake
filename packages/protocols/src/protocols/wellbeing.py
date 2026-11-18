@@ -18,7 +18,7 @@ files/04 header, instrument fidelity).
 **What ships is empty, and refuses.** PHQ-2, PHQ-9, GAD-2 and GAD-7 are licence
 GO, but no snapshot of the rights holder's Turkish text is committed, so
 :func:`open_instrument` refuses each with ``items_not_committed``
-(HUMAN_BLOCKERS HB-C26). C-SSRS (HB-L2) and WHO-5 (HB-L3) are refused on
+(HUMAN_BLOCKERS HB-C29). C-SSRS (HB-L2) and WHO-5 (HB-L3) are refused on
 licence before anything else is looked at, and the loader refuses to load any
 content or cut-off for a non-GO instrument, so their text cannot be committed.
 
@@ -742,7 +742,7 @@ def open_instrument(
         raise InstrumentUnavailable(
             instrument_id,
             WellbeingRefusal.ITEMS_NOT_COMMITTED,
-            "no verbatim Turkish text is committed for it (HUMAN_BLOCKERS HB-C26)",
+            "no verbatim Turkish text is committed for it (HUMAN_BLOCKERS HB-C29)",
         )
     crisis: tuple[int, CrisisPath] | None = None
     if instrument.crisis_item_ids:

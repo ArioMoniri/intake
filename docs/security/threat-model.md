@@ -969,7 +969,7 @@ it or whose tests exercise it.
   refuses to serve; CLAUDE.md clinical-content rules (verbatim item semantics).
 - **Signals:** `instrument.licence_status` and `instrument.administrations_total` (named in
   §9) are not emitted yet: INT-116 shipped the engine with no instrument administrable
-  (HB-C26), and a metric enters `metrics_catalog.yaml` with the first served instrument.
+  (HB-C29), and a metric enters `metrics_catalog.yaml` with the first served instrument.
 - **Tests:** `instrument_licence_gate` (inv. 45) is the protocol compiler's (INT-040).
   INT-116 adds the engine's own: `tests/protocols/test_wellbeing_engine.py` (the loader
   refuses any item, option or timeframe not verbatim in a committed snapshot, and any
