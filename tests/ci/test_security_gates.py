@@ -1170,7 +1170,7 @@ MAX_OSV_SUPPRESSIONS = 6
 # INT-573 raises the trivy pin from 3 to 4 for trivy's view of the same zod
 # advisory (CVE-2023-54404), by the same owner commit; it expires with the osv
 # entry on 2026-12-31.
-MAX_TRIVY_SUPPRESSIONS = 4
+MAX_TRIVY_SUPPRESSIONS = 5
 
 # Floor for the TypeScript suites, measured on this branch: 86 vitest files in
 # apps/mobile (1753 tests) and 2 in packages/clinical-schemas (6 tests).

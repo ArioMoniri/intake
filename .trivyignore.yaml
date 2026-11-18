@@ -125,3 +125,16 @@ vulnerabilities:
       packages: infra/staging/Dockerfile.api is Python only, and no admin-web
       or clinician-web importer reaches it (docs/evidence/INT-573.md).
       Review on expiry: drop the row the moment @expo/cli admits zod 4.
+
+  - id: CVE-2026-112366
+    purls:
+      - "pkg:npm/picomatch@2.3.2"
+      - "pkg:npm/picomatch@4.0.7"
+    expired_at: 2026-12-17
+    statement: >
+      OWNER-APPROVED, TIME-BOXED EXCEPTION for picomatch 2.3.2 and 4.0.7 only
+      (INT-608, GitHub #1018). It is a ReDoS in the glob pattern itself and no
+      release fixes it: the record is last_affected 4.0.7, the newest picomatch
+      on npm. It sits only under build, dev-server and test tooling; every
+      pattern it compiles is written in this repository, never patient input,
+      and it is not in any production bundle.
