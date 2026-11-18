@@ -160,14 +160,14 @@ def archive(bundle: CompiledBundle) -> bytes:
 
 
 @pytest.fixture
-def transit_key() -> Ed25519PrivateKey:
+def transit_signer() -> Ed25519PrivateKey:
     """Stands in for the non-exportable Transit key; its public half is registered."""
     return Ed25519PrivateKey.generate()
 
 
 @pytest.fixture
-def trust(transit_key: Ed25519PrivateKey) -> SyntheticTrust:
-    trust = bundle_trust_for(_synthetic(), env={}, registry=_registry(transit_key))
+def trust(transit_signer: Ed25519PrivateKey) -> SyntheticTrust:
+    trust = bundle_trust_for(_synthetic(), env={}, registry=_registry(transit_signer))
     assert isinstance(trust, SyntheticTrust)
     return trust
 
@@ -177,9 +177,9 @@ def trust(transit_key: Ed25519PrivateKey) -> SyntheticTrust:
 
 class TestTheTenantPicksTheTrustPath:
     def test_a_synthetic_tenant_trusts_only_its_admitted_test_keys(
-        self, transit_key: Ed25519PrivateKey
+        self, transit_signer: Ed25519PrivateKey
     ) -> None:
-        trust = bundle_trust_for(_synthetic(), env={}, registry=_registry(transit_key))
+        trust = bundle_trust_for(_synthetic(), env={}, registry=_registry(transit_signer))
         assert isinstance(trust, SyntheticTrust)
         assert trust.key_ids == frozenset({KEY_ID})
         assert trust.signature_suffix == SYNTHETIC_SIGNATURE_SUFFIX
@@ -190,10 +190,10 @@ class TestTheTenantPicksTheTrustPath:
         committed = load_trust_registry(COMMITTED_TRUST_REGISTRY)
         assert trust.key_ids == frozenset(k.key_id for k in committed.keys)
 
-    def test_a_real_tenant_never_gets_the_test_key(self, transit_key: Ed25519PrivateKey) -> None:
+    def test_a_real_tenant_never_gets_the_test_key(self, transit_signer: Ed25519PrivateKey) -> None:
         # Near-miss: the very registry that admits the key for a synthetic tenant.
         with pytest.raises(TrustRootMissing):
-            bundle_trust_for(TenantRedConfig(), env={}, registry=_registry(transit_key))
+            bundle_trust_for(TenantRedConfig(), env={}, registry=_registry(transit_signer))
 
     def test_a_real_tenant_takes_the_cosign_trust_root(self, tmp_path: Path) -> None:
         from cryptography.hazmat.primitives import serialization
@@ -213,10 +213,10 @@ class TestTheTenantPicksTheTrustPath:
         assert trust.signature_suffix == SIGNATURE_SUFFIX
 
     def test_a_synthetic_tenant_naming_no_host_trusts_nothing(
-        self, transit_key: Ed25519PrivateKey
+        self, transit_signer: Ed25519PrivateKey
     ) -> None:
         with pytest.raises(TrustRootMissing, match="deployment"):
-            bundle_trust_for(_synthetic(None), env={}, registry=_registry(transit_key))
+            bundle_trust_for(_synthetic(None), env={}, registry=_registry(transit_signer))
 
     def test_an_empty_key_set_is_no_trust_root(self) -> None:
         with pytest.raises(TrustRootMissing):
@@ -227,12 +227,12 @@ class TestTheTenantPicksTheTrustPath:
             SyntheticTrust(keys={KEY_ID: ("synthetic_test", b"\x00" * 31)}, deployment=HOST)
 
     def test_the_trust_names_its_keys_and_host_and_no_key_material(
-        self, transit_key: Ed25519PrivateKey, trust: SyntheticTrust
+        self, transit_signer: Ed25519PrivateKey, trust: SyntheticTrust
     ) -> None:
         assert trust.deployment == HOST
         shown = repr(trust)
         assert KEY_ID in shown and HOST in shown
-        assert base64.b64encode(_raw_public(transit_key)).decode("ascii") not in shown
+        assert base64.b64encode(_raw_public(transit_signer)).decode("ascii") not in shown
 
 
 # =================================================================== verify, then load
@@ -240,9 +240,9 @@ class TestTheTenantPicksTheTrustPath:
 
 class TestTheRuntimeRefusesUnsignedOrTampered:
     def test_a_transit_signed_bundle_verifies(
-        self, archive: bytes, transit_key: Ed25519PrivateKey, trust: SyntheticTrust
+        self, archive: bytes, transit_signer: Ed25519PrivateKey, trust: SyntheticTrust
     ) -> None:
-        verified = verify_bundle(archive, _envelope(_payload(archive), transit_key), trust)
+        verified = verify_bundle(archive, _envelope(_payload(archive), transit_signer), trust)
         assert verified.signer_key_id == KEY_ID
         assert verified.archive_sha256 == archive_sha256(archive)
         assert verified.pack_id == PACK_ID
@@ -252,19 +252,19 @@ class TestTheRuntimeRefusesUnsignedOrTampered:
             verify_bundle(archive, None, trust)
 
     def test_a_tampered_archive_is_refused(
-        self, archive: bytes, transit_key: Ed25519PrivateKey, trust: SyntheticTrust
+        self, archive: bytes, transit_signer: Ed25519PrivateKey, trust: SyntheticTrust
     ) -> None:
-        envelope = _envelope(_payload(archive), transit_key)
+        envelope = _envelope(_payload(archive), transit_signer)
         tampered = archive[:-1] + bytes([archive[-1] ^ 0x01])
         with pytest.raises(BundleHashMismatch):
             verify_bundle(tampered, envelope, trust)
 
     def test_an_edited_payload_is_refused(
-        self, archive: bytes, transit_key: Ed25519PrivateKey, trust: SyntheticTrust
+        self, archive: bytes, transit_signer: Ed25519PrivateKey, trust: SyntheticTrust
     ) -> None:
         # A signer of bundle A; the envelope edited to claim bundle B's digest.
         other = archive + b"\x00"
-        envelope = json.loads(_envelope(_payload(archive), transit_key))
+        envelope = json.loads(_envelope(_payload(archive), transit_signer))
         envelope["payload"]["archive_sha256"] = archive_sha256(other)
         with pytest.raises(BundleSignatureInvalid):
             verify_bundle(other, json.dumps(envelope).encode(), trust)
@@ -277,16 +277,16 @@ class TestTheRuntimeRefusesUnsignedOrTampered:
             verify_bundle(archive, forged, trust)
 
     def test_an_unknown_key_id_is_not_trusted(
-        self, archive: bytes, transit_key: Ed25519PrivateKey, trust: SyntheticTrust
+        self, archive: bytes, transit_signer: Ed25519PrivateKey, trust: SyntheticTrust
     ) -> None:
-        envelope = _envelope(_payload(archive), transit_key, key_id="redset-synthetic-test@2")
+        envelope = _envelope(_payload(archive), transit_signer, key_id="redset-synthetic-test@2")
         with pytest.raises(BundleUntrustedSigner):
             verify_bundle(archive, envelope, trust)
 
     def test_a_signature_for_another_host_is_refused(
-        self, archive: bytes, transit_key: Ed25519PrivateKey, trust: SyntheticTrust
+        self, archive: bytes, transit_signer: Ed25519PrivateKey, trust: SyntheticTrust
     ) -> None:
-        envelope = _envelope(_payload(archive, deployment="i-0aaaaaaaaaaaaaaaa"), transit_key)
+        envelope = _envelope(_payload(archive, deployment="i-0aaaaaaaaaaaaaaaa"), transit_signer)
         with pytest.raises(BundleUntrustedSigner, match="host"):
             verify_bundle(archive, envelope, trust)
 
@@ -308,11 +308,11 @@ class TestTheRuntimeRefusesUnsignedOrTampered:
             verify_bundle(archive, sigstore, trust)
 
     def test_a_payload_of_another_scope_is_refused(
-        self, archive: bytes, transit_key: Ed25519PrivateKey, trust: SyntheticTrust
+        self, archive: bytes, transit_signer: Ed25519PrivateKey, trust: SyntheticTrust
     ) -> None:
         payload = _payload(archive).model_copy(update={"scope": "production"})
         with pytest.raises(BundleUntrustedSigner, match="scope"):
-            verify_bundle(archive, _envelope(payload, transit_key), trust)
+            verify_bundle(archive, _envelope(payload, transit_signer), trust)
 
     def test_the_committed_public_key_is_not_bypassed(self, archive: bytes) -> None:
         # The real D23 public half: an in-memory key claiming its id is refused.
@@ -325,7 +325,7 @@ class TestTheRuntimeRefusesUnsignedOrTampered:
         self,
         tmp_path: Path,
         bundle: CompiledBundle,
-        transit_key: Ed25519PrivateKey,
+        transit_signer: Ed25519PrivateKey,
         trust: SyntheticTrust,
     ) -> None:
         write_bundle(bundle, tmp_path)
@@ -336,7 +336,7 @@ class TestTheRuntimeRefusesUnsignedOrTampered:
         with pytest.raises(BundleUnsigned):
             load_verified_bundle(archive_path, trust)
         archive_path.with_name(BUNDLE_ARCHIVE + SYNTHETIC_SIGNATURE_SUFFIX).write_bytes(
-            _envelope(_payload(archive), transit_key)
+            _envelope(_payload(archive), transit_signer)
         )
         assert load_verified_bundle(archive_path, trust).signer_key_id == KEY_ID
 
@@ -344,11 +344,11 @@ class TestTheRuntimeRefusesUnsignedOrTampered:
     def test_a_malformed_envelope_signature_is_refused(
         self,
         archive: bytes,
-        transit_key: Ed25519PrivateKey,
+        transit_signer: Ed25519PrivateKey,
         trust: SyntheticTrust,
         signature: str,
     ) -> None:
-        envelope = json.loads(_envelope(_payload(archive), transit_key))
+        envelope = json.loads(_envelope(_payload(archive), transit_signer))
         envelope["signature"] = signature
         with pytest.raises(BundleSignatureInvalid):
             verify_bundle(archive, json.dumps(envelope).encode(), trust)
@@ -363,9 +363,9 @@ class TestTheRuntimeRefusesUnsignedOrTampered:
 
 class TestTheSessionPinsTheSyntheticBundle:
     def test_the_pinned_hash_is_the_note_meta_hash(
-        self, archive: bytes, transit_key: Ed25519PrivateKey, trust: SyntheticTrust
+        self, archive: bytes, transit_signer: Ed25519PrivateKey, trust: SyntheticTrust
     ) -> None:
-        verified = verify_bundle(archive, _envelope(_payload(archive), transit_key), trust)
+        verified = verify_bundle(archive, _envelope(_payload(archive), transit_signer), trust)
         shelf = ServedBundles()
         shelf.deploy(verified)
         pin = shelf.pin("ses-sentetik", KEY)
@@ -386,7 +386,7 @@ class TestTheSessionPinsTheSyntheticBundle:
 
 class TestTheSigningScript:
     def test_payload_then_transit_then_assemble_round_trips(
-        self, tmp_path: Path, bundle: CompiledBundle, transit_key: Ed25519PrivateKey
+        self, tmp_path: Path, bundle: CompiledBundle, transit_signer: Ed25519PrivateKey
     ) -> None:
         script = _load_script(SCRIPT, "bundle_signature")
         write_bundle(bundle, tmp_path)
@@ -394,11 +394,11 @@ class TestTheSigningScript:
         payload = script.build_payload(archive_path)
         raw = canonical_bundle_payload(payload)
         # infra/staging/redset_signer.sh sign <base64> prints Transit's "vault:v1:<b64>".
-        transit = "vault:v1:" + base64.b64encode(transit_key.sign(raw)).decode("ascii")
+        transit = "vault:v1:" + base64.b64encode(transit_signer.sign(raw)).decode("ascii")
         envelope = script.envelope_from_transit(payload, key_id=KEY_ID, transit=transit)
         out = script.write_envelope(envelope, archive_path)
         assert out.name == BUNDLE_ARCHIVE + SYNTHETIC_SIGNATURE_SUFFIX
-        trust = bundle_trust_for(_synthetic(), env={}, registry=_registry(transit_key))
+        trust = bundle_trust_for(_synthetic(), env={}, registry=_registry(transit_signer))
         assert load_verified_bundle(archive_path, trust).signer_key_id == KEY_ID
 
     def test_a_transit_signature_of_another_key_version_is_refused(
