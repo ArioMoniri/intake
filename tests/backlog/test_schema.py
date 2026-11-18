@@ -267,7 +267,9 @@ def test_ids_unique_and_well_formed() -> None:
     # key material, no pseudonym changes; owner decision D38, GitHub #983).
     # + INT-615 (the draft red-flag rules of base.life_threat sourced or kept
     # draft against committed snapshots; owner, 17 Nov 2026; CD-107).
-    assert len(ids) == 387
+    # + INT-619 (the thirteen base.intake red-flag families written or kept
+    # draft against committed snapshots; owner, 18 Nov 2026; CD-108..CD-120).
+    assert len(ids) == 388
     import re
 
     for i in ids:

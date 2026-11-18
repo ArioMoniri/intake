@@ -7715,3 +7715,32 @@
     - "closes only on a named licensed physician's and a paediatrician's review (HUMAN_BLOCKERS HB-C1); the D23 synthetic signature is re-signed once after that sign-off"
   tests: [tests/protocols/test_int615_life_threat_sourcing.py, tests/protocols/test_clinical_decisions.py, tests/protocols/test_life_threat_sources.py, tests/protocols/test_red_signature.py]
   sec_row: "clinical-content"
+- id: INT-619
+  epic: E03-protocols
+  phase: P0
+  title: "Write the thirteen base.intake red-flag families as sourced rules, or keep each draft with its reason (owner, 18 Nov 2026)"
+  # Owner, 18 Nov 2026, in chat: "yes write the 13 red flag rules". Read with
+  # D18 (agent-sourced, synthetic host and simulated patients only, checked by
+  # an independent verifier, a licensed physician signs before any real
+  # patient). Eight families are written as active rules against committed
+  # verbatim snapshots (EK-4 for every level; NICE NG128, NICE CG150, RCUK
+  # 2021 and NICE NG12 for triggers), each with register entry CD-108..CD-118
+  # and an executable positive and near-miss golden. Five stay
+  # draft_needs_source with the reason: dyspnoea at rest (CD-110), pregnancy
+  # (CD-116, HB-C4), the subacute neurological deficit (CD-119), and the two
+  # suicide families, licence-blocked (CD-113, CD-120; HB-L2, HB-C8). The pack
+  # loader now checks a chain-pack rule's source against its snapshot.
+  # clinical_signoff and files/protocols/base.life_threat.yaml are untouched,
+  # so the D23 synthetic signature still verifies; base.intake stays L0.
+  depends_on: [INT-043, INT-432, INT-615]
+  labels: [area:protocols, risk:clinical, approval:human-clinical]
+  status: awaiting-human
+  evidence: docs/evidence/INT-619.md
+  acceptance:
+    - "each of the thirteen red_flags families of packages/protocols/base/intake.yaml is either an active rule sourced against a committed verbatim snapshot (url, version, date, retrieved_on, sha256, quote) with a register entry CD-1xx, or stays draft_needs_source with the invariant-17 literal and its reason; no threshold is invented"
+    - "every KIRMIZI rule declares its register and an action resolving for REMOTE, ON_SITE and UNKNOWN, with no 112 under ON_SITE, bare imperative plural inside RED and every number spelled out in Turkish (invariants 21, 22)"
+    - "monotonic only (invariant 7); base.life_threat is not extended or edited; a licence-blocked instrument (C-SSRS, HB-L2) stays blocked"
+    - "every written rule has an executable positive and a near-miss negative golden, run by make safety; the protocols tests, no_placeholders, make check-py and make check-ts are green"
+    - "closes only on a named licensed physician's review (HUMAN_BLOCKERS HB-C1), with obstetric input for the pregnancy family (HB-C4)"
+  tests: [tests/protocols/test_int619_base_intake_red_flags.py, tests/safety/test_base_intake_red_flag_goldens.py, tests/protocols/test_base_intake_pack.py, tests/protocols/test_clinical_decisions.py]
+  sec_row: "clinical-content"

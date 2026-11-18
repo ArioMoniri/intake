@@ -1,0 +1,81 @@
+# INT-619 clinical decision CD-117: rf.fever_high_persistent
+# (owner, 18 Nov 2026: "yes write the 13 red flag rules").
+# Agent-authored under owner decision D18 for simulated-patient stress testing only; a licensed
+# physician's review is required before any real patient. Every source quote appears verbatim in the
+# named snapshot and every spec_basis quote in the named file.
+kind: clinical_decision
+id: CD-117
+title: 'rf.fever_high_persistent: fever in a patient on immunosuppressive treatment, at EK-4 Sarı Kategori
+  1'
+question: Which current source states the fever thresholds and level of 04 §3's high or persistent fever
+  row?
+decision: 'Write the sourced arm only: fever now in a patient who answers yes to immunosuppressive treatment,
+  SARI_K1 / SAME_DAY_ACIL, notify always. EK-4 Sarı Kategori 1 prints ''Ateş yüksekliği olan onkoloji
+  hastası veya steroid kullanan hasta'' with no temperature, so no threshold is asked. The immunosuppression
+  slot''s yes covers chemotherapy, a biologic, cortisone or a transplant, which is wider than EK-4''s
+  two groups (the over-including direction). The fever is patient-reported: EK-4 prints ''ateş yüksekliği''
+  with no number, so no measurement is required. Not written: 04 §3''s ''≥ 39 °C > 3 d'' arm, because
+  no committed source states it for an adult (NICE NG143 is under fives); adding it later as a disjunct
+  is a tightening. A SARI rule carries no action script, so the same-day route reaches the clinic and
+  not the patient''s screen. The label is narrowed to what the rule does.'
+status: active
+scope: simulated_patient_stress_testing
+scope_note: 'Owner decision D18 (2 Oct 2026), and the owner''s instruction of 18 Nov 2026 (''yes write
+  the 13 red flag rules''): agent-sourced content for the synthetic host and simulated patients only.
+  A licensed physician''s review is required before any real patient. No clinical_signoff field is touched
+  (D17), the pack stays L0, and HB-C1 stays open.'
+question_origin: 'Owner, 18 Nov 2026, in chat: ''yes write the 13 red flag rules''. INT-619.'
+author_role: emergency medicine and medical oncology physician (agent)
+sources:
+- kind: guideline
+  guideline_id: TR-EK4-2022
+  title: Yataklı Sağlık Tesislerinde Acil Servis Hizmetlerinin Uygulama Usul ve Esasları Hakkında Tebliğ,
+    EK-4
+  version_or_date: RG 13/9/2022 sayı 31952
+  url: https://www.resmigazete.gov.tr/eskiler/2022/09/20220913-5-1.pdf
+  retrieved_on: 2026-10-02
+  snapshot: packages/protocols/sources/TR-EK4-2022.txt
+  section: EK-4 Sarı Kategori 1
+  quote: Ateş yüksekliği olan onkoloji hastası veya steroid kullanan hasta
+  supports: trigger, level
+- kind: guideline
+  guideline_id: TR-EK4-2022
+  title: Yataklı Sağlık Tesislerinde Acil Servis Hizmetlerinin Uygulama Usul ve Esasları Hakkında Tebliğ,
+    EK-4
+  version_or_date: RG 13/9/2022 sayı 31952
+  url: https://www.resmigazete.gov.tr/eskiler/2022/09/20220913-5-1.pdf
+  retrieved_on: 2026-10-02
+  snapshot: packages/protocols/sources/TR-EK4-2022.txt
+  section: EK-4 Sarı Kategori 1 lead-in
+  quote: 'Kategori 1: Hayatı tehdit etme olasılığı, uzuv kaybı riski ve önemli morbidite oranı olan durumlar.'
+  supports: route
+spec_basis:
+- file: files/04_CLINICAL_PROTOCOLS.md
+  section: §3
+  quote: ≥ 39 °C > 3 d or ≥ 38 °C on chemo/biologic
+  supports: persistence_arm (what is not written)
+source_gap: The general persistence arm has no committed adult source (HB-C7).
+fail_closed_while_draft: A draft rule or arm stays out of every served pack and never evaluates; base.intake
+  is L0, so no rule here reaches a patient until the physician signs (HB-C1).
+value:
+  rule: rf.fever_high_persistent
+  when: red_flags.fever_now == true && pmh_fh_sh.immunosuppression == 'evet'
+  tense: ever
+  tense_anchor: red_flags.fever_onset
+  level: SARI_K1
+  route: SAME_DAY_ACIL
+  persistence_arm:
+    status: draft_needs_source
+    resolved: 'TODO: the adult fever temperature and duration thresholds of rf.fever_high_persistent requires
+      clinical sign-off'
+    source_gap: No committed source states an adult threshold; NG143 is under fives; HB-C7.
+value_status:
+  persistence_arm: draft_needs_source
+verifier:
+  verdict: agree
+  role: verifier pass by the authoring agent (not independent; an independent clinical reviewer is to
+    follow)
+  verified_on: 2026-11-18
+  notes: 'Each quote re-read against its committed snapshot, and the rule''s trigger, level, route and
+    scripts re-read against the quotes; the register loader re-checks every quote verbatim. No mismatch
+    found. Not D18''s independent verdict: the separate clinical reviewer gives that.'

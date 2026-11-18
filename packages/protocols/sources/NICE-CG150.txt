@@ -1,0 +1,34 @@
+# guideline_id: NICE-CG150
+# title: Headaches in over 12s: diagnosis and management
+# publisher: National Institute for Health and Care Excellence (NICE)
+# version_or_date: NICE clinical guideline CG150; published 19 September 2012; last updated 03 June 2025
+# url: https://www.nice.org.uk/guidance/cg150/chapter/Recommendations
+# retrieved_on: 2026-11-18
+# retrieval: curl with a browser user-agent (HTTP 200, HTML 78,996 bytes, sha256 28ed45aaa0eda91a625fe99c733cbb234eb9b0f3f5ac27d9c8d119deb1f1f6e7); script and style removed, tags stripped, HTML entities decoded, one line per HTML block (each list item on its own line), whitespace runs collapsed to one space, non-breaking spaces (U+00A0) rendered as plain spaces, non-breaking hyphens (U+2011) kept as served
+# scope: verbatim excerpt of the page header and recommendation 1.1.1 with its list; nothing paraphrased or edited. '[...]' marks an omission between excerpts.
+---
+Clinical guideline
+Reference number: CG150
+Published:
+19 September 2012
+Last updated:
+03 June 2025
+[...]
+Recommendations
+1.1 Assessment
+1.1.1
+Evaluate people who present with headache and any of the following features, and consider the need for further investigations and/or referral:
+worsening headache with fever
+sudden‑onset headache reaching maximum intensity within 5 minutes
+new‑onset neurological deficit
+new‑onset cognitive dysfunction
+change in personality
+impaired level of consciousness
+recent (typically within the past 3 months) head trauma
+headache triggered by cough, valsalva (trying to breathe out with nose and mouth blocked) or sneeze
+headache triggered by exercise
+orthostatic headache (headache that changes with posture)
+symptoms suggestive of giant cell arteritis
+symptoms and signs of acute narrow angle glaucoma
+a substantial change in the characteristics of their headache. [2012]
+For information on referral for suspected tumours of the brain or central nervous system, see the NICE guideline on suspected cancer.

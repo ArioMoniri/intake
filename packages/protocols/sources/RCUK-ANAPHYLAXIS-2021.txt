@@ -1,0 +1,63 @@
+# guideline_id: RCUK-ANAPHYLAXIS-2021
+# title: Emergency treatment of anaphylaxis: Guidelines for healthcare providers
+# publisher: Working Group of Resuscitation Council UK
+# version_or_date: May 2021 (the PDF prints 'Updated May 2021' and 'Review Date: May 2026'; the guideline page, retrieved the same day, states 'The most recent version of this Guideline was published in May 2021')
+# url: https://www.resus.org.uk/sites/default/files/2021-05/Emergency%20Treatment%20of%20Anaphylaxis%20May%202021_0.pdf
+# url_page: https://www.resus.org.uk/library/additional-guidance/guidance-anaphylaxis/emergency-treatment
+# retrieved_on: 2026-11-18
+# retrieval: curl with a browser user-agent (HTTP 200, PDF 1,875,355 bytes, sha256 1c07e3dd4e238e9228207525bec6d83c27d6edcd3c2cdfe819458f51ce466558); text layer extracted with pdftotext (poppler, reading order, no -layout); blank lines dropped; line breaks are the PDF's own, and a word the PDF hyphenates across a line is joined by the extractor as pdftotext emits it ('lifethreatening', 'semirecumbent'); bullet glyphs kept as extracted; form-feed (page-break) characters removed
+# scope: verbatim excerpt of the title block, section 3 (first paragraph), section 3.1 (the 'Look for' list), the Airway problems list of section 3.2, the sentence on sudden-onset breathing difficulty in section 3.2, and the first two bullets of section 4.4 Patient positioning; nothing paraphrased or edited. '[...]' marks an omission between excerpts.
+# currency: the PDF's own review date (May 2026) has passed; on 2026-11-18 the publisher's page still names May 2021 as the most recent version. Flagged for the guideline-currency job (files/04 §8.4).
+# rights: the PDF states 'No part of this publication may be reproduced without the written permission of Resuscitation Council UK'. This excerpt is limited to the passages the register quotes, for provenance; publishing it outside the repository needs the publisher's permission.
+---
+Emergency treatment of anaphylaxis
+Guidelines for healthcare providers
+Working Group of Resuscitation Council UK
+May 2021
+Updated May 2021
+Review Date: May 2026
+[...]
+3. Recognition of anaphylaxis
+Anaphylaxis is likely if a patient who is exposed to a trigger (allergen) develops a sudden
+illness (usually within minutes of exposure) with rapidly progressing skin changes and
+potentially life-threatening airway and/or breathing and/or circulation problems. The reaction
+is usually unexpected.
+[...]
+3.1
+Diagnosis of anaphylaxis
+Look for:
+• Sudden onset of Airway and/or Breathing and/or Circulation problems.
+• Usually, skin and/or mucosal changes (flushing, urticaria, angioedema).
+[...]
+3.2
+Airway / Breathing / Circulation problems
+Patients can have either an A or B or C problem, or any combination. Use the ABCDE
+approach to recognise these and treat early.
+Airway problems
+• Airway swelling
+(throat and tongue
+swelling causing difficulty
+in breathing/swallowing;
+patients may feel their
+throat is closing)
+• Hoarse voice
+• Stridor (a high-pitched
+inspiratory noise caused
+by upper airway
+obstruction)
+[...]
+Breathing problems can vary from mild bronchospasm to life-threatening asthma with no
+other features to suggest anaphylaxis.42 Anaphylaxis can present primarily as respiratory
+arrest.19,22,27 Consider anaphylaxis in a person with sudden onset breathing difficulties,
+especially if known to be allergic to a food or insect sting.
+[...]
+4.4
+Patient positioning
+All patients should be placed in a comfortable position. The following factors should be
+considered:
+•
+Fatality can occur within minutes if a patient stands, walks or sits up
+suddenly. Patients must not walk or stand during acute reactions. Use
+caution when transferring patients who have been stabilised.
+•
+Patients with Airway and Breathing problems may prefer to be in a semirecumbent position, as this will make breathing easier.

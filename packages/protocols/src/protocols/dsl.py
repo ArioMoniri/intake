@@ -288,8 +288,9 @@ class SourceBlock(FrozenModel):
     must be the snapshot header's. Not enforced here, where the repository is
     out of reach: ``protocols.source_snapshots`` is the check, and
     ``protocols.compile.load_life_threat_set`` runs it on every life-threat
-    rule at load (INT-465). A chain pack's red-flag rules cite no snapshot
-    today; when one does, its loader runs the same check."""
+    rule at load (INT-465). A chain pack's red-flag rules run the same check
+    in ``protocols.loader.load_pack`` (INT-619, base.intake being the first
+    chain pack whose rules cite a snapshot)."""
 
     guideline_id: TrText = Field(description="Guideline identifier (files/12 §2.5).")
     guideline_title: TrText | None = Field(

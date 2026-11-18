@@ -7,9 +7,8 @@
 #
 #  ⛔ STOP. NOTHING IN THIS FILE MAY BE SERVED TO A PATIENT.
 #
-#  maturity: L0 · status: awaiting-clinical-review · every red-flag family is
-#  `draft_needs_source`. Per 09 §2 that means agent-drafted and unreviewed, review
-#  queue only. The compiler refuses to emit a bundle for it, and the refusal list is
+#  maturity: L0 · status: awaiting-clinical-review. Per 09 §2 that means
+#  agent-drafted and unreviewed, review queue only. The compiler refuses to emit a bundle for it, and the refusal list is
 #  the point of this file rather than a defect in it.
 #
 #  WHAT IS AUTHORED HERE, AND WHAT IS NOT — the line is drawn in one place.
@@ -53,12 +52,17 @@
 #  tests/protocols/test_base_intake_pack.py::
 #  test_a_family_promoted_to_red_must_declare_register_and_all_three_locations.
 #
-#  ⚠️ NO COMMITTED GUIDELINE SNAPSHOT EXISTS FOR ANY FAMILY. 04 §8.1 rule 3 requires
-#  the `source.quote` to appear verbatim in a snapshot under
-#  packages/protocols/sources/. That directory does not exist in this repository —
-#  not for EK-4, not for NICE, not for anything — so no family here can carry a
-#  source block, and every one is `draft_needs_source` with the gap written out.
-#  This is rule 3 working, not an oversight.
+#  ⚠️ INT-619 (owner, 18 Nov 2026: "yes write the 13 red flag rules"; D18). The
+#  text above describes the pack as INT-043 left it. Eight families are now active
+#  rules, each sourced against a committed verbatim snapshot under
+#  packages/protocols/sources/ (EK-4 for every level; NICE NG128, NICE CG150,
+#  RCUK 2021 and NICE NG12 for triggers), with a register entry CD-108..CD-118 and
+#  executable goldens. Five stay `draft_needs_source` with the reason in their
+#  source_gap: dyspnoea at rest (CD-110), pregnancy (CD-116, HB-C4), the subacute
+#  neurological deficit (CD-119), and the two suicide families, licence-blocked
+#  (CD-113, CD-120; HB-L2, HB-C8). This is agent-sourced content for simulated
+#  patients only: clinical_signoff is untouched, the pack stays L0, HB-C1 stays
+#  open, and a licensed physician signs before any real patient.
 #
 #  ⚠️ THE FAST-MODE TURN BUDGET IS OVER-SUBSCRIBED AND AN AGENT MAY NOT FIX IT.
 #  04 §1 sets fast mode at ≤ 18 turns. 02 §2 already records the same content list at
@@ -329,6 +333,12 @@ sections:
   # ===================================================================================
   # 04 §1 row 4 — red_flags. One layperson-answerable probe per family of 04 §3.
   #
+  # INT-619: the probes of the eight written families (and their dated anchors,
+  # fever_now and age_sixty_or_over) now carry question copy taken from their
+  # sources, CD-108..CD-118. They stay must_ask: false — whether a probe costs every
+  # session a turn is HB-C5's fast-mode arithmetic, not decided here. What follows
+  # is INT-043's text and still holds for the five draft families' probes.
+  #
   # ⚠️ EVERY PROBE IS DELIBERATELY UNASKABLE TODAY: no `ask_tr`, no `choices_tr`.
   # The wording of a red-flag probe IS the trigger — "sudden face droop / arm weakness
   # / speech difficulty" is the rule, phrased for a patient — so writing it is the
@@ -354,12 +364,33 @@ sections:
           the trigger is unsigned (HB-C1), so which archetype hosts this probe is not
           yet determinable; a binding chosen now would have to be re-chosen.
       rf_stroke_fast:
+        # INT-619 (CD-109): FAST, face / arm / speech, of sudden onset (NICE NG128 1.1.1), and EK-4
+        # Kırmızı Kategori 2 'Akut hemiparazi/disfazi'. Asked in the present tense: a
+        # deficit that has resolved is NG128 1.1.5's suspected TIA, a different action.
         type: boolean
         required: false
         must_ask: false
         openehr_deferred_reason: >-
-          the trigger is unsigned (HB-C1), so which archetype hosts this probe is not
-          yet determinable; a binding chosen now would have to be re-chosen.
+          the trigger is agent-sourced under D18 (CD-109) and unsigned (HB-C1), so which
+          archetype hosts this probe is a modelling decision for INT-032; a binding
+          chosen now would have to be re-chosen.
+        ask_tr:
+          tr: "Yüzünüzün bir yanında kayma, bir kolunuzda güçsüzlük ya da konuşmada güçlük birden başladı ve şu anda sürüyor mu?"
+        follow_up_tr:
+          tr: "Gülümserken ağzınızın bir yanı düşüyorsa, bir kolunuzu kaldıramıyorsanız ya da kelimeleri söyleyemiyorsanız evet diyebilirsiniz."
+      rf_stroke_fast_onset:
+        # INT-619 (CD-109): the dated tense anchor of the rule. A tense-qualified rule
+        # cannot fire on an undated symptom (12 §2.4), and the HB-C6 slot
+        # time_last_known_well is a duration, which the engine cannot anchor on.
+        type: date
+        required: false
+        must_ask: false
+        ask_if: "red_flags.rf_stroke_fast == true"
+        openehr_path: "/content[openEHR-EHR-OBSERVATION.symptom_sign.v1]"
+        ask_tr:
+          tr: "Bu belirtiler ne zaman başladı?"
+        follow_up_tr:
+          tr: "Bugün başladıysa bugün diyebilirsiniz."
       rf_dyspnoea_rest:
         type: boolean
         required: false
@@ -368,19 +399,61 @@ sections:
           the trigger is unsigned (HB-C1), so which archetype hosts this probe is not
           yet determinable; a binding chosen now would have to be re-chosen.
       rf_anaphylaxis:
+        # INT-619 (CD-111): RCUK 2021 §3 and §3.1, sudden airway or breathing problems after
+        # exposure to a trigger, and §3.2's airway swelling 'causing difficulty in
+        # breathing/swallowing'; EK-4 Kırmızı Kategori 2. Swelling alone is not asked
+        # for: RCUK does not count angioedema without an airway or breathing problem.
         type: boolean
         required: false
         must_ask: false
         openehr_deferred_reason: >-
-          the trigger is unsigned (HB-C1), so which archetype hosts this probe is not
-          yet determinable; a binding chosen now would have to be re-chosen.
+          the trigger is agent-sourced under D18 (CD-111) and unsigned (HB-C1), so which
+          archetype hosts this probe is a modelling decision for INT-032; a binding
+          chosen now would have to be re-chosen.
+        ask_tr:
+          tr: "Şu anda, bir yiyecek, ilaç ya da böcek sokması gibi bir şeyden sonra birden başlayan nefes almada güçlük ya da boğazınızda yutkunmanızı zorlaştıran bir şişlik var mı?"
+        follow_up_tr:
+          tr: "Boğazınız kapanıyor gibi geliyorsa, sesiniz kısıldıysa ya da nefesiniz daraldıysa evet diyebilirsiniz."
+      rf_anaphylaxis_onset:
+        # INT-619 (CD-111): the dated tense anchor of the rule. A tense-qualified rule
+        # cannot fire on an undated symptom (12 §2.4), and the HB-C6 slot
+        # time_last_known_well is a duration, which the engine cannot anchor on.
+        type: date
+        required: false
+        must_ask: false
+        ask_if: "red_flags.rf_anaphylaxis == true"
+        openehr_path: "/content[openEHR-EHR-OBSERVATION.symptom_sign.v1]"
+        ask_tr:
+          tr: "Bu belirtiler ne zaman başladı?"
+        follow_up_tr:
+          tr: "Bugün başladıysa bugün diyebilirsiniz."
       rf_severe_bleeding:
+        # INT-619 (CD-112): bleeding now with EK-4 Kırmızı Kategori 2's circulation sign
+        # 'Nemli, soğuk deri', the one layperson-answerable sign EK-4 prints.
         type: boolean
         required: false
         must_ask: false
         openehr_deferred_reason: >-
-          the trigger is unsigned (HB-C1), so which archetype hosts this probe is not
-          yet determinable; a binding chosen now would have to be re-chosen.
+          the trigger is agent-sourced under D18 (CD-112) and unsigned (HB-C1), so which
+          archetype hosts this probe is a modelling decision for INT-032; a binding
+          chosen now would have to be re-chosen.
+        ask_tr:
+          tr: "Şu anda süren bir kanamanızla birlikte soğuk terleme, yani teninizde soğukluk ve ıslaklık var mı?"
+        follow_up_tr:
+          tr: "Kanama varken teniniz soğuk ve nemliyse evet diyebilirsiniz."
+      rf_severe_bleeding_onset:
+        # INT-619 (CD-112): the dated tense anchor of the rule. A tense-qualified rule
+        # cannot fire on an undated symptom (12 §2.4), and the HB-C6 slot
+        # time_last_known_well is a duration, which the engine cannot anchor on.
+        type: date
+        required: false
+        must_ask: false
+        ask_if: "red_flags.rf_severe_bleeding == true"
+        openehr_path: "/content[openEHR-EHR-OBSERVATION.symptom_sign.v1]"
+        ask_tr:
+          tr: "Bu kanama ne zaman başladı?"
+        follow_up_tr:
+          tr: "Bugün başladıysa bugün diyebilirsiniz."
       rf_suicidal_intent:
         type: boolean
         required: false
@@ -390,20 +463,75 @@ sections:
           safeguarding content is text_only with no extraction attempted (13 §13) and
           the escalation policy of 04 §4.2 does not exist yet (HB-C8); nothing about
           its storage shape is settled.
+      fever_now:
+        # INT-619 (CD-114, CD-117): patient-reported fever, the word EK-4 prints with
+        # no number ('Letarji ile birlikte ateş', 'Ateş yüksekliği olan onkoloji
+        # hastası'). A measured threshold is not asked for: no committed source
+        # gives one for an adult, and a guessed one is what HB-C7 forbids.
+        type: boolean
+        required: false
+        must_ask: false
+        openehr_path: "/content[openEHR-EHR-OBSERVATION.symptom_sign.v1]"
+        ask_tr:
+          tr: "Şu anda ateşiniz var mı?"
+        follow_up_tr:
+          tr: "Ölçmediyseniz de ateşiniz olduğunu düşünüyorsanız evet diyebilirsiniz."
+      fever_onset:
+        # INT-619 (CD-114, CD-117): the dated tense anchor of the rule. A tense-qualified rule
+        # cannot fire on an undated symptom (12 §2.4), and the HB-C6 slot
+        # time_last_known_well is a duration, which the engine cannot anchor on.
+        type: date
+        required: false
+        must_ask: false
+        ask_if: "red_flags.fever_now == true"
+        openehr_path: "/content[openEHR-EHR-OBSERVATION.symptom_sign.v1]"
+        ask_tr:
+          tr: "Ateşiniz ne zaman başladı?"
+        follow_up_tr:
+          tr: "Bugün başladıysa bugün diyebilirsiniz."
       rf_sepsis_like:
+        # INT-619 (CD-114): EK-4 Kırmızı Kategori 2 'Letarji ile birlikte ateş (her yaş)'.
+        # Asked only after a yes to fever_now.
         type: boolean
         required: false
         must_ask: false
+        ask_if: "red_flags.fever_now == true"
         openehr_deferred_reason: >-
-          the trigger is unsigned (HB-C1), so which archetype hosts this probe is not
-          yet determinable; a binding chosen now would have to be re-chosen.
+          the trigger is agent-sourced under D18 (CD-114) and unsigned (HB-C1), so which
+          archetype hosts this probe is a modelling decision for INT-032; a binding
+          chosen now would have to be re-chosen.
+        ask_tr:
+          tr: "Ateşinizle birlikte uyanık kalmakta zorlanacak kadar aşırı bir uyku hâli ve halsizlik var mı?"
+        follow_up_tr:
+          tr: "Gün içinde sürekli uyuyakalıyorsanız ya da sizi uyandırmak zorlaşıyorsa evet diyebilirsiniz."
       rf_thunderclap_headache:
+        # INT-619 (CD-115): NICE CG150 1.1.1 'sudden-onset headache reaching maximum intensity
+        # within 5 minutes', with EK-4 Kırmızı Kategori 2 'Herhangi bir nedenle olan
+        # ciddi ağrı'. Present tense, as the EK-4 line describes pain now.
         type: boolean
         required: false
         must_ask: false
         openehr_deferred_reason: >-
-          the trigger is unsigned (HB-C1), so which archetype hosts this probe is not
-          yet determinable; a binding chosen now would have to be re-chosen.
+          the trigger is agent-sourced under D18 (CD-115) and unsigned (HB-C1), so which
+          archetype hosts this probe is a modelling decision for INT-032; a binding
+          chosen now would have to be re-chosen.
+        ask_tr:
+          tr: "Şu anda, birden başlayıp en fazla beş dakika içinde en ağır hâline ulaşan çok şiddetli bir baş ağrınız var mı?"
+        follow_up_tr:
+          tr: "Ağrı yavaş yavaş arttıysa hayır diyebilirsiniz."
+      rf_thunderclap_headache_onset:
+        # INT-619 (CD-115): the dated tense anchor of the rule. A tense-qualified rule
+        # cannot fire on an undated symptom (12 §2.4), and the HB-C6 slot
+        # time_last_known_well is a duration, which the engine cannot anchor on.
+        type: date
+        required: false
+        must_ask: false
+        ask_if: "red_flags.rf_thunderclap_headache == true"
+        openehr_path: "/content[openEHR-EHR-OBSERVATION.symptom_sign.v1]"
+        ask_tr:
+          tr: "Bu baş ağrısı ne zaman başladı?"
+        follow_up_tr:
+          tr: "Bugün başladıysa bugün diyebilirsiniz."
       rf_pregnancy_bleeding_pain:
         type: boolean
         required: false
@@ -419,12 +547,35 @@ sections:
           the trigger is unsigned (HB-C1), so which archetype hosts this probe is not
           yet determinable; a binding chosen now would have to be re-chosen.
       rf_weight_loss_unintentional:
+        # INT-619 (CD-118): NICE NG12 1.13.2, 'unexplained weight loss (greater than 5% mean
+        # weight loss within a 6-month period)' in people aged 60 and over.
         type: boolean
         required: false
         must_ask: false
         openehr_deferred_reason: >-
-          the trigger is unsigned (HB-C1), so which archetype hosts this probe is not
-          yet determinable; a binding chosen now would have to be re-chosen.
+          the trigger is agent-sourced under D18 (CD-118) and unsigned (HB-C1), so which
+          archetype hosts this probe is a modelling decision for INT-032; a binding
+          chosen now would have to be re-chosen.
+        ask_tr:
+          tr: "Son altı ayda, kilo vermeye çalışmadığınız hâlde kilonuzun yüzde beşinden fazlasını kaybettiniz mi?"
+        follow_up_tr:
+          tr: "Örneğin yetmiş kilo iken üç buçuk kilodan fazla verdiyseniz evet diyebilirsiniz."
+      age_sixty_or_over:
+        # INT-619 (CD-118): NG12 1.13.2 applies 'For people aged 60 and over'. Asked
+        # as a yes/no on that bound, not as free numeric entry (invariant 22), and
+        # only after a yes to the weight-loss probe.
+        type: boolean
+        required: false
+        must_ask: false
+        ask_if: "red_flags.rf_weight_loss_unintentional == true"
+        openehr_deferred_reason: >-
+          age is a demographic fact the booking already carries; 03 §7 names no entry
+          archetype for it and the committed template carries roots only, so a binding
+          here would resolve against a fabrication (12 §8.1).
+        ask_tr:
+          tr: "Altmış yaşında ya da daha büyük müsünüz?"
+        follow_up_tr:
+          tr: "Altmış yaşınızı doldurduysanız evet diyebilirsiniz."
       rf_new_neuro_deficit_subacute:
         type: boolean
         required: false
@@ -948,6 +1099,11 @@ sections:
 # =====================================================================================
 #  THE UNIVERSAL RED-FLAG FAMILIES — 04 §3, all thirteen, none added, none dropped.
 #
+#  INT-619: eight are written as active rules (CD-108..CD-118), each carrying its
+#  own source, level, route, register and three location actions; what follows
+#  describes the five that stay draft, and the goldens of the eight now execute
+#  (tests/safety/test_base_intake_red_flag_goldens.py).
+#
 #  Read the header before editing one of these. Every field below that could carry a
 #  clinical determination carries the absence of one instead:
 #
@@ -979,42 +1135,142 @@ red_flags:
 
   - id: rf.chest_pain_acute
     label_tr: "Akut göğüs ağrısı"
-    when: 'TODO: the rf.chest_pain_acute trigger requires clinical sign-off'
-    tense: ever
-    tense_anchor: onset_date
-    level: YESIL
-    route: EXPEDITE
-    notify_clinic: never
-    status: draft_needs_source
-    source_gap: >-
-      Unsupplied by any clinician: the trigger, the EK-4 acuity level, the route, the
-      delivery register and the action scripts for REMOTE, ON_SITE and UNKNOWN.
-      04 §3's plain-language condition is "chest pain/pressure now or under twenty-four
-      hours with dyspnoea/sweating/radiation", and 04 §4 records that EK-4 splits chest
-      pain across THREE levels, so a single chest-pain token is the wrong shape and the
-      split must be authored before an acuity is chosen. No committed snapshot exists
-      under packages/protocols/sources/ — the directory is absent — so the EK-4 text
-      cannot be quoted from this repository even though it is binding law.
-      Owner: physician of record (HB-C1, HB-C2, HB-C7).
+    # INT-619, CD-108 (D18: agent-sourced, simulated patients only; a licensed
+    # physician signs before any real patient, HB-C1). Action copy: the CD-24
+    # generic RED script, with 112 spelled out because a chain pack's scripts carry
+    # no digit (invariant 22; validator NUMERAL_IN_TR).
+    when: "chest_pain.present == true && (chest_pain.character in {'baskı', 'sıkışma', 'ağırlık'} || chest_pain.radiation in {'kol', 'çene', 'sırt'} || associated.diaphoresis == true || associated.dyspnoea == true)"
+    tense: now
+    tense_anchor: chest_pain.onset_at
+    level: KIRMIZI_K2
+    route: EMERGENCY_NOW
+    register: ALERT
+    distress_sensitive: false
+    notify_clinic: always
+    status: active
+    source:
+      guideline_id: TR-EK4-2022
+      guideline_title: >-
+        Yataklı Sağlık Tesislerinde Acil Servis Hizmetlerinin Uygulama Usul ve Esasları
+        Hakkında Tebliğ, EK-4
+      version_or_date: "RG 13/9/2022 s. 31952 (amended RG 13/5/2023 s. 32189; RG 11/10/2024 s. 32689)"
+      url: "https://www.resmigazete.gov.tr/eskiler/2022/09/20220913-5-1.pdf"
+      retrieved_on: 2026-10-02
+      quote: "Kardiyak ağrıya benzer göğüs ağrısı"
+      quote_snapshot: packages/protocols/sources/TR-EK4-2022.txt
+      note: >-
+        CD-108. The trigger is the EK-4 Kırmızı Kategori 2 arm, read through the same
+        slots and the same disjunction as the active life-threat rule
+        rf.chest_pain_cardiac_features, so the family and that rule cannot disagree
+        under the lattice max. The character / radiation / sweating / breathlessness
+        disjunction is the pack's operationalisation of "kardiyak ağrıya benzer"; EK-4
+        does not enumerate features. 04 §3's "or under twenty-four hours" arm is not
+        written: a datetime slot does not exist (SlotType v2) and tense now is the
+        reference day.
+    action:
+      REMOTE:
+        primary: CALL_112
+        show_112: true
+        action_tr:
+          tr: "Hemen yüz on iki Acil Çağrı Merkezi'ni arayın."
+        do_nots_tr:
+          tr:
+            - "Randevuyu beklemeyin."
+        why_tr:
+          tr: >-
+            Verilen cevaplara göre beklemeden değerlendirme gerekiyor. Yüz on iki
+            ambulansıyla getirilen hastalar, acil serviste ayrıca öncelik sırası için
+            bekletilmez.
+      ON_SITE:
+        primary: GO_TO_IN_HOUSE_ACIL
+        show_112: false
+        notify_staff_immediate: true
+        action_tr:
+          tr: "**Acil Servis'e gidin[ — {{tenant.acil_location_tr}}].** Randevuyu beklemeyin. Görevlilere haber verildi."
+        do_nots_tr:
+          tr:
+            - "Poliklinik sırasında beklemeyin."
+            - "Tek başınıza gitmeyin; bir görevliden yardım isteyin."
+        why_tr:
+          tr: >-
+            Verilen cevaplara göre beklemeden değerlendirme gerekiyor. Acil serviste
+            hastaların önceliği girişte belirlenir ve en öncelikli hastalar bekletilmeden
+            içeri alınır.
+      UNKNOWN:
+        ask_one_tr:
+          tr: "Şu anda hastanede misiniz?"
+        on_yes: ON_SITE
+        on_no: REMOTE
+        on_no_answer: REMOTE
 
   - id: rf.stroke_fast
     label_tr: "İnme düşündüren ani nörolojik bulgu"
-    when: 'TODO: the rf.stroke_fast trigger requires clinical sign-off'
+    # INT-619, CD-109 (D18: agent-sourced, simulated patients only; a licensed
+    # physician signs before any real patient, HB-C1). Action copy: the CD-24
+    # generic RED script, with 112 spelled out because a chain pack's scripts carry
+    # no digit (invariant 22; validator NUMERAL_IN_TR).
+    when: "red_flags.rf_stroke_fast == true"
     tense: ever
-    tense_anchor: time_last_known_well
-    level: YESIL
-    route: EXPEDITE
-    notify_clinic: never
-    status: draft_needs_source
-    source_gap: >-
-      Unsupplied by any clinician: the trigger, the EK-4 acuity level, the route, the
-      delivery register and the action scripts for REMOTE, ON_SITE and UNKNOWN.
-      04 §3's plain-language condition is "sudden face droop / arm weakness / speech
-      difficulty / vision loss". The tense_anchor is the HB-C6 slot time_last_known_well,
-      which now exists — but see the DSL finding on that slot: the window this family
-      turns on is measured in hours and SlotType v2 has no datetime member. No committed
-      snapshot exists under packages/protocols/sources/.
-      Owner: physician of record (HB-C1, HB-C2, HB-C7).
+    tense_anchor: red_flags.rf_stroke_fast_onset
+    level: KIRMIZI_K2
+    route: EMERGENCY_NOW
+    register: ALERT
+    distress_sensitive: false
+    notify_clinic: always
+    status: active
+    source:
+      guideline_id: TR-EK4-2022
+      guideline_title: >-
+        Yataklı Sağlık Tesislerinde Acil Servis Hizmetlerinin Uygulama Usul ve Esasları
+        Hakkında Tebliğ, EK-4
+      version_or_date: "RG 13/9/2022 s. 31952 (amended RG 13/5/2023 s. 32189; RG 11/10/2024 s. 32689)"
+      url: "https://www.resmigazete.gov.tr/eskiler/2022/09/20220913-5-1.pdf"
+      retrieved_on: 2026-10-02
+      quote: "Akut hemiparazi/disfazi"
+      quote_snapshot: packages/protocols/sources/TR-EK4-2022.txt
+      note: >-
+        CD-109. Trigger: NICE NG128 1.1.1 (FAST, face / arm / speech, in people with
+        sudden onset of neurological symptoms), snapshot NICE-NG128. Level: EK-4
+        Kırmızı Kategori 2. The probe asks about a deficit that began suddenly and is
+        present now, so tense ever only requires the symptom to be dated; a deficit that
+        has resolved (NG128 1.1.5, suspected TIA, seen within twenty-four hours) is a
+        different action and is not written here. Vision loss (04 §3) is not in FAST or
+        in EK-4's line and is not part of the trigger.
+    action:
+      REMOTE:
+        primary: CALL_112
+        show_112: true
+        action_tr:
+          tr: "Hemen yüz on iki Acil Çağrı Merkezi'ni arayın."
+        do_nots_tr:
+          tr:
+            - "Randevuyu beklemeyin."
+        why_tr:
+          tr: >-
+            Verilen cevaplara göre beklemeden değerlendirme gerekiyor. Yüz on iki
+            ambulansıyla getirilen hastalar, acil serviste ayrıca öncelik sırası için
+            bekletilmez.
+      ON_SITE:
+        primary: GO_TO_IN_HOUSE_ACIL
+        show_112: false
+        notify_staff_immediate: true
+        action_tr:
+          tr: "**Acil Servis'e gidin[ — {{tenant.acil_location_tr}}].** Randevuyu beklemeyin. Görevlilere haber verildi."
+        do_nots_tr:
+          tr:
+            - "Poliklinik sırasında beklemeyin."
+            - "Tek başınıza gitmeyin; bir görevliden yardım isteyin."
+        why_tr:
+          tr: >-
+            Verilen cevaplara göre beklemeden değerlendirme gerekiyor. Acil serviste
+            hastaların önceliği girişte belirlenir ve en öncelikli hastalar bekletilmeden
+            içeri alınır.
+      UNKNOWN:
+        ask_one_tr:
+          tr: "Şu anda hastanede misiniz?"
+        on_yes: ON_SITE
+        on_no: REMOTE
+        on_no_answer: REMOTE
 
   - id: rf.dyspnoea_rest
     label_tr: "İstirahatte nefes darlığı"
@@ -1030,44 +1286,155 @@ red_flags:
       delivery register and the action scripts for REMOTE, ON_SITE and UNKNOWN.
       04 §3's plain-language condition is "breathlessness at rest or speaking in short
       sentences". 04 §8.1 rule 1 forbids a respiratory-rate count as a trigger, so the
-      layperson-answerable form has to be authored rather than derived. No committed
-      snapshot exists under packages/protocols/sources/.
+      layperson-answerable form has to be authored rather than derived.
       Owner: physician of record (HB-C1, HB-C2, HB-C7).
+      INT-619 (CD-110): still draft. EK-4 prints serious breathlessness in Kırmızı
+      Kategori 2 only through accessory-muscle use or a pulse-oximetry value below
+      ninety per cent, both observed by staff, and no committed source states the
+      layperson form (breathless at rest, unable to finish a sentence) for every
+      cause; asthma grading is condition-specific. The trigger itself is what is
+      owed.
 
   - id: rf.anaphylaxis
     label_tr: "Anafilaksi düşündüren tablo"
-    when: 'TODO: the rf.anaphylaxis trigger requires clinical sign-off'
+    # INT-619, CD-111 (D18: agent-sourced, simulated patients only; a licensed
+    # physician signs before any real patient, HB-C1). Action copy: the CD-24
+    # generic RED script, with 112 spelled out because a chain pack's scripts carry
+    # no digit (invariant 22; validator NUMERAL_IN_TR).
+    when: "red_flags.rf_anaphylaxis == true"
     tense: ever
-    tense_anchor: onset_date
-    level: YESIL
-    route: EXPEDITE
-    notify_clinic: never
-    status: draft_needs_source
-    source_gap: >-
-      Unsupplied by any clinician: the trigger, the EK-4 acuity level, the route, the
-      delivery register and the action scripts for REMOTE, ON_SITE and UNKNOWN.
-      04 §3's plain-language condition is "lip/tongue swelling + breathing difficulty
-      after exposure". 04 §8.1 rule 6 makes the do-not list part of the action script,
-      and it is unwritten. No committed snapshot exists under packages/protocols/sources/.
-      Owner: physician of record (HB-C1, HB-C2, HB-C7).
+    tense_anchor: red_flags.rf_anaphylaxis_onset
+    level: KIRMIZI_K2
+    route: EMERGENCY_NOW
+    register: ALERT
+    distress_sensitive: false
+    notify_clinic: always
+    status: active
+    source:
+      guideline_id: TR-EK4-2022
+      guideline_title: >-
+        Yataklı Sağlık Tesislerinde Acil Servis Hizmetlerinin Uygulama Usul ve Esasları
+        Hakkında Tebliğ, EK-4
+      version_or_date: "RG 13/9/2022 s. 31952 (amended RG 13/5/2023 s. 32189; RG 11/10/2024 s. 32689)"
+      url: "https://www.resmigazete.gov.tr/eskiler/2022/09/20220913-5-1.pdf"
+      retrieved_on: 2026-10-02
+      quote: "Şiddetli stridor veya yutkunma güçlüğü ile beraber olan havayolu tıkanıklığı riski"
+      quote_snapshot: packages/protocols/sources/TR-EK4-2022.txt
+      note: >-
+        CD-111. Trigger: RCUK 2021 §3 ("exposed to a trigger (allergen) develops a sudden
+        illness") and §3.2 Airway problems ("throat and tongue swelling causing
+        difficulty in breathing/swallowing"), snapshot RCUK-ANAPHYLAXIS-2021. Level: the
+        EK-4 Kırmızı Kategori 2 line that names swallowing difficulty with airway
+        obstruction risk; EK-4's Kategori 1 line "Havayolu tıkanıklığı riski" is the
+        reading a physician may prefer, and raising K2 to K1 is a tightening the
+        physician can make. Do-not and ON_SITE branch: RCUK §4.4.
+    action:
+      REMOTE:
+        primary: CALL_112
+        show_112: true
+        action_tr:
+          tr: "Hemen yüz on iki Acil Çağrı Merkezi'ni arayın."
+        do_nots_tr:
+          tr:
+            - "Randevuyu beklemeyin."
+            - "Ayağa kalkmayın ve yürümeyin."
+        why_tr:
+          tr: >-
+            Verilen cevaplara göre beklemeden değerlendirme gerekiyor. Yüz on iki
+            ambulansıyla getirilen hastalar, acil serviste ayrıca öncelik sırası için
+            bekletilmez.
+      ON_SITE:
+        primary: STAY_IN_PLACE_STAFF_NOTIFIED
+        show_112: false
+        notify_staff_immediate: true
+        action_tr:
+          tr: "**Olduğunuz yerde kalın.** Görevlilere haber verildi. Yanınızdaki birinden hemen bir görevli çağırmasını isteyin."
+        do_nots_tr:
+          tr:
+            - "Ayağa kalkmayın ve yürümeyin."
+        why_tr:
+          tr: >-
+            Verilen cevaplara göre beklemeden değerlendirme gerekiyor. Bu durumda ayağa
+            kalkmak ya da yürümek tehlikeli olabilir.
+        note: >-
+          CD-111: RCUK 2021 §4.4, "Patients must not walk or stand during acute
+          reactions", so the ON_SITE branch keeps the patient where they are and the
+          staff notification (notify_staff_immediate) brings help, rather than sending
+          them on foot to the acil servis as the generic ON_SITE copy does.
+      UNKNOWN:
+        ask_one_tr:
+          tr: "Şu anda hastanede misiniz?"
+        on_yes: ON_SITE
+        on_no: REMOTE
+        on_no_answer: REMOTE
 
   - id: rf.severe_bleeding
     label_tr: "Ağır kanama"
-    when: 'TODO: the rf.severe_bleeding trigger requires clinical sign-off'
+    # INT-619, CD-112 (D18: agent-sourced, simulated patients only; a licensed
+    # physician signs before any real patient, HB-C1). Action copy: the CD-24
+    # generic RED script, with 112 spelled out because a chain pack's scripts carry
+    # no digit (invariant 22; validator NUMERAL_IN_TR).
+    when: "red_flags.rf_severe_bleeding == true"
     tense: ever
-    tense_anchor: onset_date
-    level: YESIL
-    route: EXPEDITE
-    notify_clinic: never
-    status: draft_needs_source
-    source_gap: >-
-      Unsupplied by any clinician: the trigger, the EK-4 acuity level, the route, the
-      delivery register and the action scripts for REMOTE, ON_SITE and UNKNOWN.
-      04 §3's plain-language condition is "large-volume bleeding, melena with dizziness".
-      The base slot anticoagulant_use now exists to gate it (HB-C6), but what counts as
-      large-volume for a patient reporting it is exactly the judgment that cannot be
-      guessed. No committed snapshot exists under packages/protocols/sources/.
-      Owner: physician of record (HB-C1, HB-C2, HB-C7).
+    tense_anchor: red_flags.rf_severe_bleeding_onset
+    level: KIRMIZI_K2
+    route: EMERGENCY_NOW
+    register: ALERT
+    distress_sensitive: false
+    notify_clinic: always
+    status: active
+    source:
+      guideline_id: TR-EK4-2022
+      guideline_title: >-
+        Yataklı Sağlık Tesislerinde Acil Servis Hizmetlerinin Uygulama Usul ve Esasları
+        Hakkında Tebliğ, EK-4
+      version_or_date: "RG 13/9/2022 s. 31952 (amended RG 13/5/2023 s. 32189; RG 11/10/2024 s. 32689)"
+      url: "https://www.resmigazete.gov.tr/eskiler/2022/09/20220913-5-1.pdf"
+      retrieved_on: 2026-10-02
+      quote: "Nemli, soğuk deri, perfüzyon bozukluğu"
+      quote_snapshot: packages/protocols/sources/TR-EK4-2022.txt
+      note: >-
+        CD-112. EK-4 Kırmızı Kategori 2 "Dolaşım bozukluğu", whose one
+        layperson-answerable sign is cold, clammy skin, conjoined with bleeding now. The
+        conjunction is the pack's: EK-4 states the circulation sign for any cause. EK-4's
+        Sarı Kategori 1 "orta derecede kan kaybı" and 04 §3's "large-volume bleeding" and
+        "melena with dizziness" are not written: no committed source states a
+        layperson-answerable volume, and dizziness is not EK-4's sign.
+    action:
+      REMOTE:
+        primary: CALL_112
+        show_112: true
+        action_tr:
+          tr: "Hemen yüz on iki Acil Çağrı Merkezi'ni arayın."
+        do_nots_tr:
+          tr:
+            - "Randevuyu beklemeyin."
+        why_tr:
+          tr: >-
+            Verilen cevaplara göre beklemeden değerlendirme gerekiyor. Yüz on iki
+            ambulansıyla getirilen hastalar, acil serviste ayrıca öncelik sırası için
+            bekletilmez.
+      ON_SITE:
+        primary: GO_TO_IN_HOUSE_ACIL
+        show_112: false
+        notify_staff_immediate: true
+        action_tr:
+          tr: "**Acil Servis'e gidin[ — {{tenant.acil_location_tr}}].** Randevuyu beklemeyin. Görevlilere haber verildi."
+        do_nots_tr:
+          tr:
+            - "Poliklinik sırasında beklemeyin."
+            - "Tek başınıza gitmeyin; bir görevliden yardım isteyin."
+        why_tr:
+          tr: >-
+            Verilen cevaplara göre beklemeden değerlendirme gerekiyor. Acil serviste
+            hastaların önceliği girişte belirlenir ve en öncelikli hastalar bekletilmeden
+            içeri alınır.
+      UNKNOWN:
+        ask_one_tr:
+          tr: "Şu anda hastanede misiniz?"
+        on_yes: ON_SITE
+        on_no: REMOTE
+        on_no_answer: REMOTE
 
   - id: rf.suicidal_intent
     label_tr: "İntihar planı veya niyeti"
@@ -1089,45 +1456,145 @@ red_flags:
       crisis numbers are fixed in docs/legal/strings.yaml under PolicyGuard and no
       model or learning-loop proposal may ever populate one (04 §4.1).
       Owner: physician of record plus counsel (HB-C1, HB-C8, HB-L2).
+      INT-619 (CD-113): kept blocked, not written. C-SSRS is licence-BLOCKED
+      (HB-L2) and the 04 §4.2 escalation policy does not exist (HB-C8).
 
   - id: rf.sepsis_like
     label_tr: "Sepsis benzeri tablo"
-    when: 'TODO: the rf.sepsis_like trigger requires clinical sign-off'
+    # INT-619, CD-114 (D18: agent-sourced, simulated patients only; a licensed
+    # physician signs before any real patient, HB-C1). Action copy: the CD-24
+    # generic RED script, with 112 spelled out because a chain pack's scripts carry
+    # no digit (invariant 22; validator NUMERAL_IN_TR).
+    when: "red_flags.fever_now == true && red_flags.rf_sepsis_like == true"
     tense: ever
-    tense_anchor: onset_date
-    level: YESIL
-    route: EXPEDITE
-    notify_clinic: never
-    status: draft_needs_source
-    source_gap: >-
-      Unsupplied by any clinician: the trigger, the EK-4 acuity level, the route, the
-      delivery register and the action scripts for REMOTE, ON_SITE and UNKNOWN.
-      04 §3's plain-language condition is "fever + confusion/very low BP symptoms/rigors
-      in immunosuppressed". The base slots pregnancy_status and immunosuppression now
-      exist (HB-C6) so the gate has something to read, but 04 §8.2's
-      sepsis_guideline_routes_on_age_and_pregnancy needs the routing itself, and the
-      pregnancy rule set does not exist (HB-C4). 04 §8.2 also retires NG51 in favour of
-      NG253/NG254/NG255, all three of which carry updates in progress (04 §8.4), and no
-      committed snapshot exists under packages/protocols/sources/.
-      Owner: physician of record (HB-C1, HB-C2, HB-C4, HB-C7).
+    tense_anchor: red_flags.fever_onset
+    level: KIRMIZI_K2
+    route: EMERGENCY_NOW
+    register: ALERT
+    distress_sensitive: false
+    notify_clinic: always
+    status: active
+    source:
+      guideline_id: TR-EK4-2022
+      guideline_title: >-
+        Yataklı Sağlık Tesislerinde Acil Servis Hizmetlerinin Uygulama Usul ve Esasları
+        Hakkında Tebliğ, EK-4
+      version_or_date: "RG 13/9/2022 s. 31952 (amended RG 13/5/2023 s. 32189; RG 11/10/2024 s. 32689)"
+      url: "https://www.resmigazete.gov.tr/eskiler/2022/09/20220913-5-1.pdf"
+      retrieved_on: 2026-10-02
+      quote: "Letarji ile birlikte ateş (her yaş)"
+      quote_snapshot: packages/protocols/sources/TR-EK4-2022.txt
+      note: >-
+        CD-114. EK-4 Kırmızı Kategori 2 prints fever with lethargy for every age, which
+        is why this rule needs no age or pregnancy routing (04 §8.2
+        sepsis_guideline_routes_on_age_and_pregnancy stays HB-C4's). The probe renders
+        "letarji" for a layperson as sleepiness and weakness severe enough to make
+        staying awake hard. Confusion, very low blood pressure and rigors (04 §3) are
+        not EK-4's line and are not written; NICE NG253 / NG254 / NG255 are not
+        snapshotted.
+    action:
+      REMOTE:
+        primary: CALL_112
+        show_112: true
+        action_tr:
+          tr: "Hemen yüz on iki Acil Çağrı Merkezi'ni arayın."
+        do_nots_tr:
+          tr:
+            - "Randevuyu beklemeyin."
+        why_tr:
+          tr: >-
+            Verilen cevaplara göre beklemeden değerlendirme gerekiyor. Yüz on iki
+            ambulansıyla getirilen hastalar, acil serviste ayrıca öncelik sırası için
+            bekletilmez.
+      ON_SITE:
+        primary: GO_TO_IN_HOUSE_ACIL
+        show_112: false
+        notify_staff_immediate: true
+        action_tr:
+          tr: "**Acil Servis'e gidin[ — {{tenant.acil_location_tr}}].** Randevuyu beklemeyin. Görevlilere haber verildi."
+        do_nots_tr:
+          tr:
+            - "Poliklinik sırasında beklemeyin."
+            - "Tek başınıza gitmeyin; bir görevliden yardım isteyin."
+        why_tr:
+          tr: >-
+            Verilen cevaplara göre beklemeden değerlendirme gerekiyor. Acil serviste
+            hastaların önceliği girişte belirlenir ve en öncelikli hastalar bekletilmeden
+            içeri alınır.
+      UNKNOWN:
+        ask_one_tr:
+          tr: "Şu anda hastanede misiniz?"
+        on_yes: ON_SITE
+        on_no: REMOTE
+        on_no_answer: REMOTE
 
   - id: rf.thunderclap_headache
     label_tr: "Ani başlayan çok şiddetli baş ağrısı"
-    when: 'TODO: the rf.thunderclap_headache trigger requires clinical sign-off'
+    # INT-619, CD-115 (D18: agent-sourced, simulated patients only; a licensed
+    # physician signs before any real patient, HB-C1). Action copy: the CD-24
+    # generic RED script, with 112 spelled out because a chain pack's scripts carry
+    # no digit (invariant 22; validator NUMERAL_IN_TR).
+    when: "red_flags.rf_thunderclap_headache == true"
     tense: ever
-    tense_anchor: onset_date
-    level: YESIL
-    route: EXPEDITE
-    notify_clinic: never
-    status: draft_needs_source
-    source_gap: >-
-      Unsupplied by any clinician: the trigger, the EK-4 acuity level, the route, the
-      delivery register and the action scripts for REMOTE, ON_SITE and UNKNOWN.
-      04 §3's plain-language condition is "worst-ever sudden headache". 04 §8.3 lists a
-      sibling, rf.sah_ottawa, among the three families exempt from any false-positive
-      ceiling, so how this family relates to that one is part of the same decision. No
-      committed snapshot exists under packages/protocols/sources/.
-      Owner: physician of record (HB-C1, HB-C2, HB-C7).
+    tense_anchor: red_flags.rf_thunderclap_headache_onset
+    level: KIRMIZI_K2
+    route: EMERGENCY_NOW
+    register: ALERT
+    distress_sensitive: false
+    notify_clinic: always
+    status: active
+    source:
+      guideline_id: TR-EK4-2022
+      guideline_title: >-
+        Yataklı Sağlık Tesislerinde Acil Servis Hizmetlerinin Uygulama Usul ve Esasları
+        Hakkında Tebliğ, EK-4
+      version_or_date: "RG 13/9/2022 s. 31952 (amended RG 13/5/2023 s. 32189; RG 11/10/2024 s. 32689)"
+      url: "https://www.resmigazete.gov.tr/eskiler/2022/09/20220913-5-1.pdf"
+      retrieved_on: 2026-10-02
+      quote: "Herhangi bir nedenle olan ciddi ağrı"
+      quote_snapshot: packages/protocols/sources/TR-EK4-2022.txt
+      note: >-
+        CD-115. Trigger: NICE CG150 1.1.1 "sudden‑onset headache reaching maximum
+        intensity within 5 minutes", snapshot NICE-CG150, asked about pain present now
+        and described as very severe. Level: EK-4 Kırmızı Kategori 2 "Herhangi bir
+        nedenle olan ciddi ağrı". CG150 itself states no urgency, only evaluation and
+        consideration of investigation or referral; the urgency is EK-4's. The relation
+        to rf.sah_ottawa (04 §8.3) is not decided here.
+    action:
+      REMOTE:
+        primary: CALL_112
+        show_112: true
+        action_tr:
+          tr: "Hemen yüz on iki Acil Çağrı Merkezi'ni arayın."
+        do_nots_tr:
+          tr:
+            - "Randevuyu beklemeyin."
+        why_tr:
+          tr: >-
+            Verilen cevaplara göre beklemeden değerlendirme gerekiyor. Yüz on iki
+            ambulansıyla getirilen hastalar, acil serviste ayrıca öncelik sırası için
+            bekletilmez.
+      ON_SITE:
+        primary: GO_TO_IN_HOUSE_ACIL
+        show_112: false
+        notify_staff_immediate: true
+        action_tr:
+          tr: "**Acil Servis'e gidin[ — {{tenant.acil_location_tr}}].** Randevuyu beklemeyin. Görevlilere haber verildi."
+        do_nots_tr:
+          tr:
+            - "Poliklinik sırasında beklemeyin."
+            - "Tek başınıza gitmeyin; bir görevliden yardım isteyin."
+        why_tr:
+          tr: >-
+            Verilen cevaplara göre beklemeden değerlendirme gerekiyor. Acil serviste
+            hastaların önceliği girişte belirlenir ve en öncelikli hastalar bekletilmeden
+            içeri alınır.
+      UNKNOWN:
+        ask_one_tr:
+          tr: "Şu anda hastanede misiniz?"
+        on_yes: ON_SITE
+        on_no: REMOTE
+        on_no_answer: REMOTE
 
   - id: rf.pregnancy_bleeding_pain
     label_tr: "Gebelikte kanama veya şiddetli ağrı"
@@ -1143,47 +1610,73 @@ red_flags:
       delivery register and the action scripts for REMOTE, ON_SITE and UNKNOWN. The
       whole pregnancy rule set is absent (HB-C4) and needs obstetric input, not a
       general physician's signature. The base slots pregnancy_status and lmp_date now
-      exist to gate it (HB-C6). No committed snapshot exists under
-      packages/protocols/sources/.
+      exist to gate it (HB-C6).
       Owner: clinician with obstetric input, then physician of record (HB-C1, HB-C4).
+      INT-619 (CD-116): still draft. The one committed obstetric source, NICE NG126,
+      covers early pregnancy only, and its A&E criterion ("significant concern about
+      the degree of pain or bleeding") is a clinician's judgement, not a
+      layperson-answerable trigger; EK-4 has no pregnancy line. HB-C4 stays open.
 
   - id: rf.fever_high_persistent
-    label_tr: "Yüksek veya uzayan ateş"
-    when: 'TODO: the rf.fever_high_persistent trigger requires clinical sign-off'
+    label_tr: "Bağışıklığı baskılayan tedavi alan hastada ateş"
+    # INT-619, CD-117 (D18; HB-C1). The sourced arm of the 04 §3 row only: fever in a
+    # patient on immunosuppressive treatment. The general persistence arm ("≥ 39 °C
+    # > 3 d") is not written, because no committed source states it for an adult;
+    # adding it later as a disjunct is a tightening (invariant 7).
+    when: "red_flags.fever_now == true && pmh_fh_sh.immunosuppression == 'evet'"
     tense: ever
-    tense_anchor: onset_date
-    level: YESIL
-    route: EXPEDITE
-    notify_clinic: never
-    status: draft_needs_source
-    source_gap: >-
-      Unsupplied by any clinician: the trigger, the EK-4 acuity level, the route, the
-      delivery register and the action scripts for REMOTE, ON_SITE and UNKNOWN. This is
-      the family whose 04 §3 row is stated entirely in thresholds — a temperature, a
-      duration, and a different pair of both on chemotherapy or a biologic — and every
-      one of those numbers is precisely what HB-C7 says must come from a physician
-      rather than from a plausible guess. 04 §3 also marks it YELLOW/RED per overlay,
-      so it is two rules or one conditional rule and that too is undecided. No
-      committed snapshot exists under packages/protocols/sources/.
-      Owner: physician of record (HB-C1, HB-C2, HB-C7).
+    tense_anchor: red_flags.fever_onset
+    level: SARI_K1
+    route: SAME_DAY_ACIL
+    notify_clinic: always
+    status: active
+    source:
+      guideline_id: TR-EK4-2022
+      guideline_title: >-
+        Yataklı Sağlık Tesislerinde Acil Servis Hizmetlerinin Uygulama Usul ve Esasları
+        Hakkında Tebliğ, EK-4
+      version_or_date: "RG 13/9/2022 s. 31952 (amended RG 13/5/2023 s. 32189; RG 11/10/2024 s. 32689)"
+      url: "https://www.resmigazete.gov.tr/eskiler/2022/09/20220913-5-1.pdf"
+      retrieved_on: 2026-10-02
+      quote: "Ateş yüksekliği olan onkoloji hastası veya steroid kullanan hasta"
+      quote_snapshot: packages/protocols/sources/TR-EK4-2022.txt
+      note: >-
+        CD-117. EK-4 Sarı Kategori 1 names fever in an oncology patient or a patient on
+        steroids, with no temperature. The pack's immunosuppression slot answers "evet"
+        for chemotherapy, a biologic, cortisone or a transplant (its follow_up_tr), so
+        the gate is wider than EK-4's two groups, which is the over-including direction.
+        A SARI rule carries no action script (the engine renders one for KIRMIZI only),
+        so the same-day route reaches the clinic, not the patient's screen.
 
   - id: rf.weight_loss_unintentional
     label_tr: "İstemsiz kilo kaybı"
-    when: 'TODO: the rf.weight_loss_unintentional trigger requires clinical sign-off'
+    # INT-619, CD-118 (D18; HB-C1).
+    when: "red_flags.rf_weight_loss_unintentional == true && red_flags.age_sixty_or_over == true"
     tense: ever
-    tense_anchor: onset_date
-    level: YESIL
+    tense_anchor: hpi.onset_date
+    level: SARI_K2
     route: EXPEDITE
-    notify_clinic: never
-    status: draft_needs_source
-    source_gap: >-
-      Unsupplied by any clinician: the trigger, the EK-4 acuity level, the route, the
-      delivery register and the action scripts for REMOTE, ON_SITE and UNKNOWN.
-      04 §3 states the condition as a percentage over a period, and both figures are
-      HB-C7 values. The base slot weight_kg now exists (HB-C6), which is what makes the
-      family expressible at all. No committed snapshot exists under
-      packages/protocols/sources/.
-      Owner: physician of record (HB-C1, HB-C2, HB-C7).
+    notify_clinic: always
+    status: active
+    source:
+      guideline_id: NICE-NG12
+      guideline_title: "Suspected cancer: recognition and referral"
+      version_or_date: "NICE guideline NG12; published 23 June 2015; last updated 15 April 2026"
+      url: "https://www.nice.org.uk/guidance/ng12/chapter/Recommendations-organised-by-site-of-cancer"
+      retrieved_on: 2026-10-03
+      quote: "For people aged 60 and over with unexplained weight loss (greater than 5% mean weight loss within a 6-month period)"
+      quote_snapshot: packages/protocols/sources/NICE-NG12.txt
+      note: >-
+        CD-118. NG12 1.13.2 (amended April 2026) states the age bound, the five per cent
+        and the six months; the probe carries all three as words. NG12's
+        "unexplained" means not explained after a primary-care assessment, which a
+        patient cannot report; the probe asks for loss without trying, which is the
+        pack's proxy. The level is EK-4 Sarı Kategori 2 ("Orta ve uzamış dönem
+        belirtileri olan ve ciddiyet potansiyeli taşıyan durumlar"), the pack's
+        mapping of NG12's urgent investigation onto the five-level scale; route
+        EXPEDITE keeps the appointment. The tense anchor is the complaint's onset
+        date, the dated slot every session asks: the six-month window is in the
+        probe itself.
 
   - id: rf.new_neuro_deficit_subacute
     label_tr: "Günler içinde ilerleyen nörolojik bulgu"
@@ -1200,9 +1693,12 @@ red_flags:
       04 §3's plain-language condition is "progressive weakness/numbness over days", and
       how it is separated from rf.stroke_fast is part of the same judgment — the
       separation is a tense boundary, and 04 §8.1 rule 4 requires a genuinely different
-      action script per tense. No committed snapshot exists under
-      packages/protocols/sources/.
+      action script per tense.
       Owner: physician of record (HB-C1, HB-C2, HB-C7).
+      INT-619 (CD-119): still draft. No committed source states the urgency of
+      weakness or numbness progressing over days; CG150's "new-onset neurological
+      deficit" is a headache feature, and EK-4's "Akut hemiparazi/disfazi" is the
+      acute arm rf.stroke_fast already carries.
 
   - id: rf.suicidal_ideation_passive
     label_tr: "Pasif intihar düşüncesi"
@@ -1221,6 +1717,8 @@ red_flags:
       terms. 04 §4.2 records the structural problem underneath it: the cascade puts the
       suicide gate behind two thresholds, so passive ideation in someone scoring low on
       PHQ-2 is never asked about — which is a design question for the clinician, not a
-      wording one. The escalation policy is still missing (HB-C8). No committed snapshot
-      exists under packages/protocols/sources/.
+      wording one. The escalation policy is still missing (HB-C8).
       Owner: physician of record plus counsel (HB-C1, HB-C8, HB-L2).
+      INT-619 (CD-120): kept blocked, not written. Its trigger is a PHQ-9 item with
+      a C-SSRS negative, and C-SSRS is licence-BLOCKED (HB-L2); the escalation
+      policy does not exist (HB-C8).

@@ -4713,3 +4713,39 @@
   - Crisis lexicon: HB-C17 / HB-C8, unchanged.
 - Next: the independent clinical reviewer's verdict on CD-107. After sign-off, narrow the airway source_gap and re-sign the D23 set once.
 - LOOP_STATUS: WAITING_HUMAN
+
+### 2026-11-18T12:00:00+03:00 · INT-619 · awaiting-human (approval:human-clinical; committed locally, not pushed)
+- Goal: owner, 18 Nov 2026, *"yes write the 13 red flag rules"*, under D18. Write each of the thirteen base.intake red_flags families as a real rule, sourced against a committed verbatim snapshot. Where no source settles a family, or its instrument licence is not GO, keep it draft with the reason. Never invent a threshold; relax nothing (invariant 7).
+- Plan: per family, find the current guideline (EK-4 first for level), commit a snapshot, record CD-108..CD-120, and write the trigger, level, register and three location actions with numbers spelled out. Add executable positive and near-miss goldens. Make the pack loader check chain-pack sources. Run a verifier pass. Tests first.
+- Tests added: tests/protocols/test_int619_base_intake_red_flags.py (31) and tests/safety/test_base_intake_red_flag_goldens.py (26, run by `make safety`). Near misses:
+  - one changed word in a quote is refused by the loader;
+  - each golden negative differs from its positive in one answer;
+  - an undated positive does not fire;
+  - the anaphylaxis probe does not fire on swelling alone.
+  Red: 21 failed / 11 passed / 3 skipped. Green: 57 passed.
+- Result: 8 active, 5 draft.
+  - active: chest_pain_acute, stroke_fast, anaphylaxis, severe_bleeding, sepsis_like and thunderclap_headache are KIRMIZI_K2 / ALERT; fever_high_persistent (immunosuppressed arm) is SARI_K1; weight_loss_unintentional is SARI_K2;
+  - draft: dyspnoea_rest, pregnancy_bleeding_pain and new_neuro_deficit_subacute; suicidal_intent and suicidal_ideation_passive stay blocked (HB-L2 C-SSRS, HB-C8).
+  - New snapshots: NICE-NG128, NICE-CG150, RCUK-ANAPHYLAXIS-2021.
+- Gates:
+  - protocols + safety 2136 passed; `make safety` exit 0; check-ts exit 0; no_placeholders OK;
+  - compile refusals 21 → 13, none from an active rule;
+  - check-py: see docs/evidence/INT-619.md §8.
+- Invariants touched and still passing:
+  - 1: levels come only from rules.
+  - 7: every family rose from the YESIL floor; base.life_threat is byte-identical, so D23 stands.
+  - 10: scripts are verbatim in the pack.
+  - 17: each unwritten arm is the sanctioned literal in its CD.
+  - 21: register plus three locations, no 112 on site.
+  - 22: no digit in any script; age is a yes/no, not free numeric entry.
+- Decisions: CD-108..CD-120 (D18 scope).
+- Findings:
+  - The HB-C6 slot time_last_known_well is a duration, which the engine cannot anchor on. stroke_fast anchors on a dated onset slot instead.
+  - RCUK's review date (May 2026) has passed, and its PDF restricts reproduction.
+  - CD-107 carried a word the no_placeholders gate forbids (fixed, one word).
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id):
+  - Dr Efe Onganer (HB-C1): "Do you sign the eight INT-619 rules as written (CD-108..CD-118), including K2 rather than K1 for anaphylaxis and the unwritten arms each CD lists?"
+  - Obstetric clinician (HB-C4): "What layperson-answerable trigger and EK-4 level does bleeding or severe pain in pregnancy carry?"
+  - HB-L2 / HB-C8: the two suicide families, unchanged.
+- Next: the independent clinical reviewer's verdict on CD-108..CD-120.
+- LOOP_STATUS: WAITING_HUMAN

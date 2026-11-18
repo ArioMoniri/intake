@@ -123,6 +123,174 @@
     }
   },
   "packages/protocols/base/intake.yaml": {
+    "red_flags/0/action/ON_SITE/action_tr": {
+      "authored": "**Acil Servis'e gidin[ — {{tenant.acil_location_tr}}].** Randevuyu beklemeyin. Görevlilere haber verildi.",
+      "expanded": "**Acil Servis'e gidin[ — {{tenant.acil_location_tr}}].** Randevuyu beklemeyin. Görevlilere haber verildi."
+    },
+    "red_flags/0/action/ON_SITE/do_nots_tr": [
+      {
+        "authored": "Poliklinik sırasında beklemeyin.",
+        "expanded": "Poliklinik sırasında beklemeyin."
+      },
+      {
+        "authored": "Tek başınıza gitmeyin; bir görevliden yardım isteyin.",
+        "expanded": "Tek başınıza gitmeyin; bir görevliden yardım isteyin."
+      }
+    ],
+    "red_flags/0/action/REMOTE/action_tr": {
+      "authored": "Hemen yüz on iki Acil Çağrı Merkezi'ni arayın.",
+      "expanded": "Hemen yüz on iki Acil Çağrı Merkezi'ni arayın."
+    },
+    "red_flags/0/action/REMOTE/do_nots_tr": [
+      {
+        "authored": "Randevuyu beklemeyin.",
+        "expanded": "Randevuyu beklemeyin."
+      }
+    ],
+    "red_flags/0/action/UNKNOWN/ask_one_tr": {
+      "authored": "Şu anda hastanede misiniz?",
+      "expanded": "Şu anda hastanede misiniz?"
+    },
+    "red_flags/1/action/ON_SITE/action_tr": {
+      "authored": "**Acil Servis'e gidin[ — {{tenant.acil_location_tr}}].** Randevuyu beklemeyin. Görevlilere haber verildi.",
+      "expanded": "**Acil Servis'e gidin[ — {{tenant.acil_location_tr}}].** Randevuyu beklemeyin. Görevlilere haber verildi."
+    },
+    "red_flags/1/action/ON_SITE/do_nots_tr": [
+      {
+        "authored": "Poliklinik sırasında beklemeyin.",
+        "expanded": "Poliklinik sırasında beklemeyin."
+      },
+      {
+        "authored": "Tek başınıza gitmeyin; bir görevliden yardım isteyin.",
+        "expanded": "Tek başınıza gitmeyin; bir görevliden yardım isteyin."
+      }
+    ],
+    "red_flags/1/action/REMOTE/action_tr": {
+      "authored": "Hemen yüz on iki Acil Çağrı Merkezi'ni arayın.",
+      "expanded": "Hemen yüz on iki Acil Çağrı Merkezi'ni arayın."
+    },
+    "red_flags/1/action/REMOTE/do_nots_tr": [
+      {
+        "authored": "Randevuyu beklemeyin.",
+        "expanded": "Randevuyu beklemeyin."
+      }
+    ],
+    "red_flags/1/action/UNKNOWN/ask_one_tr": {
+      "authored": "Şu anda hastanede misiniz?",
+      "expanded": "Şu anda hastanede misiniz?"
+    },
+    "red_flags/3/action/ON_SITE/action_tr": {
+      "authored": "**Olduğunuz yerde kalın.** Görevlilere haber verildi. Yanınızdaki birinden hemen bir görevli çağırmasını isteyin.",
+      "expanded": "**Olduğunuz yerde kalın.** Görevlilere haber verildi. Yanınızdaki birinden hemen bir görevli çağırmasını isteyin."
+    },
+    "red_flags/3/action/ON_SITE/do_nots_tr": [
+      {
+        "authored": "Ayağa kalkmayın ve yürümeyin.",
+        "expanded": "Ayağa kalkmayın ve yürümeyin."
+      }
+    ],
+    "red_flags/3/action/REMOTE/action_tr": {
+      "authored": "Hemen yüz on iki Acil Çağrı Merkezi'ni arayın.",
+      "expanded": "Hemen yüz on iki Acil Çağrı Merkezi'ni arayın."
+    },
+    "red_flags/3/action/REMOTE/do_nots_tr": [
+      {
+        "authored": "Randevuyu beklemeyin.",
+        "expanded": "Randevuyu beklemeyin."
+      },
+      {
+        "authored": "Ayağa kalkmayın ve yürümeyin.",
+        "expanded": "Ayağa kalkmayın ve yürümeyin."
+      }
+    ],
+    "red_flags/3/action/UNKNOWN/ask_one_tr": {
+      "authored": "Şu anda hastanede misiniz?",
+      "expanded": "Şu anda hastanede misiniz?"
+    },
+    "red_flags/4/action/ON_SITE/action_tr": {
+      "authored": "**Acil Servis'e gidin[ — {{tenant.acil_location_tr}}].** Randevuyu beklemeyin. Görevlilere haber verildi.",
+      "expanded": "**Acil Servis'e gidin[ — {{tenant.acil_location_tr}}].** Randevuyu beklemeyin. Görevlilere haber verildi."
+    },
+    "red_flags/4/action/ON_SITE/do_nots_tr": [
+      {
+        "authored": "Poliklinik sırasında beklemeyin.",
+        "expanded": "Poliklinik sırasında beklemeyin."
+      },
+      {
+        "authored": "Tek başınıza gitmeyin; bir görevliden yardım isteyin.",
+        "expanded": "Tek başınıza gitmeyin; bir görevliden yardım isteyin."
+      }
+    ],
+    "red_flags/4/action/REMOTE/action_tr": {
+      "authored": "Hemen yüz on iki Acil Çağrı Merkezi'ni arayın.",
+      "expanded": "Hemen yüz on iki Acil Çağrı Merkezi'ni arayın."
+    },
+    "red_flags/4/action/REMOTE/do_nots_tr": [
+      {
+        "authored": "Randevuyu beklemeyin.",
+        "expanded": "Randevuyu beklemeyin."
+      }
+    ],
+    "red_flags/4/action/UNKNOWN/ask_one_tr": {
+      "authored": "Şu anda hastanede misiniz?",
+      "expanded": "Şu anda hastanede misiniz?"
+    },
+    "red_flags/6/action/ON_SITE/action_tr": {
+      "authored": "**Acil Servis'e gidin[ — {{tenant.acil_location_tr}}].** Randevuyu beklemeyin. Görevlilere haber verildi.",
+      "expanded": "**Acil Servis'e gidin[ — {{tenant.acil_location_tr}}].** Randevuyu beklemeyin. Görevlilere haber verildi."
+    },
+    "red_flags/6/action/ON_SITE/do_nots_tr": [
+      {
+        "authored": "Poliklinik sırasında beklemeyin.",
+        "expanded": "Poliklinik sırasında beklemeyin."
+      },
+      {
+        "authored": "Tek başınıza gitmeyin; bir görevliden yardım isteyin.",
+        "expanded": "Tek başınıza gitmeyin; bir görevliden yardım isteyin."
+      }
+    ],
+    "red_flags/6/action/REMOTE/action_tr": {
+      "authored": "Hemen yüz on iki Acil Çağrı Merkezi'ni arayın.",
+      "expanded": "Hemen yüz on iki Acil Çağrı Merkezi'ni arayın."
+    },
+    "red_flags/6/action/REMOTE/do_nots_tr": [
+      {
+        "authored": "Randevuyu beklemeyin.",
+        "expanded": "Randevuyu beklemeyin."
+      }
+    ],
+    "red_flags/6/action/UNKNOWN/ask_one_tr": {
+      "authored": "Şu anda hastanede misiniz?",
+      "expanded": "Şu anda hastanede misiniz?"
+    },
+    "red_flags/7/action/ON_SITE/action_tr": {
+      "authored": "**Acil Servis'e gidin[ — {{tenant.acil_location_tr}}].** Randevuyu beklemeyin. Görevlilere haber verildi.",
+      "expanded": "**Acil Servis'e gidin[ — {{tenant.acil_location_tr}}].** Randevuyu beklemeyin. Görevlilere haber verildi."
+    },
+    "red_flags/7/action/ON_SITE/do_nots_tr": [
+      {
+        "authored": "Poliklinik sırasında beklemeyin.",
+        "expanded": "Poliklinik sırasında beklemeyin."
+      },
+      {
+        "authored": "Tek başınıza gitmeyin; bir görevliden yardım isteyin.",
+        "expanded": "Tek başınıza gitmeyin; bir görevliden yardım isteyin."
+      }
+    ],
+    "red_flags/7/action/REMOTE/action_tr": {
+      "authored": "Hemen yüz on iki Acil Çağrı Merkezi'ni arayın.",
+      "expanded": "Hemen yüz on iki Acil Çağrı Merkezi'ni arayın."
+    },
+    "red_flags/7/action/REMOTE/do_nots_tr": [
+      {
+        "authored": "Randevuyu beklemeyin.",
+        "expanded": "Randevuyu beklemeyin."
+      }
+    ],
+    "red_flags/7/action/UNKNOWN/ask_one_tr": {
+      "authored": "Şu anda hastanede misiniz?",
+      "expanded": "Şu anda hastanede misiniz?"
+    },
     "sections/hpi/slots/severity_nrs/confirm_tr": {
       "authored": "Söylediğiniz şiddeti ekranda gösteriyorum; doğru mu?",
       "expanded": "Söylediğiniz şiddeti ekranda gösteriyorum; doğru mu?"

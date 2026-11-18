@@ -87,6 +87,19 @@ FAMILIES_04_S3: tuple[str, ...] = (
     "rf.suicidal_ideation_passive",
 )
 
+# INT-619 (owner, 18 Nov 2026; D18): the families that stay draft_needs_source,
+# each with its reason in its register entry. The other eight are written as
+# active rules against committed snapshots and are pinned in
+# tests/protocols/test_int619_base_intake_red_flags.py; their goldens run in
+# tests/safety/test_base_intake_red_flag_goldens.py.
+DRAFT_FAMILIES: tuple[str, ...] = (
+    "rf.dyspnoea_rest",  # CD-110: EK-4's criteria are staff-observed
+    "rf.suicidal_intent",  # CD-113: C-SSRS licence-BLOCKED (HB-L2), HB-C8
+    "rf.pregnancy_bleeding_pain",  # CD-116: obstetric input (HB-C4)
+    "rf.new_neuro_deficit_subacute",  # CD-119: no source for the subacute arm
+    "rf.suicidal_ideation_passive",  # CD-120: HB-L2, HB-C8
+)
+
 # HUMAN_BLOCKERS HB-C6 — the six slots `base.intake` does not collect today.
 HB_C6_ADDITIONS: tuple[str, ...] = (
     "pregnancy_status",
@@ -209,11 +222,14 @@ def test_every_red_flag_family_of_04_s3_is_present_and_no_others(pack: ProtocolP
 
 
 def test_no_family_asserts_a_trigger_a_clinician_has_not_supplied(pack: ProtocolPack) -> None:
-    """Which symptoms constitute a red flag is clinical judgment. Every
-    trigger is therefore the ONE sanctioned pending form (CLAUDE.md invariant
-    17 sole exception) on a `draft_needs_source` rule — never a plausible
-    predicate, which would read as authoritative to every later reader."""
-    for rule in pack.red_flags:
+    """Which symptoms constitute a red flag is clinical judgment. A family no
+    committed source settles keeps the ONE sanctioned pending form (CLAUDE.md
+    invariant 17 sole exception) on a `draft_needs_source` rule — never a
+    plausible predicate. INT-619 wrote the families a snapshot settles; the
+    rest are exactly DRAFT_FAMILIES."""
+    drafts = tuple(r.id for r in pack.red_flags if r.status is RuleStatus.DRAFT_NEEDS_SOURCE)
+    assert drafts == DRAFT_FAMILIES
+    for rule in (r for r in pack.red_flags if r.id in DRAFT_FAMILIES):
         assert rule.status is RuleStatus.DRAFT_NEEDS_SOURCE, rule.id
         assert PLACEHOLDER_SIGNOFF_RE.fullmatch(rule.when) is not None, rule.id
         assert rule.source is None, rule.id
@@ -225,9 +241,10 @@ def test_no_family_asserts_an_ek4_acuity_no_snapshot_supports(pack: ProtocolPack
     correction says in terms that **a naive three-to-three colour map
     systematically under-triages**. Mapping §3's RED/YELLOW onto the five
     EK-4 levels is therefore the named failure mode, not a transcription — so
-    every family sits at the schema's floor, which asserts nothing, exactly
-    as INT-057's generator does for the same reason."""
-    for rule in pack.red_flags:
+    every family no snapshot settles sits at the schema's floor, which asserts
+    nothing. The written families take their level from EK-4's own line
+    (INT-619), never from §3's colour."""
+    for rule in (r for r in pack.red_flags if r.id in DRAFT_FAMILIES):
         assert rule.level is EK4Level.YESIL, rule.id
         assert rule.level.severity == 0, rule.id
 
@@ -235,7 +252,7 @@ def test_no_family_asserts_an_ek4_acuity_no_snapshot_supports(pack: ProtocolPack
 def test_each_source_gap_names_what_the_physician_must_supply(pack: ProtocolPack) -> None:
     """A `source_gap` that says only "no source" tells the physician nothing.
     Each one names the five decisions HB-C1 is waiting on."""
-    for rule in pack.red_flags:
+    for rule in (r for r in pack.red_flags if r.id in DRAFT_FAMILIES):
         gap = (rule.source_gap or "").casefold()
         for owed in ("trigger", "ek-4", "route", "register", "action"):
             assert owed in gap, f"{rule.id}: source_gap does not name {owed!r}"
@@ -294,7 +311,7 @@ def test_no_licence_blocked_instrument_is_referenced(pack: ProtocolPack) -> None
 def test_every_draft_family_is_excluded_from_a_served_pack(pack: ProtocolPack) -> None:
     """files/04 §8.1 rule 3 — reported by the validator, refused by the
     compiler. Both halves matter; this is the reporting half."""
-    assert pack_compilable(pack).excluded_rules == FAMILIES_04_S3
+    assert pack_compilable(pack).excluded_rules == DRAFT_FAMILIES
     assert not pack_compilable(pack).fully_compilable
 
 
@@ -326,7 +343,8 @@ def test_the_compiler_refuses_this_pack_and_the_reasons_are_the_human_blockers(
 ) -> None:
     """The success condition of INT-043 is a refusal. With a fully SIGNED
     life-threat set the only reasons left are this pack's own: it is L0, and
-    all thirteen families are unsourced drafts. Nothing else — no binding
+    the five families no snapshot settles are drafts. The eight written
+    families add no refusal of their own. Nothing else — no binding
     gap, no numeral, no unresolvable gate, no gate on a value its slot cannot
     carry (INT-441: compiled with the committed value sets, as the CLI does) —
     which is what makes the refusal list a to-do list for one physician rather
@@ -335,7 +353,7 @@ def test_the_compiler_refuses_this_pack_and_the_reasons_are_the_human_blockers(
     assert set(grouped) == {RefusalCode.PACK_NOT_SERVABLE, RefusalCode.DRAFT_RULE_NOT_SERVED}
     assert grouped[RefusalCode.PACK_NOT_SERVABLE] == ["base.intake"]
     # the compiler reports rules sorted by id, not in declaration order
-    assert sorted(grouped[RefusalCode.DRAFT_RULE_NOT_SERVED]) == sorted(FAMILIES_04_S3)
+    assert sorted(grouped[RefusalCode.DRAFT_RULE_NOT_SERVED]) == sorted(DRAFT_FAMILIES)
 
 
 def test_an_unfilled_clinical_signoff_blocks_the_l1_bundle(
@@ -372,12 +390,12 @@ def test_promoting_the_pack_to_l1_does_not_make_a_draft_family_servable(
 ) -> None:
     """The maturity ladder and rule provenance are independent gates. An
     engineer who "fixes" the refusal by editing `maturity:` still gets
-    thirteen refusals — there is no bypass (HUMAN_BLOCKERS Rule 2)."""
+    one refusal per draft family — there is no bypass (HUMAN_BLOCKERS Rule 2)."""
     promoted = PackRegistry()
     promoted.add(pack.model_copy(update={"maturity": Maturity.L1}))
     grouped = _refuse("base.intake", promoted, life_threat, template)
     assert set(grouped) == {RefusalCode.DRAFT_RULE_NOT_SERVED}
-    assert sorted(grouped[RefusalCode.DRAFT_RULE_NOT_SERVED]) == sorted(FAMILIES_04_S3)
+    assert sorted(grouped[RefusalCode.DRAFT_RULE_NOT_SERVED]) == sorted(DRAFT_FAMILIES)
 
 
 def test_a_family_promoted_to_red_must_declare_register_and_all_three_locations(
@@ -390,13 +408,15 @@ def test_a_family_promoted_to_red_must_declare_register_and_all_three_locations(
     default** — the compiler says so before any text is written. This is the
     gate, proved against this pack, in the state the pack is actually in.
     """
-    family = next(rule for rule in pack.red_flags if rule.id == "rf.stroke_fast")
+    # A family still at the floor (INT-619 wrote rf.stroke_fast with both axes).
+    family = next(rule for rule in pack.red_flags if rule.id == "rf.dyspnoea_rest")
     red = RedFlagRule.model_construct(
         **{
             **family.model_dump(),
             "level": EK4Level.KIRMIZI_K2,
             "status": RuleStatus.ACTIVE,
-            "when": "stroke_probe == true",
+            "when": "red_flags.rf_dyspnoea_rest == true",
+            "source_gap": None,
         }
     )
     registry = PackRegistry()
@@ -430,10 +450,15 @@ def test_the_six_hb_c6_additions_are_authored_as_askable_question_copy(
 def test_stroke_fast_has_its_tense_anchor(pack: ProtocolPack) -> None:
     """HB-C6 names the consequence of the missing slot exactly: "`rf.stroke_fast`
     has no `tense_anchor`". files/12 §2.4 — a tense-qualified rule cannot fire
-    on an undated symptom."""
+    on an undated symptom. INT-619 (CD-109): the HB-C6 slot time_last_known_well
+    is a duration, which the engine cannot anchor on (it reads Unknown and the
+    rule would never fire), so the written rule anchors on the dated onset slot
+    its probe opens."""
     stroke = next(rule for rule in pack.red_flags if rule.id == "rf.stroke_fast")
-    assert stroke.tense_anchor == "time_last_known_well"
-    declared = {key for _, key, _ in _slots(pack)}
+    assert stroke.tense_anchor == "red_flags.rf_stroke_fast_onset"
+    declared = {key for _, key, _ in _slots(pack)} | {
+        f"{section}.{key}" for section, key, _ in _slots(pack)
+    }
     assert {rule.tense_anchor for rule in pack.red_flags} <= declared
 
 
@@ -568,10 +593,15 @@ def test_no_golden_asserts_an_outcome_while_the_trigger_is_unsigned(
     """A golden that asserted `fires: true` would be asserting the very
     clinical judgment HB-C1 is waiting for, dressed as a test. Each case is
     therefore carried, not executed, and says so with the blocker id — so the
-    suite turns executable in the same PR that supplies the trigger."""
+    suite turns executable in the same PR that supplies the trigger. INT-619
+    supplied eight; their cases name the register entry and run in make safety."""
     for family, entry in goldens["families"].items():
-        assert entry["executable"] is False, family
-        assert "HB-C1" in entry["blocked_by"], family
+        if family in DRAFT_FAMILIES:
+            assert entry["executable"] is False, family
+            assert "HB-C1" in entry["blocked_by"], family
+        else:
+            assert entry["executable"] is True, family
+            assert entry["rule_decision"].startswith("CD-1"), family
 
 
 def test_every_golden_family_matches_a_declared_rule(

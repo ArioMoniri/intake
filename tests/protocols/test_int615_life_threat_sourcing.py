@@ -71,13 +71,18 @@ def test_the_fifteen_are_two_life_threat_drafts_and_thirteen_base_intake_drafts(
         flag["id"] for flag in intake["red_flags"] if flag["status"] == "draft_needs_source"
     }
     decision = load_decision(CD107)
-    assert base_drafts == set(decision.value["life_threat_census"]["base_intake_drafts"])
-    assert len(base_drafts) == 13
+    # CD-107 records the census as INT-615 found it (thirteen skeletons, none
+    # authored). INT-619 (owner, 18 Nov 2026; CD-108..CD-120) wrote eight of them,
+    # so five remain, each one of the thirteen CD-107 named.
+    recorded = set(decision.value["life_threat_census"]["base_intake_drafts"])
+    assert len(recorded) == 13
     assert decision.value["life_threat_census"]["base_intake_drafts_authored"] is False
+    assert base_drafts < recorded
+    assert len(base_drafts) == 5
     life_threat_drafts = {
         r for r, rule in _rules().items() if rule.status is RuleStatus.DRAFT_NEEDS_SOURCE
     }
-    assert len(base_drafts | life_threat_drafts) == 15
+    assert len(base_drafts | life_threat_drafts) == 7
 
 
 def test_the_rch_snapshot_is_committed_with_its_header() -> None:

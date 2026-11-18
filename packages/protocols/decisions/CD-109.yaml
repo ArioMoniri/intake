@@ -1,0 +1,99 @@
+# INT-619 clinical decision CD-109: rf.stroke_fast
+# (owner, 18 Nov 2026: "yes write the 13 red flag rules").
+# Agent-authored under owner decision D18 for simulated-patient stress testing only; a licensed
+# physician's review is required before any real patient. Every source quote appears verbatim in the
+# named snapshot and every spec_basis quote in the named file.
+kind: clinical_decision
+id: CD-109
+title: 'rf.stroke_fast: FAST signs of sudden onset, present now, at EK-4 Kırmızı Kategori 2'
+question: Which current source states a layperson-answerable stroke trigger and its urgency?
+decision: 'Write rf.stroke_fast as KIRMIZI_K2 / EMERGENCY_NOW / ALERT on one probe: face droop, arm weakness
+  or speech difficulty that began suddenly and is still present (NICE NG128 1.1.1, FAST, in people with
+  sudden onset of neurological symptoms). EK-4 prints ''Akut hemiparazi/disfazi'' in Kırmızı Kategori
+  2. The probe opens a dated onset slot, rf_stroke_fast_onset, as the tense anchor, because the HB-C6
+  slot time_last_known_well is a duration and the engine cannot anchor on it. Tense ever: the probe carries
+  ''şu anda sürüyor'', so the anchor only proves the symptom is dated. A resolved deficit is NG128 1.1.5''s
+  suspected TIA, to be seen within twenty-four hours, which is a different action and is not written.
+  Vision loss is not in FAST or EK-4''s line.'
+status: active
+scope: simulated_patient_stress_testing
+scope_note: 'Owner decision D18 (2 Oct 2026), and the owner''s instruction of 18 Nov 2026 (''yes write
+  the 13 red flag rules''): agent-sourced content for the synthetic host and simulated patients only.
+  A licensed physician''s review is required before any real patient. No clinical_signoff field is touched
+  (D17), the pack stays L0, and HB-C1 stays open.'
+question_origin: 'Owner, 18 Nov 2026, in chat: ''yes write the 13 red flag rules''. INT-619.'
+author_role: emergency medicine and neurology physician (agent)
+inference_disclosure: Rendering FAST as a self-report ('ağzınızın bir yanı düşüyorsa…') is the pack's;
+  FAST is an observer's screen.
+sources:
+- kind: guideline
+  guideline_id: NICE-NG128
+  title: 'Stroke and transient ischaemic attack in over 16s: diagnosis and initial management'
+  version_or_date: NICE guideline NG128; published 01 May 2019; last updated 13 April 2022
+  url: https://www.nice.org.uk/guidance/ng128/chapter/Recommendations
+  retrieved_on: 2026-11-18
+  snapshot: packages/protocols/sources/NICE-NG128.txt
+  section: 1.1.1
+  quote: Use a validated tool, such as FAST (Face Arm Speech Test), outside hospital to screen people
+    with sudden onset of neurological symptoms for a diagnosis of stroke or transient ischaemic attack
+    (TIA).
+  supports: trigger
+- kind: guideline
+  guideline_id: NICE-NG128
+  title: 'Stroke and transient ischaemic attack in over 16s: diagnosis and initial management'
+  version_or_date: NICE guideline NG128; published 01 May 2019; last updated 13 April 2022
+  url: https://www.nice.org.uk/guidance/ng128/chapter/Recommendations
+  retrieved_on: 2026-11-18
+  snapshot: packages/protocols/sources/NICE-NG128.txt
+  section: 1.1.5
+  quote: Refer immediately people who have had a suspected TIA for specialist assessment and investigation,
+    to be seen within 24 hours of onset of symptoms.
+  supports: tia_arm
+  caveat: Why the resolved-deficit arm is a different action.
+- kind: guideline
+  guideline_id: TR-EK4-2022
+  title: Yataklı Sağlık Tesislerinde Acil Servis Hizmetlerinin Uygulama Usul ve Esasları Hakkında Tebliğ,
+    EK-4
+  version_or_date: RG 13/9/2022 sayı 31952
+  url: https://www.resmigazete.gov.tr/eskiler/2022/09/20220913-5-1.pdf
+  retrieved_on: 2026-10-02
+  snapshot: packages/protocols/sources/TR-EK4-2022.txt
+  section: EK-4 Kırmızı Kategori 2
+  quote: Akut hemiparazi/disfazi
+  supports: level
+spec_basis:
+- file: packages/protocols/decisions/CD-24.yaml
+  section: decision (REMOTE, ON_SITE, UNKNOWN copy)
+  quote: Hemen 112 Acil Çağrı Merkezi'ni arayın.
+  supports: action (the generic RED script, with 112 spelled out as 'yüz on iki')
+- file: CLAUDE.md
+  section: Non-negotiable invariants, 22
+  quote: No numeral reaches any TTS model
+  supports: action (every number in a script is a Turkish word)
+source_gap: The resolved-deficit (suspected TIA) arm has no patient-facing action or EK-4 level in a committed
+  source.
+fail_closed_while_draft: A draft rule or arm stays out of every served pack and never evaluates; base.intake
+  is L0, so no rule here reaches a patient until the physician signs (HB-C1).
+value:
+  rule: rf.stroke_fast
+  when: red_flags.rf_stroke_fast == true
+  tense: ever
+  tense_anchor: red_flags.rf_stroke_fast_onset
+  level: KIRMIZI_K2
+  route: EMERGENCY_NOW
+  register: ALERT
+  tia_arm:
+    status: draft_needs_source
+    resolved: 'TODO: the resolved-deficit (suspected TIA) action of rf.stroke_fast requires clinical sign-off'
+    source_gap: NG128 1.1.5 states the clinician's referral window, not the patient-facing action or its
+      EK-4 level.
+value_status:
+  tia_arm: draft_needs_source
+verifier:
+  verdict: agree
+  role: verifier pass by the authoring agent (not independent; an independent clinical reviewer is to
+    follow)
+  verified_on: 2026-11-18
+  notes: 'Each quote re-read against its committed snapshot, and the rule''s trigger, level, route and
+    scripts re-read against the quotes; the register loader re-checks every quote verbatim. No mismatch
+    found. Not D18''s independent verdict: the separate clinical reviewer gives that.'
