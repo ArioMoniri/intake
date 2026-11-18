@@ -584,3 +584,100 @@ def test_a_synthetic_tenant_refuses_a_changed_byte(tmp_path: Path) -> None:
     tampered.write_bytes(LIFE_THREAT.read_bytes() + b"\n")
     for harness in _synthetic(tmp_path, rules=tampered):
         _assert_closed(harness)
+
+
+# --- INT-604 (ADR-043): a submitted multi-select set reaches triage whole ---------------
+
+
+@pytest.mark.parametrize(
+    ("value", "fires"),
+    [
+        (["sentetik_yasamsal"], True),
+        (["sentetik_yasamsal", "yok"], True),
+        (["yok", "sentetik_yasamsal"], True),
+        (["yok"], False),
+        (["sentetik_yasamsal_degil", "yok"], False),
+    ],
+    ids=["one-member", "member-then-yok", "yok-then-member", "near-miss-yok", "near-miss-other"],
+)
+def test_a_chips_answer_is_evaluated_as_the_whole_submitted_set(
+    harness: ApiHarness, value: list[str], fires: bool
+) -> None:
+    """A list answer used to read Unknown, so a symptom chosen among several could
+    never fire. It is now the files/12 §7.3 union: any submitted member that fires,
+    fires. The hop never applies exclusivity itself — trimming "yok" or the symptom
+    here would decide for the patient after the fact, and refusing the set would
+    leave a firing symptom unevaluated. The lanes clear it on screen before submit."""
+    body = _evaluate(harness, {**FIRING, "ziyaret.basvuru_nedeni": value})
+    if fires:
+        assert body["kind"] == "red_trigger", body
+        assert body["ruleId"] == "rf.sentetik_yasamsal"
+    else:
+        assert body == {"kind": "triage_level", "level": "GREEN"}
+
+
+def test_an_empty_chips_answer_is_no_answer(harness: ApiHarness) -> None:
+    body = _evaluate(harness, {**FIRING, "ziyaret.basvuru_nedeni": []})
+    assert body == {"kind": "triage_level", "level": "GREEN"}
+
+
+@pytest.mark.parametrize(
+    "answers",
+    [
+        {"chest_pain.radiation": ["kol", "kalça"]},
+        {"chest_pain.radiation": ["kol"] + [f"x{i}" for i in range(63)]},
+        {"chest_pain.character": ["baskı", "yanma"]},
+    ],
+    ids=["outside-the-set", "longer-than-the-set", "two-on-a-single-select"],
+)
+def test_a_set_that_does_not_fit_its_slot_is_refused(
+    harness: ApiHarness, answers: dict[str, Any]
+) -> None:
+    response = harness.client.post(
+        "/v1/triage/evaluate",
+        headers=harness.patient(),
+        json={**IDS, "location": "REMOTE", "reference_time": REFERENCE_TIME, "answers": answers},
+    )
+    assert response.status_code == 422, response.text
+
+
+def test_near_miss_a_set_of_members_is_evaluated(harness: ApiHarness) -> None:
+    body = _evaluate(harness, {**FIRING, "chest_pain.radiation": ["omuz", "kol", "yok"]})
+    assert body["kind"] == "red_trigger"
+
+
+def test_the_widest_set_the_hop_admits_is_inside_the_red_budget(
+    harness: ApiHarness, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Both slots the served rule reads, each at the boundary's 64-member limit:
+    4096 worlds, the engine's cap, evaluated in full. Deterministic first: the
+    number of worlds evaluated (every ``evaluate_node`` call is counted) is at
+    most the cap per served rule. Wall-clock time only as a p95 over several
+    requests, with the RED budget as headroom (INT-604 runtime review round 1)."""
+    from protocols.triage import engine
+
+    count = [0]
+    real = engine.evaluate_node
+
+    def counting(*args: Any, **kwargs: Any) -> Any:
+        count[0] += 1
+        return real(*args, **kwargs)
+
+    monkeypatch.setattr(engine, "evaluate_node", counting)
+    wide = {
+        "ziyaret.basvuru_nedeni": [f"sentetik_{i}" for i in range(63)] + ["sentetik_yasamsal"],
+        "sure_dakika": [f"2026-08-{day:02d}" for day in range(1, 30)]
+        + [f"sentetik_{i}" for i in range(35)],
+    }
+    body = _evaluate(harness, wide)
+    assert body["kind"] == "red_trigger"
+    served = load_life_threat_set(SIGNED, allow_fixture_snapshots=True).rules
+    assert 0 < count[0] <= engine.MAX_CONTESTED_WORLDS * len(served)
+    monkeypatch.setattr(engine, "evaluate_node", real)
+    samples = []
+    for _ in range(5):
+        started = time.perf_counter()
+        _evaluate(harness, wide)
+        samples.append((time.perf_counter() - started) * 1000)
+    p95 = sorted(samples)[-1]
+    assert p95 < RED_BUDGET_MS, f"p95 {p95:.1f} ms"

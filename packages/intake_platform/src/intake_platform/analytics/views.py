@@ -24,14 +24,13 @@ distinct-tenant count, and no ``patient_id``, ``session_id`` or ``tenant_id``
 survives the ``GROUP BY``. A pseudonym is personal data under KVKK; a count of
 pseudonyms, at or above the floor, is not.
 
-**The Loop-2 opt-out is applied before anything is counted.** files/06 §2
-makes ``learning:service_improvement`` an opt-out purpose and files/09 §5
-promises the opt-out "costs no feature" — costing the patient nothing means
-their sessions are not in the aggregate. Every view reads
-``analytics.v_loop2_sessions``, which excludes any patient whose latest
-recorded decision on that scope is a withdrawal (invariant 4: every read of
-clinical data checks a consent scope). That base view is not granted to
-``svc_learning_reader``.
+**The Loop-2 consent is applied before anything is counted.** Since INT-603
+(legal review round 2; files/06 §2) ``learning:service_improvement`` is off
+until the patient turns it on. Every view reads ``analytics.v_loop2_sessions``,
+which since migration 0015 keeps only sessions whose patient holds a
+LIVE grant of that scope — no row, an old opt-out row and a revoked grant are
+all out (invariant 4: every read of clinical data checks a consent scope).
+That base view is not granted to ``svc_learning_reader``.
 
 **The k floor is enforced here, at the query layer** (the INT-171 acceptance
 says so in those words) by :func:`intake_platform.analytics.materialise`. The

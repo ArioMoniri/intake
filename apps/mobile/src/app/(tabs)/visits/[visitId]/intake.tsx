@@ -49,18 +49,21 @@ import {
 import { DevVoiceBanner } from "@/components/DevVoiceBanner";
 import { DialogueGate } from "@/components/DialogueGate";
 import { DialogueIntake } from "@/components/DialogueIntake";
+import { Icon } from "@/components/Icon";
 import { InstrumentStep } from "@/components/InstrumentStep";
 import { RedInFlow } from "@/components/RedLayer";
 import { VoiceNote } from "@/components/VoiceNote";
 import { voiceAllowedForIntegrity } from "@/lib/auth/integrity";
 import { asDeliveryKey } from "@/lib/dialogue/deliveryDeck";
 import { typedStepDelivery } from "@/lib/dialogue/deliveryPlan";
+import { chipGlyphSize, chipLook } from "@/lib/a11y/chip";
 import { joinParts } from "@/lib/a11y/labels";
 import { useReducedMotion } from "@/lib/a11y/prefs";
 import { MIN_TAP } from "@/lib/a11y/target";
 import { useClinicalScreenPrivacy } from "@/lib/auth/screenPrivacy";
 import { currentBuildMode, openAnswerHintKey } from "@/lib/buildCopy";
 import type { ReachabilityReport } from "@/lib/dev/hosts";
+import { deviceClock, todayIso } from "@/lib/clock";
 import { t } from "@/lib/i18n";
 import { measurementLine } from "@/lib/intake/baseLayer";
 import { intakeLive, redStore } from "@/lib/red/store";
@@ -69,10 +72,14 @@ import {
   isOpenAsk,
   nextApplicableQuestion,
   packForVisit,
+  reconcileExclusive,
   resumeQuestion,
   spokenPack,
+  toggleOption,
   type IntakeQuestion,
 } from "@/lib/intake/questions";
+import { modeChoiceNeeded } from "@/lib/intake/note";
+import { MODE_CHOICES } from "@/lib/red/location";
 import {
   initialVoiceIntakeState,
   resolveAnswer,
@@ -142,8 +149,9 @@ export default function TypedIntake() {
   // question. It shows only on a fresh run (not an edit, nothing answered) and
   // only until a choice is recorded (`modeChosen`). Voice-vs-typed is decided
   // after, by voiceEligible above, exactly as before.
-  const showModeChoice =
-    !editing && (note?.answers.length ?? 0) === 0 && !(note?.modeChosen ?? false);
+  // INT-604: and on an edit too — an unanswered location question is never
+  // replaced by the reducer's default (`modeChoiceNeeded`).
+  const showModeChoice = modeChoiceNeeded(note);
 
   return (
     <Screen style={styles.screenFlush} edges={FLOW_EDGES}>
@@ -217,11 +225,15 @@ export default function TypedIntake() {
 }
 
 /**
- * The up-front mode choice (INT-321): one calm screen, two doors, shown once
- * before the questions. "Hastanedeyim" opens the ayrıntılı flow (02 §2) — the
- * environment self-check and the "Bitirdim" checkpoint come with it; "Kısa
- * tutalım" runs the short set. Recording the choice (`modeChosen`) is what
- * dismisses this screen, so a default value is never a silent decision.
+ * The up-front question (INT-321, INT-604): one calm screen, asked once before
+ * the questions. It asks ONE thing — whether the patient is at the hospital now
+ * (files/02 §5.3's own words) — and the mode follows from the answer, as 02 §2
+ * defines the modes by place: "Evet, hastanedeyim" opens the ayrıntılı flow
+ * (with the environment self-check and the "Bitirdim" checkpoint), "Hayır,
+ * hastanede değilim" runs the short set. Neither answer is a preference, and
+ * no answer here sets ON_SITE (lib/red/location.ts). Recording the choice
+ * (`modeChosen`) is what dismisses this screen, so a default value is never a
+ * silent decision.
  */
 function ModeChoice({ visitId }: { visitId: string | undefined }) {
   const { updateNote } = useSession();
@@ -236,32 +248,22 @@ function ModeChoice({ visitId }: { visitId: string | undefined }) {
         {t("intake.mode.q")}
       </AppText>
       <View style={styles.optionColumn}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={t("intake.mode.hospital")}
-          style={styles.cardTarget}
-          onPress={() => choose("detayli")}
-        >
-          <Card>
-            <AppText role="body">{t("intake.mode.hospital")}</AppText>
-            <AppText role="caption" color="inkSoft">
-              {t("intake.mode.hospitalSub")}
-            </AppText>
-          </Card>
-        </Pressable>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={t("intake.mode.brief")}
-          style={styles.cardTarget}
-          onPress={() => choose("hizli")}
-        >
-          <Card>
-            <AppText role="body">{t("intake.mode.brief")}</AppText>
-            <AppText role="caption" color="inkSoft">
-              {t("intake.mode.briefSub")}
-            </AppText>
-          </Card>
-        </Pressable>
+        {MODE_CHOICES.map((choice) => (
+          <Pressable
+            key={choice.mode}
+            accessibilityRole="button"
+            accessibilityLabel={t(choice.labelKey)}
+            style={styles.cardTarget}
+            onPress={() => choose(choice.mode)}
+          >
+            <Card>
+              <AppText role="body">{t(choice.labelKey)}</AppText>
+              <AppText role="caption" color="inkSoft">
+                {t(choice.subKey)}
+              </AppText>
+            </Card>
+          </Pressable>
+        ))}
       </View>
     </ScrollView>
   );
@@ -280,7 +282,7 @@ interface StepFlowProps {
 function StepFlow({ visitId, requestedQ, intakeQuestions, prefill, voiceFailed }: StepFlowProps) {
   const router = useRouter();
   const theme = useTheme();
-  const dark = useScheme() === "dark";
+  const scheme = useScheme();
   const fontScale = useFontScale();
   const { notes, updateNote, consents } = useSession();
   const note = notes[visitId ?? ""];
@@ -316,7 +318,10 @@ function StepFlow({ visitId, requestedQ, intakeQuestions, prefill, voiceFailed }
   const initialKind = initialQuestion.kind;
   const [currentId, setCurrentId] = useState(initialQuestion.id);
   const [selected, setSelected] = useState<string[]>(
-    initialKind === "text" ? [] : (initialAnswer?.values ?? initialPrefill?.values ?? []),
+    initialKind === "text"
+      ? []
+      : (initialAnswer?.values ??
+          (initialPrefill ? reconcileExclusive(initialQuestion, initialPrefill.values) : [])),
   );
   // The free-text box: the whole answer on a `text` step, and the patient's
   // OWN WORDS on an open step (INT-286), where the coded value still comes
@@ -382,7 +387,7 @@ function StepFlow({ visitId, requestedQ, intakeQuestions, prefill, voiceFailed }
     ? undefined
     : prefill[question.id];
 
-  // Mode context (INT-236): Hızlı default; Hastanedeyim → Detaylı (02 §2).
+  // Mode context (INT-236, INT-604): "Evet, hastanedeyim" → Detaylı (02 §2).
   const mode = note?.mode ?? "hizli";
   const detayli = mode === "detayli";
   const privacy = note?.privacy ?? "unchecked";
@@ -399,7 +404,14 @@ function StepFlow({ visitId, requestedQ, intakeQuestions, prefill, voiceFailed }
    */
   const commit = (values: string[], words?: string) => {
     if (visitId) {
-      updateNote(visitId, { type: "answer", questionId: question.id, values, words });
+      updateNote(visitId, {
+        type: "answer",
+        questionId: question.id,
+        values,
+        words,
+        // INT-604: the day the answer was given, for day-anchored steps.
+        answeredOn: todayIso(deviceClock),
+      });
     }
     if (editing) {
       // an edit returns straight to the review; a fresh run continues
@@ -418,7 +430,13 @@ function StepFlow({ visitId, requestedQ, intakeQuestions, prefill, voiceFailed }
       return;
     }
     const nextPrefill = prefill[nextQuestion.id];
-    setSelected(nextQuestion.kind === "text" ? [] : (nextPrefill?.values ?? []));
+    // INT-604: a suggestion holding a symptom AND the exclusive "Yok" shows the
+    // symptom, never the other way round (ADR-043).
+    setSelected(
+      nextQuestion.kind === "text" || nextPrefill === undefined
+        ? []
+        : reconcileExclusive(nextQuestion, nextPrefill.values),
+    );
     setText(nextQuestion.kind === "text" ? (nextPrefill?.values.join(" ") ?? "") : "");
     setMeasure(null);
     setCurrentId(nextQuestion.id);
@@ -442,8 +460,10 @@ function StepFlow({ visitId, requestedQ, intakeQuestions, prefill, voiceFailed }
     return confirmingSuggestion ? suggestion?.quote : undefined;
   };
 
+  // INT-604 (ADR-043): "Yok" clears the other chips and any other chip clears
+  // "Yok" — on screen, before the patient submits (toggleOption).
   const toggleChip = (id: string) => {
-    setSelected((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+    setSelected((prev) => toggleOption(question, prev, id));
   };
 
   // "Bitirdim" (02 §34): the clinic-interruptible checkpoint — instant, no
@@ -725,25 +745,35 @@ function StepFlow({ visitId, requestedQ, intakeQuestions, prefill, voiceFailed }
                 <View style={styles.chipWrap}>
                   {question.options!.map((o) => {
                     const on = selected.includes(o.id);
+                    // INT-601 (audit A4): selection is a check glyph and a
+                    // heavier outline as well as the wash (SC 1.4.1).
+                    const look = chipLook(on, scheme);
                     return (
                       <Pressable
                         key={o.id}
                         accessibilityRole="checkbox"
                         accessibilityLabel={t(o.labelKey)}
                         accessibilityHint={t("a11y.selectHint")}
-                        accessibilityState={{ checked: on }}
+                        accessibilityState={look.accessibilityState}
                         onPress={() => toggleChip(o.id)}
                         style={[
                           styles.chip,
                           {
-                            backgroundColor: on ? theme.primarySoft : theme.surface,
-                            // Oura chips are filled, borderless in dark (tonal
-                            // separation); light keeps the hairline (pass 4).
-                            borderColor: on ? theme.primary : dark ? "transparent" : theme.border,
+                            backgroundColor: theme[look.fill],
+                            borderColor:
+                              look.border === "transparent" ? "transparent" : theme[look.border],
+                            borderWidth: look.borderWidth,
                           },
                         ]}
                       >
-                        <AppText role="label" color={on ? "primary" : "ink"}>
+                        {look.glyph !== null ? (
+                          <Icon
+                            name={look.glyph}
+                            size={chipGlyphSize(fontScale)}
+                            tintColor={theme.primary}
+                          />
+                        ) : null}
+                        <AppText role="label" color={look.labelColor} style={styles.chipLabel}>
                           {t(o.labelKey)}
                         </AppText>
                       </Pressable>
@@ -1004,10 +1034,13 @@ const styles = StyleSheet.create({
   chipWrap: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
   chip: {
     borderRadius: radius.chip,
-    borderWidth: 1,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
     minHeight: MIN_TAP,
+    // The selected check glyph leads the label (INT-601).
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.xs,
     justifyContent: "center",
     // A wrap item gets no shrink in React Native, so without this an option
     // label wider than the row makes the CHIP wider than the row and there is
@@ -1041,8 +1074,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  // The label gives width back so a long one wraps beside the glyph.
+  chipLabel: { flexShrink: 1 },
+  // INT-601 (audit A5): a 120 pt field at 999 was a stadium.
   textField: {
-    borderRadius: radius.control,
+    borderRadius: radius.field,
     borderWidth: 1,
     minHeight: 120,
     padding: spacing.md,

@@ -162,7 +162,6 @@ describe("a screen with no floating chrome keeps its bottom inset", () => {
   for (const name of [
     "src/app/(auth)/phone.tsx",
     "src/app/(auth)/otp.tsx",
-    "src/app/(auth)/consent.tsx",
     "src/app/(auth)/welcome.tsx",
   ]) {
     it(`${name} does not drop an edge nothing else covers`, () => {
@@ -178,6 +177,14 @@ describe("a screen with no floating chrome keeps its bottom inset", () => {
       }
     });
   }
+  // INT-603 (design audit K3): the consent first run now pins "Devam edin"
+  // on a glass bar, so the bar owns the bottom edge and the rule above no
+  // longer applies to it — revisited here, as the rule asks.
+  it("src/app/(auth)/consent.tsx drops the bottom edge only because its bar owns it", () => {
+    const source = file("src/app/(auth)/consent.tsx");
+    expect(BAR_OR_RAIL.test(source)).toBe(true);
+    expect(source).toContain("<GlassBar");
+  });
 });
 
 /* ------------------------------------------------------------------ */

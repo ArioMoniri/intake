@@ -53,7 +53,7 @@ from intake_metrics.wait_rollups import (
     WaitRollup,
     roll_up_wait,
 )
-from intake_platform.db.models import Event, IntakeSession, SessionStatus
+from intake_platform.db.models import Consent, Event, IntakeSession, SessionStatus
 from intake_platform.documents import ALLOWED_CONTENT_TYPES
 from intake_platform.export_safety import sanitise_cell
 from intake_platform.slo import load_metrics_catalog
@@ -559,6 +559,37 @@ def test_a_patient_who_opted_out_of_aggregation_is_excluded(harness: ApiHarness)
         "/v1/admin/experience/wait-times", params=_query(), headers=harness.admin()
     ).json()
     assert _point(body, WaitKind.RECORDS_PROCESSING)["n"] == 0
+
+
+def test_a_patient_who_never_granted_aggregation_is_not_counted(harness: ApiHarness) -> None:
+    """INT-603 legal review round 2: the purpose is off until the patient turns
+    it on, so a patient with NO row is out — and an all-out cohort reports
+    n=0, suppressed, no mean: unknown, never a fabricated zero mean."""
+
+    async def _forget() -> None:
+        async with AsyncSession(harness.engine) as session, session.begin():
+            rows = (
+                await session.scalars(
+                    select(Consent).where(
+                        Consent.tenant_id == DEV_TENANT_ID,
+                        Consent.patient_id == DEV_PATIENT_ID,
+                        Consent.scope == WAIT_TIMES_SCOPE,
+                    )
+                )
+            ).all()
+            for row in rows:
+                await session.delete(row)
+
+    run(_forget())
+    _seed_wait_events(harness, count=MIN_COHORT)
+    body = harness.client.get(
+        "/v1/admin/experience/wait-times", params=_query(), headers=harness.admin()
+    ).json()
+    point = _point(body, WaitKind.RECORDS_PROCESSING)
+    assert point["n"] == 0
+    assert point["suppressed"] is True
+    assert point["mean_ms"] is None
+    assert point["by_document_type"] is None
 
 
 def test_the_export_route_serves_text_csv_carrying_no_identifier(

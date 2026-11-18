@@ -66,6 +66,30 @@ export default function VisitDetail() {
       <Stack.Screen options={headerOptions(visit.department)} />
       <ScrollView contentContainerStyle={[styles.content, { paddingBottom: tabBarClearance }]}>
         <VisitCard visit={visit} statusOverride={status} />
+        {/* INT-601 (design audit A2): the one action sits straight under the
+            visit card. As the last child it fell behind the floating rail at
+            844 pt and was reached only by scrolling. */}
+        {status === "sent" ? (
+          <AnnouncedText
+            tone="status"
+            news={sentNews}
+            role="caption"
+            color="inkSoft"
+            message={t("review.sentInfo")}
+          />
+        ) : status === null || status === "draft" ? (
+          hasAnswers ? (
+            <PrimaryButton
+              label={t("visit.reviewNote")}
+              onPress={() => router.push(`/(tabs)/visits/${visit.id}/review`)}
+            />
+          ) : (
+            <PrimaryButton
+              label={t("visit.prepare")}
+              onPress={() => router.push(`/(tabs)/visits/${visit.id}/intake`)}
+            />
+          )
+        ) : null}
         {visit.visitType !== null ? (
           <Card style={styles.ladderCard}>
             <Kicker label={t("visits.new.visitType")} />
@@ -108,27 +132,6 @@ export default function VisitDetail() {
               onPress={() => router.push(`/(tabs)/visits/${visit.id}/shares`)}
             />
           </ListGroup>
-        ) : null}
-        {status === "sent" ? (
-          <AnnouncedText
-            tone="status"
-            news={sentNews}
-            role="caption"
-            color="inkSoft"
-            message={t("review.sentInfo")}
-          />
-        ) : status === null || status === "draft" ? (
-          hasAnswers ? (
-            <PrimaryButton
-              label={t("visit.reviewNote")}
-              onPress={() => router.push(`/(tabs)/visits/${visit.id}/review`)}
-            />
-          ) : (
-            <PrimaryButton
-              label={t("visit.prepare")}
-              onPress={() => router.push(`/(tabs)/visits/${visit.id}/intake`)}
-            />
-          )
         ) : null}
       </ScrollView>
     </Screen>

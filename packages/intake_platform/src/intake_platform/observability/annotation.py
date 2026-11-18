@@ -166,8 +166,9 @@ class QueueDef:
 QUEUES: Final[tuple[QueueDef, ...]] = (
     QueueDef(
         id=QueueId.NOTE_QUALITY,
-        # files/06 §2: de-identified aggregates for service improvement, an
-        # opt-out purpose. It covers the POINTER, not the content behind it.
+        # files/06 §2: de-identified aggregates for service improvement — off
+        # until the patient turns it on (INT-603 round 2), so the gate refuses
+        # a session without a standing grant. It covers the POINTER only.
         enqueue_scope="learning:service_improvement",
         reviewer_roles=frozenset({ReviewerRole.CLINICIAN, ReviewerRole.CLINICAL_LEAD}),
         requires_clinical_content=True,

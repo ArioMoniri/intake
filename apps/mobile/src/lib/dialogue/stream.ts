@@ -69,7 +69,12 @@
  * on the app surface and reuses its candidate/turn vocabulary.
  */
 import { matchOptionsInWords } from "../intake/answerMatch";
-import { askIfMet, type AnsweredValues, type IntakeQuestion } from "../intake/questions";
+import {
+  askIfMet,
+  reconcileExclusive,
+  type AnsweredValues,
+  type IntakeQuestion,
+} from "../intake/questions";
 import type { DialogueCandidate } from "./turn";
 
 export interface CommittedAnswer {
@@ -355,7 +360,9 @@ function localCandidate(
     return null;
   }
   const values = matchOptionsInWords(question, text);
-  return values === null ? null : { values, quote: text.trim() };
+  return values === null
+    ? null
+    : { values: reconcileExclusive(question, values), quote: text.trim() };
 }
 
 /** One utterance enters the conversation: bubble, asked-mark, pipeline
@@ -584,7 +591,12 @@ export function dialogueStreamReducer(
         ) {
           continue;
         }
-        pending[questionId] = { values: [...candidate.values], quote: candidate.quote };
+        // INT-604 (ADR-043): a suggestion holding a symptom AND the exclusive
+        // "Yok" keeps the symptom; the panel then shows what a confirm commits.
+        const asked = pack.find((q) => q.id === questionId);
+        const values =
+          asked === undefined ? [...candidate.values] : reconcileExclusive(asked, candidate.values);
+        pending[questionId] = { values, quote: candidate.quote };
         seq[questionId] = action.workId;
       }
       // This utterance's whole fate is now known: the words were read here

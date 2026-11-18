@@ -1,5 +1,19 @@
 # PROGRESS — one entry per LOOP iteration (template in LOOP.md)
 
+### 2026-11-17T12:00:00+03:00 · INT-332 · awaiting-human (committed locally; approval:owner)
+- Goal: GitHub #531, Sec-Row `mobile`. Acceptance (verbatim):
+  - *"an ADR in docs/adr ratifies the motion system as revised in docs/design/motion/motion-verification.md, with the matching 00_STATE row and a mobile-ui.md §Motion pointer in the same commit"*
+  - *"the five open questions are recorded awaiting-human with their named owners, each failing closed meanwhile"*
+- Plan: ADR-033, the number PR #571 reserved and five merged docs already cite. It covers opacity-only ≤ 120 ms, the arbiter tuple, the one co-occurrence, the no-motion surfaces, RED as a root layer that motion never delays (invariant 21), the haptics gate and Android's 150 ms. In the same commit: 00_STATE D40, the mobile-ui.md §Motion pointer, the docs/index.md link, and five HUMAN_BLOCKERS rows (HB-O10, HB-C26, HB-C27, HB-C28, HB-O11).
+- Tests added (with the near-miss negative for any safety rule): `tests/docs/test_adr_index.py` gains 5 tests. They check the ADR is Accepted and carries its anchors, that RED §5 has 0 ms with no push and no Modal, and that each question is awaiting-human with its owner, HB row and meanwhile default. They also check the D40 row, the pointer and the index. Near miss: an answered question, or one without its default, is refused. Red: 4 failed. Green: 11 passed. 3 mutants caught.
+- Result (`make check` / `make safety` / `make security` summary): `tests/backlog` 56 passed. `tests/backlog tests/docs` and the no_placeholders and evidence_check tests: 100 passed. `no_placeholders` after staging: OK. `make check` was not run whole (docs only), and `make safety` is not affected.
+- Invariants touched and still passing: 21 (RED first paint, no 112 under ON_SITE), 17 (no invented value: every open question is on its fail-closed default), 10.
+- Decisions / ADRs / `00_STATE.md` rows: ADR-033 Accepted. Its status cites the owner's 27 Sep 2026 sentence as PR #571 relays it, and the owner's approval of this PR confirms it. 00_STATE §3 D40.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id):
+  - The owner must approve ADR-033 and answer Q1 (root layer) and Q5 (orb scale): HB-O10, HB-O11.
+  - Dr Efe Onganer must answer Q2 (ALERT haptic), Q3 (SILENT announcement, with the a11y reviewer) and Q4 (112 under UNKNOWN): HB-C26, HB-C27, HB-C28.
+- Next: supersede PR #571, which delivers the same issue on the same branch name and conflicts with `main`, with this commit. INT-336 and INT-340 consume the defaults.
+- LOOP_STATUS: WAITING_HUMAN
 ### 2026-11-17T21:45:00+03:00 · INT-605 · done (PR open)
 - Goal: GitHub #1035, Sec-Row `cloud-clipgen`. Carry out the owner's 17 Nov clip-caching decision (D42) on the synthetic host, in the D20 voice, within a 100 USD ElevenLabs cap.
 - Plan: enumerate the route's catalogue with `george_prebake plan`; read the ElevenLabs quota server-side; synthesise misses only through `george_prebake apply`; verify every clip; record D42.
@@ -4706,4 +4720,178 @@
 - Decisions / ADRs / `00_STATE.md` rows: none.
 - Blocked on: the owner commits owner-597-minimatch-exception.patch onto the branch. It holds the minimatch 3.1.5 osv row, which expires 2026-11-30, and retires the node-forge 1.4.0 rows. Suppression files and their pins are owner-only.
 - Next: the owner applies the patch and pushes; then merge at the front of the queue.
+### 2026-11-17T15:00:00+03:00 · INT-613 · doing (committed locally, not pushed; awaiting-human for credentials and approvals)
+- Goal: get Önvizit ready for App Store submission, doing everything that needs no Apple or Expo credential. Build on #860, #1009 and #1010 without repeating them.
+- Plan: a readiness checklist of 43 App Store Connect items; deliver-shaped metadata, bound by hash to the served listing; a reviewer sign-in harness on main's API; an offline-validating ASC submit script; findings from `expo config --type introspect`.
+- Tests added (near misses included): metadata limits, claims scan and listing match; asc_submit (limits at the boundary, claims, device-function claims, alpha, one pixel off, identity, guard refusals, JWT verification, fixture-replayed live path, version not editable); harness (end to end, no secrets in the report, wrong code, public host refuses unattested, D39 no-SMS fails closed on main); readiness counts. 1077 passed across legal, release and backlog; mobile tsc ok; no_placeholders, claims and PHI scans ok.
+- Invariants touched and still passing: 6 (the report and log carry no value), 17, 18 (metadata hash-bound to docs/legal), 20 (both claim gates).
+- Decisions / ADRs / `00_STATE.md` rows: none. Screenshots are left to INT-502, because its iOS-simulator captures outrank an Expo-web render.
+- Blocked on: the owner's ASC key and EXPO_TOKEN (HB-A3); approval:human-legal for the listing strings; HB-L21, HB-L27, HB-A12; INT-488 review (D39); the device sign-in (INT-348).
+- Next: Face ID and photo-library purpose strings, and the UIBackgroundModes audio regression (checklist rows 21–23) as their own issues.
+### 2026-11-17T19:00:00+03:00 · INT-602 · awaiting-human (approval:human-clinical)
+- Goal: the RED layer, from the design audit's Part B R1–R6 (GitHub #1027). Acceptance, verbatim from the row: "The 112 control is the strongest control on the RED layer. It is at least as large as the primary CTA, with a label size no smaller than the CTA's. It gives immediate pressed feedback and opens the phone's dialer with 112 (`tel:112`); a failure to open falls back to showing the number. Haptics stay as ADR-033 / HB-C26 say (none for RED)." "Under CALM, the 112 control has a visible boundary of at least 3:1 against its background (WCAG 1.4.11), in both themes." "Under ON_SITE, the 112 affordance stays absent (invariant 21). The patient instead gets a non-112 control, such as alerting staff or reaching the clinic desk, taken from the pack's ON_SITE action. If the pack defines none, the layer fails closed to the guidance text and a visible control to call for nearby staff. The layer is never control-less." "The RED layer respects safe-area insets on every edge." "RED copy uses the bare imperative plural (CLAUDE.md: "Tutun · Arayın · Bakmayın"), not "Lütfen yapmayın". The factual claim the audit flags is checked against its committed source snapshot; if it isn't supported there, it goes through the clinical route instead of being rewritten here." "There are tests for each item with near-miss controls. `make safety` stays green, and invariants 9, 10 and 21 still pass."
+- Plan: put the control looks, the frame and the dial fallback in a pure module, `lib/red/controls.ts`. Add `callStaff` to the RED screen model (ON_SITE only). The staff control posts this RED's ids and ON_SITE on the INT-475 route. Change `red.doNots` to "Yapmayın". Check the audit's service claim against TR-EK4-2022.txt.
+- Tests added (each with its near miss):
+  - `src/lib/red/controls.test.ts`, one block per item:
+    - CTA floor; old look below it;
+    - 3:1 CALM edge in both themes; old fill 1.04:1;
+    - every ON_SITE path × register × script has a staff control and no 112; REMOTE has 112 and no staff control;
+    - every inset edge; zero insets keep the old geometry;
+    - "Yapmayın"; no lütfen/please in RED chrome;
+    - the claim's supported and unsupported halves pinned.
+  - `e2e/red.spec.ts` INT-602, the source half.
+  - `e2e/motion.spec.ts`: `controls.ts` added to the pinned RED surface list.
+- Result:
+  - Red run: 4 failures plus the missing module.
+  - Green: mobile vitest 3202 passed; `tsc` clean; lint 0 errors; `no_placeholders` OK.
+  - `make safety`: exit 0 (triage 626 at 100 % branch; mutations 18/18; voice 2366 at 98.39 %; red-team 121).
+  - `uv run pytest tests/release tests/legal tests/backlog tests/smoke`: 1038 passed.
+  - Backlog pins 386 → 387; backlog re-rendered.
+- Invariants touched and still passing:
+  - 9: no runtime change.
+  - 10: no pack text changed.
+  - 21: ON_SITE never renders 112; the RED path reaches no media module.
+  - 6: ids only.
+  - 17: no placeholders.
+- Decisions / ADRs / `00_STATE.md` rows: none. The DSL has no ON_SITE patient-control field (`notify_staff_immediate` is the server's automatic notification), so every ON_SITE RED takes the fail-closed staff control. This is recorded in the evidence.
+- Blocked on: the physician of record (**Dr Efe Onganer**), two questions, nearest row HB-C12b (blockers.md "INT-602"):
+  - Are "Yapmayın", "Görevli çağırın" and the dial fallback the right words inside RED, and does files/02 §5.3 change with them?
+  - May the generic REMOTE why_tr keep "… ayrıca öncelik sırası için bekletilmez", which MADDE 8(5)'s snapshot does not state?
+- Next: the PR needs `approval:human-clinical`. Out-of-scope findings for new issues: a REMOTE RED without 112 has no control; a second staff page needs a server change.
 - LOOP_STATUS: WAITING_HUMAN
+- Update (clinical review round 1, changes requested on a5afb3d4):
+  - **Staff call is never silent.** It has a phase per RED: sending, sent (only on 2xx with `staffNotified: true`) or failed (4xx, spent retries, unconfirmed 2xx), each shown as an announced line under the control.
+  - **The press is audited as a press.** It now goes to its own route, `POST /v1/triage/red-staff-call`, audited `api.triage.red_staff_called`, never as a location answer (invariant 4).
+  - **Label changed.** "Görevli çağırın" → "Görevlilere haber verin"; a repeat press after a confirmed send re-shows sent.
+  - **Near misses added:** 4xx and spent retries → failed; DEFERRED_CLINICIAN × every location → nothing; no sent before confirmation.
+  - **files/02 §5.3 gloss** now matches MADDE 8(5).
+  - **Blocked: the reviewer's REMOTE sentence.** Editing either pack file voids the synthetic red-rule-set signature: the host would serve no RED, and `make safety` goes red (measured). Re-signing needs the host's Transit key (owner; runbook; blockers.md INT-602, HB-C1). The patch is ready in the evidence.
+  - **Not fixable in the render path:** the pack line "Görevlilere haber verildi." shows before confirmation. It is noted for Dr Efe Onganer, with the other five decisions, in docs/evidence/INT-602.md "Clinical review round 1".
+- LOOP_STATUS: WAITING_HUMAN
+- Update (owner decisions, 17 Nov 2026; D18, synthetic host and simulated patients only; Dr Efe Onganer still signs before any real patient; HB-C1 open):
+  - Under ON_SITE with the pack's GO_TO_IN_HOUSE_ACIL, "Acil Servis'e gidin" is now the primary control. It notifies staff in the same action, and "Görevlilere haber verin" follows as the weaker secondary control.
+  - Staff wording approved; a repeat press pages nobody; "Yapmayın" holds, CALM included (files/02 §5.3 updated).
+  - The REMOTE sentence is approved but still waits on re-signing.
+  - "Görevlilere haber verildi." stays.
+  - Tests first (red: 21 failed). Evidence: "Owner decisions, 17 Nov 2026".
+- LOOP_STATUS: WAITING_HUMAN
+### 2026-11-17T18:45:00+03:00 · INT-601 · done (committed locally; PR to be opened by the owner's session)
+- Goal: fix findings 1-7 of the November 2026 design audit (`docs/design/audit-2026-11/README.md` Part A), GitHub #1026. Acceptance, verbatim:
+  1. Bugün shows the next upcoming visit, never a past one. After the intake is finished it reflects the delivered state, not "Muayeneye hazırlanın" at %70 (`today.tsx`).
+  2. A visit detail opened from Bugün always has a working back control. Its primary action is never hidden under the tab bar (`visits/_layout.tsx`, `[visitId]/index.tsx`).
+  3. Light-theme `inkFaint` and the `success` pill text meet WCAG AA, at least 4.5:1, asserted by a test in both themes (`theme.ts`).
+  4. A selected chip is distinguishable without colour (check mark or shape change) in both intake lanes, with an accessibilityState.selected test.
+  5. The multi-line answer field uses a rounded-rectangle radius, not a pill.
+  6. The OTP code boxes fit at 320pt width, scale with Dynamic Type, do not mask the digits, and the countdown carries its unit.
+  7. On review, "Düzenleyin" and the share toggle each meet the minimum tap target, with spacing between them, and the share toggle sits in the same position on every card.
+- Plan:
+  - Item 1 is INT-594's (PR #1013), fully, so it is not duplicated here (evidence §2).
+  - Item 2: the anchor plus `withAnchor` on cross-tab pushes, and the CTA under the visit card.
+  - Items 3 and 5: palette hexes and `radius.field`.
+  - Item 4: one pure chip rule (`lib/a11y/chip.ts`) used by both lanes.
+  - Item 6: a pure OTP layout (`lib/auth/otpForm.ts`), visible digits and a unit key.
+  - Item 7: an edit text button with a 44 pt box, and a full-width share row at every card's foot.
+- Tests added (with the near-miss negative for any safety rule):
+  - New tests: `theme.test.ts` (AA in both schemes; near miss: the inkFaint step stays distinct), `lib/a11y/chip.test.ts`, `lib/auth/otpForm.test.ts`, and `e2e/designAudit.spec.ts`, each with near misses.
+  - Inverted pins: the OTP masking tests in `auth.spec.ts` and `a11y.spec.ts`.
+  - Re-pointed controls: `typed_intake.spec.ts` (chip chrome) and `tests/legal/test_a11y_report.py` (1.4.3 → 1.4.11).
+  - Runs: red 25 failed / 162 passed across 7 files. Green: mobile vitest 3202, `pnpm -r typecheck` clean, lint 0 errors, no_placeholders OK, `tests/release tests/legal tests/backlog` 1020. 7 of 7 mutations killed.
+- Result (`make check` / `make safety` / `make security` summary): the gates above ran locally. `make check` fan-out, `make safety` and `make security` run on the PR's runner. No protocol, triage or voice-runtime file changed.
+- Invariants touched and still passing:
+  - 2 and 5: one new key, `auth.otp.resendUnit`, tr first with an en mirror, PolicyGuard-clean.
+  - 4: share scope is moved, not changed.
+  - 16: Sec-Row `mobile`.
+  - 17: no placeholders.
+  - 20: no duration figure added.
+  - 22: number and unit form one NBSP atom, with no grouping.
+- Decisions / ADRs / `00_STATE.md` rows: none.
+  - Dark `inkFaint` also changes (`#969286`), so the both-themes AA test holds on the raised ground.
+  - The chip state stays `checked` on its checkbox and radio roles; `selected` would double-announce. Both are flagged in evidence §4 for the owner.
+  - WCAG 1.4.3 is now Supports, and the report is re-rendered.
+- Blocked on: nothing. The legal-reviewer should see the review-card layout, because share scope sits next to invariant 4.
+- Next:
+  - Whichever of #1013 and this PR lands second resolves one line in `today.tsx`: keep `focus.visit.id` and add `{ withAnchor: true }`.
+  - Capture the three code-level-only changes on the next TestFlight build.
+### 2026-11-17T20:30:00+03:00 · INT-614 · done (committed locally; not pushed; the Face ID string needs approval:human-legal)
+- Goal: close INT-613's App Store readiness rows 21–23 on the resolved iOS config (`expo config --type introspect`). Face ID carried Expo's English default, expo-image-picker wrote a photo-library string for a library the app never opens, and expo-audio re-added the `audio` UIBackgroundMode after withVoiceAudio stripped it.
+- Plan:
+  - Register expo-local-authentication with a Turkish `faceIDPermission`, equal to app-tr.json, with an en mirror. The string names the two real gates (app open, note review), not D36 passkeys, which are not built.
+  - Register expo-image-picker with `photosPermission: false` only.
+  - Pass expo-audio `enableBackgroundPlayback: false` and `enableBackgroundRecording: false`. Background audio is not intended (INT-103, INT-559).
+  - Add a `store/facts.py` row for Face ID with no flow.
+- Tests added (with the near-miss negative for any safety rule):
+  - New `e2e/iosInfoPlist.spec.ts` on the introspected plist. Every purpose key names a production call site; there is no photo-library key (near miss: the camera key stays); there is no audio or voip mode; Face ID is the tr catalogue.
+  - Extended `tests/legal/test_ios_purpose_strings.py` (plugin options, classification, PolicyGuard and B1 over the new string).
+  - `records.spec.ts`'s "picker not registered" pin is rewritten to "registered with photosPermission false only". Its premise was false: Expo applies the plugin when it is unlisted.
+  - Red: 5 vitest and 4 pytest failures. Green: mobile 155 files / 3156 tests.
+- Result (`make check` / `make safety` / `make security` summary):
+  - `make check-ts` exit 0, typecheck clean.
+  - `tests/legal tests/release tests/backlog` green, backlog pins at 387, no_placeholders green.
+  - check-py (full), check-integration, make safety and make security did not run here. Reasons are in evidence §4.
+- Invariants touched and still passing: 2, 3, 5, 13, 18.
+- Decisions / ADRs / `00_STATE.md` rows: none.
+- Blocked on (human + one sentence + HUMAN_BLOCKERS id): the legal lane records `approval:human-legal` on the tr and en NSFaceIDUsageDescription.
+- Next: INT-613's readiness rows 21–23 move to done when this merges; push when the freeze lifts.
+- LOOP_STATUS: CONTINUE
+### 2026-11-17T12:00:00+03:00 · INT-603 · awaiting-human (PR to open; `approval:human-legal`)
+- Goal: the 2026-11 design audit's K1-K3 on the consent first run (GitHub #1028). Acceptance, verbatim:
+  1. "The first-run screen and its copy agree. Either no purpose that needs consent shows "Açık" before the patient acts, or the rows that show "Açık" are labelled as the service itself (no switch) rather than as a consent. A test asserts that no consent-scope row defaults on."
+  2. "The consent state uses a platform switch/toggle with accessibilityRole "switch", not a badge-like pill. Withdrawing asks for one confirmation that says what stops and that it takes effect immediately. Granting needs no confirmation. Each consent change is still audited."
+  3. ""Devam edin" is reachable without scrolling on a 320×568 viewport (sticky footer), and is tested."
+  4. "Every string comes from the tr catalogue, with no new legal text outside docs/legal/ (invariant 18)."
+- Plan:
+  - Add a pure tap-rule module (`lib/consent/switchIntent.ts`) and replace the pill with a role="switch" control on the drawn `SwitchTrack`.
+  - Add an in-place `WithdrawConfirm` that names what stops and reuses the "hemen geçerli olur" fact.
+  - Move the existing learning line above the two default-on rows, and pin "Devam edin" on a `GlassBar`.
+- Tests added:
+  - switchIntent.test.ts (19). Near misses: a granted consent is checked, a stale one is not, and an ungranted cascade child is not listed.
+  - consent.spec.ts (+11), including the 320 × 568 bar arithmetic at scales 1.0, 1.6 and 2.0.
+  - overflow.spec.ts: the rule revisited for consent.tsx.
+- Result:
+  - Red run: 9 failed plus an unresolved module.
+  - Green run: mobile vitest 3182, `tsc` clean, lint 0 errors, no_placeholders OK, and pytest release+legal+backlog+smoke+policyguard 1160.
+  - `make check`, `make safety` and `make security` were not run in this worktree; the PR's CI runs them.
+- Invariants touched and still passing:
+  - 2/5: tr first, siz, B1, PolicyGuard; the recorded register set did not grow.
+  - 4: withdrawal still goes through the audited server route.
+  - 17: no placeholders.
+  - 18: no consent text, fixed string or docs/legal change, and no new legal claim. An "izin değildir" draft was withdrawn because the learning grounds are the open HB-L27 question.
+- Decisions / ADRs / `00_STATE.md` rows: none. Item 1 is met by its first branch. The second branch would remove the learning opt-out and revive the deleted `consent.basis.service`.
+- Blocked on: the legal-reviewer (D25 legal lane) must answer one question: is the first-run fix acceptable as built while the learning grounds remain open? See HB-L27 and the docs/backlog/blockers.md row.
+- Next: push, open the PR with `approval:human-legal`, and take device screenshots of the first run at 320 × 568 for the reviewer.
+- LOOP_STATUS: WAITING_HUMAN
+- Update (legal review round 1):
+  - Items 2–3 applied: the learning line is now neutral, with no basis claim, and a test shows withdrawal takes no more taps than grant.
+  - Item 4 was reworded rather than persisted, because persisting consent ops on the device is a new on-device data category.
+  - Item 1 is only partly done. The default-on check now reads purpose ids, with a shrink-only exception for the two learning ids. Seeding them OFF needs the server registry and files/06 §2 to change, which is a consent-semantics stop-and-ask, so it is left to the owner and counsel (HB-L27).
+  - Green run: mobile vitest 3190; release/legal/backlog pytest 1020.
+- Update (legal review round 2, first pass): the coordinator relayed the owner's KVKK approval. Fail-closed changes:
+  - Both learning purposes now default OFF in the server registry and on the phone. The server's default-on paths are removed.
+  - Migration 0015 makes Loop 2 count only patients with a live grant.
+  - Wait-time rollups now exclude patients who never granted. An empty cohort shows as suppressed (n=0, no mean), never as zero.
+  - files/06 §2 and §8 now say "off until the patient turns it on" and point to D43 (number pending). The coordinator adds the 00_STATE row.
+  - The learning group line is removed, and the learning basis sublabels no longer say "comes switched on".
+  - Merge note: 0015 is a new alembic head.
+- Update (legal review round 2 on f719128a, legal lane, synthetic scope D25):
+  - Every purpose is now açık rıza; the service-performance and de-identified-opt-out bases are deleted.
+  - All opt-out copy and keys are removed. `consent.basis.explicit` and `consent.queue.note` are set to the reviewer's wording.
+  - The 0015 downgrade raises.
+  - The stale-hash gap is a blockers.md row (HB-L27).
+### 2026-11-17T19:30:00+03:00 · INT-604 · done (approval:human-clinical kept for the physician's signature)
+- Goal: design audit Part B M1–M3, GitHub #1029. Acceptance (verbatim):
+  1. A multi-select option can be declared `exclusive: true` in the DSL. Selecting it clears the others, and selecting another option clears it. An ADR records the DSL change. Every "Yok"/"Hiçbiri" option in served-candidate packs is marked exclusive. Golden tests include a near-miss negative control.
+  2. Questions that say "bugün" or other day-relative words are anchored to the time of answering, not the visit date: either the wording is made explicit (e.g. "şu sıralar") or the anchor is stated. The `text_tr` changes follow invariant 10 and are listed for `approval:human-clinical`.
+  3. The visit-mode question asks one thing. Location (REMOTE / ON_SITE / UNKNOWN) feeds the RED location axis only from an unambiguous answer, and an ambiguous answer resolves to UNKNOWN. A golden test proves a preference answer can never set ON_SITE.
+  4. `make safety` is green, and red-flag rules stay monotonic (invariant 7).
+- Plan: the owner decisions of 17 Nov (D18 scope: M1 "yes", M2 "su siralar", M3 "on site"), recorded in docs/evidence/INT-604.md.
+  - M1: `Slot.multiple` and `options.<member>.exclusive`. The schema and two compiler refusals enforce them. The binder refuses a mixed set and never trims it. The hop reads a submitted set whole. Both lanes share one `toggleOption`. base.intake `chest_pain.radiation` is multi-select with `yok` exclusive, and 13 app "Yok" options are exclusive.
+  - M2: "şu sıralar" for "these days"; "bu randevu" / "bu görüşme" for the visit. "bugün" is kept for onset-today, with the answering day printed in the note.
+  - M3: the up-front question asks only "Şu anda hastanede misiniz?". ON_SITE on the device comes only from the RED's own question.
+- Tests added (each with a near miss): `tests/protocols/test_exclusive_options.py`, `tests/protocols/test_day_relative_wording.py`, `tests/safety/test_exclusive_choice_triage.py`, the hop cases in `tests/api/test_triage_hop.py`, `apps/mobile/src/lib/intake/exclusive.test.ts`, `dayAnchor.test.ts`, `apps/mobile/src/lib/red/location.test.ts`, and the stream reconcile cases.
+- Red runs: the protocols tests had no `protocols.choices` module. The hop test had 3 failed (a list read Unknown). The wording gate on main had 93 failed. Mobile had 15 failed, then 3 failed.
+- Result: `make safety` exit 0 (18/18 mutations; triage at 100 % branch). Protocols at 97.61 %. Mobile vitest: 3180 passed. tsc clean. backlog, release and legal: 1020 passed. no_placeholders OK. The protocols-compile refusal set is unchanged from main. The `make check` fan-out and `make security` run on the PR's AWS runner.
+- Invariants touched and still passing: 1 and 7 (no rule touched; triage reads more, never less); 10 (every changed text_tr listed; no instrument item); 21 (ON_SITE only from an explicit answer at RED time); 5 (tr first, en mirror); 17.
+- Decisions / ADRs / `00_STATE.md` rows: ADR-043. No 00_STATE row is added; whether the owner decisions need one is for the coordinator.
+- Blocked on: nothing for the synthetic host. A physician signs the listed text_tr before any real patient (HB-C1).
+- Next: `RedLayer.tsx` passing `modeChosen` to the location derivation (out of bounds for this branch; see the evidence, §3).
+- LOOP_STATUS: CONTINUE

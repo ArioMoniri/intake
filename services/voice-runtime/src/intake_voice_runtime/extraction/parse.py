@@ -54,6 +54,7 @@ from decimal import Decimal, InvalidOperation
 from typing import Any
 
 from clinical_schemas.triage import CandidateFlag
+from protocols.choices import ChoiceSetRefused, bind_choice_set
 from protocols.dsl import Slot
 from protocols.types import SlotType
 
@@ -144,9 +145,11 @@ def _coerce(
             return raw if isinstance(raw, int) else FlagReason.WRONG_TYPE
         return Decimal(raw) if isinstance(raw, int) else raw
     if slot.type is SlotType.CODE:
+        members = valuesets.get(slot.valueset or "", ())
+        if slot.multiple:
+            return _coerce_set(slot, raw, members)
         if not isinstance(raw, str):
             return FlagReason.WRONG_TYPE
-        members = valuesets.get(slot.valueset or "", ())
         return raw if raw in members else FlagReason.VALUESET_VIOLATION
     if slot.type is SlotType.DATE:
         if not isinstance(raw, str):
@@ -159,6 +162,32 @@ def _coerce(
             return raw if raw in choices else FlagReason.VALUESET_VIOLATION
         return raw if _ISO_DATE.match(raw) else FlagReason.WRONG_TYPE
     return raw if isinstance(raw, str) else FlagReason.WRONG_TYPE
+
+
+def _coerce_set(slot: Slot, raw: Any, members: tuple[str, ...]) -> SlotValue | FlagReason:
+    """A multi-select answer, bound through the server's one binder (INT-604).
+
+    A bare member is a set of one. The set binds exactly as named or not at
+    all: ``protocols.choices.bind_choice_set`` refuses the exclusive "yok"
+    beside a site rather than trim either. The refusal is flagged
+    ``EXCLUSIVE_CONFLICT`` and the named members travel in
+    ``ExtractionResult.conflicted``; ``ExtractionHandler`` then asks the step
+    again, and once the clarify budget is spent binds the named members as the
+    union, so a named site always reaches triage. One
+    member binds as that member, so every existing reading of the slot holds;
+    several bind as the list, which triage reads as the files/12 §7.3 union.
+    """
+    named = [raw] if isinstance(raw, str) else raw
+    if not isinstance(named, list) or not all(isinstance(item, str) for item in named):
+        return FlagReason.WRONG_TYPE
+    try:
+        answer = bind_choice_set(slot, named, members)
+    except ChoiceSetRefused as refused:
+        if refused.kind == "exclusive_conflict":
+            return FlagReason.EXCLUSIVE_CONFLICT
+        return FlagReason.VALUESET_VIOLATION
+    values = [str(value) for value in answer.values]
+    return values[0] if len(values) == 1 else values
 
 
 def parse_extraction(
@@ -180,6 +209,7 @@ def parse_extraction(
 
     updates: list[SlotUpdate] = []
     flags: list[ExtractionFlag] = []
+    conflicted: list[tuple[str, tuple[str, ...]]] = []
     # Sorted, so the result of one completion does not depend on the order the
     # model happened to emit its keys in — a replayed session must reconcile
     # identically (files/13 §9.2, the fold).
@@ -193,6 +223,8 @@ def parse_extraction(
         )
         if reason is not None:
             flags.append(ExtractionFlag(ref=ref, reason=reason))
+            if reason is FlagReason.EXCLUSIVE_CONFLICT:
+                conflicted.append((ref, tuple(raw_slots[ref][VALUE_KEY])))
     return ExtractionResult(
         step_id=step_id,
         slot_updates=tuple(updates),
@@ -200,6 +232,7 @@ def parse_extraction(
         clarification_needed=clarification_needed,
         flags=tuple(flags),
         declared=frozenset(slots),
+        conflicted=tuple(conflicted),
     )
 
 

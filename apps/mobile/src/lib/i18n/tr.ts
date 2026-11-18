@@ -41,6 +41,9 @@ export const tr = {
   "auth.otp.verifyCta": "Giriş yapın",
   "auth.otp.resend": "Kodu yeniden isteyin",
   "auth.otp.resendWait": "Yeni kod isteyebilmek için kalan süre:",
+  // INT-601 (audit A6): the countdown's unit, spelled out as the catalogue
+  // spells its other units ("saat", "adım"); a screen reader reads "sn" as letters.
+  "auth.otp.resendUnit": "saniye",
   "auth.otp.devPeek": "Kodu getirin (geliştirme)",
   "auth.error.generic": "Bir sorun oldu. Lütfen yeniden deneyin.",
   "auth.error.limited": "Çok sık denediniz. Lütfen biraz bekleyip yeniden deneyin.",
@@ -320,7 +323,7 @@ export const tr = {
   "me.signOut": "Çıkış yapın",
   "me.syntheticBadge": "Sentetik deneme hesabı",
 
-  "intake.q.complaint": "Sizi bugün hekime getiren nedir?",
+  "intake.q.complaint": "Şu sıralar sizi hekime getiren nedir?",
   "intake.q.complaint.hint": "Birden fazla seçebilirsiniz.",
   "intake.opt.pain": "Ağrı",
   "intake.opt.fever": "Ateş",
@@ -699,11 +702,11 @@ export const tr = {
   // every question. Two calm doors; warmth is in the verb mood (-elim/-alım),
   // never in the pronoun. The old per-question row ("Hastanedeyim" switch +
   // "Sıranız geldi" chip) is gone; the checkpoint survives as "Bitirdim".
-  "intake.mode.q": "Nasıl ilerleyelim?",
-  "intake.mode.hospital": "Hastanedeyim",
+  "intake.mode.q": "Şu anda hastanede misiniz?",
+  "intake.mode.hospital": "Evet, hastanedeyim",
   "intake.mode.hospitalSub": "Ayrıntılı soralım. Sıra size gelirse dilediğinizde bitirebilirsiniz.",
-  "intake.mode.brief": "Kısa tutalım",
-  "intake.mode.briefSub": "Yalnızca en gerekli birkaç soru.",
+  "intake.mode.away": "Hayır, hastanede değilim",
+  "intake.mode.awaySub": "Yalnızca en gerekli birkaç soru.",
   // The clinic-interruptible checkpoint (02 §34): first-person, plain.
   "intake.finishNow": "Bitirdim",
   // Environment self-check (02 §33) — asked only in the ayrıntılı flow.
@@ -737,6 +740,7 @@ export const tr = {
   "note.deferred.wellbeing": "İyilik hâli taraması",
   "note.deferred.marker": "eksik: ortam uygun değildi",
   "review.hpi.staleCondition": "koşul değişti",
+  "note.answeredOn": "yanıt günü",
   "review.eksik.title": "Eksik kalanlar",
   "review.eksik.intro": "Bu sorular henüz yanıtlanmadı:",
   "review.resume": "Kaldığınız yerden devam edin",
@@ -771,8 +775,6 @@ export const tr = {
   "consent.group.voice.release": "Bu sürümde sesli görüşme yok; bu izinler kullanılmaz.",
   "consent.group.purposes": "Diğer amaçlar",
   "consent.group.learning": "Öğrenme",
-  "consent.group.learning.hint":
-    "Bu iki seçenek hizmetin çalışması içindir ve açık gelir; dilediğiniz an kapatabilirsiniz.",
   "consent.lane.affect": "Ses tonundan duygu ipuçları",
   "consent.lane.linguistic": "Yazıdan dil ipuçları",
   "consent.learning.personal": "Sizin için öğrenme",
@@ -802,11 +804,7 @@ export const tr = {
     "Yanıtlarınız hizmeti değerlendirmek için kullanılır; hekiminize gitmez.",
   "consent.who.research": "Verileriniz araştırmada yalnızca siz onay verirseniz kullanılır.",
   "consent.basis.explicit":
-    "Açık rızanıza bağlıdır. İstediğiniz an geri çekebilirsiniz; geri çekmek hemen geçerli olur.",
-  "consent.basis.learningPersonal":
-    "Ayarladığınız hizmetin çalışması için kullanılır; bu yüzden açık gelir. Kapatırsanız kişisel öğrenme durur.",
-  "consent.basis.learningService":
-    "Kimliğinizden ayrılmış toplu verilerle hizmet iyileştirilir; bu yüzden açık gelir. Kapatmak hiçbir özelliği kısıtlamaz.",
+    "Açık rızanıza bağlıdır. İstediğiniz an geri çekebilirsiniz; geri çekmek bu cihazda hemen geçerli olur.",
   "consent.state.pending": "Metin hazırlanıyor",
   "consent.state.stale": "Yeniden onay gerekli",
   "consent.pending.body":
@@ -818,10 +816,18 @@ export const tr = {
   "consent.detail.binding": "Metin damgası",
   "consent.detail.grant": "Okudum, kabul ediyorum",
   "consent.detail.withdraw": "İzni geri çekin",
-  "consent.detail.withdrawNote": "Geri çekmek hemen geçerli olur.",
+  // INT-603 legal review round 1: true without a stored queue — the change
+  // holds on this phone at once and is sent at once while online.
+  "consent.detail.withdrawNote":
+    "Bu cihazda hemen geçerli olur; internete bağlıyken hemen gönderilir.",
   "consent.detail.needsVoice": "Bu seçenek yalnızca sesli görüşme izni açıkken açılabilir.",
+  // INT-603 (audit K2): the one confirmation before a switch turns something
+  // off. UI chrome only; the immediacy line is consent.detail.withdrawNote.
+  "consent.confirm.withdrawTitle": "Bu izni geri çekmek istiyor musunuz?",
+  "consent.confirm.stops": "Şunlar durur:",
+  "consent.confirm.cancel": "Vazgeçin",
   "consent.queue.note":
-    "Değişiklikleriniz bu cihazda uygulandı; sunucuya bağlantı kurulunca iletilecek.",
+    "Değişiklikleriniz bu cihazda uygulandı; uygulama açıkken bağlantı kurulunca iletilir.",
 
   "me.health": "Sağlık verileri",
   "health.guide.devBuild.kicker": "Deneme sürümü",
@@ -1022,7 +1028,7 @@ export const tr = {
   "carried.source.confirmed_imported_record": "Onayladığınız bir belgeden geldi",
   "carried.empty": "Önceki ziyaretlerden taşınan bir bilgi yok.",
   "carried.ledger.body":
-    "Burada, önceki ziyaretlerinizden taşınan bilgileri ve her birinin nereden geldiğini görürsünüz. Hangisinin bugün de geçerli olduğunu her ziyaretin gözden geçirme adımında sorarız.",
+    "Burada, önceki ziyaretlerinizden taşınan bilgileri ve her birinin nereden geldiğini görürsünüz. Hangisinin hâlâ geçerli olduğunu her ziyaretin gözden geçirme adımında sorarız.",
   "note.fact.previousRecord": "önceki kayıt",
   "note.fact.unconfirmed": "bu ziyarette onaylanmadı",
   "note.fact.confirmed.patient": "hasta bu ziyarette devam ettiğini söyledi",
@@ -1031,7 +1037,7 @@ export const tr = {
   "note.fact.changed.clinician": "hekim değiştiğini kaydetti; yeni bilgi alınmadı",
   "note.fact.stopped.patient": "hasta bıraktığını söyledi",
   "note.fact.stopped.clinician": "hekim bırakıldığını kaydetti",
-  "a11y.carried.hint": "Bu bilginin bugün de geçerli olup olmadığını seçmek için iki kez dokunun.",
+  "a11y.carried.hint": "Bu bilginin hâlâ geçerli olup olmadığını seçmek için iki kez dokunun.",
   // ---- INT-256: her ön görüşmede sorulan geçmiş bilgileri ------------------
   // 04 §1 satır 5–6 (`meds_allergies`, `pmh_fh_sh`). Soru metinleri
   // packages/protocols/base/intake.yaml içindeki `ask_tr`/`follow_up_tr`
@@ -1486,9 +1492,30 @@ export const tr = {
   // they come verbatim from the rule's `tr` (invariant 10). Inside RED the
   // bare imperative plural is the register, because ambiguity is the harm.
   "red.call112": "112'yi arayın",
+  // INT-602: when the dialer cannot open, the number is already on screen as
+  // selectable text; this line says to dial it.
+  "red.call112Failed": "Arama açılamadı. 112'yi telefonunuzdan arayın.",
+  // INT-602: under ON_SITE there is no 112 (invariant 21). This control takes its
+  // place and sends this RED's staff notification. A UI affordance, not clinical
+  // copy. It names the act, never that someone will come (the server writes one
+  // inbox entry per RED). "sent" shows only after the server confirms; "failed"
+  // uses the ON_SITE guidance's own words (bir görevliden yardım isteyin; Acil
+  // Servis'e gidin).
+  // INT-602 owner decision 1 (17 Nov 2026): under ON_SITE the pack's own action
+  // line leads as the primary control; the words are the pack's (CD-24 ON_SITE
+  // action_tr) and the approved failure line's. Pressing it notifies staff in the
+  // same action (files/02 §5.3 ON_SITE row), once per RED.
+  "red.goToAcil": "Acil Servis'e gidin",
+  "red.callStaff": "Görevlilere haber verin",
+  "red.callStaff.hint": "Görevlilere bir bildirim gönderir.",
+  "red.callStaff.sending": "Görevlilere haber gönderiliyor.",
+  "red.callStaff.sent": "Görevlilere haber gönderildi.",
+  "red.callStaff.failed":
+    "Haber gönderilemedi. Bir görevliden yardım isteyin ya da Acil Servis'e gidin.",
   "red.location.yes": "Evet",
   "red.location.no": "Hayır",
-  "red.doNots": "Lütfen yapmayın",
+  // INT-602: bare imperative inside RED (CLAUDE.md), as in the items themselves.
+  "red.doNots": "Yapmayın",
 } as const;
 
 export type MessageKey = keyof typeof tr;

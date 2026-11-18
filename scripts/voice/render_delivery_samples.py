@@ -140,7 +140,7 @@ CORPUS: Final[tuple[Sentence, ...]] = (
     ),
     Sentence(
         "welcome",
-        "Sizi bugün hekime getiren şeyi kendi sözlerinizle anlatır mısınız? "
+        "Sizi şu sıralar hekime getiren şeyi kendi sözlerinizle anlatır mısınız? "
         "Sözünüzü kesmeden dinleyeceğim.",
         _BASE,
     ),

@@ -398,7 +398,8 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
     fontFamily: fonts.sans,
   },
-  smsField: { minHeight: 96, textAlignVertical: "top" },
+  // INT-601 (audit A5): multi-line, so a rounded rectangle, not the pill.
+  smsField: { minHeight: 96, textAlignVertical: "top", borderRadius: radius.field },
   // Wraps (INT-295): a row that pins one item to the far end has no way to
   // keep it on the screen once the other one grows, and this app scrolls
   // nowhere sideways.

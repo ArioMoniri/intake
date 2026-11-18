@@ -90,6 +90,11 @@ class RefusalCode(enum.StrEnum):
     GATE_VALUESET_UNCOMMITTED = "GATE_VALUESET_UNCOMMITTED"
     CHOICE_OUTSIDE_VALUESET = "CHOICE_OUTSIDE_VALUESET"
 
+    # --- choice options (INT-604; ADR-043): an option attribute names a member,
+    # and a multi-select "yok"/"hiçbiri" is exclusive
+    OPTION_OUTSIDE_CHOICES = "OPTION_OUTSIDE_CHOICES"
+    NONE_CHOICE_NOT_EXCLUSIVE = "NONE_CHOICE_NOT_EXCLUSIVE"
+
 
 class Refusal(FrozenModel):
     """One reason the compiler will not emit."""

@@ -42,6 +42,7 @@ export const en: Record<MessageKey, string> = {
   "auth.otp.verifyCta": "Sign in",
   "auth.otp.resend": "Request a new code",
   "auth.otp.resendWait": "Time left before you can request a new code:",
+  "auth.otp.resendUnit": "seconds",
   "auth.otp.devPeek": "Fetch the code (development)",
   "auth.error.generic": "Something went wrong. Please try again.",
   "auth.error.limited": "Too many attempts. Please wait a little and try again.",
@@ -313,7 +314,7 @@ export const en: Record<MessageKey, string> = {
   "me.signOut": "Sign out",
   "me.syntheticBadge": "Synthetic test account",
 
-  "intake.q.complaint": "What brings you to the doctor today?",
+  "intake.q.complaint": "What brings you to the doctor these days?",
   "intake.q.complaint.hint": "You can pick more than one.",
   "intake.opt.pain": "Pain",
   "intake.opt.fever": "Fever",
@@ -670,12 +671,12 @@ export const en: Record<MessageKey, string> = {
   // INT-321 — the mode is asked once, up front (02 §2), not on every
   // question. Two calm doors; the old per-question row is gone; the
   // checkpoint survives as the first-person "I am done".
-  "intake.mode.q": "How shall we go about this?",
-  "intake.mode.hospital": "I am at the hospital",
+  "intake.mode.q": "Are you at the hospital right now?",
+  "intake.mode.hospital": "Yes, I am at the hospital",
   "intake.mode.hospitalSub":
     "Let us go in detail. If your turn comes, you can finish whenever you like.",
-  "intake.mode.brief": "Let us keep it short",
-  "intake.mode.briefSub": "Only the few most essential questions.",
+  "intake.mode.away": "No, I am not at the hospital",
+  "intake.mode.awaySub": "Only the few most essential questions.",
   // The clinic-interruptible checkpoint (02 §34): first-person, plain.
   "intake.finishNow": "I am done",
   // Environment self-check (02 §33) — asked only in the detailed flow.
@@ -709,6 +710,7 @@ export const en: Record<MessageKey, string> = {
   "note.deferred.wellbeing": "Wellbeing screening",
   "note.deferred.marker": "missing: the setting was not suitable",
   "review.hpi.staleCondition": "condition changed",
+  "note.answeredOn": "answered on",
   "review.eksik.title": "Still missing",
   "review.eksik.intro": "These questions have not been answered yet:",
   "review.resume": "Continue where you left off",
@@ -743,8 +745,6 @@ export const en: Record<MessageKey, string> = {
     "This version has no voice sessions; these permissions are not used.",
   "consent.group.purposes": "Other purposes",
   "consent.group.learning": "Learning",
-  "consent.group.learning.hint":
-    "These two options exist so the service works and come switched on; you can turn them off at any time.",
   "consent.lane.affect": "Mood cues from tone of voice",
   "consent.lane.linguistic": "Language cues from text",
   "consent.learning.personal": "Learning for you",
@@ -771,11 +771,7 @@ export const en: Record<MessageKey, string> = {
     "Your answers are used to evaluate the service; they do not go to your doctor.",
   "consent.who.research": "Your data is used in research only if you approve.",
   "consent.basis.explicit":
-    "Based on your explicit consent. You can withdraw at any moment; withdrawal takes effect immediately.",
-  "consent.basis.learningPersonal":
-    "Used so the service you configured can work; that is why it comes switched on. If you turn it off, personal learning stops.",
-  "consent.basis.learningService":
-    "The service is improved with aggregated data separated from your identity; that is why it comes switched on. Turning it off restricts no feature.",
+    "Based on your explicit consent. You can withdraw it at any time; withdrawal takes effect on this device immediately.",
   "consent.state.pending": "Text in preparation",
   "consent.state.stale": "Needs new approval",
   "consent.pending.body":
@@ -787,11 +783,15 @@ export const en: Record<MessageKey, string> = {
   "consent.detail.binding": "Text fingerprint",
   "consent.detail.grant": "I have read it and I accept",
   "consent.detail.withdraw": "Withdraw this permission",
-  "consent.detail.withdrawNote": "Withdrawal takes effect immediately.",
+  "consent.detail.withdrawNote":
+    "Takes effect on this device immediately and is sent at once while you are online.",
   "consent.detail.needsVoice":
     "This option can only be switched on while the voice session permission is on.",
+  "consent.confirm.withdrawTitle": "Do you want to withdraw this consent?",
+  "consent.confirm.stops": "This stops:",
+  "consent.confirm.cancel": "Cancel",
   "consent.queue.note":
-    "Your changes were applied on this device; they will reach the server once a connection is available.",
+    "Your changes were applied on this device; they are sent once a connection is available while the app is open.",
 
   "me.health": "Health data",
   "health.guide.devBuild.kicker": "Preview build",
@@ -972,7 +972,7 @@ export const en: Record<MessageKey, string> = {
   "carried.source.confirmed_imported_record": "It came from a document you confirmed",
   "carried.empty": "Nothing has been carried over from earlier visits.",
   "carried.ledger.body":
-    "Here you can see what has been carried over from your earlier visits and where each item came from. Which of them still holds today is asked at each visit's review step.",
+    "Here you can see what has been carried over from your earlier visits and where each item came from. Which of them still holds is asked at each visit's review step.",
   "note.fact.previousRecord": "previously recorded",
   "note.fact.unconfirmed": "not confirmed at this visit",
   "note.fact.confirmed.patient": "the patient says they are still taking it",
@@ -981,7 +981,7 @@ export const en: Record<MessageKey, string> = {
   "note.fact.changed.clinician": "the clinician recorded a change; no new detail taken",
   "note.fact.stopped.patient": "the patient says they stopped it",
   "note.fact.stopped.clinician": "the clinician recorded it as stopped",
-  "a11y.carried.hint": "Double tap to say whether this still holds today.",
+  "a11y.carried.hint": "Double tap to say whether this still holds.",
   // ---- INT-256: the universal history every intake asks -------------------
   // Mirrors the tr block key-for-key (invariant 5; tr is the source of
   // truth). Nothing here grades a reaction or concludes anything from an
@@ -1388,7 +1388,15 @@ export const en: Record<MessageKey, string> = {
   "kiosk.idle.extend": "Continue",
   "kiosk.idle.extendHint": "Keeps the session open.",
   "red.call112": "Call 112",
+  "red.call112Failed": "The call could not be opened. Dial 112 from your phone.",
+  "red.goToAcil": "Go to the emergency department",
+  "red.callStaff": "Notify staff",
+  "red.callStaff.hint": "Sends a notification to the staff.",
+  "red.callStaff.sending": "Sending word to the staff.",
+  "red.callStaff.sent": "Word was sent to the staff.",
+  "red.callStaff.failed":
+    "The message could not be sent. Ask a staff member for help, or go to the emergency department.",
   "red.location.yes": "Yes",
   "red.location.no": "No",
-  "red.doNots": "Please do not",
+  "red.doNots": "Do not",
 };

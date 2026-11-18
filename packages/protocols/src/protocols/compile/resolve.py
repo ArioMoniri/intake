@@ -33,6 +33,7 @@ from clinical_schemas.common import FrozenModel, Sha256
 from pydantic import Field
 
 from protocols.bindings import OperationalTemplate, fhir_link_id
+from protocols.compile.choice_options import choice_option_refusals
 from protocols.compile.data_categories import (
     category_relaxation_refusals,
     slot_category_refusals,
@@ -932,6 +933,12 @@ def resolve_protocol(
     refusals.extend(_gate_ref_refusals(sections))
     refusals.extend(
         gate_value_refusals(
+            ((section.id, slot.key, slot.slot) for section in sections for slot in section.slots),
+            committed,
+        )
+    )
+    refusals.extend(
+        choice_option_refusals(
             ((section.id, slot.key, slot.slot) for section in sections for slot in section.slots),
             committed,
         )

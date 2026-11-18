@@ -57,10 +57,18 @@ from clinical_schemas.common import JsonValue
 from clinical_schemas.session import AnswerState
 from clinical_schemas.triage import RedLocation, RedRegister, TriageLevel
 from fastapi import APIRouter, BackgroundTasks
+from protocols.choices import committed_choice_slots, submitted_set_answer
 from protocols.dsl import RedFlagRule
 from protocols.triage import TriageContext, TriageEvaluation, evaluate_triage
 from protocols.triage.context import SlotAnswer
-from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, StringConstraints
+from pydantic import (
+    AwareDatetime,
+    BaseModel,
+    ConfigDict,
+    Field,
+    StringConstraints,
+    model_validator,
+)
 
 from intake_api.auth import Principal
 from intake_api.consent_guard import require_scopes
@@ -110,6 +118,26 @@ class EvaluateIn(BaseModel):
         "by slot reference. Every entry reads as asked-and-present.",
     )
 
+    @model_validator(mode="after")
+    def _sets_fit_their_slot(self) -> EvaluateIn:
+        """A chips answer to a committed code slot holds only its members, so it
+        is never longer than the set (INT-604): an outside value is a 422 — the
+        device reads that as unevaluated, never GREEN — and the contested-world
+        product of a rule stays bounded (the engine caps the rest and escalates).
+        A single-select slot takes one member. Exclusivity is NOT applied here:
+        refusing "yok" beside a site would leave the site unevaluated."""
+        slots = committed_choice_slots()
+        for ref, value in self.answers.items():
+            known = slots.get(ref)
+            if known is None or not isinstance(value, list):
+                continue
+            slot, members = known
+            if any(member not in members for member in value):
+                raise ValueError("a chips answer holds a value outside its slot's set")
+            if not slot.multiple and len(set(value)) > 1:
+                raise ValueError("a single-select slot takes one member")
+        return self
+
 
 class RedTriggerOut(BaseModel):
     """The data-channel packet, verbatim in shape (red_path.RedTriggerMessage)."""
@@ -130,9 +158,22 @@ class LevelOut(BaseModel):
 
 
 def _context(payload: EvaluateIn) -> TriageContext:
+    """The bound answers as the engine reads them.
+
+    A chips answer (a list) is the whole submitted set (INT-604, ADR-043): one
+    member is that member, several are the files/12 §7.3 union, so any member
+    that fires, fires. It used to be one list value, which reads Unknown, so a
+    symptom chosen among several could never fire. No exclusivity is applied
+    here: trimming a set after submit, or refusing it, would each leave a firing
+    symptom unevaluated. An empty list is no answer."""
     answers: dict[str, SlotAnswer] = {}
     for ref, value in payload.answers.items():
-        carried: JsonValue = list(value) if isinstance(value, list) else value
+        if isinstance(value, list):
+            whole = submitted_set_answer(value)
+            if whole is not None:
+                answers[ref] = whole
+            continue
+        carried: JsonValue = value
         answers[ref] = SlotAnswer(state=AnswerState.ASKED_PRESENT, values=(carried,))
     return TriageContext(reference_time=payload.reference_time, answers=answers)
 

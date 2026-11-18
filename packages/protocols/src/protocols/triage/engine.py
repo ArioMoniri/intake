@@ -61,6 +61,7 @@ from protocols.triage.expr import (
 from protocols.types import EK4Level, RuleStatus
 
 __all__ = [
+    "MAX_CONTESTED_WORLDS",
     "DraftRuleError",
     "TriageEngineError",
     "TriageEvaluation",
@@ -70,6 +71,16 @@ __all__ = [
     "winning_red_rule",
     "with_candidates",
 ]
+
+
+#: The most contested-value worlds one predicate is evaluated over (INT-604).
+#: Multi-select answers are contested worlds, and their product grows with every
+#: multi-valued slot a rule reads. Past the cap the predicate is not evaluated
+#: and reads TRUE: the rule fires. That is the fail-closed direction for a RED
+#: (over-triage), never a skip, which would be a silent under-triage. The bound
+#: keeps the evaluation inside the 300 ms RED budget (files/02 §8.2);
+#: tests/safety/test_contested_world_cap.py times the worst case at the cap.
+MAX_CONTESTED_WORLDS = 4096
 
 
 class TriageEngineError(ValueError):
@@ -159,6 +170,11 @@ def _truth_over_worlds(
         if (slot := context.answers.get(ref)) is not None and len(slot.values) > 1
     ]
     value_choices = [context.answers[ref].values for ref in contested]
+    worlds = 1
+    for choices in value_choices:
+        worlds *= len(choices)
+        if worlds > MAX_CONTESTED_WORLDS:
+            return Truth.TRUE  # escalate, never skip (MAX_CONTESTED_WORLDS)
     truths: list[Truth] = []
     for combo in itertools.product(*value_choices):
         world = dict(zip(contested, combo, strict=True))
