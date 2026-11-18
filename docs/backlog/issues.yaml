@@ -7687,3 +7687,24 @@
     - "The API's OpenBao policy grants read-only access to the path; the migration outcome is observable with ids only and catalogued; files/10 §9 and the threat-model residual are updated; tests first with near misses."
   tests: [tests/api/test_tokenization_key.py, tests/api/test_tokenization_probe.py, tests/infra/test_staging_tokenization_key.py, tests/infra/test_staging_compose.py, tests/infra/test_staging_netgsm.py, tests/api/test_previsit_output.py, tests/api/test_otp_netgsm_wiring.py]
   sec_row: "onboarding"
+- id: INT-597
+  epic: E13-infra
+  phase: P1
+  title: "node-forge, glob and minimatch 10 lifted past the 30 Oct advisories; the minimatch 3.1.5 exception is owner-applied"
+  # GitHub #1017. On 30 Oct 2026 around 23:00 UTC OSV published eleven node-forge
+  # records, one glob record and one minimatch record; osv-scanner 2.5.1 turned
+  # main 5d6984a7 red with 14 findings. node-forge, glob and minimatch 10.x are
+  # lifted by version. minimatch 3.1.5 under eslint 9 and its plugins has no
+  # in-range fix, so its one osv row is the owner's own commit of
+  # owner-597-minimatch-exception.patch, which also retires the node-forge 1.4.0 rows.
+  depends_on: [INT-590]
+  labels: [area:security]
+  status: awaiting-human
+  evidence: docs/evidence/INT-597.md
+  acceptance:
+    - "root pnpm overrides node-forge@<1.4.1: ^1.4.1, glob@>=9.0.0 <14.0.2: ^14.0.2 and minimatch@>=10.0.0 <11.0.1: ^11.0.1; pnpm-lock.yaml resolves node-forge 1.4.2, glob 14.0.3 and minimatch 11.0.3, minimatch 3.1.5 unchanged; the PR adds no exception row"
+    - "FIXED_VERSIONS floors node-forge at 1.4.1 with its override in OVERRIDE_FLOORS; RANGED_FLOORS lifts glob [9.0.0, 14.0.2) and minimatch [10.0.0, 11.0.1) with a near miss; ADVISORY_IDS names the eleven node-forge and the glob records with their CVE aliases; the floor tests are red on main's lockfile and green after"
+    - "pnpm -r lint, typecheck and test, expo config, @expo/fingerprint, expo export --platform ios and the @expo/code-signing-certificates checks on node-forge 1.4.2 pass"
+    - "osv-scanner 2.5.1 reports only minimatch 3.1.5 GHSA-g3hv-75wg-m249 on the branch; the minimatch 3.1.5 row is owner-applied (osv-scanner.toml entry expiring 2026-11-30, the MAX_OSV_SUPPRESSIONS paragraph and its scoped test, from owner-597-minimatch-exception.patch), after which osv-scanner reports no issue"
+  tests: [tests/ci/test_security_gates.py]
+  sec_row: "cicd"
