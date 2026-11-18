@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**392 issues.** By phase: P0 184 · P1 150 · P2 51 · P3 7. By status: awaiting-human 41 · doing 7 · done 267 · todo 76 · withdrawn 1.
+**393 issues.** By phase: P0 184 · P1 151 · P2 51 · P3 7. By status: awaiting-human 41 · doing 8 · done 267 · todo 76 · withdrawn 1.
 
 ## P0
 
@@ -350,6 +350,7 @@
 | INT-584 | The phone-tokenization key moves into OpenBao with the same key material — no pseudonym changes (D38) | E01-platform | INT-013, INT-017, INT-131, INT-345, INT-352 | area:api, risk:security | done |
 | INT-597 | node-forge, glob and minimatch 10 lifted past the 30 Oct advisories; the minimatch 3.1.5 exception is owner-applied | E13-infra | INT-590 | area:security | awaiting-human |
 | INT-614 | The resolved iOS Info.plist carries a Turkish Face ID string, no photo-library key and no background audio mode | E08-mobile | INT-103, INT-131, INT-138, INT-592 | area:mobile | done |
+| INT-613 | App Store readiness: the submission checklist, deliver-shaped metadata, the reviewer sign-in harness and the App Store Connect submit script | E17-release | INT-421, INT-224, INT-592 | area:release, area:mobile, approval:human-legal | doing |
 
 ## P2
 

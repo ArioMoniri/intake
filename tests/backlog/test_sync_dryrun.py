@@ -164,7 +164,8 @@ def test_dryrun_plans_creates_and_updates(tmp_path: Path) -> None:
     # + INT-609, INT-610, INT-611 (the widenings of the ADR-033 answers, D44)
     # + INT-601 (the November 2026 design-audit fixes, GitHub #1026)
     # + INT-614 (Face ID string, no photo-library key, no background audio; from INT-613)
-    assert len(actions) == 392
+    # + INT-613 (App Store readiness checklist, metadata, sign-in harness, submit script)
+    assert len(actions) == 393
     assert actions["INT-001"]["action"] == "update"
     assert actions["INT-001"]["number"] == 1
     assert actions["INT-004"]["action"] == "create"

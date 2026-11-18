@@ -7804,5 +7804,24 @@
     - "the resolved Info.plist carries no NSPhotoLibraryUsageDescription (expo-image-picker photosPermission false), and every purpose string in it names a production call site; near miss: the camera key stays"
     - "the resolved Info.plist declares no audio or voip UIBackgroundMode (expo-audio enableBackgroundPlayback and enableBackgroundRecording false), asserted on `expo config --type introspect` output"
   tests: [apps/mobile/e2e/iosInfoPlist.spec.ts, tests/legal/test_ios_purpose_strings.py]
+- id: INT-613
+  epic: E17-release
+  phase: P1
+  title: "App Store readiness: the submission checklist, deliver-shaped metadata, the reviewer sign-in harness and the App Store Connect submit script"
+  # Orchestrator brief, 17 Nov 2026: get Önvizit ready for App Store
+  # submission with everything that needs no Apple or Expo credential, building
+  # on #860 (INT-495), #1009 (INT-502) and #1010 (INT-595) without repeating
+  # them. Screenshots are INT-502's. The live submit and the device sign-in
+  # need the owner's credentials (HB-A3, INT-348).
+  depends_on: [INT-421, INT-224, INT-592]
+  labels: [area:release, area:mobile, approval:human-legal]
+  status: doing
+  evidence: docs/evidence/INT-613.md
+  acceptance:
+    - "docs/release/app-store-readiness.md lists every App Store Connect item, each marked done, open PR, missing, needs credentials or needs a human, with its evidence; a test recounts it"
+    - "docs/release/app-store-metadata.yaml holds the listing per locale in fastlane deliver's keys, copied byte for byte from the served listing and bound to it by sha256; a test enforces the field limits, the claims-scan patterns and the listing match, and every listing string is marked approval:human-legal"
+    - "a reviewer sign-in harness drives the OTP flow against the API with no Apple credential, carries no number, code or token in its report, and its D39 no-SMS check fails closed until INT-488 reserves the number; the device-only steps are recorded (INT-348)"
+    - "scripts/release/asc_submit.py validates offline with --dry-run, builds an ES256 JWT from ASC_KEY_ID, ASC_ISSUER_ID and ASC_PRIVATE_KEY, creates the version and uploads metadata and screenshots with --live, refuses while any blocker stands, never submits for review and never writes the demo account; its tests use recorded fixtures only"
+  tests: [tests/release/test_app_store_metadata.py, tests/release/test_asc_submit.py, tests/release/test_review_signin_harness.py, tests/release/test_app_store_readiness.py]
   legal: "STORE"
   sec_row: "mobile"

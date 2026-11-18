@@ -274,7 +274,9 @@ def test_ids_unique_and_well_formed() -> None:
     # CTA, AA contrast, chip shape, field radius, SMS code, review targets; GitHub #1026).
     # + INT-614 (the resolved iOS Info.plist: a Turkish Face ID string, no
     # photo-library key, no background audio; found by INT-613).
-    assert len(ids) == 392
+    # + INT-613 (App Store readiness: checklist, metadata, reviewer sign-in
+    # harness and the App Store Connect submit script; orchestrator brief).
+    assert len(ids) == 393
     import re
 
     for i in ids:

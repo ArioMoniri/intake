@@ -4709,6 +4709,14 @@
 - Decisions / ADRs / `00_STATE.md` rows: none.
 - Blocked on: the owner commits owner-597-minimatch-exception.patch onto the branch. It holds the minimatch 3.1.5 osv row, which expires 2026-11-30, and retires the node-forge 1.4.0 rows. Suppression files and their pins are owner-only.
 - Next: the owner applies the patch and pushes; then merge at the front of the queue.
+### 2026-11-17T15:00:00+03:00 · INT-613 · doing (committed locally, not pushed; awaiting-human for credentials and approvals)
+- Goal: get Önvizit ready for App Store submission, doing everything that needs no Apple or Expo credential. Build on #860, #1009 and #1010 without repeating them.
+- Plan: a readiness checklist of 43 App Store Connect items; deliver-shaped metadata, bound by hash to the served listing; a reviewer sign-in harness on main's API; an offline-validating ASC submit script; findings from `expo config --type introspect`.
+- Tests added (near misses included): metadata limits, claims scan and listing match; asc_submit (limits at the boundary, claims, device-function claims, alpha, one pixel off, identity, guard refusals, JWT verification, fixture-replayed live path, version not editable); harness (end to end, no secrets in the report, wrong code, public host refuses unattested, D39 no-SMS fails closed on main); readiness counts. 1077 passed across legal, release and backlog; mobile tsc ok; no_placeholders, claims and PHI scans ok.
+- Invariants touched and still passing: 6 (the report and log carry no value), 17, 18 (metadata hash-bound to docs/legal), 20 (both claim gates).
+- Decisions / ADRs / `00_STATE.md` rows: none. Screenshots are left to INT-502, because its iOS-simulator captures outrank an Expo-web render.
+- Blocked on: the owner's ASC key and EXPO_TOKEN (HB-A3); approval:human-legal for the listing strings; HB-L21, HB-L27, HB-A12; INT-488 review (D39); the device sign-in (INT-348).
+- Next: Face ID and photo-library purpose strings, and the UIBackgroundModes audio regression (checklist rows 21–23) as their own issues.
 - LOOP_STATUS: WAITING_HUMAN
 ### 2026-11-17T18:45:00+03:00 · INT-601 · done (committed locally; PR to be opened by the owner's session)
 - Goal: fix findings 1-7 of the November 2026 design audit (`docs/design/audit-2026-11/README.md` Part A), GitHub #1026. Acceptance, verbatim:
