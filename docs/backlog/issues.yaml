@@ -7708,3 +7708,31 @@
     - "osv-scanner 2.5.1 reports only minimatch 3.1.5 GHSA-g3hv-75wg-m249 on the branch; the minimatch 3.1.5 row is owner-applied (osv-scanner.toml entry expiring 2026-11-30, the MAX_OSV_SUPPRESSIONS paragraph and its scoped test, from owner-597-minimatch-exception.patch), after which osv-scanner reports no issue"
   tests: [tests/ci/test_security_gates.py]
   sec_row: "cicd"
+- id: INT-615
+  epic: E03-protocols
+  phase: P0
+  title: "Source the draft red-flag rules of base.life_threat against committed verbatim snapshots (owner, 17 Nov 2026)"
+  # Owner, 17 Nov 2026, in chat: "yes source the 15 red flag rules". Read with
+  # D18 (agent-sourced, simulated patients only). Fifteen is the compiler's
+  # DRAFT_RULE_NOT_SERVED count over base.intake with the life-threat set:
+  # base.life_threat holds two drafts, and base.intake's red_flags holds
+  # thirteen skeletons that are authorship (HB-C2, HB-C4, HB-C7, HB-L2, HB-C8),
+  # not sourcing, and are not touched here. CD-107 commits the RCH Melbourne
+  # acute upper airway obstruction CPG as the paediatric source of the airway
+  # trigger set. Both life-threat drafts stay draft: the airway level (EK-4 K1
+  # vs K2), age bound and stridor qualifier are unstated, and the crisis
+  # lexicon is HB-C17/HB-C8. files/protocols/base.life_threat.yaml is
+  # unchanged, so the D23 synthetic signature still verifies. One re-sign is
+  # needed after the physician's sign-off, when the airway source_gap is
+  # narrowed to CD-107's three items.
+  depends_on: [INT-432, INT-465]
+  labels: [area:protocols, risk:clinical, approval:human-clinical]
+  status: awaiting-human
+  evidence: docs/evidence/INT-615.md
+  acceptance:
+    - "every draft_needs_source rule of files/protocols/base.life_threat.yaml is counted and either sourced against a committed verbatim snapshot under packages/protocols/sources/ (url, title, version, retrieved_on, sha256, quote) or left draft with the reason recorded; no value is filled that the snapshot does not state, and nothing is relaxed (invariant 7)"
+    - "a clinical decisions register entry records the sourcing with the author role and a verifier pass; paediatric triggers cite a paediatric source"
+    - "every rule sourced gains a near-miss negative golden; clinical_signoff is untouched; make safety, the protocols tests and no_placeholders are green"
+    - "closes only on a named licensed physician's and a paediatrician's review (HUMAN_BLOCKERS HB-C1); the D23 synthetic signature is re-signed once after that sign-off"
+  tests: [tests/protocols/test_int615_life_threat_sourcing.py, tests/protocols/test_clinical_decisions.py, tests/protocols/test_life_threat_sources.py, tests/protocols/test_red_signature.py]
+  sec_row: "clinical-content"

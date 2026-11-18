@@ -1,0 +1,217 @@
+# INT-615 clinical decision CD-107: sourcing the draft rules of base.life_threat
+# (owner, 17 Nov 2026: "yes source the 15 red flag rules"). Agent-authored under
+# owner decision D18 (2 Oct 2026). It covers simulated-patient stress testing only,
+# and a licensed physician's review is required before any real patient. Every
+# source quote below appears verbatim in the named snapshot, and every spec_basis
+# quote appears verbatim in the named committed file. Not a pack: nothing here is
+# compiled or served, and files/protocols/base.life_threat.yaml is unchanged.
+kind: clinical_decision
+id: CD-107
+title: "Sourcing the two draft rules of base.life_threat: the airway trigger set is sourced, and both rules stay draft"
+question: >-
+  The owner asked for the draft red-flag rules of base.life_threat to be sourced. For
+  each draft rule, which current guideline states its trigger, threshold and level,
+  quoted from a committed snapshot? Can the rule leave draft_needs_source without
+  relaxing it (CLAUDE.md invariant 7)?
+decision: >-
+  The pack holds four rules. Two are active (the EK-4 chest-pain pair) and two are
+  draft_needs_source: rf.paediatric_airway_obstruction and
+  rf.crisis_disclosure_signposting. The fifteen the owner was told about is the
+  compiler's count. `protocols compile --pack base.intake --life-threat
+  files/protocols/base.life_threat.yaml` refuses fifteen draft rules: these two, and
+  the thirteen red_flags families of packages/protocols/base/intake.yaml. Those
+  thirteen are skeletons, not unsourced values. Each has a pending trigger and an
+  unset level, and no register or action scripts. Each names its own blockers
+  (HB-C2 and HB-C7; HB-C4 for pregnancy; HB-L2 and HB-C8 for the two suicide
+  families). Sourcing them means authoring them, which is new red-flag semantics and
+  outside the life-threat brief, so INT-615 does not author them.
+  rf.paediatric_airway_obstruction: its trigger set now has a paediatric source. The
+  RCH Melbourne guideline on acute upper airway obstruction (PIC endorsed, last updated
+  March 2021) names each of the four parent-reportable features. It lists stridor
+  under moderate obstruction and sniffing or tripod position under severe to complete
+  obstruction. Drooling and dysphagia appear among the features of retropharyngeal
+  abscess and epiglottitis, and muffled voice among those of quinsy and epiglottitis.
+  Its key point, letting the child keep a position of their choice and avoiding
+  distress, also supports the rule's CALM delivery. EK-4 is the binding Turkish triage
+  table. It names airway obstruction risk in Kırmızı Kategori 1 and severe stridor or
+  swallowing difficulty with airway obstruction risk in Kategori 2. The rule still
+  stays draft_needs_source, for three reasons no committed source settles. (1) Level:
+  the rule is KIRMIZI_K1, but EK-4 prints the two features it names, stridor and
+  swallowing difficulty, in Kategori 2. Lowering the rule to K2 would relax it, which
+  invariant 7 forbids an agent to do. Keeping K1 on EK-4's general Kategori 1 line is
+  a reading, not a quote. The level stays as authored and the choice is the
+  physician's. (2) Age band: the gate reads subject.age_years < 18, and neither RCH nor
+  EK-4 states an upper age bound. The WHO IMCI chart already committed covers 2 months
+  up to 5 years, and adopting it would narrow the rule. (3) Stridor qualifier: RCH
+  lists intermittent stridor under mild obstruction, and EK-4 says severe stridor. The
+  gate fires on any reported stridor, which is the more sensitive reading. Qualifying
+  it would narrow the rule, and that is a physician's call that LT-03-N already guards.
+  rf.crisis_disclosure_signposting stays draft_needs_source. No guideline supplies a
+  Turkish crisis lexicon: it has to be authored by a clinician (HB-C17), and the
+  escalation policy it hands off to does not exist (HB-C8). The rule file's own record
+  that 112 is the single number is already cited there (files/04 §4.1).
+  files/protocols/base.life_threat.yaml is deliberately not edited. No rule changes
+  status, and an edit would void the D23 synthetic signature with no rule to show for
+  it. Narrowing the airway source_gap text to the three items above is folded into
+  the one re-sign that follows the physician's sign-off.
+status: active
+scope: simulated_patient_stress_testing
+scope_note: "Owner decision D18 (2 Oct 2026): agent-only sign-off, for simulated-patient stress testing only. A licensed physician's review is required before any real patient. No clinical_signoff field is touched (D17), and HB-C1 stays open; a paediatrician signs the airway rule."
+question_origin: "Owner, 17 Nov 2026, in chat: 'yes source the 15 red flag rules'. INT-615."
+author_role: "paediatric emergency medicine and emergency medicine physician (agent)"
+inference_disclosure: "Reading drooling and muffled voice as triggers of airway obstruction rests on RCH's differential-diagnoses table for acute upper airway obstruction, where they are features of named causes (retropharyngeal abscess, quinsy, epiglottitis) rather than graded severity signs; that reading is this author's. Mapping a parent's report onto the guideline's clinician-observed features is the pack's own split (files/04 §8.1 rule 2), already disclosed on the rule."
+sources:
+  - kind: guideline
+    guideline_id: RCH-CPG-AUAO-2021
+    title: "Clinical Practice Guidelines: Acute upper airway obstruction"
+    version_or_date: "Last updated March 2021"
+    url: "https://www.rch.org.au/clinicalguide/guideline_index/Acute_upper_airway_obstruction/"
+    retrieved_on: 2026-11-17
+    section: "Assessment, Moderate obstruction"
+    quote: "Tachypnoea Stridor Prolonged inspiratory time"
+    snapshot: packages/protocols/sources/RCH-CPG-AUAO-2021.txt
+    supports: trigger_set.stridor_reported
+  - kind: guideline
+    guideline_id: RCH-CPG-AUAO-2021
+    title: "Clinical Practice Guidelines: Acute upper airway obstruction"
+    version_or_date: "Last updated March 2021"
+    url: "https://www.rch.org.au/clinicalguide/guideline_index/Acute_upper_airway_obstruction/"
+    retrieved_on: 2026-11-17
+    section: "Assessment, Severe to complete obstruction"
+    quote: "Sniffing or tripod position"
+    snapshot: packages/protocols/sources/RCH-CPG-AUAO-2021.txt
+    supports: trigger_set.tripod_position
+  - kind: guideline
+    guideline_id: RCH-CPG-AUAO-2021
+    title: "Clinical Practice Guidelines: Acute upper airway obstruction"
+    version_or_date: "Last updated March 2021"
+    url: "https://www.rch.org.au/clinicalguide/guideline_index/Acute_upper_airway_obstruction/"
+    retrieved_on: 2026-11-17
+    section: "Differential diagnoses, Retropharyngeal abscess; Epiglottitis"
+    quote: "Pooling of secretions, drooling"
+    snapshot: packages/protocols/sources/RCH-CPG-AUAO-2021.txt
+    supports: trigger_set.drooling_unable_to_swallow
+    caveat: "A feature of named causes in the differential table, not a graded severity sign. 'Dysphagia and drooling' (retropharyngeal abscess) is the other row."
+  - kind: guideline
+    guideline_id: RCH-CPG-AUAO-2021
+    title: "Clinical Practice Guidelines: Acute upper airway obstruction"
+    version_or_date: "Last updated March 2021"
+    url: "https://www.rch.org.au/clinicalguide/guideline_index/Acute_upper_airway_obstruction/"
+    retrieved_on: 2026-11-17
+    section: "Differential diagnoses, Peritonsillar abscess (quinsy); Epiglottitis"
+    quote: "Hot potato/muffled voice"
+    snapshot: packages/protocols/sources/RCH-CPG-AUAO-2021.txt
+    supports: trigger_set.muffled_voice
+    caveat: "A feature of named causes in the differential table, not a graded severity sign. Epiglottitis lists 'Muffled voice'."
+  - kind: guideline
+    guideline_id: RCH-CPG-AUAO-2021
+    title: "Clinical Practice Guidelines: Acute upper airway obstruction"
+    version_or_date: "Last updated March 2021"
+    url: "https://www.rch.org.au/clinicalguide/guideline_index/Acute_upper_airway_obstruction/"
+    retrieved_on: 2026-11-17
+    section: "Key points"
+    quote: "Allow children with acute upper airway obstruction to adopt a position of their choice and avoid causing distress"
+    snapshot: packages/protocols/sources/RCH-CPG-AUAO-2021.txt
+    supports: trigger_set.delivery
+  - kind: guideline
+    guideline_id: RCH-CPG-AUAO-2021
+    title: "Clinical Practice Guidelines: Acute upper airway obstruction"
+    version_or_date: "Last updated March 2021"
+    url: "https://www.rch.org.au/clinicalguide/guideline_index/Acute_upper_airway_obstruction/"
+    retrieved_on: 2026-11-17
+    section: "Assessment, Mild obstruction"
+    quote: "Intermittent stridor or occasional stertor"
+    snapshot: packages/protocols/sources/RCH-CPG-AUAO-2021.txt
+    supports: stridor_qualifier
+    caveat: "Stridor also appears under mild obstruction. Why the gate's unqualified stridor trigger is a reading the physician rules on."
+  - kind: guideline
+    guideline_id: TR-EK4-2022
+    title: "Yataklı Sağlık Tesislerinde Acil Servis Hizmetlerinin Uygulama Usul ve Esasları Hakkında Tebliğ, EK-4"
+    version_or_date: "RG 13/9/2022 sayı 31952"
+    url: "https://www.resmigazete.gov.tr/eskiler/2022/09/20220913-5-1.pdf"
+    retrieved_on: 2026-10-02
+    section: "EK-4 Kırmızı Kategori 1"
+    quote: "Kardiyak arrest * Solunumsal arrest * Havayolu tıkanıklığı riski"
+    snapshot: packages/protocols/sources/TR-EK4-2022.txt
+    supports: level
+  - kind: guideline
+    guideline_id: TR-EK4-2022
+    title: "Yataklı Sağlık Tesislerinde Acil Servis Hizmetlerinin Uygulama Usul ve Esasları Hakkında Tebliğ, EK-4"
+    version_or_date: "RG 13/9/2022 sayı 31952"
+    url: "https://www.resmigazete.gov.tr/eskiler/2022/09/20220913-5-1.pdf"
+    retrieved_on: 2026-10-02
+    section: "EK-4 Kırmızı Kategori 2"
+    quote: "Şiddetli stridor veya yutkunma güçlüğü ile beraber olan havayolu tıkanıklığı riski"
+    snapshot: packages/protocols/sources/TR-EK4-2022.txt
+    supports: "level, stridor_qualifier, trigger_set.stridor_reported, trigger_set.drooling_unable_to_swallow"
+spec_basis:
+  - file: CLAUDE.md
+    section: "Non-negotiable invariants, 7"
+    quote: "Red-flag rules are monotonic across protocol inheritance: children/overlays add or tighten, never remove or relax."
+    supports: "level, age_band, stridor_qualifier (why the agent keeps the authored values)"
+  - file: files/HUMAN_BLOCKERS.md
+    section: "HB-C17"
+    quote: "Author the Turkish crisis lexicon, and decide what it triggers."
+    supports: crisis_rule
+  - file: files/protocols/base.life_threat.yaml
+    section: "rf.paediatric_airway_obstruction source_gap"
+    quote: "What is still missing is a citable Turkish or international paediatric emergency source for the TRIGGER SET itself"
+    supports: trigger_set
+source_gap: >-
+  Level: EK-4 prints severe stridor and swallowing difficulty in Kırmızı Kategori 2 and
+  airway obstruction risk in Kategori 1, so whether a parent-reported feature is K1 or
+  K2 is not stated, and the agent may not lower the authored K1. Age band: no committed
+  paediatric source states an upper age bound for the rule. Stridor qualifier: RCH
+  grades intermittent stridor as mild and EK-4 qualifies it as severe, while the gate
+  fires on any reported stridor. Crisis rule: the lexicon must be authored by a
+  clinician (HB-C17), and the escalation policy does not exist (HB-C8).
+fail_closed_while_draft: "Both rules stay draft_needs_source in files/protocols/base.life_threat.yaml and are never compiled into a served pack. The D23 served list stays the two chest-pain rules."
+value:
+  life_threat_census:
+    rules_in_pack: 4
+    active: [rf.chest_pain_cardiac_features, rf.chest_pain_no_cardiac_history]
+    draft_needs_source: [rf.paediatric_airway_obstruction, rf.crisis_disclosure_signposting]
+    owner_count_15: "the compiler's DRAFT_RULE_NOT_SERVED count over base.intake with the life-threat set: these two plus thirteen base.intake red_flags skeletons"
+    base_intake_drafts: [rf.chest_pain_acute, rf.stroke_fast, rf.dyspnoea_rest, rf.anaphylaxis, rf.severe_bleeding, rf.suicidal_intent, rf.sepsis_like, rf.thunderclap_headache, rf.pregnancy_bleeding_pain, rf.fever_high_persistent, rf.weight_loss_unintentional, rf.new_neuro_deficit_subacute, rf.suicidal_ideation_passive]
+    base_intake_drafts_authored: false
+    file_edited: false
+  trigger_set:
+    rule: rf.paediatric_airway_obstruction
+    stridor_reported: "RCH moderate obstruction; EK-4 Kategori 2 (severe stridor)"
+    drooling_unable_to_swallow: "RCH differential features (drooling, dysphagia); EK-4 Kategori 2 (yutkunma güçlüğü)"
+    tripod_position: "RCH severe to complete obstruction"
+    muffled_voice: "RCH differential features (quinsy, epiglottitis)"
+    delivery: "RCH key point: the child's own position, avoid distress; supports the CALM register and the do-not list as authored"
+    gate_change: none
+  level:
+    status: draft_needs_source
+    as_authored: KIRMIZI_K1
+    resolved: "TODO: whether a parent-reported airway feature is EK-4 Kırmızı Kategori 1 or Kategori 2 requires clinical sign-off"
+    source_gap: "EK-4 prints the named features in Kategori 2 and the general risk in Kategori 1; lowering the authored K1 would relax the rule (invariant 7)."
+  age_band:
+    status: draft_needs_source
+    as_authored: "subject.age_years < 18"
+    resolved: "TODO: the upper age bound of the paediatric airway rule requires clinical sign-off"
+    source_gap: "Neither RCH nor EK-4 states an upper age bound; WHO IMCI's 2 months up to 5 years would narrow the rule."
+  stridor_qualifier:
+    status: draft_needs_source
+    as_authored: "any reported stridor"
+    resolved: "TODO: whether the stridor trigger is qualified (at rest, severe) requires clinical sign-off"
+    source_gap: "RCH grades intermittent stridor as mild obstruction and EK-4 says severe stridor; qualifying the trigger would narrow the rule."
+  crisis_rule:
+    status: draft_needs_source
+    rule: rf.crisis_disclosure_signposting
+    resolved: "TODO: the Turkish crisis lexicon and its escalation policy requires clinical sign-off"
+    source_gap: "No guideline supplies a Turkish crisis lexicon; it is clinician-authored (HB-C17), and the escalation policy does not exist (HB-C8)."
+value_status:
+  life_threat_census: active
+  trigger_set: active
+  level: draft_needs_source
+  age_band: draft_needs_source
+  stridor_qualifier: draft_needs_source
+  crisis_rule: draft_needs_source
+verifier:
+  verdict: agree_with_changes
+  role: "verifier pass by the authoring agent (not independent; an independent clinical reviewer is to follow)"
+  verified_on: 2026-11-17
+  notes: "Each quote was re-read against the committed snapshot, and the snapshot body was re-checked line by line against the fetched page (0 lines missing). One change was made: muffled voice and drooling were first described as RCH severity signs and are now described as features of named causes in the differential table, with a caveat on each source. The verifier is the author, as the INT-615 brief instructed, so this is not D18's independent verdict. The separate clinical reviewer gives that. Scope D18: simulated-patient stress testing only; a licensed physician's review is required before any real patient."
