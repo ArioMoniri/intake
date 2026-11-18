@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**394 issues.** By phase: P0 184 · P1 152 · P2 51 · P3 7. By status: awaiting-human 42 · doing 8 · done 267 · todo 76 · withdrawn 1.
+**395 issues.** By phase: P0 184 · P1 153 · P2 51 · P3 7. By status: awaiting-human 43 · doing 8 · done 267 · todo 76 · withdrawn 1.
 
 ## P0
 
@@ -352,6 +352,7 @@
 | INT-614 | The resolved iOS Info.plist carries a Turkish Face ID string, no photo-library key and no background audio mode | E08-mobile | INT-103, INT-131, INT-138, INT-592 | area:mobile | done |
 | INT-613 | App Store readiness: the submission checklist, deliver-shaped metadata, the reviewer sign-in harness and the App Store Connect submit script | E17-release | INT-421, INT-224, INT-592 | area:release, area:mobile, approval:human-legal | doing |
 | INT-602 | RED layer: the 112 control is the strongest control, CALM has a visible edge, ON_SITE is never control-less, safe areas respected | E08-mobile | INT-446, INT-465, INT-475, INT-333 | area:mobile, area:api, risk:clinical, approval:human-clinical | awaiting-human |
+| INT-603 | Consent first run: copy agrees with the default-on rows, a real switch, withdrawal confirms once, continue always visible | E08-mobile | INT-132, INT-537, INT-284 | area:mobile, risk:legal, approval:human-legal | awaiting-human |
 
 ## P2
 

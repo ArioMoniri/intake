@@ -21,8 +21,8 @@
  * A platform `Switch` cannot do either of these, which is the other reason
  * this is drawn rather than imported.
  *
- * Refitting the two existing hand-rolled pills onto this component is a
- * separate cleanup issue — one issue, one PR — and is listed as such.
+ * The consent list's hand-rolled pill was refitted onto `SwitchTrack` by
+ * INT-603; the notification screen's is a separate cleanup issue.
  */
 import { Pressable, StyleSheet, View } from "react-native";
 
@@ -70,9 +70,11 @@ export function SwitchRow({ label, sublabel, checked, onChange, hint }: SwitchRo
 }
 
 /**
- * The track and knob alone, for a row that lays out its own words (the review
- * card's share row, INT-601). Decoration: the row around it carries the role,
- * the name and the state.
+ * The drawn track and knob alone, for a host that owns the pressable and its
+ * accessibility: the consent list (INT-603), whose row opens the text and whose
+ * switch is the row's second control, and the review card's share row
+ * (INT-601). Decorative on its own: the host declares the `switch` role, the
+ * name and the checked state.
  */
 export function SwitchTrack({ checked }: { checked: boolean }) {
   const theme = useTheme();

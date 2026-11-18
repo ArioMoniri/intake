@@ -278,7 +278,10 @@ def test_ids_unique_and_well_formed() -> None:
     # harness and the App Store Connect submit script; orchestrator brief).
     # + INT-602 (the RED layer's 112 control, CALM edge, ON_SITE staff control
     # and safe areas; design audit Part B R1-R6, GitHub #1027).
-    assert len(ids) == 394
+    # + INT-603 (consent first run: copy agrees with the default-on rows, a
+    # real switch, withdrawal confirms once, continue always visible; design
+    # audit 2026-11 K1-K3, GitHub #1028).
+    assert len(ids) == 395
     import re
 
     for i in ids:

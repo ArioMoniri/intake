@@ -4822,3 +4822,47 @@
 - Blocked on (human + one sentence + HUMAN_BLOCKERS id): the legal lane records `approval:human-legal` on the tr and en NSFaceIDUsageDescription.
 - Next: INT-613's readiness rows 21–23 move to done when this merges; push when the freeze lifts.
 - LOOP_STATUS: CONTINUE
+### 2026-11-17T12:00:00+03:00 · INT-603 · awaiting-human (PR to open; `approval:human-legal`)
+- Goal: the 2026-11 design audit's K1-K3 on the consent first run (GitHub #1028). Acceptance, verbatim:
+  1. "The first-run screen and its copy agree. Either no purpose that needs consent shows "Açık" before the patient acts, or the rows that show "Açık" are labelled as the service itself (no switch) rather than as a consent. A test asserts that no consent-scope row defaults on."
+  2. "The consent state uses a platform switch/toggle with accessibilityRole "switch", not a badge-like pill. Withdrawing asks for one confirmation that says what stops and that it takes effect immediately. Granting needs no confirmation. Each consent change is still audited."
+  3. ""Devam edin" is reachable without scrolling on a 320×568 viewport (sticky footer), and is tested."
+  4. "Every string comes from the tr catalogue, with no new legal text outside docs/legal/ (invariant 18)."
+- Plan:
+  - Add a pure tap-rule module (`lib/consent/switchIntent.ts`) and replace the pill with a role="switch" control on the drawn `SwitchTrack`.
+  - Add an in-place `WithdrawConfirm` that names what stops and reuses the "hemen geçerli olur" fact.
+  - Move the existing learning line above the two default-on rows, and pin "Devam edin" on a `GlassBar`.
+- Tests added:
+  - switchIntent.test.ts (19). Near misses: a granted consent is checked, a stale one is not, and an ungranted cascade child is not listed.
+  - consent.spec.ts (+11), including the 320 × 568 bar arithmetic at scales 1.0, 1.6 and 2.0.
+  - overflow.spec.ts: the rule revisited for consent.tsx.
+- Result:
+  - Red run: 9 failed plus an unresolved module.
+  - Green run: mobile vitest 3182, `tsc` clean, lint 0 errors, no_placeholders OK, and pytest release+legal+backlog+smoke+policyguard 1160.
+  - `make check`, `make safety` and `make security` were not run in this worktree; the PR's CI runs them.
+- Invariants touched and still passing:
+  - 2/5: tr first, siz, B1, PolicyGuard; the recorded register set did not grow.
+  - 4: withdrawal still goes through the audited server route.
+  - 17: no placeholders.
+  - 18: no consent text, fixed string or docs/legal change, and no new legal claim. An "izin değildir" draft was withdrawn because the learning grounds are the open HB-L27 question.
+- Decisions / ADRs / `00_STATE.md` rows: none. Item 1 is met by its first branch. The second branch would remove the learning opt-out and revive the deleted `consent.basis.service`.
+- Blocked on: the legal-reviewer (D25 legal lane) must answer one question: is the first-run fix acceptable as built while the learning grounds remain open? See HB-L27 and the docs/backlog/blockers.md row.
+- Next: push, open the PR with `approval:human-legal`, and take device screenshots of the first run at 320 × 568 for the reviewer.
+- LOOP_STATUS: WAITING_HUMAN
+- Update (legal review round 1):
+  - Items 2–3 applied: the learning line is now neutral, with no basis claim, and a test shows withdrawal takes no more taps than grant.
+  - Item 4 was reworded rather than persisted, because persisting consent ops on the device is a new on-device data category.
+  - Item 1 is only partly done. The default-on check now reads purpose ids, with a shrink-only exception for the two learning ids. Seeding them OFF needs the server registry and files/06 §2 to change, which is a consent-semantics stop-and-ask, so it is left to the owner and counsel (HB-L27).
+  - Green run: mobile vitest 3190; release/legal/backlog pytest 1020.
+- Update (legal review round 2, first pass): the coordinator relayed the owner's KVKK approval. Fail-closed changes:
+  - Both learning purposes now default OFF in the server registry and on the phone. The server's default-on paths are removed.
+  - Migration 0015 makes Loop 2 count only patients with a live grant.
+  - Wait-time rollups now exclude patients who never granted. An empty cohort shows as suppressed (n=0, no mean), never as zero.
+  - files/06 §2 and §8 now say "off until the patient turns it on" and point to D43 (number pending). The coordinator adds the 00_STATE row.
+  - The learning group line is removed, and the learning basis sublabels no longer say "comes switched on".
+  - Merge note: 0015 is a new alembic head.
+- Update (legal review round 2 on f719128a, legal lane, synthetic scope D25):
+  - Every purpose is now açık rıza; the service-performance and de-identified-opt-out bases are deleted.
+  - All opt-out copy and keys are removed. `consent.basis.explicit` and `consent.queue.note` are set to the reviewer's wording.
+  - The 0015 downgrade raises.
+  - The stale-hash gap is a blockers.md row (HB-L27).

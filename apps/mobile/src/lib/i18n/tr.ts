@@ -774,8 +774,6 @@ export const tr = {
   "consent.group.voice.release": "Bu sürümde sesli görüşme yok; bu izinler kullanılmaz.",
   "consent.group.purposes": "Diğer amaçlar",
   "consent.group.learning": "Öğrenme",
-  "consent.group.learning.hint":
-    "Bu iki seçenek hizmetin çalışması içindir ve açık gelir; dilediğiniz an kapatabilirsiniz.",
   "consent.lane.affect": "Ses tonundan duygu ipuçları",
   "consent.lane.linguistic": "Yazıdan dil ipuçları",
   "consent.learning.personal": "Sizin için öğrenme",
@@ -805,11 +803,7 @@ export const tr = {
     "Yanıtlarınız hizmeti değerlendirmek için kullanılır; hekiminize gitmez.",
   "consent.who.research": "Verileriniz araştırmada yalnızca siz onay verirseniz kullanılır.",
   "consent.basis.explicit":
-    "Açık rızanıza bağlıdır. İstediğiniz an geri çekebilirsiniz; geri çekmek hemen geçerli olur.",
-  "consent.basis.learningPersonal":
-    "Ayarladığınız hizmetin çalışması için kullanılır; bu yüzden açık gelir. Kapatırsanız kişisel öğrenme durur.",
-  "consent.basis.learningService":
-    "Kimliğinizden ayrılmış toplu verilerle hizmet iyileştirilir; bu yüzden açık gelir. Kapatmak hiçbir özelliği kısıtlamaz.",
+    "Açık rızanıza bağlıdır. İstediğiniz an geri çekebilirsiniz; geri çekmek bu cihazda hemen geçerli olur.",
   "consent.state.pending": "Metin hazırlanıyor",
   "consent.state.stale": "Yeniden onay gerekli",
   "consent.pending.body":
@@ -821,10 +815,18 @@ export const tr = {
   "consent.detail.binding": "Metin damgası",
   "consent.detail.grant": "Okudum, kabul ediyorum",
   "consent.detail.withdraw": "İzni geri çekin",
-  "consent.detail.withdrawNote": "Geri çekmek hemen geçerli olur.",
+  // INT-603 legal review round 1: true without a stored queue — the change
+  // holds on this phone at once and is sent at once while online.
+  "consent.detail.withdrawNote":
+    "Bu cihazda hemen geçerli olur; internete bağlıyken hemen gönderilir.",
   "consent.detail.needsVoice": "Bu seçenek yalnızca sesli görüşme izni açıkken açılabilir.",
+  // INT-603 (audit K2): the one confirmation before a switch turns something
+  // off. UI chrome only; the immediacy line is consent.detail.withdrawNote.
+  "consent.confirm.withdrawTitle": "Bu izni geri çekmek istiyor musunuz?",
+  "consent.confirm.stops": "Şunlar durur:",
+  "consent.confirm.cancel": "Vazgeçin",
   "consent.queue.note":
-    "Değişiklikleriniz bu cihazda uygulandı; sunucuya bağlantı kurulunca iletilecek.",
+    "Değişiklikleriniz bu cihazda uygulandı; uygulama açıkken bağlantı kurulunca iletilir.",
 
   "me.health": "Sağlık verileri",
   "health.guide.devBuild.kicker": "Deneme sürümü",

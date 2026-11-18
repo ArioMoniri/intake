@@ -440,7 +440,10 @@ def test_backlog_parses_and_is_complete() -> None:
     # + INT-602 (the RED layer's 112 control, CALM edge, ON_SITE staff control
     # and safe areas, design audit R1-R6, GitHub #1027); grows only with a stated
     # reason.
-    assert len(ids) == 394, f"expected 175 blueprint + 219 added issues, got {len(ids)}"
+    # + INT-603 (consent first run: copy agrees with the default-on rows, a real
+    # switch, withdrawal confirms once, continue always visible; design audit
+    # 2026-11 K1-K3, GitHub #1028); grows only with a stated reason.
+    assert len(ids) == 395, f"expected 175 blueprint + 220 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 

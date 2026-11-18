@@ -1,11 +1,14 @@
 """INT-038 — the closed consent-purpose registry (files/06 §2, verbatim).
 
-files/06 §2: "Purposes exactly: ``core``, ``voice``, ``wellbeing``,
-``lane:affect``, ``lane:linguistic``, ``documents``, ``learning:personal``
-(on by default, inspectable — legal basis: performance of the very service
-the patient configured), ``learning:service_improvement`` (de-identified
-aggregates; opt-out costs no feature), ``satisfaction``,
-``share:{recipient,visit,sections,expiry}``, ``research``."
+files/06 §2: "Purposes exactly: `core`, `voice`, `wellbeing`, `lane:affect`,
+`lane:linguistic`, `documents`, `learning:personal` (inspectable; **off until
+the patient turns it on** — D43, INT-603: the earlier "on by default, legal
+basis: performance of the very service the patient configured" is withdrawn
+until counsel records a lawful basis under m.6 as amended by Law 7499,
+HB-L27), `learning:service_improvement` (de-identified aggregates; **off
+until the patient turns it on**, same D43 row; turning it off costs no
+feature), `satisfaction`, `share:{recipient,visit,sections,expiry}`,
+`research`."
 
 The list is CLOSED: purposes come from there, never invented here. Two
 consequences are encoded rather than commented:
@@ -17,10 +20,12 @@ consequences are encoded rather than commented:
   ``share:<qualifier>`` (e.g. ``share:previsit_note``), because a share
   consent without its parameters would be a bundled consent.
 
-Defaults are the unbundling rule made data: every purpose whose lawful
-basis is açık rıza (KVKK m.6) starts OFF — there is no pre-tick the server
-could even represent — and only the two purposes files/06 §2 marks with a
-non-consent basis start ON, each carrying its stated basis.
+Defaults are the unbundling rule made data: EVERY purpose starts OFF — there
+is no pre-tick the server could even represent (D43, INT-603). Every purpose
+is açık rıza: the legal lane's INT-603 round 2 decision (synthetic scope,
+D25; counsel before any real patient) deleted the ``service_performance`` and
+``deidentified_optout`` bases the learning purposes carried, because neither
+is a KVKK m.6/3 ground for health data. Tests pin both facts.
 """
 
 from __future__ import annotations
@@ -59,16 +64,11 @@ class UnknownPurposeError(LookupError):
 
 
 class LegalBasis(enum.StrEnum):
-    """Lawful basis per purpose, exactly as files/06 §2 states it."""
+    """Lawful basis per purpose. Since INT-603 legal review round 2 there is
+    one: no other KVKK m.6/3 ground is recorded for any purpose (HB-L27)."""
 
     # KVKK m.6 açık rıza — free, specific, informed, unbundled, revocable.
     EXPLICIT_CONSENT = "explicit_consent"
-    # files/06 §2 on learning:personal: "performance of the very service the
-    # patient configured" — on by default, inspectable, opt-out honoured.
-    SERVICE_PERFORMANCE = "service_performance"
-    # files/06 §2 on learning:service_improvement: de-identified aggregates
-    # (k ≥ 10, files/06 §8); an opt-out purpose whose refusal costs no feature.
-    DEIDENTIFIED_OPTOUT = "deidentified_optout"
 
 
 @dataclass(frozen=True)
@@ -107,13 +107,13 @@ PURPOSES: tuple[PurposeDef, ...] = (
     PurposeDef(id="documents", legal_basis=_OPTIONAL, default_granted=False),
     PurposeDef(
         id="learning:personal",
-        legal_basis=LegalBasis.SERVICE_PERFORMANCE,
-        default_granted=True,
+        legal_basis=_OPTIONAL,
+        default_granted=False,
     ),
     PurposeDef(
         id="learning:service_improvement",
-        legal_basis=LegalBasis.DEIDENTIFIED_OPTOUT,
-        default_granted=True,
+        legal_basis=_OPTIONAL,
+        default_granted=False,
     ),
     PurposeDef(id="satisfaction", legal_basis=_OPTIONAL, default_granted=False),
     PurposeDef(id="share", legal_basis=_OPTIONAL, default_granted=False, parameterised=True),

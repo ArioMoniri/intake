@@ -421,7 +421,8 @@ async def record_wait(
     ``session_id`` links the observation to the intake it came from. That link
     is what makes the patient's ``learning:service_improvement`` refusal
     honourable at rollup time (files/06 §2 — the de-identified-aggregate
-    purpose, whose refusal must cost no feature); it never travels into a
+    purpose, off until the patient turns it on since INT-603, whose refusal
+    must cost no feature); it never travels into a
     rollup, an export or a metric label.
     """
     source = wait_source(kind)
