@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**388 issues.** By phase: P0 184 · P1 150 · P2 47 · P3 7. By status: awaiting-human 40 · doing 7 · done 266 · todo 74 · withdrawn 1.
+**392 issues.** By phase: P0 184 · P1 150 · P2 51 · P3 7. By status: awaiting-human 41 · doing 7 · done 267 · todo 76 · withdrawn 1.
 
 ## P0
 
@@ -269,7 +269,7 @@
 | INT-329 | Twilio SMS delivery adapter: async, egress-guarded, secrets from OpenBao, fail-closed outside dev | E01-platform | INT-325 | area:api, risk:security, risk:legal | done |
 | INT-330 | Motion: native-stack transition policy — 120 ms on every stack, legal instant, intake gesture-locked | E08-mobile | — | area:mobile | todo |
 | INT-331 | Motion: one fail-closed reduce-motion store bridged to Reanimated | E08-mobile | INT-330 | area:mobile | done |
-| INT-332 | ADR: Motion system v1 (opacity-only ≤ 120 ms, arbiter order, no-motion surfaces, haptics policy, RED as root layer) | E00-governance | — | area:mobile, approval:owner | todo |
+| INT-332 | ADR: Motion system v1 (opacity-only ≤ 120 ms, arbiter order, no-motion surfaces, haptics policy, RED as root layer) | E00-governance | — | area:mobile, approval:owner | awaiting-human |
 | INT-333 | Motion: RED contract — zero motion, first paint as a root layer never behind a navigator, no haptic | E08-mobile | INT-330, INT-332 | area:mobile, risk:clinical | done |
 | INT-343 | Mobile George client authenticates and requests only compiled-pack clip text | E08-mobile | INT-326 | area:mobile, area:voice, risk:security | todo |
 | INT-351 | Admin ops console: server health, GPU quota and model hosts, model usage, ElevenLabs clip cache/usage, wait time, CSAT, CI/CD | E12-admin | INT-181, INT-186, INT-187 | area:admin | done |
@@ -402,6 +402,10 @@
 | INT-338 | Motion: section sheet — measured fade budget, instant privacy and RED closes | E08-mobile | INT-331, INT-334, INT-335 | area:mobile | todo |
 | INT-339 | Motion: typed lane, fallback and completion | E08-mobile | INT-330, INT-335 | area:mobile | done |
 | INT-340 | Haptics: one policy, sticky suppression, server-confirmed success | E08-mobile | INT-332, INT-333 | area:mobile, risk:legal | todo |
+| INT-609 | Motion: one warning haptic for an ALERT RED, only while the microphone is cold (ADR-033 Q2, D44) | E08-mobile | INT-332, INT-333, INT-340 | area:mobile, risk:clinical | todo |
+| INT-610 | SILENT RED guidance may be announced by VoiceOver or TalkBack (ADR-033 Q3, D44) | E08-mobile | INT-332, INT-333 | area:mobile, risk:clinical | todo |
+| INT-611 | Motion: the presence orb breathes with a scale of at most 1.06 (ADR-033 Q5, D44) | E08-mobile | INT-332, INT-336 | area:mobile | todo |
+| INT-601 | Patient app design fixes from the November 2026 audit: Bugün, visit detail, contrast, chips, fields, SMS code, review | E08-mobile | INT-130, INT-144 | area:mobile | done |
 
 ## P3
 
