@@ -272,7 +272,9 @@ def test_ids_unique_and_well_formed() -> None:
     # SILENT screen-reader announcement, the orb's breathing scale <= 1.06).
     # + INT-601 (the November 2026 design-audit fixes: visit detail back and
     # CTA, AA contrast, chip shape, field radius, SMS code, review targets; GitHub #1026).
-    assert len(ids) == 391
+    # + INT-614 (the resolved iOS Info.plist: a Turkish Face ID string, no
+    # photo-library key, no background audio; found by INT-613).
+    assert len(ids) == 392
     import re
 
     for i in ids:

@@ -163,7 +163,8 @@ def test_dryrun_plans_creates_and_updates(tmp_path: Path) -> None:
     # + INT-597 (node-forge, glob and minimatch 10 past the 30 Oct advisories, GitHub #1017)
     # + INT-609, INT-610, INT-611 (the widenings of the ADR-033 answers, D44)
     # + INT-601 (the November 2026 design-audit fixes, GitHub #1026)
-    assert len(actions) == 391
+    # + INT-614 (Face ID string, no photo-library key, no background audio; from INT-613)
+    assert len(actions) == 392
     assert actions["INT-001"]["action"] == "update"
     assert actions["INT-001"]["number"] == 1
     assert actions["INT-004"]["action"] == "create"
