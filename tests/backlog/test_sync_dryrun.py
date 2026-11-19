@@ -169,7 +169,7 @@ def test_dryrun_plans_creates_and_updates(tmp_path: Path) -> None:
     # + INT-603 (consent first run agrees with its rows; switch; sticky continue, GitHub #1028)
     # + INT-604 (exclusive "Yok", day-anchored wording, one-question visit mode, GitHub #1029)
     # + INT-605 (clip set cached in the real voice, owner decision D42, GitHub #1035)
-    assert len(actions) == 397
+    assert len(actions) == 398
     assert actions["INT-001"]["action"] == "update"
     assert actions["INT-001"]["number"] == 1
     assert actions["INT-004"]["action"] == "create"

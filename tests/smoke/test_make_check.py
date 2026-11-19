@@ -447,7 +447,7 @@ def test_backlog_parses_and_is_complete() -> None:
     # visit mode; design audit M1-M3, GitHub #1029); grows only with a stated reason.
     # + INT-605 (the synthetic host's clip set cached in the real voice, owner
     # decision D42, GitHub #1035); grows only with a stated reason.
-    assert len(ids) == 397, f"expected 175 blueprint + 222 added issues, got {len(ids)}"
+    assert len(ids) == 398, f"expected 175 blueprint + 223 added issues, got {len(ids)}"
     assert ids[0] == "INT-001" and "INT-253" in ids
 
 

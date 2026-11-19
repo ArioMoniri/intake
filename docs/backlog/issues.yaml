@@ -7927,3 +7927,19 @@
     - "D42 is pinned by tests/docs/test_state_decisions.py with a near miss; no clinical_signoff is filled and HB-C1 stays open"
   tests: [tests/docs/test_state_decisions.py]
   sec_row: "cloud-clipgen"
+- id: INT-620
+  epic: E08-mobile
+  phase: P0
+  title: "iOS 27 SDK: adopt the UIScene lifecycle so the app launches (SceneDelegate config plugin)"
+  depends_on: []
+  labels: [area:mobile]
+  status: done
+  evidence: docs/evidence/INT-620.md
+  acceptance:
+    - "a build linked against the iOS 27 SDK launches instead of crashing in _UIApplicationEvaluateRuntimeIssueForNoSceneLifecycleAdoption"
+    - "React Native starts exactly once, in a window that belongs to a UIWindowScene"
+    - "opened URLs and universal links still reach RCTLinkingManager"
+    - "the change is a config plugin, so every expo prebuild and every EAS or Xcode build carries it, with a test"
+  tests: [apps/mobile/e2e/sceneLifecycle.spec.ts]
+  sec_row: "mobile"
+

@@ -5,7 +5,7 @@
 > a CI test diffs the two. The YAML is the source of record; the GitHub issues
 > are its sync target. One issue == one PR (`07 §3.11`).
 
-**397 issues.** By phase: P0 184 · P1 155 · P2 51 · P3 7. By status: awaiting-human 44 · doing 8 · done 269 · todo 75 · withdrawn 1.
+**398 issues.** By phase: P0 185 · P1 155 · P2 51 · P3 7. By status: awaiting-human 44 · doing 8 · done 270 · todo 75 · withdrawn 1.
 
 ## P0
 
@@ -195,6 +195,7 @@
 | INT-550 | A new staff user enrols a passkey after the password step | E12-admin | INT-378, INT-421, INT-538 | area:security | done |
 | INT-420 | Önvizit everywhere — finish the Vizite→Önvizit rebrand on main | E08-mobile | INT-130, INT-320 | area:mobile | done |
 | INT-592 | iOS build carries a truthful NSHealthUpdateUsageDescription so App Store processing accepts it (ITMS-90683) | E08-mobile | INT-420, INT-208 | area:mobile | done |
+| INT-620 | iOS 27 SDK: adopt the UIScene lifecycle so the app launches (SceneDelegate config plugin) | E08-mobile | — | area:mobile | done |
 
 ## P1
 

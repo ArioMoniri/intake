@@ -285,7 +285,7 @@ def test_ids_unique_and_well_formed() -> None:
     # visit-mode question that asks one thing; design audit M1-M3, GitHub #1029).
     # + INT-605 (the synthetic host's clip set cached in the real voice, owner
     # decision D42, GitHub #1035).
-    assert len(ids) == 397
+    assert len(ids) == 398
     import re
 
     for i in ids:
